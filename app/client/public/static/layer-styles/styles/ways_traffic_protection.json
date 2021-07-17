@@ -2,7 +2,7 @@
   "name": "ways_traffic_protection",
   "rules": [
     {
-      "name": "very_low",
+      "name": "0_to_10",
       "filter": [
         "&&",
         [
@@ -13,21 +13,46 @@
         [
           "<=",
           "traffic_protection",
-          "20"
+          "10"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
           "color": "#d7191c",
-          "width": 3,
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "low",
+      "name": "10_to_20",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "traffic_protection",
+          "10"
+        ],
+        [
+          "<=",
+          "traffic_protection",
+          "20"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#e85b3a",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "20_to_30",
       "filter": [
         "&&",
         [
@@ -38,21 +63,46 @@
         [
           "<=",
           "traffic_protection",
-          "40"
+          "30"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#fdae61",
-          "width": 3,
+          "color": "#f99e59",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "medium",
+      "name": "30_to_40",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "traffic_protection",
+          "30"
+        ],
+        [
+          "<=",
+          "traffic_protection",
+          "40"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#fec981",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "40_to_50",
       "filter": [
         "&&",
         [
@@ -63,21 +113,46 @@
         [
           "<=",
           "traffic_protection",
-          "60"
+          "50"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#ffffbf",
-          "width": 3,
+          "color": "#ffedab",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "high",
+      "name": "50_to_60",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "traffic_protection",
+          "50"
+        ],
+        [
+          "<=",
+          "traffic_protection",
+          "60"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#ecf7ad",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "60_to_70",
       "filter": [
         "&&",
         [
@@ -88,27 +163,77 @@
         [
           "<=",
           "traffic_protection",
-          "80"
+          "70"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#a6d96a",
-          "width": 3,
+          "color": "#c4e687",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "very_high",
+      "name": "70_to_80",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "traffic_protection",
+          "70"
+        ],
+        [
+          "<=",
+          "traffic_protection",
+          "80"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#97d265",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "80_to_90",
       "filter": [
         "&&",
         [
           ">",
           "traffic_protection",
           "80"
+        ],
+        [
+          "<=",
+          "traffic_protection",
+          "90"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#58b453",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "90_to_100",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "traffic_protection",
+          "90"
         ],
         [
           "<=",
@@ -120,7 +245,7 @@
         {
           "kind": "Line",
           "color": "#1a9641",
-          "width": 3,
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }

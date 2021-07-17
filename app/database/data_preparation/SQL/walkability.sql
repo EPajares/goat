@@ -184,6 +184,10 @@ SET lanes = l.lanes
 FROM footpath_lanes l
 WHERE f.id = l.id; 
 
+UPDATE footpath_visualization 
+SET lanes = 2
+WHERE highway = 'residential' AND lanes = 0;
+
 UPDATE footpath_visualization f
 SET maxspeed = m.maxspeed 
 FROM footpath_maxspeed m
@@ -335,6 +339,13 @@ round(group_index(
 
 UPDATE footpath_visualization SET traffic_protection = 100
 WHERE traffic_protection IS NULL; 
+
+UPDATE footpath_visualization 
+SET traffic_protection = (traffic_protection - 30) / 0.7;
+
+UPDATE footpath_visualization 
+SET traffic_protection = 0
+WHERE traffic_protection < 0;
 
 ----##########################################################################################################################----
 ----#####################################################SECURITY#############################################################----
@@ -706,7 +717,7 @@ DROP TABLE IF EXISTS waste_baskets;
 CREATE TEMP TABLE waste_baskets AS 
 SELECT geom 
 FROM street_furniture 
-WHERE amenity = 'waste_baskets';
+WHERE amenity = 'waste_basket';
 CREATE INDEX ON waste_baskets USING GIST(geom);
 
 WITH cnt_table AS 
@@ -797,3 +808,11 @@ cnt_benches,cnt_waste_baskets,cnt_fountains,cnt_toilets))::float/22.0;
 
 UPDATE footpath_visualization 
 SET walkability = (walkability - 30) / 0.7;
+
+UPDATE footpath_visualization 
+SET walkability = 0 
+WHERE walkability < 0;
+
+UPDATE footpath_visualization 
+SET walkability = 100 
+WHERE walkability > 100;

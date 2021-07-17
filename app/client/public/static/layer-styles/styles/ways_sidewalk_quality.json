@@ -2,7 +2,7 @@
   "name": "ways_sidewalk_quality",
   "rules": [
     {
-      "name": "very_low",
+      "name": "0_to_10",
       "filter": [
         "&&",
         [
@@ -13,21 +13,46 @@
         [
           "<=",
           "sidewalk_quality",
-          "20"
+          "10"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
           "color": "#fcfbfd",
-          "width": 3,
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "low",
+      "name": "10_to_20",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "sidewalk_quality",
+          "10"
+        ],
+        [
+          "<=",
+          "sidewalk_quality",
+          "20"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#f1eff7",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "20_to_30",
       "filter": [
         "&&",
         [
@@ -38,21 +63,46 @@
         [
           "<=",
           "sidewalk_quality",
-          "40"
+          "30"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#dcdcec",
-          "width": 3,
+          "color": "#e0e0ee",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "medium",
+      "name": "30_to_40",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "sidewalk_quality",
+          "30"
+        ],
+        [
+          "<=",
+          "sidewalk_quality",
+          "40"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#c9cae3",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "40_to_50",
       "filter": [
         "&&",
         [
@@ -63,21 +113,46 @@
         [
           "<=",
           "sidewalk_quality",
-          "60"
+          "50"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#a3a0cb",
-          "width": 3,
+          "color": "#b0afd4",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "high",
+      "name": "50_to_60",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "sidewalk_quality",
+          "50"
+        ],
+        [
+          "<=",
+          "sidewalk_quality",
+          "60"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#9692c4",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "60_to_70",
       "filter": [
         "&&",
         [
@@ -88,27 +163,77 @@
         [
           "<=",
           "sidewalk_quality",
-          "80"
+          "70"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#6a51a3",
-          "width": 3,
+          "color": "#7c76b6",
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }
       ]
     },
     {
-      "name": "very_high",
+      "name": "70_to_80",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "sidewalk_quality",
+          "70"
+        ],
+        [
+          "<=",
+          "sidewalk_quality",
+          "80"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#66499f",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "80_to_90",
       "filter": [
         "&&",
         [
           ">",
           "sidewalk_quality",
           "80"
+        ],
+        [
+          "<=",
+          "sidewalk_quality",
+          "90"
+        ]
+      ],
+      "symbolizers": [
+        {
+          "kind": "Line",
+          "color": "#552a91",
+          "width": 2,
+          "join": "bevel",
+          "cap": "square"
+        }
+      ]
+    },
+    {
+      "name": "90_to_100",
+      "filter": [
+        "&&",
+        [
+          ">",
+          "sidewalk_quality",
+          "90"
         ],
         [
           "<=",
@@ -120,7 +245,7 @@
         {
           "kind": "Line",
           "color": "#3f007d",
-          "width": 3,
+          "width": 2,
           "join": "bevel",
           "cap": "square"
         }

@@ -1,5 +1,5 @@
 {
-  "name": "green_blue",
+  "name": "equipment",
   "rules": [
     {
       "name": "0_to_10",
@@ -7,19 +7,19 @@
         "&&",
         [
           ">=",
-          "green_blue_index",
+          "comfort",
           "0"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "10"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#f7fcf5",
+          "color": "#fcfbfd",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -32,19 +32,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "10"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "20"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#e8f6e3",
+          "color": "#f1eff7",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -57,19 +57,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "20"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "30"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#d0edca",
+          "color": "#e0e0ee",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -82,19 +82,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "30"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "40"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#b2e0ab",
+          "color": "#c9cae3",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -107,19 +107,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "40"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "50"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#8ed18c",
+          "color": "#b0afd4",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -132,19 +132,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "50"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "60"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#66bd6f",
+          "color": "#9692c4",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -157,19 +157,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "60"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "70"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#3da75a",
+          "color": "#7c76b6",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -182,19 +182,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "70"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "80"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#238c45",
+          "color": "#66499f",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -207,19 +207,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "80"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "90"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#03702e",
+          "color": "#552a91",
           "width": 2,
           "join": "bevel",
           "cap": "square"
@@ -232,19 +232,19 @@
         "&&",
         [
           ">",
-          "green_blue_index",
+          "comfort",
           "90"
         ],
         [
           "<=",
-          "green_blue_index",
+          "comfort",
           "100"
         ]
       ],
       "symbolizers": [
         {
           "kind": "Line",
-          "color": "#00441b",
+          "color": "#3f007d",
           "width": 2,
           "join": "bevel",
           "cap": "square"

@@ -404,7 +404,7 @@
       "footpath_visualization": "Walkability Index",
       "ways_green_blue_index": "Green- and Blueindex",
       "ways_liveliness": "Walking Environment",
-      "ways_comfort": "Urban Equipment",
+      "ways_urban_equipment": "Urban Equipment",
       "ways_traffic_protection": "Traffic Protection",
       "ways_security": "Illuminance",
       "ways_sidewalk_quality": "Gehkomfort",

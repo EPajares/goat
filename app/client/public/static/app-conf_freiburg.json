@@ -89,7 +89,7 @@
         "editDataType": "GeoJSON",
         "editGeometry": ["LineString"],
         "modifyAttributes": true,
-        "displayInLayerList": false,
+        "displayInLayerList": true,
         "zIndex": 2,
         "serverType": "geoserver",
         "attributes": {
@@ -126,7 +126,7 @@
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
         "displayInLayerList": true,
@@ -140,11 +140,11 @@
       {
         "type": "VECTORTILE",
         "format": "MVT",
-        "name": "ways_comfort",
+        "name": "ways_urban_equipment",
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
         "displayInLayerList": true,
@@ -152,7 +152,7 @@
         "maxResolution": 20,
         "style": {
           "format": "geostyler",
-          "url": "./static/layer-styles/styles/ways_comfort.json"
+          "url": "./static/layer-styles/styles/ways_urban_equipment.json"
         }
       },
       {
@@ -162,7 +162,7 @@
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
         "displayInLayerList": true,
@@ -180,7 +180,7 @@
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
         "displayInLayerList": true,
@@ -198,10 +198,10 @@
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
-        "displayInLayerList": true,
+        "displayInLayerList": false,
         "zIndex": 1,
         "maxResolution": 20,
         "style": {
@@ -216,7 +216,7 @@
         "url": "/api/map/layer/footpath_visualization/{z}/{x}/{y}",
         "group": "streetlevelqualityLayers",
         "opacity": 1,
-        "queryable": true,
+        "queryable": false,
         "visible": false,
         "canEdit": false,
         "displayInLayerList": true,
