@@ -88,8 +88,13 @@ export const UploadIconDialog = ({ open, onClose, onUploaded }: UploadIconDialog
     }
   };
 
+  const handleOnClose = () => {
+    onClose();
+    handleClearFile();
+  };
+
   return (
-    <Dialog open={open} onClose={onClose} fullWidth>
+    <Dialog open={open} onClose={handleOnClose} fullWidth>
       <DialogTitle>{t("upload_icon")}</DialogTitle>
       <DialogContent>
         <SectionHeader
@@ -171,7 +176,7 @@ export const UploadIconDialog = ({ open, onClose, onUploaded }: UploadIconDialog
 
       <DialogActions disableSpacing sx={{ pt: 6, pb: 2, justifyContent: "flex-end" }}>
         <Stack direction="row" spacing={2}>
-          <Button onClick={onClose} variant="text">
+          <Button onClick={handleOnClose} variant="text">
             <Typography variant="body2" fontWeight="bold">
               {t("cancel")}
             </Typography>

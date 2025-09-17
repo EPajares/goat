@@ -266,6 +266,9 @@ importers:
       '@mui/utils':
         specifier: ^5.13.7
         version: 5.16.6(@types/react@18.2.18)(react@18.3.1)
+      '@mui/x-data-grid':
+        specifier: ^6.7.0
+        version: 6.20.4(@mui/material@5.15.12(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mui/system@5.16.7(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@mui/x-tree-view':
         specifier: 6.0.0-alpha.3
         version: 6.0.0-alpha.3(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@mui/material@5.15.12(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mui/system@5.16.7(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

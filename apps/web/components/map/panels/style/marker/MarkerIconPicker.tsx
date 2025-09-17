@@ -102,7 +102,6 @@ const MarkerIconPicker = (props: MarkerIconPickerProps) => {
         selectedMarker={props.selectedMarker || { name: "", url: "", category: "", source: "custom" }}
         onSelectMarker={(marker) => {
           props.onSelectMarker(marker);
-          setOpen(false);
         }}
       />
     </>

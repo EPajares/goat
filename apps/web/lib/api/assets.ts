@@ -48,3 +48,39 @@ export const uploadAsset = async (
     const data = await response.json();
     return uploadedAssetSchema.parse(data);
 };
+
+export const updateAsset = async (
+    assetId: string,
+    updates: {
+        display_name?: string;
+        category?: string;
+    }
+): Promise<UploadedAsset> => {
+    const response = await apiRequestAuth(`${ASSETS_API_BASE_URL}/${assetId}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Update failed: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return uploadedAssetSchema.parse(data);
+};
+
+export const deleteAsset = async (assetId: string): Promise<void> => {
+    const response = await apiRequestAuth(`${ASSETS_API_BASE_URL}/${assetId}`, {
+        method: "DELETE",
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Delete failed: ${errorText}`);
+    }
+    return;
+};

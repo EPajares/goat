@@ -11,10 +11,11 @@ import {
   TextField,
   Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
-import { ICON_NAME } from "@p4b/ui/components/Icon";
+import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { useTranslation } from "@/i18n/client";
 
@@ -34,6 +35,7 @@ type MarkerGalleryProps = {
 };
 
 const MarkerGallery = (props: MarkerGalleryProps) => {
+  const theme = useTheme();
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"library" | "custom">(props.selectedMarker?.source ?? "library");
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -41,7 +43,9 @@ const MarkerGallery = (props: MarkerGalleryProps) => {
   const { t } = useTranslation("common");
 
   // Fetch custom assets
-  const { assets: rawAssets = [], mutate: mutateAssets } = useAssets({ asset_type: assetTypeEnum.Enum.icon });
+  const { assets: rawAssets = [], mutate: mutateAssets } = useAssets({
+    asset_type: assetTypeEnum.Enum.icon,
+  });
 
   // Map assets into our Marker type
   const customMarkers: Marker[] = useMemo(
@@ -71,10 +75,48 @@ const MarkerGallery = (props: MarkerGalleryProps) => {
     if (!search.trim()) return customMarkers;
     const lower = search.toLowerCase();
     return customMarkers.filter(
-      (marker) => marker.name.toLowerCase().includes(lower) || marker.url.toLowerCase().includes(lower)
+      (marker) =>
+        marker.name.toLowerCase().includes(lower) ||
+        marker.url.toLowerCase().includes(lower) ||
+        marker.category?.toLowerCase().includes(lower)
     );
   }, [search, customMarkers]);
 
+  // Group custom markers by category
+  const groupedCustomMarkers = useMemo(() => {
+    if (filteredCustomMarkers.length === 0) return [];
+
+    const groups: Record<string, Marker[]> = {};
+
+    filteredCustomMarkers.forEach((marker) => {
+      const category = marker.category?.trim() || ""; // keep empty string for no category
+      if (!groups[category]) groups[category] = [];
+      groups[category].push(marker);
+    });
+
+    // If the **only group is "" (no category)**, return markers directly (no group UI)
+    const categories = Object.keys(groups);
+    if (categories.length === 1 && categories[0] === "") {
+      return [
+        {
+          name: null, // mark it as ungrouped
+          icons: groups[""],
+        },
+      ];
+    }
+
+    // Otherwise, show groups normally — but hide empty-label group
+    const sortedGroups = Object.entries(groups).sort(([a], [b]) => {
+      if (a === "") return 1; // push uncategorized last
+      if (b === "") return -1;
+      return a.localeCompare(b);
+    });
+
+    return sortedGroups.map(([category, markers]) => ({
+      name: category || t("uncategorized"),
+      icons: markers,
+    }));
+  }, [filteredCustomMarkers, t]);
   // Render icons
   const renderIconGrid = (icons: Marker[]) => (
     <Box sx={{ display: "flex", flexWrap: "wrap" }}>
@@ -151,6 +193,7 @@ const MarkerGallery = (props: MarkerGalleryProps) => {
 
       {/* Scrollable content */}
       <Box sx={{ maxHeight: 280, overflowY: "auto", px: 2, py: 2 }}>
+        {/* Library Icons */}
         {tab === "library" && (
           <>
             {filteredGroups.map((group, groupIndex) => (
@@ -177,24 +220,68 @@ const MarkerGallery = (props: MarkerGalleryProps) => {
           </>
         )}
 
+        {/* Custom Icons */}
         {tab === "custom" && (
           <>
             {filteredCustomMarkers.length ? (
-              renderIconGrid(filteredCustomMarkers)
+              <>
+                {groupedCustomMarkers.map((group, idx) => (
+                  <Stack key={idx} direction="column" sx={{ mb: 2 }} spacing={2}>
+                    {group.name && (
+                      <>
+                        <Typography variant="body2" fontWeight="bold">
+                          {group.name}
+                        </Typography>
+                        <Divider sx={{ mb: 1 }} />
+                      </>
+                    )}
+                    {renderIconGrid(group.icons)}
+                  </Stack>
+                ))}
+              </>
             ) : (
-              <NoValuesFound text={t("no_custom_icons")} icon={ICON_NAME.IMAGE} />
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  textAlign: "center",
+                  height: "100%",
+                  m: 10,
+                }}>
+                <Typography
+                  variant="body2"
+                  fontWeight="bold"
+                  color={theme.palette.text.secondary}
+                  sx={{ my: 2 }}>
+                  {t("no_custom_icons_yet")}
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Icon iconName={ICON_NAME.IMAGE} />}
+                  onClick={() => setUploadDialogOpen(true)}
+                  sx={{ my: 2 }}>
+                  {t("upload_icon")}
+                </Button>
+              </Box>
             )}
 
             {/* Buttons for managing custom icons */}
-            <Divider sx={{ my: 2 }} />
-            <Stack direction="row" justifyContent="space-between" sx={{ mb: 2, mt: 4 }}>
-              <Button size="small" variant="text" onClick={() => setUploadDialogOpen(true)}>
-                {t("upload_icon")}
-              </Button>
-              <Button size="small" variant="text" onClick={() => setManageDialogOpen(true)}>
-                {t("manage_icons")}
-              </Button>
-            </Stack>
+            {filteredCustomMarkers.length > 0 && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Stack direction="row" justifyContent="space-between" sx={{ mb: 2, mt: 4 }}>
+                  <Button size="small" variant="text" onClick={() => setUploadDialogOpen(true)}>
+                    {t("upload_icon")}
+                  </Button>
+                  <Button size="small" variant="text" onClick={() => setManageDialogOpen(true)}>
+                    {t("manage_icons")}
+                  </Button>
+                </Stack>
+              </>
+            )}
           </>
         )}
       </Box>
@@ -212,7 +299,8 @@ const MarkerGallery = (props: MarkerGalleryProps) => {
         open={manageDialogOpen}
         onClose={() => setManageDialogOpen(false)}
         markers={customMarkers}
-        renderIconGrid={renderIconGrid}
+        onDelete={() => mutateAssets()}
+        onUpdate={() => mutateAssets()}
       />
     </Box>
   );

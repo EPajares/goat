@@ -3,7 +3,16 @@ import uuid
 from io import BytesIO
 from typing import List
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Path,
+    UploadFile,
+    status,
+)
 from pydantic import UUID4
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -12,7 +21,7 @@ from core.core.config import settings
 from core.db.models.asset import AssetType, UploadedAsset
 from core.deps.auth import auth_z
 from core.endpoints.deps import get_db, get_user_id
-from core.schemas.asset import AssetRead
+from core.schemas.asset import AssetRead, AssetUpdate
 from core.services.s3 import s3_service
 
 router = APIRouter()
@@ -106,11 +115,12 @@ async def upload_asset(
     if existing_asset:
         existing_asset = existing_asset[0]
         # Update file_name if user re-uploads identical content with a different name
-        if existing_asset.file_name != file.filename:
-            existing_asset.file_name = file.filename
-            async_session.add(existing_asset)
-            await async_session.commit()
-            await async_session.refresh(existing_asset)
+        existing_asset.file_name = file.filename
+        existing_asset.display_name = display_name or existing_asset.display_name
+        existing_asset.category = category or existing_asset.category
+        async_session.add(existing_asset)
+        await async_session.commit()
+        await async_session.refresh(existing_asset)
         return existing_asset  # Return the existing record
 
     # 4. Prepare file for S3 upload
@@ -171,3 +181,85 @@ async def read_assets(
     response = [AssetRead.model_validate(asset) for asset in assets]
 
     return response
+
+
+@router.put(
+    "/{asset_id}",
+    response_model=AssetRead,
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(auth_z)],
+    summary="Update asset metadata",
+)
+async def update_asset(
+    asset_id: UUID4,
+    asset_update: AssetUpdate,
+    async_session: AsyncSession = Depends(get_db),
+    user_id: UUID4 = Depends(get_user_id),
+) -> AssetRead:
+    # Fetch asset
+    result = await async_session.execute(
+        select(UploadedAsset)
+        .where(UploadedAsset.id == asset_id)
+        .where(UploadedAsset.user_id == user_id)
+    )
+    asset = result.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found",
+        )
+
+    # Update fields
+    if asset_update.display_name is not None:
+        asset.display_name = asset_update.display_name
+    if asset_update.category is not None:
+        asset.category = asset_update.category
+
+    async_session.add(asset)
+    await async_session.commit()
+    await async_session.refresh(asset)
+
+    return AssetRead.model_validate(asset)
+
+
+@router.delete(
+    "/{asset_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(auth_z)],
+    summary="Delete an asset",
+)
+async def delete_asset(
+    asset_id: UUID4 = Path(..., description="ID of the asset to delete"),
+    async_session: AsyncSession = Depends(get_db),
+    user_id: UUID4 = Depends(get_user_id),
+) -> None:
+    # Fetch asset
+    result = await async_session.execute(
+        select(UploadedAsset)
+        .where(UploadedAsset.id == asset_id)
+        .where(UploadedAsset.user_id == user_id)
+    )
+    asset = result.scalar_one_or_none()
+    if not asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asset not found",
+        )
+
+    # Delete from S3
+    try:
+        s3_service.delete_file(settings.AWS_S3_ASSETS_BUCKET, asset.s3_key)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete asset from storage: {e}",
+        )
+
+    # Delete from DB
+    await async_session.delete(asset)
+    await async_session.commit()
+
+    return None
+
+
+

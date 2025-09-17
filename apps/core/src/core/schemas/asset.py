@@ -29,3 +29,8 @@ class AssetRead(BaseModel):
     @property
     def url(self) -> str:
         return f"{settings.ASSETS_URL}/{self.s3_key}"
+
+
+class AssetUpdate(BaseModel):
+    display_name: str | None = None
+    category: str | None = None
