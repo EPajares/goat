@@ -61,7 +61,6 @@ Where **statistical methods can be applied**, *count, sum, min, max and expressi
 Add the legends of the layers to your dashboard.
 
 
-- **??List of layers??(renaming it when done): In the configurations choose which layers you want the viewers to see and be able to interact with them. Regardless of a layer's visibility, it'll stay available in Builder (and Data) mode for you to freely use it and showcase its data.**
 - **Zoom to layer**: This will zoom the map view to the full extent of the layer. Available for the viewers as well.
 - **Download**: Not available for the viewers.
 - **Data source info**: Available for the viewers as well.
@@ -84,7 +83,7 @@ Viewers can hide/show the pre-selected layers, but once the dashboard is **reloa
 ### Filter
 
 This widget is an **interactive element**, which allows the user to filter the data on the configured layer based on the selected attribute field.
-The viewers can use this as a *cropping tool on the map*s - this is very similar to our [Filter tool](/data/filter.md) in the Data mode. 
+The viewers can use this as a *cropping tool on the map*s - this is very similar to our [Filter tool](/map/filter.md) in the Data mode. 
 
 
 <div class="step">
