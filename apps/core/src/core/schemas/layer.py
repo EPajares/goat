@@ -76,6 +76,8 @@ class OgrPostgresType(str, Enum):
     Time = "text"
     DateTime = "timestamp"
 
+class OgrPostgresSubType(str, Enum):
+    Boolean = "boolean"
 
 class OgrDriverType(str, Enum):
     """OGR driver types."""

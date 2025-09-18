@@ -50,6 +50,7 @@ from core.schemas.layer import (
     MaxFileSizeType,
     NumberColumnsPerType,
     OgrDriverType,
+    OgrPostgresSubType,
     OgrPostgresType,
     SupportedOgrGeomType,
 )
@@ -543,14 +544,18 @@ class OGRFileHandling:
             field_def = layer_def.GetFieldDefn(i)
             field_name = field_def.GetName().lower()
             field_type_code = field_def.GetType()
+            field_sub_type_code = field_def.GetSubType()
             field_type = field_def.GetFieldTypeName(field_type_code)
+            field_sub_type = ogr.GetFieldSubTypeName(field_sub_type_code)
 
             # Get field type from OgrPostgresType enum if exists
-            field_type_pg = (
-                OgrPostgresType[field_type].value
-                if field_type in OgrPostgresType.__members__
-                else None
-            )
+            if field_type in OgrPostgresType.__members__:
+                if field_sub_type in OgrPostgresSubType.__members__:
+                    field_type_pg = OgrPostgresSubType[field_sub_type].value
+                else:
+                    field_type_pg = OgrPostgresType[field_type].value
+            else:
+                field_type_pg = None
 
             # Check if field type is defined
             if field_type_pg is None:

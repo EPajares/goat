@@ -66,3 +66,5 @@ cache
 .gitmodules
 apps/accounts
 
+apps/core/data/*
+
