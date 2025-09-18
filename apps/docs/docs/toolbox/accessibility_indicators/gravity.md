@@ -178,6 +178,19 @@ Leveraging the *sensitivity* you define, the Gaussian function allows you to mod
 
 :::
 
+:::note Hint
+
+**How to choose the sensitivity value?**
+
+Selecting the best fitting sensitivity always *depends on the context of the analysis*, and there are no strict rules.
+
+- **Low β:** A good strating point could be to use lower sensitivity on **urban scale analyses**, beacause it results in sharper accesssibility value drop with increasing travel time. In urban areas there are more opportunities available, and *people are more likely to choose the closest one*.
+- **High β:** In contrast, higher sensitivity could be used in regional **scale analyses**, where opportunities are more sparse and *people are more likely to travel further* to reach them.
+
+See the **[Calculation](#calculation)** section for a detailed visual explanations on the formula.
+
+:::
+
 </TabItem>
   
 <TabItem value="linear" label="Linear" default className="tabItemBox">
@@ -245,9 +258,23 @@ Need help choosing a suitable travel time limit for various common amenities? Th
   <div class="content">If required, choose a <code>Destination Potential Field</code>. This must be a numeric field from your <i>Opportunity Layer</i> which will be used as a coefficient by the accessibility function.</div>
 </div>
 
-:::tip Pro-tip
+:::tip Pro tip
 
-*Destination potential* is a useful way to prioritize certain opportunities over others. For example, if there are two supermarkets and one is nearer than the other, it would typically receive a higher accessibility score due to its proximity. However, if the supermarket farther away is larger, you may want to give it a higher level of importance. *Destination potential* allows you to use an additional property (such as the size of supermarkets) to assign opportunities a "potential" and employ qualitative information while computing accessibility.
+**Destination potential** is a useful way to prioritize certain opportunities over others. For example, if there are two supermarkets and one is nearer than the other, it would typically receive a higher accessibility score due to its proximity. However, if the supermarket farther away is larger, you may want to give it a higher level of importance. *Destination potential* allows you to use an additional property (such as the size of supermarkets) to assign opportunities a "potential" and employ qualitative information while computing accessibility.
+
+The example below shows how the destination potential can affect the gravity heatmap. Its destination potential is based on the total number of hourly public transport departures from a stop. It will result in a different accessibility distribution, because the area around point with a higher destination potential will be favored in the computation.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_without_destination_potential.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+*The first map is calculated without destination potential.*
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_with_destination_potential.png').default} alt="gravity-with-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+*The second map used the same settings, but added destination potential based on the total number of departures. This altered the accessibility values of each hexagon and they returned in a wider range, because the highest value increased even more. Higher accessibility values are more concentrated around the stops that have larger trip count (red points).* 
 
 :::
 
@@ -328,7 +355,7 @@ where the accessibility **A** of origin **i** is the sum of all opportunities **
 </MathJax.Provider>
   </div>    
 
-  *Negative Exponential, (Kwan,1998):*
+*Negative Exponential, (Kwan,1998):*
 
 
 <div><MathJax.Provider>
@@ -356,22 +383,33 @@ The *sensitivity* parameter determines how accessibility changes with increasing
 
 import ImpedanceFunction from '@site/src/components/ImpedanceFunction';
 
-<ImpedanceFunction />
+<div style={{ display: 'block', textAlign: 'center'}}>
+  <div style={{ maxHeight: "auto", maxWidth: "auto"}}>
+    <ImpedanceFunction />
+   </div> 
+</div>
 
-Similarly, the *destination potential* can be changed. Thus, for example, one POI type (e.g. hypermarkets) can be assigned a higher accessibility effect than other POI types (e.g. discount supermarkets). The following images show the influence of the *destination potential* parameter on accessibility:
+Similarly, the *destination potential* can be changed. Thus, for example, one POI type (e.g. hypermarkets) can be assigned a higher accessibility effect than other POI types (e.g. discount supermarkets). In the [Opportunities](#opportunities) section, at **step 7**,  we cover the *destination potential* in detail.
 
-:::info coming soon
+:::tip
 
-Examples of this functionality will be online soon. 🧑🏻‍💻
+For a calculation example see our tutorial video.
 
 :::
 
+
 ### Classification
-In order to classify the accessibility levels that were computed for each grid cell (for color-coded visualization), a classification based on quantiles is used by default. However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
+In order to classify the accessibility levels that were computed for each grid cell (for color-coded visualization), a classification based on **8 quantile group is used by default**. That means, each color covers 12,5 % of the grid cells. The area outside of the computed layer has no access within the defined travel time.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_default_classification.png').default} alt="gravity-default-classification" style={{ maxHeight: "250px", maxWidth: "auto"}}/>
+</div>
+
+However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
 
 ### Visualization 
 
-Heatmaps in GOAT utilize **[Uber's H3 grid-based](../further_reading/glossary#h3-grid)** solution for efficient computation and easy-to-understand visualization. Behind the scenes, a pre-computed travel time matrix for each *routing type* utilizes this solution and is queried and further processed in real-time to compute accessibility and produce a final heatmap.
+Heatmaps in GOAT utilize **[Uber's H3 grid-based](../further_reading/glossary#h3-grid)** solution for efficient computation and eacessibisy-to-understand visualization. Behind the scenes, a pre-computed travel time matrix for each *routing type* utilizes this solution and is queried and further processed in real-time to compute accessibility and produce a final heatmap.
 
 The resolution and dimensions of the hexagonal grid used depend on the selected *routing type*:
 
@@ -395,47 +433,6 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
 - Average hexagon area: 552995.7 m²
 - Average hexagon edge length: 461.4 m
 
-### Example of calculation
-#### Calculation travel times
-The following example illustrates how the local accessibility heatmap is computed. The travel times are calculated for each grid cell to the concerning destination on the street network.
-
-For the hexagon shown here, the calculation yields the following results, depending on the sensitivity parameter:
-
-##### Uniform sensitivity parameter:
-:::info coming soon
-
-Examples of this functionality will be online soon. 🧑🏻‍💻
-
-:::
-
-##### Varying sensitivity parameter for Hypermarket:
-:::info coming soon
-
-Examples of this functionality will be online soon. 🧑🏻‍💻
-
-:::
-
-Applied in GOAT, the following differences arise:
-
-#### Calculation with uniform sensitivity parameter
-In the first example, the accessibility for grocery shops in 15 min is calculated using a uniform sensitivity parameter (β=300,000) for all shops. The result looks like this:
-
-:::info coming soon
-
-Examples of this functionality will be online soon. 🧑🏻‍💻
-
-:::
-
-#### Calculation with different sensitivity parameters
-In the second example, the accessibility of grocery shops in 15 min is performed using different sensitivity parameters (β=300,000 and β=400,000). This means that the sensitivity parameter depends on the different grocery shop types. For this example, we used β=400,000 for hypermarkets and β=300,000 for discounters and supermarkets. This gives the following result:
-
-:::info coming soon
-
-Examples of this functionality will be online soon. 🧑🏻‍💻
-
-:::
-
-By comparing the two results, you can get a sense of the impact *sensitivity* has on accessibility.
 
 ## 5. References
 

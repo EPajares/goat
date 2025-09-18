@@ -46,20 +46,38 @@ Wann immer Sie eine Farbe ändern möchten, sei es **Füllfarbe** oder **Strichf
 
 </div> 
 
-
 ## Benutzerdefinierte Icons
 
-Für Punktlayer können benutzerdefinierte Icons für die Visualisierung verwendet werden. Dazu kann das Icon aus einer **Icon**-Liste ausgewählt werden. Die Icongröße kann über den Schieberegler eingestellt werden.
+Für Punktlayer können benutzerdefinierte Icons für die Visualisierung verwendet werden. Das Icon kann aus einer **Symbolbibliothek** ausgewählt oder ein **eigenes benutzerdefiniertes Icon hochgeladen** werden. Mit der **Suchleiste** finden Sie die benötigten Symbole schnell. Die Icongröße kann über den Schieberegler angepasst werden.  
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/marker.gif').default} alt="Marker" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/custom_marker.gif').default} alt="Marker" style={{ maxHeight: "500px", maxWidth: "auto", objectFit: "cover"}}/>
 
 </div> 
 
+### Hochladen ein benutzerdefiniertes Icon
+
+Nachdem Sie die Markerliste geöffnet haben, klicken Sie auf <code>Symbol hochladen</code>. Wählen Sie anschließend erneut <code>Symbol hochladen</code> und danach Ihre **jpeg-, png- oder svg-Datei**. Denken Sie beim Benennen Ihrer Datei daran, dass dieser Name später zur Suche nach dem Symbol verwendet wird.  
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/custom_marker_upload.png').default} alt="Marker" style={{ maxHeight: "600px", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div> 
+
+Im Tab <code>Ikonen verwalten</code> können Sie Ihre hochgeladenen Symbole **umbenennen** und **löschen**.  
+
+:::info
+
+Nur die Symbole aus der Bibliothek können in der Farbe bearbeitet werden.  
+
+:::
+
+
 ## Breite & Radius
 
-## Strichbreite
+### Strichbreite
 
 Neben der Farbe kann auch die **Strichstärke** der Striche für **Linienlayern** definiert werden. Passen Sie die Strichstärke nach Ihren Wünschen an, indem Sie entweder den Schieberegler für die Strichstärke verwenden oder die genaue Größe direkt in das dafür vorgesehene Textfeld eingeben.
 
