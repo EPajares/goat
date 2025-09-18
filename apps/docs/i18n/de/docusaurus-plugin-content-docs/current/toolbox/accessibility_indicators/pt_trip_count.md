@@ -17,11 +17,26 @@ Dieser Indikator dient als Grundlage für die [ÖV-Güteklassen](./oev_gueteklas
 
 ![Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/sample.png "Public Transport Trip Count")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info
 Abfahrten ÖPNV ist nur in Gebieten verfügbar, in denen das Verkehrsnetz in GOAT integriert ist.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence für die Berechnung des PT Trip Count in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für die Berechnung der ÖPNV-Abfahrten", color: "#ffffff" }
+      ]}
+  />
+
 </div>
 
 Falls Sie Analysen außerhalb dieses Geofences durchführen müssen, kontaktieren Sie bitte den [Support](https://plan4better.de/de/contact/ "Contact Support") und wir werden prüfen, was möglich ist.

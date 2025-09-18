@@ -17,11 +17,25 @@ This indicator serves as the foundation for the [ÖV-Güteklassen](./oev_guetekl
 
 ![Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/sample.png "[Public Transport Trip Count")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 The public transport (PT) trip count is only available in areas where the transport network is integrated into GOAT. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence for public transport trip count calculation in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+    <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for public transport trip count calculation", color: "#ffffff" }
+      ]}
+    />
 </div> 
 
 In case you need to perform analysis beyond this geofence, feel free to contact the [Support](https://plan4better.de/en/contact/ "Contact Support") and we will check what is possible. 
@@ -100,7 +114,7 @@ Depending on the size of the selected area, the calculation might take some minu
 
 :::tip Hint
 
-If you are interested in one specific mode, e.g. only busses, you can use the [attribute-based styling](../../map/layer_style/attribute_based_styling.md) to adjust the point color based on that desired column.
+If you are interested in one specific mode, e.g. only busses, you can use the [attribute-based styling](../../map/layer_style/style/attribute_based_styling.md) to adjust the point color based on that desired column.
 
 :::
 

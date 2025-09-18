@@ -34,13 +34,27 @@ Kurz beschrieben, sind Erreichbarkeits-Heatmaps eine Visualisierung, die den *Zu
 
 ![Closest Average-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/closest_avg.png "Closest Average-based Heatmap in GOAT")
 
-  
+import MapViewer from '@site/src/components/MapViewer'; 
+
 :::info 
 
 Heatmaps sind in bestimmten Regionen verfügbar. Beim Auswählen eines `Verkehrsmittels` wird auf der Karte ein **Geofence** angezeigt, um die unterstützten Regionen hervorzuheben.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/geofence.png').default} alt="Geofence for Closest-average-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Heatmap-Abdeckung der Durchschnittsreisezeit", color: "#ffffff" }
+      ]}
+  />
+
 </div> 
 
 

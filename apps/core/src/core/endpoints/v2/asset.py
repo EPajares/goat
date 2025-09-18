@@ -175,7 +175,9 @@ async def read_assets(
     if asset_type:
         query = query.where(UploadedAsset.asset_type == asset_type)
 
-    result = await async_session.execute(query)
+    result = await async_session.execute(
+        query.order_by(UploadedAsset.created_at.desc())
+    )
     assets = result.scalars().all()
 
     response = [AssetRead.model_validate(asset) for asset in assets]
@@ -260,6 +262,3 @@ async def delete_asset(
     await async_session.commit()
 
     return None
-
-
-

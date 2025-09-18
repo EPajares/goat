@@ -26,23 +26,40 @@ Darüber hinaus kann das Einzugsgebiet mit räumlichen Datensätzen wie Bevölke
 Sie kennen diese Funktion möglicherweise aus unseren früheren Softwareversionen unter den Begriffen Single-Isochrone und Multi-Isochrone. Mit der Veröffentlichung von GOAT Version 2.0 haben wir diese beiden Indikatoren im gleichen Ablauf zusammengeführt und mit weiteren Berechnungsoptionen angereichert.
 :::
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info
 Die Berechnung von Einzugsgebieten ist in bestimmten Regionen möglich.
 
 Nach Auswahl eines <code>Routentyps</code> zeigt GOAT eine Kartenüberlagerung an, die dies anzeigt.  
 Für <code>Fußweg</code>, <code>Fahrrad</code>, <code>Pedelec</code> und <code>Auto</code> werden über 30 europäische Länder unterstützt, während Einzugsgebiete für <code>Öffentlichen Verkehr</code> für Deutschland berechnet werden können.
 
-<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-  <img 
-    src={require('/img/toolbox/accessibility_indicators/catchments/geofence.png').default} 
-    alt="Geofence für die Einzugsgebietsanalyse in GOAT" 
-    style={{ maxHeight: "300px", maxWidth: "400px" }}
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für Fußwege, Fahrrad, Pedelec und Auto", color: "#ffffff" }
+      ]}
   />
-  
-  <img 
-    src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} 
-    alt="Geofence für die Einzugsgebietsanalyse im ÖV in GOAT" 
-    style={{ maxHeight: "300px", maxWidth: "400px" }}
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für den öffentlichen Nahverkehr", color: "#ffffff" }
+      ]}
   />
 </div>
 

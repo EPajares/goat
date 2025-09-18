@@ -88,7 +88,7 @@ const MarkerIconPicker = (props: MarkerIconPickerProps) => {
               sx={{ visibility: props.selectedMarker ? "visible" : "hidden" }}
               onClick={(e) => {
                 e.stopPropagation();
-                props.onSelectMarker({ name: "", url: "", category: "", source: "custom" });
+                props.onSelectMarker({ name: "", url: "", category: "", source: "library" });
               }}>
               <ClearIcon />
             </IconButton>
@@ -99,7 +99,7 @@ const MarkerIconPicker = (props: MarkerIconPickerProps) => {
         open={open}
         anchorEl={anchorEl}
         onClose={() => setOpen(false)}
-        selectedMarker={props.selectedMarker || { name: "", url: "", category: "", source: "custom" }}
+        selectedMarker={props.selectedMarker}
         onSelectMarker={(marker) => {
           props.onSelectMarker(marker);
         }}

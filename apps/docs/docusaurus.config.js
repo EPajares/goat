@@ -40,9 +40,9 @@ const config = {
           editUrl: ({ locale, versionDocsDirPath, docPath }) => {
             const translation = locale || 'en';
             if (translation !== 'en') {
-              return `https://github.com/plan4better/goat-docs/edit/main/i18n/${translation}/docusaurus-plugin-content-docs/current/${docPath}`;
+              return `https://github.com/plan4better/goat/edit/main/apps/docs/i18n/${translation}/docusaurus-plugin-content-docs/current/${docPath}`;
             }
-            return `https://github.com/plan4better/goat-docs/edit/main/docs/${docPath}`;
+            return `https://github.com/plan4better/goat/edit/main/apps/docs/${docPath}`;
           },
           lastVersion: "current",
           versions: {

@@ -26,23 +26,44 @@ Furthermore, the catchment area can be intersected with spatial datasets, such a
 You might know this feature from our previous software versions under the terms *Single-Isochrone* and *Multi-Isochrone*. With the release of GOAT version 2.0, we combined these two indicators in the same flow and enriched it with further calculation options. 
 :::
 
+import MapViewer from '@site/src/components/MapViewer';
+
+
 :::info 
 The computation of Catchment Areas is possible in specific regions.
 
 Upon selecting a <code>Routing type</code>, GOAT will display a map overlay indicating this.
 For <code>Walk</code>, <code>Bicycle</code>, <code>Pedelec</code>, and <code>Car</code>, over 30 European countries are supported, while <code>Public Transport</code> Catchment Areas may be computed for Germany.
 
-<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px' }}>
-  <img 
-    src={require('/img/toolbox/accessibility_indicators/catchments/geofence.png').default} 
-    alt="Geofence for catchment area calculation in GOAT" 
-    style={{ maxHeight: "300px", maxWidth: "400px" }}
+
+
+
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for Walk, Bicycle, Pedelec & Car", color: "#ffffff" }
+      ]}
   />
-  
-  <img 
-    src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} 
-    alt="Geofence for catchment area calculation in GOAT" 
-    style={{ maxHeight: "300px", maxWidth: "400px" }}
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for Public Transport", color: "#ffffff" }
+      ]}
   />
 </div>
 
