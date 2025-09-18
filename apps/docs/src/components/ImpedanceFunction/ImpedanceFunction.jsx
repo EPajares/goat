@@ -6,8 +6,8 @@ export default function ImpedanceFunction({ initialFunction = 'gaussian', initia
   const canvasRef = useRef(null);
 
   // Define the canvas dimensions
-  const width = 800;
-  const height = 400;
+  const width = 700;
+  const height = 350;
   const padding = 40;
   
   // Max travel time in minutes
@@ -138,7 +138,7 @@ export default function ImpedanceFunction({ initialFunction = 'gaussian', initia
       const y = height - padding - values[i] * (height - 2 * padding);
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = '#0066cc';
+    ctx.strokeStyle = '#2BB381';
     ctx.lineWidth = 3;
     ctx.stroke();
   };
@@ -174,7 +174,7 @@ export default function ImpedanceFunction({ initialFunction = 'gaussian', initia
               step="10000" 
               value={sensitivity} 
               onChange={(e) => setSensitivity(Number(e.target.value))} 
-              style={{ width: '150px', verticalAlign: 'middle' }}
+              style={{ width: '150px', verticalAlign: 'middle', accentColor: '#2BB381'}}
             />
             <span style={{ marginLeft: '10px' }}>{sensitivity.toLocaleString()}</span>
           </>
@@ -183,7 +183,7 @@ export default function ImpedanceFunction({ initialFunction = 'gaussian', initia
       
       <canvas ref={canvasRef} width={width} height={height} style={{ border: '0px solid #ddd', borderRadius: '0px',display: 'block',margin: '0 auto'   }} />
       
-      <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+      <div style={{ marginTop: '10px', fontSize: '14px', color: '#ddd' }}>
   
       </div>
     </div>

@@ -41,10 +41,21 @@ Im <code>Einstellungen</code>-Tab können Sie Ihre bevorzugte **Sprache** (Engli
 
 ## Teameinstellungen
 
-:::info Demnächst verfügbar
+Durch einfaches Anklicken eines Teams öffnen sich die **Teameinstellungen**. Als **Eigentümer des Teams** können Sie im Reiter <code>Profil</code> den **Teamnamen ändern**, die **Beschreibung anpassen** oder ein **Logo bzw. Bild hochladen**.
 
-Wir implementieren derzeit diese Funktion. 🧑🏻‍💻
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}> <img src={require('/img/workspace/settings/team_settings.png').default} alt="Teammitglieder" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> </div>
 
+Im Reiter <code>Mitglieder</code> können Sie die **Mitgliederliste** Ihres Teams einsehen. Über die drei Punkte <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> lassen sich Mitglieder **entfernen**. Außerdem können Sie neue Mitglieder **hinzufügen**.
+
+
+:::info
+
+Wenn Sie nach unten zur Gefahrenzone scrollen, finden Sie auch eine Option, **Ihr Team zu löschen**. Bitte klicken Sie nur auf diesen Button, wenn Sie sich sicher sind, da dies nicht rückgängig gemacht werden kann.
+
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+  <img src={require('/img/workspace/settings/delete_team.png').default} alt="Delete Team" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div> 
 :::
 
 ## Organisationseinstellungen

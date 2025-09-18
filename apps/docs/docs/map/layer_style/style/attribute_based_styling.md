@@ -158,7 +158,7 @@ import TabItem from '@theme/TabItem';
 
 
   </TabItem>
-  <TabItem value="custom marker" label="Custom Marker"> When available, the custom marker has an icon library to best represent your data set.
+  <TabItem value="custom marker" label="Custom Marker"> When available, the custom marker has an icon library to best represent your data set. You can also use your own uploaded custom markers as well.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 

@@ -156,8 +156,8 @@ GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
 
 
   </TabItem>
-  <TabItem value="custom marker" label="Benutzerdefinierter Icon"> Diese sind verfügbar für Punktlayer. Aus einer Übersicht können passende Icons ausgewählt werden.
-
+  <TabItem value="custom marker" label="Benutzerdefinierter Icon"> Diese sind verfügbar für Punktlayer. Aus einer Übersicht können passende Icons ausgewählt werden. Sie können auch Ihre eigenen hochgeladenen Symbole verwenden.
+ 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
    <img src={require('/img/map/layers/attribute-based-custom-marker.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "500px", maxWidth: "500px", objectFit: "cover"}}/>

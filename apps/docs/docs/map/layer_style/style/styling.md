@@ -49,13 +49,31 @@ Whenever you want to change a color, may it be **Fill Color** or **Stroke Color*
 
 ## Custom Marker
 
-For point layers, Custom Markers can be used for the visualization. Therefore, the marker can be selected from an **icon** list. The Marker Size can be adjusted via the slider.
+For point layers, Custom Markers can be used for the visualization. The marker can be selected from an **icon library** or you can **upload your own custom marker**. The **search bar** helps you to find the needed icons quickly. The Marker Size can be adjusted via the slider.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/marker.gif').default} alt="Marker" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/custom_marker.gif').default} alt="Marker" style={{ maxHeight: "500px", maxWidth: "auto", objectFit: "cover"}}/>
 
 </div> 
+
+### Uploading a Custom Marker
+
+After opening the list of markers, click on <code>Upload icon</code>. Then again select <code>Upload icon</code> then choose your **jpeg, png or svg file**. When naming your file, keep in mind that this name will be used to search for the icon. 
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/custom_marker_upload.png').default} alt="Marker" style={{ maxHeight: "600px", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div> 
+
+At the <code>Manage icons</code> tab you can **rename** and **delete** your uploaded icons.
+
+:::info
+
+You can only edit the color of the icons added from the library.
+
+:::
 
 ## Width & Radius
 
