@@ -233,7 +233,11 @@ export const WidgetData = ({ sectionLabel, config, onChange }: WidgetConfigProps
     projectId as string
   );
 
-  const { layerFields } = useLayerFields(selectedLayerDatasetId || "");
+  const fieldType = {
+    [widgetTypes.Values.histogram_chart]: "number",
+  };
+
+  const { layerFields } = useLayerFields(selectedLayerDatasetId || "", fieldType[config.type] ?? undefined);
 
   const selectedColumnName = useMemo(() => {
     if (!hasColumnNameDef || !selectedLayer) return undefined;

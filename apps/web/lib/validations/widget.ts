@@ -106,7 +106,7 @@ export const filterDataConfigSchema = dataConfigSchema.extend({
       layout: filterLayoutTypes.optional().default("select"),
       column_name: z.string().optional(),
       placeholder: z.string().optional(),
-      multiple: z.boolean().optional().default(true),
+      multiple: z.boolean().optional().default(false),
     })
     .default({}),
   options: dataConfigOptionsBaseSchema

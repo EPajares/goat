@@ -118,7 +118,7 @@ export const PieChartWidget = ({ config: rawConfig }: { config: PieChartSchema }
         errorMessage={t("cannot_render_chart_error")}
       />
 
-      {config && !isError && aggregationStats && (
+      {config && !isError && aggregationStats && isChartConfigured && (
         <ResponsiveContainer width="100%" aspect={1.2}>
           <PieChart onMouseEnter={() => handleChartHover(true)} onMouseLeave={() => handleChartHover(false)}>
             <Pie

@@ -21,14 +21,15 @@ import { WidgetStatusContainer } from "@/components/builder/widgets/common/Widge
 
 const CustomTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) => {
   const { t } = useTranslation("common");
-  if (active) {
+  if (active && payload?.length) {
+    const { rangeStart, rangeEnd, count } = payload[0].payload;
     return (
       <Stack>
         <Typography variant="caption" fontWeight="bold">
-          {`[${payload?.[0]?.payload.range[0]} - ${payload?.[0]?.payload.range[1]}]`}
+          [{formatNumber(rangeStart)} - {formatNumber(rangeEnd)}]
         </Typography>
         <Typography variant="body2" fontWeight="bold">
-          {`${t("count")}: ${payload?.[0]?.payload.count}`}
+          {`${t("count")}: ${count}`}
         </Typography>
       </Stack>
     );
@@ -49,12 +50,21 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
     config?.setup?.layer_project_id,
     queryParams as HistogramStatsQueryParams
   );
-  // Memoized chart data
-  const chartData = useMemo(() => histogramStats?.bins || [], [histogramStats]);
+
+  // ✅ Transform API data into flat numeric values
+  const chartData = useMemo(() => {
+    if (!histogramStats?.bins) return [];
+    return histogramStats.bins.map((bin) => ({
+      rangeStart: Number(bin.range[0]),
+      rangeEnd: Number(bin.range[1]),
+      count: bin.count,
+    }));
+  }, [histogramStats]);
 
   const isChartConfigured = useMemo(() => {
     return config?.setup?.layer_project_id && queryParams;
   }, [config, queryParams]);
+
   return (
     <>
       <WidgetStatusContainer
@@ -69,13 +79,12 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
       {config && histogramStats && !isError && isChartConfigured && (
         <ResponsiveContainer width="100%" aspect={1.2}>
           <BarChart data={chartData} margin={{ top: 10, right: 20, bottom: 10 }}>
-            {/* Optimized XAxis */}
             <XAxis
-              dataKey="range[0]"
+              dataKey="rangeStart"
               type="number"
               domain={["dataMin", "dataMax"]}
               tickFormatter={(value) => formatNumber(value, config.options?.format, i18n.language)}
-              tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
+              tick={{ fontSize: 10, fill: theme.palette.text.secondary }}
               tickMargin={5}
               axisLine={false}
               tickLine={false}
@@ -87,10 +96,7 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
                 borderColor: theme.palette.divider,
                 borderRadius: theme.shape.borderRadius,
                 borderStyle: "ridge",
-                paddingLeft: "5px",
-                paddingRight: "5px",
-                paddingTop: "5px",
-                paddingBottom: "5px",
+                padding: "5px",
               }}
               content={<CustomTooltip />}
             />
@@ -107,7 +113,7 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
                 }).format(value)
               }
               tick={{
-                fontSize: theme.typography.caption.fontSize,
+                fontSize: 10,
                 fontFamily: theme.typography.caption.fontFamily,
                 fill: theme.palette.text.secondary,
               }}
@@ -122,7 +128,9 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
           </BarChart>
         </ResponsiveContainer>
       )}
+
       <StaleDataLoader isLoading={isLoading} hasData={!!histogramStats?.bins?.length} />
+
       {config && histogramStats && histogramStats.total_rows > 0 && !isError && (
         <Typography variant="caption" align="left" gutterBottom>
           <Trans
@@ -135,11 +143,13 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
           />
         </Typography>
       )}
+
       {config && histogramStats?.total_rows === 0 && config?.options?.filter_by_viewport && !isError && (
         <Typography variant="caption" align="left" gutterBottom>
           {t("no_features_in_viewport")}
         </Typography>
       )}
+
       {config && histogramStats?.total_rows === 0 && !config?.options?.filter_by_viewport && !isError && (
         <Typography variant="caption" align="left" gutterBottom>
           {t("no_features_in_layer")}

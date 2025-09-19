@@ -250,6 +250,7 @@ const PublicProjectLayout = ({
       settings: { ...project?.builder_config?.settings },
     };
     onProjectUpdate?.("builder_config", builderConfig);
+    dispatch(setSelectedBuilderItem(updatedWidget));
   };
 
   // Add a new panel to the specified position

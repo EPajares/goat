@@ -1,4 +1,4 @@
-import { Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
+// import { Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
@@ -83,7 +83,7 @@ export const WidgetFilterLayout = ({
                 }}
               />
             )}
-            <Stack>
+            {/* <Stack>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -104,7 +104,7 @@ export const WidgetFilterLayout = ({
                 }
                 label={<Typography variant="body2">{t("multiple_selection")}</Typography>}
               />
-            </Stack>
+            </Stack> */}
           </>
         }
       />

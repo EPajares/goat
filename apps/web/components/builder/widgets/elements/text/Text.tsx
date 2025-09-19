@@ -192,7 +192,7 @@ const TextElementWidgetEditable = ({
                 </Stack>
                 <Divider flexItem orientation="vertical" />
                 <AlignSelect editor={editor} />
-                <Divider flexItem orientation="vertical" />
+                {/* <Divider flexItem orientation="vertical" />
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <MenuButton
                     value="link"
@@ -201,7 +201,7 @@ const TextElementWidgetEditable = ({
                     // onClick={() => editor.chain().focus().toggleLink().run()}
                     disabled={!editor.can().toggleLink()}
                   />
-                </Stack>
+                </Stack> */}
               </Stack>
             )}
           </ToolbarContainer>

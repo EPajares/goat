@@ -40,6 +40,8 @@ export const StatisticSelector = ({
     return statisticMethods.find((method) => method.value === value?.method);
   }, [statisticMethods, value?.method]);
 
+  const { layerFields } = useLayerFields(layerDatasetId || "");
+
   const isStatisticFieldVisible = useMemo(() => {
     return (
       selectedStatisticMethod?.value !== statisticOperationEnum.Enum.count &&
@@ -47,15 +49,18 @@ export const StatisticSelector = ({
     );
   }, [selectedStatisticMethod]);
 
-  const { layerFields: statisticLayerFields } = useLayerFields(
-    layerDatasetId || "",
-    isStatisticFieldVisible ? "number" : undefined
-  );
+  const statisticLayerFields = useMemo(() => {
+    if (!layerFields) return [];
+    if (isStatisticFieldVisible) {
+      return layerFields.filter((field) => field.type === "number");
+    }
+    return layerFields;
+  }, [layerFields, isStatisticFieldVisible]);
 
   const groupByFields = useMemo(() => {
-    if (!statisticLayerFields) return [];
-    return statisticLayerFields.filter((field) => field.name !== value?.value);
-  }, [statisticLayerFields, value?.value]);
+    if (!layerFields) return [];
+    return layerFields.filter((field) => field.name !== value?.value);
+  }, [layerFields, value?.value]);
 
   const selectedField = useMemo(() => {
     return statisticLayerFields.find((field) => field.name === value?.value);
