@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 
 import { useTranslation } from "@/i18n/client";
 
-import { setSelectedBuilderItem } from "@/lib/store/map/slice";
+import { removeTemporaryFilter, setSelectedBuilderItem } from "@/lib/store/map/slice";
 import type { BuilderPanelSchema, BuilderWidgetSchema, Project } from "@/lib/validations/project";
 import { builderConfigSchema } from "@/lib/validations/project";
 import { widgetTypesWithoutConfig } from "@/lib/validations/widget";
@@ -54,6 +54,7 @@ const TabPanel = (props: { children?: React.ReactNode; index: number; value: num
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) => {
   const dispatch = useAppDispatch();
   const selectedBuilderItem = useAppSelector((state) => state.map.selectedBuilderItem);
+  const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
   const [value, setValue] = useState(0);
   const { t } = useTranslation("common");
   const builderConfig = useMemo(() => {
@@ -99,8 +100,16 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
     if (!selectedBuilderItem) {
       return;
     }
+    // Remove any temporary filters associated with the deleted panel
+    const widgetsInPanel = (selectedBuilderItem as BuilderPanelSchema).widgets || [];
+    const widgetIds = widgetsInPanel.map((w) => w.id);
+    const associatedFilters = temporaryFilters.filter((filter) => widgetIds.includes(filter.id));
+    associatedFilters.forEach((filter) => {
+      dispatch(removeTemporaryFilter(filter.id));
+    });
     const updatedPanels = builderConfig?.interface.filter((panel) => panel.id !== selectedBuilderItem.id);
     if (updatedPanels) handleMapInterfaceChange(updatedPanels);
+    dispatch(setSelectedBuilderItem(undefined));
   };
 
   const onPanelChange = (panel: BuilderPanelSchema) => {

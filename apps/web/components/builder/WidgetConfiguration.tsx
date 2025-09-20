@@ -1,11 +1,12 @@
 import { Stack } from "@mui/material";
 import { useMemo } from "react";
 
+import { removeTemporaryFilter } from "@/lib/store/map/slice";
 import { hasNestedSchemaPath } from "@/lib/utils/zod";
 import type { BuilderWidgetSchema } from "@/lib/validations/project";
 import { widgetSchemaMap } from "@/lib/validations/widget";
 
-import { useAppSelector } from "@/hooks/store/ContextHooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import {
   WidgetData,
@@ -19,7 +20,12 @@ interface WidgetConfigurationProps {
 }
 
 const WidgetConfiguration = ({ onChange }: WidgetConfigurationProps) => {
+  const dispatch = useAppDispatch();
   const selectedBuilderItem = useAppSelector((state) => state.map.selectedBuilderItem);
+  const existingFilter = useAppSelector((state) =>
+    state.map.temporaryFilters.find((filter) => filter.id === selectedBuilderItem?.id)
+  );
+
   if (selectedBuilderItem?.type !== "widget" || !selectedBuilderItem?.config) {
     return null; // Don't render anything if it's not a widget or has no config
   }
@@ -31,6 +37,9 @@ const WidgetConfiguration = ({ onChange }: WidgetConfigurationProps) => {
   }
 
   const handleConfigChange = (config: never) => {
+    if (existingFilter) {
+      dispatch(removeTemporaryFilter(existingFilter.id));
+    }
     onChange({
       ...selectedBuilderItem,
       config,

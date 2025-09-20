@@ -15,10 +15,10 @@ import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import SelectorLayerValue from "@/components/map/panels/common/SelectorLayerValue";
 
-// Helper function for deep comparison using JSON.stringify
+// Deep compare helper
 const areFiltersEqual = (a: TemporaryFilter | undefined, b: TemporaryFilter) => {
   if (!a) return false;
-  const cleanA = { ...a, id: undefined }; // Exclude ID from comparison
+  const cleanA = { ...a, id: undefined }; // ignore ID
   const cleanB = { ...b, id: undefined };
   return JSON.stringify(cleanA) === JSON.stringify(cleanB);
 };
@@ -33,9 +33,12 @@ interface FilterDataProps {
 export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: FilterDataProps) => {
   const dispatch = useAppDispatch();
   const { map } = useMap();
+
+  // Local dropdown state
   const [selectedValues, setSelectedValues] = useState<string[] | string | undefined>(
     rawConfig?.setup?.multiple ? [] : ""
   );
+
   const existingFilter = useAppSelector((state) =>
     state.map.temporaryFilters.find((filter) => filter.id === id)
   );
@@ -44,6 +47,29 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
     return projectLayers?.find((l) => l.id === rawConfig?.setup?.layer_project_id) ?? null;
   }, [projectLayers, rawConfig?.setup?.layer_project_id]);
 
+  /**
+   * Sync local state with config changes.
+   * If user changes column/layer in the config panel, wipe local state + related filter.
+   */
+  useEffect(() => {
+    setSelectedValues(rawConfig?.setup?.multiple ? [] : "");
+    if (existingFilter) {
+      dispatch(removeTemporaryFilter(id));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawConfig?.setup?.column_name, rawConfig?.setup?.layer_project_id]);
+
+  /**
+   * Sync local state when filter is removed externally
+   * (e.g. FilterConfigPanel removes it).
+   */
+  useEffect(() => {
+    if (!existingFilter) {
+      setSelectedValues(rawConfig?.setup?.multiple ? [] : "");
+    }
+  }, [existingFilter, rawConfig?.setup?.multiple]);
+
+  // If cross filter is polygon, fetch geometry
   const geometryDataQueryParams = useMemo(() => {
     const values = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
     if (
@@ -70,7 +96,11 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
 
   const { data: geometryData } = useDatasetCollectionItems(layer?.layer_id || "", geometryDataQueryParams);
 
+  /**
+   * Keep store in sync with selected values
+   */
   useEffect(() => {
+    // Nothing selected or invalid config
     if (
       !selectedValues ||
       (Array.isArray(selectedValues) && selectedValues.length === 0) ||
@@ -101,7 +131,11 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
       });
     }
 
-    if (geometryData?.features?.length) {
+    if (
+      geometryData?.features?.length &&
+      rawConfig?.options?.cross_filter &&
+      layer.feature_layer_geometry_type === "polygon"
+    ) {
       newFilter.spatial_cross_filter = {
         op: "or",
         args: geometryData.features.map((feature) => ({
@@ -111,7 +145,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
       };
     }
 
-    // Compare filters using JSON.stringify
+    // Compare and update store only if different
     if (!areFiltersEqual(existingFilter, newFilter)) {
       if (existingFilter) {
         dispatch(updateTemporaryFilter(newFilter));
@@ -126,6 +160,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
     id,
     layer,
     map,
+    rawConfig?.options?.cross_filter,
     rawConfig?.options?.zoom_to_selection,
     rawConfig.setup.column_name,
     selectedValues,
@@ -134,7 +169,6 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
   return (
     <Box sx={{ mb: 2 }}>
       <WidgetStatusContainer isNotConfigured={!layer || !rawConfig?.setup?.column_name} height={100} />
-
       {layer &&
         rawConfig?.setup.column_name &&
         rawConfig?.setup.layout === filterLayoutTypes.Values.select && (

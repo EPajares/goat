@@ -5,7 +5,7 @@ import { v4 } from "uuid";
 import { useTranslation } from "@/i18n/client";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
-import { setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";
+import { removeTemporaryFilter, setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema } from "@/lib/validations/project";
 import {
   type BuilderPanelSchema,
@@ -48,6 +48,7 @@ const PublicProjectLayout = ({
   const dispatch = useAppDispatch();
 
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
+  const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
   const selectedPanel = useAppSelector((state) => state.map.selectedBuilderItem) as BuilderPanelSchema;
   const builderConfig = project?.builder_config;
   const panels = useMemo(() => builderConfig?.interface ?? [], [builderConfig]);
@@ -229,6 +230,11 @@ const PublicProjectLayout = ({
     };
     onProjectUpdate?.("builder_config", builderConfig);
     dispatch(setSelectedBuilderItem(undefined));
+    // Remove any temporary filters associated with the deleted widget
+    const associatedFilters = temporaryFilters.filter((filter) => filter.id === widgetId);
+    associatedFilters.forEach((filter) => {
+      dispatch(removeTemporaryFilter(filter.id));
+    });
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
