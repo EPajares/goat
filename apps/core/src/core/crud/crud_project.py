@@ -179,7 +179,7 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
         project = result.scalars().first()
         if not project:
             return None
-        project_public_read = ProjectPublicRead(**project.dict())
+        project_public_read = ProjectPublicRead(**project.model_dump())
         return project_public_read
 
     async def publish_project(

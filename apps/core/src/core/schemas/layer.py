@@ -377,7 +377,7 @@ class IFeatureStandardUpdate(FeatureUpdateBase):
 class FeatureToolAttributesBase(BaseModel):
     """Base model for additional attributes feature layer tool."""
 
-    tool_type: ToolType = Field(..., description="Tool type")
+    tool_type: ToolType | None = Field(None, description="Tool type")
 
 
 feature_layer_tool_attributes_example = {

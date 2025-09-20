@@ -1,6 +1,12 @@
-import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASEDIR = os.path.abspath(os.path.dirname(__file__))
-load_dotenv(os.path.join(BASEDIR,"../../.env"))
+BASE_DIR = Path(__file__).resolve().parents[2]
+ENV_FILE = BASE_DIR / ".env"
+ROOT_ENV = Path("/app/.env")
+
+load_dotenv(ENV_FILE)
+
+if ROOT_ENV.exists():
+    load_dotenv(ROOT_ENV, override=True)

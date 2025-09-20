@@ -4,6 +4,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from core._dotenv import load_dotenv  # noqa: F401
 from core.core.config import settings
 from core.db.models import *  # noqa: F403
 from sqlalchemy import pool
