@@ -265,6 +265,7 @@ class IFileUploadMetadata(BaseModel):
     file_size: int = Field(..., description="File size")
     file_path: str = Field(..., description="File path", max_length=500)
     dataset_id: UUID = Field(..., description="Dataset ID")
+    s3_key: UUID | None = Field(None, description="S3 key")
     msg: Msg = Field(..., description="Response Message")
 
 
@@ -315,9 +316,11 @@ class ILayerFromDatasetCreate(LayerBase, ExternalServiceAttributesBase):
         description="Content ID of the layer",
         alias="id",
     )
-    dataset_id: UUID = Field(
-        ...,
-        description="Dataset ID",
+    dataset_id: UUID | None = Field(None, description="Dataset ID")
+    s3_key: str | None = Field(
+        None,
+        description="S3 key of the uploaded file",
+        max_length=500,
     )
     properties: Optional[Dict[str, Any]] = Field(
         default=None,

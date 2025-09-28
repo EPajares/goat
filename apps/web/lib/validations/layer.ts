@@ -297,7 +297,8 @@ export const externalDatasetFeatureUrlSchema = z.object({
 });
 
 export const createLayerFromDatasetSchema = createLayerBaseSchema.extend({
-  dataset_id: z.string().uuid(),
+  s3_key: z.string().optional(),
+  dataset_id: z.string().optional(),
   project_id: z.string().uuid().optional(),
   data_type: dataType.optional(),
   other_properties: otherPropertiesSchmea.optional(),

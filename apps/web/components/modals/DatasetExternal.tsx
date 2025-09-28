@@ -564,10 +564,10 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           },
         });
         const uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
-        const datasetId = uploadResponse?.dataset_id;
+        const s3Key = uploadResponse?.s3_key;
         const payload = createLayerFromDatasetSchema.parse({
           ...layerPayload,
-          dataset_id: datasetId,
+          s3_key: s3Key,
           ...featureUrlPayload,
         });
         const response = await createFeatureLayer(payload, projectId);

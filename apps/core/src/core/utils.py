@@ -625,3 +625,9 @@ def format_value_null_sql(value: Any) -> str:
         return f"'{value}'"
 
 
+def sanitize_filename(name: str) -> str:
+    # Extract just the file name (no paths)
+    name = os.path.basename(name)
+    # Allow only safe chars
+    name = re.sub(r"[^a-zA-Z0-9._()\-\s]", "_", name)
+    return name

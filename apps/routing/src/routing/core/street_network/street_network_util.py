@@ -107,7 +107,7 @@ class StreetNetworkUtil:
     async def _get_street_network_region_h3_3_cells(self, region_geofence: str) -> List[int]:
         """Get list of H3_3 cells covering the street network region."""
 
-        h3_3_cells: List[int] = [8077]
+        h3_3_cells: List[int] = []
         try:
             # Fetch H3_3 cells covering the region
             # Include a buffer distance of 80km to account for car routing
@@ -124,8 +124,8 @@ class StreetNetworkUtil:
 
             # For fetchall(), each item in the list is a Row object.
             # We assume 'h3_short' will be an integer or convertible to one.
-            # for row in result:
-            #     h3_3_cells.append(int(row[0]))
+            for row in result:
+                h3_3_cells.append(int(row[0]))
         except Exception as e:
             error_msg = f"Could not fetch H3_3 grid for street network geofence {region_geofence}. Error: {e}"
             print_error(error_msg)

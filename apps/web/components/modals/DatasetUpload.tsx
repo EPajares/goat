@@ -20,10 +20,12 @@ import { toast } from "react-toastify";
 
 import { useTranslation } from "@/i18n/client";
 
+import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useFolders } from "@/lib/api/folders";
 import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createTableLayer, layerFileUpload } from "@/lib/api/layers";
+import { createFeatureLayer, createTableLayer } from "@/lib/api/layers";
 import { useProject } from "@/lib/api/projects";
+import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { GetContentQueryParams } from "@/lib/validations/common";
 import type { Folder } from "@/lib/validations/folder";
@@ -144,19 +146,34 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
     try {
       if (!fileValue) return;
       setIsBusy(true);
-      const uploadResponse = await layerFileUpload(fileValue);
-      const datasetId = uploadResponse?.dataset_id;
+
+      // Request backend for presigned URL
+      const presigned = await requestDatasetUpload({
+        filename: fileValue.name,
+        content_type: fileValue.type || "application/octet-stream",
+        file_size: fileValue.size,
+      });
+
+      // Upload file to S3 directly
+      await uploadFileToS3(fileValue, presigned);
+
+      // Tell backend to promote → dataset
       const payload = createLayerFromDatasetSchema.parse({
         ...getValues(),
         folder_id: selectedFolder?.id,
-        dataset_id: datasetId,
+        s3_key: presigned.fields.key,
       });
+
+      // Kick off layer creation depending on type
       let response;
       if (datasetType === "table") {
         response = await createTableLayer(payload, projectId);
       } else if (datasetType === "feature_layer") {
         response = await createFeatureLayer(payload, projectId);
+      } else {
+        throw new Error("Unsupported dataset type");
       }
+
       const jobId = response?.job_id;
       if (jobId) {
         mutate();

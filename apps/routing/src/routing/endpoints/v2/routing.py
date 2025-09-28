@@ -66,8 +66,6 @@ async def compute_catchment_area(
         redis.set(str(params.layer_id), ProcessingStatus.in_progress.value)
         params = json.loads(params.json()).copy()
         run_catchment_area.delay(params)
-        # crud_catchment_area = CRUDCatchmentArea(async_session(), redis)
-        # crud_catchment_area.run(params)
         return JSONResponse(
             content={
                 "result": ProcessingStatus.in_progress.value,
