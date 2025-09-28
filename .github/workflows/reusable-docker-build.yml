@@ -79,8 +79,8 @@ on:
 
 permissions:
   contents: read
-  packages: write # needed to push docker image to GHCR
-  pull-requests: write # needed to create/update PR comments
+  packages: write # needed to push docker image to ghcr.io
+  pull-requests: write # needed to comment on PRs
 
 jobs:
   build:
@@ -94,6 +94,11 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-latest
     steps:
+      - name: 📥 Prepare platform safe name
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
@@ -137,23 +142,23 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
           annotations: ${{ steps.docker_meta.outputs.annotations }}
           outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
-          cache-from: type=gha,scope=build-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=build-${{ matrix.platform }}
+          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
       - name: 📤 Export digest
         run: |
-          mkdir -p /tmp/digests/${{ matrix.platform }}
+          mkdir -p /tmp/digests/${{ env.PLATFORM_PAIR }}
           digest="${{ steps.build_image.outputs.digest }}"
-          echo "$digest" > /tmp/digests/${{ matrix.platform }}/digest.txt
+          echo "$digest" > /tmp/digests/${{ env.PLATFORM_PAIR }}/digest.txt
 
       - name: 📤 Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform }}
-          path: /tmp/digests/${{ matrix.platform }}/*
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/${{ env.PLATFORM_PAIR }}/*
           retention-days: 1
 
-      # 👇 PR Comments
+      # --- PR Comments ---
       - name: 💬 Find existing PR comment
         if: github.event_name == 'pull_request' && inputs.comment-enable
         id: fc
