@@ -19,6 +19,7 @@ ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
 RUN apt-get update
 RUN apt-get upgrade -y
 
+
 # Install general required dependencies
 RUN apt-get install --no-install-recommends -y tzdata
 
