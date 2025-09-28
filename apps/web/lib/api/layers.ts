@@ -93,9 +93,14 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
   return response;
 };
 
-export const updateLayerDataset = async (layerId: string, datasetId: string) => {
+export const updateLayerDataset = async (layerId: string, datasetId?: string, s3_key?: string) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
-  url.searchParams.append('dataset_id', datasetId);
+  if (datasetId) {
+    url.searchParams.append('dataset_id', datasetId);
+  }
+  if (s3_key) {
+    url.searchParams.append('s3_key', s3_key);
+  }
   const response = await apiRequestAuth(url.toString(), {
     method: "PUT",
   });
@@ -214,19 +219,6 @@ export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: 
   return await response.json();
 }
 
-
-export const layerFileUpload = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/file-upload`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error("Failed to upload folder");
-  }
-  return await response.json();
-};
 
 export const layerFeatureUrlUpload = async (payload: ExternalDatasetFeatureUrl) => {
   const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/file-upload-external-service`, {

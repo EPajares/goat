@@ -1,6 +1,7 @@
 from typing import Any, Optional
 from uuid import UUID
 
+import boto3
 from pydantic import PostgresDsn, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
@@ -126,6 +127,20 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: Optional[str] = "eu-central-1"
     AWS_S3_ASSETS_BUCKET: Optional[str] = "plan4better-assets"
+    S3_CLIENT: Optional[Any] = None
+
+    @field_validator("S3_CLIENT", mode="after")
+    @classmethod
+    def assemble_s3_client(cls: type["Settings"], value: Optional[Any], info: ValidationInfo) -> Any:
+        if value is not None:
+            return value
+        return boto3.client(
+            "s3",
+            aws_access_key_id=info.data.get("AWS_ACCESS_KEY_ID"),
+            aws_secret_access_key=info.data.get("AWS_SECRET_ACCESS_KEY"),
+            region_name=info.data.get("AWS_REGION"),
+        )
+
 
     DEFAULT_PROJECT_THUMBNAIL: Optional[str] = (
         "https://assets.plan4better.de/img/goat_new_project_artwork.png"
@@ -161,6 +176,17 @@ class Settings(BaseSettings):
 
     MARKER_DIR: Optional[str] = "icons/maki"
     MARKER_PREFIX: Optional[str] = "goat-marker-"
+
+
+    S3_ACCESS_KEY_ID: Optional[str] = None
+    S3_SECRET_ACCESS_KEY: Optional[str] = "your-secret"
+    S3_REGION: Optional[str] = "eu-central-1"     # or "fsn1" for Hetzner
+    S3_ENDPOINT_URL: Optional[str] = None  # e.g. for Hetzner "https://s3.fsn1.de", ! or None for AWS
+    S3_PROVIDER: Optional[str] = "aws"  # or "hetzner"
+    S3_FORCE_PATH_STYLE: bool = False  # needed for MinIO
+    S3_BUCKET_PATH: Optional[str] = ""  # will be set depending on ENVIRONMENT
+    S3_BUCKET_NAME: Optional[str] = "goat"
+    MAX_UPLOAD_DATASET_FILE_SIZE: int = 300 * 1024 * 1024  # 300MB
 
     class Config:
         case_sensitive = True

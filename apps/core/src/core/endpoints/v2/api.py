@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from . import (
     active_mobility,
     asset,
+    datasets,
     folder,
     job,
     layer,
@@ -35,3 +36,4 @@ router.include_router(
 router.include_router(tool.router, prefix="/tool", tags=["Toolbox"])
 router.include_router(status.router, prefix="/status", tags=["Status"])
 router.include_router(asset.router, prefix="/asset", tags=["Asset"])
+router.include_router(datasets.router, prefix="/datasets", tags=["Datasets"])

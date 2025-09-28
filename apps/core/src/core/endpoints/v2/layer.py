@@ -1,6 +1,7 @@
 # Standard Libraries
 import json
 import os
+import tempfile
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -15,6 +16,7 @@ from fastapi import (
     Query,
     Request,
     UploadFile,
+    logger,
     status,
 )
 from fastapi.responses import FileResponse, JSONResponse
@@ -71,73 +73,19 @@ from core.schemas.layer import (
     IRasterLayerRead,
     ITableLayerRead,
     IUniqueValue,
-    MaxFileSizeType,
 )
 from core.schemas.layer import (
     request_examples as layer_request_examples,
 )
-from core.utils import build_where, check_file_size
+from core.services.s3 import s3_service
+from core.utils import build_where
 
 router = APIRouter()
 
 
 @router.post(
-    "/file-upload",
-    summary="Upload file to server and validate",
-    response_model=IFileUploadMetadata,
-    status_code=201,
-    dependencies=[Depends(auth_z)],
-)
-async def file_upload(
-    *,
-    async_session: AsyncSession = Depends(get_db),
-    user_id: UUID = Depends(get_user_id),
-    file: UploadFile,
-) -> IFileUploadMetadata:
-    """
-    Upload file and validate.
-    """
-
-    if not file.filename:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="File name is required.",
-        )
-    file_ending = os.path.splitext(file.filename)[-1][1:]
-
-    # Check if file is feature or table
-    if file_ending in TableUploadType.__members__:
-        layer_type = LayerType.table
-    elif file_ending in FeatureUploadType.__members__:
-        layer_type = LayerType.feature
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"File type not allowed. Allowed file types are: {', '.join(FileUploadType.__members__.keys())}",
-        )
-
-    if (
-        await check_file_size(file=file, max_size=MaxFileSizeType[file_ending].value)
-        is False
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail=f"File size too large. Max file size is {round(MaxFileSizeType[file_ending].value / 1048576, 2)} MB",
-        )
-
-    # Run the validation
-    metadata = await crud_layer.upload_file(
-        async_session=async_session,
-        user_id=user_id,
-        source=file,
-        layer_type=layer_type,
-    )
-    return metadata
-
-
-@router.post(
     "/file-upload-external-service",
-    summary="Fetch data from external service into a file, upload file to server and validate",
+    summary="Fetch data from external service into a file, upload file to S3 and validate",
     response_model=IFileUploadMetadata,
     status_code=201,
     dependencies=[Depends(auth_z)],
@@ -152,19 +100,44 @@ async def file_upload_external_service(
     ),
 ) -> IFileUploadMetadata:
     """
-    Fetch data from external service into a file, upload file to server and validate.
+    Fetch data from an external service, save to disk, upload to S3, then validate.
     """
-
-    # This endpoint only supports external services providing feature data
     layer_type = LayerType.feature
 
-    # Run the validation
+    # 1. Run validation pipeline (fetch external → save locally → validate)
     metadata = await crud_layer.upload_file(
         async_session=async_session,
         user_id=user_id,
         source=external_service,
         layer_type=layer_type,
     )
+
+    # 2. Upload validated file to S3
+    try:
+        # Open the validated local file
+        with open(metadata.file_path, "rb") as f:
+            s3_key = s3_service.build_s3_key(
+                settings.S3_BUCKET_PATH,
+                "users",
+                str(user_id),
+                "imports",
+                "external",
+                f"{metadata.dataset_id}_{os.path.basename(metadata.file_path)}"
+            )
+            s3_service.upload_file(
+                file_content=f,
+                bucket_name=settings.S3_BUCKET_NAME,
+                s3_key=s3_key,
+                content_type="application/octet-stream",
+            )
+            # 3. Add s3_key to metadata
+            metadata.s3_key = s3_key
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload external service file to S3: {e}",
+        )
+
     return metadata
 
 
@@ -202,26 +175,73 @@ async def _create_layer_from_dataset(
     background_tasks: BackgroundTasks,
     async_session: AsyncSession,
     user_id: UUID,
-    project_id: Optional[UUID] = Query(
-        None,
-        description="The ID of the project to add the layer to",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_in: ILayerFromDatasetCreate = Body(
-        ...,
-        example=layer_request_examples["create"],
-        description="Layer to create",
-    ),
+    project_id: Optional[UUID] = None,
+    layer_in: ILayerFromDatasetCreate = Body(...),
 ) -> Dict[str, UUID]:
-    """Create a feature standard or table layer from a dataset."""
+    """Create a feature or table layer from a dataset uploaded to S3."""
 
-    # Validate and fetch dataset file metadata
-    file_metadata = _validate_and_fetch_metadata(
-        user_id=user_id,
-        dataset_id=layer_in.dataset_id,
+    # --- ensure s3 key belongs to this user
+    expected_prefix = s3_service.build_s3_key(
+        settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
     )
+    if layer_in.s3_key is None:
+        raise HTTPException(400, "Missing required s3_key")
+    
+    if not layer_in.s3_key.startswith(expected_prefix):
+        raise HTTPException(403, "Invalid s3_key (not owned by user)")
 
-    # Create job and check if user can create a new job
+    # --- original filename from S3 key
+    orig_filename = os.path.basename(layer_in.s3_key)
+    file_ext = os.path.splitext(orig_filename)[-1].lower()
+    ext_trimmed = file_ext.lstrip(".")
+
+    # --- Decide type
+    if ext_trimmed in TableUploadType.__members__:
+        layer_type = LayerType.table
+    elif ext_trimmed in FeatureUploadType.__members__:
+        layer_type = LayerType.feature
+    else:
+        raise HTTPException(
+            415,
+            f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
+        )
+
+    # --- Tmp directory for this user
+    tmp_dir = os.path.join(tempfile.gettempdir(), str(user_id))
+    os.makedirs(tmp_dir, exist_ok=True)
+    tmp_path = os.path.join(tmp_dir, orig_filename)
+
+    try:
+        # --- Download from S3 to /tmp/{user_id}/{filename}
+        s3_service.s3_client.download_file(
+            settings.S3_BUCKET_NAME,
+            layer_in.s3_key,
+            tmp_path,
+        )
+
+        # --- Wrap downloaded file as UploadFile (!! This will be removed once new dataset upload is finished  !!)
+        with open(tmp_path, "rb") as f:
+            upload = UploadFile(filename=orig_filename, file=f)
+
+            file_metadata = await crud_layer.upload_file(
+                async_session=async_session,
+                user_id=user_id,
+                source=upload,
+                layer_type=layer_type,
+            )
+
+    except Exception as e:
+        raise HTTPException(500, f"Error handling file from S3: {e}")
+    finally:
+        # --- Always cleanup
+        try:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+        except Exception as cleanup_err:
+            # log, but don’t swallow main exception
+            logger.warning(f"Could not delete temp file {tmp_path}: {cleanup_err}")
+
+    # --- Create job
     job = await crud_job.check_and_create(
         async_session=async_session,
         user_id=user_id,
@@ -229,17 +249,18 @@ async def _create_layer_from_dataset(
         project_id=project_id,
     )
 
-    # Run the import
+    # --- Run import
     await CRUDLayerImport(
         background_tasks=background_tasks,
         async_session=async_session,
         user_id=user_id,
         job_id=job.id,
     ).import_file_job(
-        file_metadata=file_metadata,
+        file_metadata=file_metadata.model_dump(),
         layer_in=layer_in,
         project_id=project_id,
     )
+
     return {"job_id": job.id}
 
 
@@ -296,10 +317,14 @@ async def create_layer_raster(
 ) -> BaseModel:
     """Create a new raster layer from a service hosted externally."""
 
-    layer = IRasterLayerRead(**(await crud_layer.create(
-        db=async_session,
-        obj_in=Layer(**layer_in.model_dump(), user_id=user_id).model_dump(),
-    )).model_dump())
+    layer = IRasterLayerRead(
+        **(
+            await crud_layer.create(
+                db=async_session,
+                obj_in=Layer(**layer_in.model_dump(), user_id=user_id).model_dump(),
+            )
+        ).model_dump()
+    )
     return layer
 
 
@@ -566,41 +591,102 @@ async def update_layer_dataset(
     user_id: UUID = Depends(get_user_id),
     layer_id: UUID4 = Path(
         ...,
-        description="The ID of the layer to get",
+        description="The ID of the layer to update",
         example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ),
-    dataset_id: UUID = Query(
-        ..., description="The ID of the dataset to update the layer with"
+    dataset_id: UUID | None = Query(
+        None, description="The ID of the dataset to update the layer with"
+    ),
+    s3_key: str | None = Query(
+        None, description="The S3 key of the dataset to update the layer with"
     ),
 ) -> Dict[str, UUID]:
-    """Update the dataset of a layer."""
+    """Update the dataset of a layer. Either by dataset_id (legacy/external service) or by s3_key (S3 uploaded file)."""
 
-    # Ensure updating the dataset of this layer is permitted
-    with HTTPErrorHandler():
-        existing_layer = await crud_layer.get_internal(
-            async_session=async_session,
-            id=layer_id,
+    # Retrieve existing layer and authorize
+    existing_layer = await crud_layer.get_internal(
+        async_session=async_session,
+        id=layer_id,
+    )
+    if str(existing_layer.user_id) != str(user_id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User does not have permission to update this layer.",
         )
-        if str(existing_layer.user_id) != str(user_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have permission to update this layer.",
-            )
 
-        # Validate and fetch dataset file metadata
+    # 1Legacy / external service flow: dataset_id used
+    if dataset_id and not s3_key:
         file_metadata = _validate_and_fetch_metadata(
             user_id=user_id,
             dataset_id=dataset_id,
         )
 
-    # Create job and check if user can create a new job
+    # New S3 flow: s3_key provided
+    elif s3_key and not dataset_id:
+        expected_prefix = s3_service.build_s3_key(
+            settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
+        )
+        if not s3_key.startswith(expected_prefix):
+            raise HTTPException(403, "Invalid s3_key (not owned by user)")
+
+        orig_filename = os.path.basename(s3_key)
+        file_ext = os.path.splitext(orig_filename)[-1].lower().lstrip(".")
+
+        if file_ext in TableUploadType.__members__:
+            layer_type = LayerType.table
+        elif file_ext in FeatureUploadType.__members__:
+            layer_type = LayerType.feature
+        else:
+            raise HTTPException(
+                415,
+                f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
+            )
+
+        # Download to tmp
+        tmp_dir = os.path.join(tempfile.gettempdir(), str(user_id))
+        os.makedirs(tmp_dir, exist_ok=True)
+        tmp_path = os.path.join(tmp_dir, orig_filename)
+        try:
+            s3_service.s3_client.download_file(
+                settings.S3_BUCKET_NAME,
+                s3_key,
+                tmp_path,
+            )
+            with open(tmp_path, "rb") as f:
+                upload = UploadFile(filename=orig_filename, file=f)
+                file_metadata = await crud_layer.upload_file(
+                    async_session=async_session,
+                    user_id=user_id,
+                    source=upload,
+                    layer_type=layer_type,
+                )
+        except Exception as e:
+            raise HTTPException(500, f"Error handling file from S3: {e}")
+        finally:
+            try:
+                if os.path.exists(tmp_path):
+                    os.remove(tmp_path)
+            except Exception as cleanup_err:
+                logger.warning(f"Could not delete temp file {tmp_path}: {cleanup_err}")
+
+        # If crud_layer.upload_file returns a Pydantic model, ensure dict
+        if not isinstance(file_metadata, dict):
+            file_metadata = file_metadata.model_dump()
+
+    else:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "You must pass either dataset_id or s3_key, but not both.",
+        )
+
+    # Create job
     job = await crud_job.check_and_create(
         async_session=async_session,
         user_id=user_id,
         job_type=JobType.update_layer_dataset,
     )
 
-    # Run the import
+    # Prepare new layer_in
     layer_in = ILayerFromDatasetCreate(
         name=existing_layer.name,
         description=existing_layer.description,
@@ -610,7 +696,11 @@ async def update_layer_dataset(
         url=existing_layer.url,
         other_properties=existing_layer.other_properties,
         dataset_id=dataset_id,
+        s3_key=s3_key,
+        # s3_key could also be added to schema if you extend it
     )
+
+    # Run dataset update
     await CRUDLayerDatasetUpdate(
         background_tasks=background_tasks,
         async_session=async_session,

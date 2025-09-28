@@ -1,6 +1,6 @@
+import io
 import mimetypes
 import uuid
-from io import BytesIO
 from typing import List
 
 from fastapi import (
@@ -132,12 +132,17 @@ async def upload_asset(
         )
 
     s3_key = f"goat/{settings.ENVIRONMENT}/users/{user_id}/{asset_type.value}/{uuid.uuid4().hex}{file_extension}"
-    s3_service.upload_file(
-        BytesIO(file_content),
-        settings.AWS_S3_ASSETS_BUCKET,
-        s3_key,
-        actual_mime_type,
+
+
+    settings.S3_CLIENT.upload_fileobj(
+        Fileobj=io.BytesIO(file_content),
+        Bucket=settings.AWS_S3_ASSETS_BUCKET,
+        Key=s3_key,
+        ExtraArgs={"ContentType": actual_mime_type},
+        Callback=None,
+        Config=None,
     )
+
 
     # 5. Save metadata into DB
     new_asset = UploadedAsset(
@@ -250,7 +255,11 @@ async def delete_asset(
 
     # Delete from S3
     try:
-        s3_service.delete_file(settings.AWS_S3_ASSETS_BUCKET, asset.s3_key)
+        settings.S3_CLIENT.delete_object(
+            Bucket=settings.AWS_S3_ASSETS_BUCKET,
+            Key=asset.s3_key,
+        )
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
