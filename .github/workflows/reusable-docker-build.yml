@@ -9,48 +9,44 @@ on:
         default: false
         type: boolean
       context:
-        description: Docker build context
+        description: Docker context (path) to start build from
         required: false
         type: string
+      dockerhub-enable:
+        description: Log into Docker Hub
+        required: false
+        default: false
+        type: boolean
       file:
-        description: Dockerfile path relative to context
+        description: Dockerfile to build, relative to context path
         required: false
         type: string
-      target:
-        description: Target build stage in Dockerfile
+      flavor-rules:
+        description: Three rules to set for tag-rules, latest, prefix, and suffix
         required: false
         type: string
+        default: |
+          latest=auto
+      ghcr-enable:
+        description: Log into GHCR
+        required: false
+        default: true
+        type: boolean
       image-name:
         description: Docker image name to build
         required: true
         type: string
         default: ghcr.io/${{ github.repository }}
       platforms:
-        description: Platforms to build for (comma-separated)
+        description: Platforms to build for
         required: false
         type: string
         default: linux/amd64
       push:
-        description: Push image to registry
+        description: Push image to registry(s)
         required: false
         default: true
         type: boolean
-      dockerhub-enable:
-        description: Enable Docker Hub login
-        required: false
-        default: false
-        type: boolean
-      ghcr-enable:
-        description: Enable GHCR login
-        required: false
-        default: true
-        type: boolean
-      flavor-rules:
-        description: Flavor rules for docker/metadata-action
-        required: false
-        type: string
-        default: |
-          latest=auto
       tag-rules:
         description: Tag rules for docker/metadata-action
         required: false
@@ -60,12 +56,14 @@ on:
           type=ref,event=tag,priority=200
           type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }},priority=100
           type=ref,event=pr,priority=100
+      target:
+        description: Build stage to target
+        required: false
+        type: string
     secrets:
       dockerhub-username:
-        description: Docker Hub username
         required: false
       dockerhub-token:
-        description: Docker Hub token
         required: false
 
 permissions:
@@ -85,7 +83,7 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-latest
     steps:
-      - name: 📥 Prepare safe platform name
+      - name: 📥 Prepare
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
@@ -93,34 +91,39 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🐳 Setup Docker Buildx
+      # ✅ NEW: Enable QEMU emulation for cross-platform builds
+      - name: 🐹 Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: 🐳 Set up Docker Buildx
+        id: buildx
         uses: docker/setup-buildx-action@v3
 
       - name: 🐳 Login to DockerHub
         if: inputs.dockerhub-enable
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.dockerhub-username }}
           password: ${{ secrets.dockerhub-token }}
 
       - name: 📦 Login to GHCR
         if: inputs.ghcr-enable
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🐳 Docker metadata
-        id: meta
+      - name: 🐳 Docker meta
+        id: docker_meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ inputs.image-name }}
-          flavor: ${{ inputs.flavor-rules }}
-          tags: ${{ inputs.tag-rules }}
 
-      - name: 🐳 Build and Push per-platform (digest only)
-        id: build
+      - name: 🐳 Docker Build and Push
+        id: build_image
         uses: docker/build-push-action@v5
         with:
           provenance: false
@@ -128,59 +131,58 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.file }}
           target: ${{ inputs.target }}
-          push: true
-          outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=true
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.annotations }}
+          builder: ${{ steps.buildx.outputs.name }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          annotations: ${{ steps.docker_meta.outputs.annotations }}
+          outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
+          # ✅ FIX: unique cache scopes per platform
           cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
           cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
 
       - name: 📤 Export digest
         run: |
-          mkdir -p /tmp/digests/${{ env.PLATFORM_PAIR }}
-          digest="${{ steps.build.outputs.digest }}"
-          echo "$digest" > /tmp/digests/${{ env.PLATFORM_PAIR }}/digest.txt
+          mkdir -p /tmp/digests
+          digest="${{ steps.build_image.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
 
       - name: 📤 Upload digest
         uses: actions/upload-artifact@v4
         with:
           name: digests-${{ env.PLATFORM_PAIR }}
-          path: /tmp/digests/${{ env.PLATFORM_PAIR }}/*
+          path: /tmp/digests/*
+          if-no-files-found: error
           retention-days: 1
 
-      # --- PR Comment Support ---
-      - name: 💬 Find existing PR comment
+      # PR Comments
+      - name: 💬 Find comment for image tags
+        uses: peter-evans/find-comment@v2
         if: github.event_name == 'pull_request' && inputs.comment-enable
         id: fc
-        uses: peter-evans/find-comment@v2
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          comment-author: github-actions[bot]
-          body-includes: "📦 Docker image tags pushed"
+          comment-author: "github-actions[bot]"
+          body-includes: Docker image tag(s) pushed
 
-      - name: 💬 Create or update PR comment
-        if: github.event_name == 'pull_request' && inputs.comment-enable
+      - name: 💬 Create or update comment for image tags
         uses: peter-evans/create-or-update-comment@v3
+        if: github.event_name == 'pull_request' && inputs.comment-enable
         with:
-          issue-number: ${{ github.event.pull_request.number }}
           comment-id: ${{ steps.fc.outputs.comment-id }}
-          edit-mode: replace
+          issue-number: ${{ github.event.pull_request.number }}
           body: |
-            📦 Docker image tags pushed:
-
+            Docker image tag(s) pushed:
             ```text
-            ${{ steps.meta.outputs.tags }}
+            ${{ steps.docker_meta.outputs.tags }}
             ```
-
-            🏷 Labels added to images:
-
+            Labels added to images:
             ```text
-            ${{ steps.meta.outputs.labels }}
+            ${{ steps.docker_meta.outputs.labels }}
             ```
+          edit-mode: replace
 
-      - name: 🏷 Output primary image tag
+      - name: 🏷️ Output primary image tag
         id: image-tag
-        run: echo "image-tag=${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
+        run: echo "image-tag=${{ steps.docker_meta.outputs.version }}" >> $GITHUB_OUTPUT
 
   merge:
     runs-on: ubuntu-latest
@@ -194,24 +196,25 @@ jobs:
           pattern: digests-*
           merge-multiple: true
 
-      - uses: docker/setup-buildx-action@v3
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: 🐳 Login to DockerHub
         if: inputs.dockerhub-enable
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.dockerhub-username }}
           password: ${{ secrets.dockerhub-token }}
 
       - name: 📦 Login to GHCR
         if: inputs.ghcr-enable
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🐳 Docker metadata
+      - name: 🐳 Docker metadata extraction
         id: meta
         uses: docker/metadata-action@v5
         with:
@@ -219,12 +222,11 @@ jobs:
           flavor: ${{ inputs.flavor-rules }}
           tags: ${{ inputs.tag-rules }}
 
-      - name: 🐳 Create and push multi-arch manifest
+      - name: 🐳 Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(find . -type f -name digest.txt -exec awk '{print "${{ inputs.image-name }}@"$1}' {} \;)
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ inputs.image-name }}@sha256:%s ' *)
 
       - name: 🐳 Inspect image
         run: docker buildx imagetools inspect ${{ inputs.image-name }}:${{ steps.meta.outputs.version }}
