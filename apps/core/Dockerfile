@@ -51,7 +51,6 @@ RUN uv sync --all-extras --frozen --no-dev --no-editable --package=core
 # ==== STAGE 4: Webapp environment ====
 FROM runtime-deps AS webapp
 
-
 # Clean-up
 RUN apt-get update -y \
     && apt-get remove -y --purge build-essential wget \
