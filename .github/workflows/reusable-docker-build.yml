@@ -18,11 +18,11 @@ on:
         default: false
         type: boolean
       file:
-        description: Dockerfile to build, relative to context path
+        description: Dockerfile path relative to context
         required: false
         type: string
       flavor-rules:
-        description: Three rules to set for tag-rules, latest, prefix, and suffix
+        description: Metadata flavor rules
         required: false
         type: string
         default: |
@@ -43,7 +43,7 @@ on:
         type: string
         default: linux/amd64
       push:
-        description: Push image to registry(s)
+        description: Push image(s) to registry
         required: false
         default: true
         type: boolean
@@ -57,7 +57,7 @@ on:
           type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }},priority=100
           type=ref,event=pr,priority=100
       target:
-        description: Build stage to target
+        description: Docker build target stage name
         required: false
         type: string
     secrets:
@@ -83,16 +83,20 @@ jobs:
           - platform: linux/arm64
             runner: ubuntu-latest
     steps:
-      - name: 📥 Prepare
+      - name: 📥 Prepare safe identifiers
         run: |
+          # sanitize platform for artifact/cache scopes
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-      - name: 📥 Checkout
-        uses: actions/checkout@v4
+          # sanitize image name for artifact uniqueness
+          image="${{ inputs.image-name }}"
+          safe_image=${image//\//-}
+          echo "SAFE_IMAGE=$safe_image" >> $GITHUB_ENV
 
-      # ✅ NEW: Enable QEMU emulation for cross-platform builds
-      - name: 🐹 Set up QEMU
+      - uses: actions/checkout@v4
+
+      - name: 🐹 Set up QEMU for cross-arch builds
         uses: docker/setup-qemu-action@v3
         with:
           platforms: all
@@ -116,14 +120,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🐳 Docker meta
-        id: docker_meta
+      - name: 🐳 Docker metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ inputs.image-name }}
+          flavor: ${{ inputs.flavor-rules }}
+          tags: ${{ inputs.tag-rules }}
 
-      - name: 🐳 Docker Build and Push
-        id: build_image
+      - name: 🐳 Build and Push per-platform (digest only)
+        id: build
         uses: docker/build-push-action@v5
         with:
           provenance: false
@@ -131,69 +137,75 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.file }}
           target: ${{ inputs.target }}
-          builder: ${{ steps.buildx.outputs.name }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
-          annotations: ${{ steps.docker_meta.outputs.annotations }}
-          outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
-          # ✅ FIX: unique cache scopes per platform
-          cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+          push: true
+          outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=true
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
 
       - name: 📤 Export digest
         run: |
           mkdir -p /tmp/digests
-          digest="${{ steps.build_image.outputs.digest }}"
+          digest="${{ steps.build.outputs.digest }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: 📤 Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ env.PLATFORM_PAIR }}
+          name: digests-${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
           path: /tmp/digests/*
           if-no-files-found: error
           retention-days: 1
 
-      # PR Comments
-      - name: 💬 Find comment for image tags
-        uses: peter-evans/find-comment@v2
+      # --- Optional PR comment
+      - name: 💬 Find PR comment
         if: github.event_name == 'pull_request' && inputs.comment-enable
         id: fc
+        uses: peter-evans/find-comment@v2
         with:
           issue-number: ${{ github.event.pull_request.number }}
-          comment-author: "github-actions[bot]"
-          body-includes: Docker image tag(s) pushed
+          comment-author: github-actions[bot]
+          body-includes: "📦 Docker image tags pushed"
 
-      - name: 💬 Create or update comment for image tags
-        uses: peter-evans/create-or-update-comment@v3
+      - name: 💬 Create/update PR comment
         if: github.event_name == 'pull_request' && inputs.comment-enable
+        uses: peter-evans/create-or-update-comment@v3
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            Docker image tag(s) pushed:
-            ```text
-            ${{ steps.docker_meta.outputs.tags }}
-            ```
-            Labels added to images:
-            ```text
-            ${{ steps.docker_meta.outputs.labels }}
-            ```
           edit-mode: replace
+          body: |
+            📦 Docker image tags pushed:
+            ```text
+            ${{ steps.meta.outputs.tags }}
+            ```
+            🏷 Labels added:
+            ```text
+            ${{ steps.meta.outputs.labels }}
+            ```
 
-      - name: 🏷️ Output primary image tag
+      - name: 🏷 Output primary image tag
         id: image-tag
-        run: echo "image-tag=${{ steps.docker_meta.outputs.version }}" >> $GITHUB_OUTPUT
+        run: echo "image-tag=${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
 
   merge:
     runs-on: ubuntu-latest
     needs: build
     if: inputs.push
     steps:
+      - name: 📥 Prepare safe image identifier
+        run: |
+          image="${{ inputs.image-name }}"
+          safe_image=${image//\//-}
+          echo "SAFE_IMAGE=$safe_image" >> $GITHUB_ENV
+
       - name: 📥 Download digests
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: digests-*
+          # ✅ only grab digests for THIS image
+          pattern: digests-${{ env.SAFE_IMAGE }}-*
           merge-multiple: true
 
       - name: 🐳 Set up Docker Buildx
@@ -222,11 +234,14 @@ jobs:
           flavor: ${{ inputs.flavor-rules }}
           tags: ${{ inputs.tag-rules }}
 
-      - name: 🐳 Create manifest list and push
+      - name: 🐳 Create and push multi-arch manifest
         working-directory: /tmp/digests
         run: |
-          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+          echo "Merging digests for ${{ inputs.image-name }}..."
+          ls -l .
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
             $(printf '${{ inputs.image-name }}@sha256:%s ' *)
 
-      - name: 🐳 Inspect image
+      - name: 🐳 Inspect Built Image
         run: docker buildx imagetools inspect ${{ inputs.image-name }}:${{ steps.meta.outputs.version }}
