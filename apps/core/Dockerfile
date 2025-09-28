@@ -72,7 +72,6 @@ COPY --from=python-base $UV_PROJECT_ENVIRONMENT $UV_PROJECT_ENVIRONMENT
 COPY --from=python-base /app /app
 
 
-
 RUN useradd -m appuser
 RUN chown -R appuser:appuser /app /tmp $UV_PROJECT_ENVIRONMENT $UV_PYTHON_INSTALL_DIR
 USER appuser

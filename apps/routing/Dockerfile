@@ -22,7 +22,6 @@ RUN apt-get upgrade -y
 # Install general required dependencies
 RUN apt-get install --no-install-recommends -y tzdata
 
-
 # Stage 2: Python environment
 FROM linux-base AS python-base
 # Install debian dependencies
