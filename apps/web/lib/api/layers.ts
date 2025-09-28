@@ -93,7 +93,7 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
   return response;
 };
 
-export const updateLayerDataset = async (layerId: string, datasetId: string, s3_key: string) => {
+export const updateLayerDataset = async (layerId: string, datasetId?: string, s3_key?: string) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
   if (datasetId) {
     url.searchParams.append('dataset_id', datasetId);

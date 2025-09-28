@@ -184,6 +184,9 @@ async def _create_layer_from_dataset(
     expected_prefix = s3_service.build_s3_key(
         settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
     )
+    if layer_in.s3_key is None:
+        raise HTTPException(400, "Missing required s3_key")
+    
     if not layer_in.s3_key.startswith(expected_prefix):
         raise HTTPException(403, "Invalid s3_key (not owned by user)")
 
@@ -591,10 +594,10 @@ async def update_layer_dataset(
         description="The ID of the layer to update",
         example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ),
-    dataset_id: UUID = Query(
+    dataset_id: UUID | None = Query(
         None, description="The ID of the dataset to update the layer with"
     ),
-    s3_key: str = Query(
+    s3_key: str | None = Query(
         None, description="The S3 key of the dataset to update the layer with"
     ),
 ) -> Dict[str, UUID]:
