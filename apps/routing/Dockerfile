@@ -8,6 +8,7 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 ARG PYTHON_VERSION=3.11
 
 
+
 ENV LC_CTYPE=C.utf8 \
     UV_PROJECT_ENVIRONMENT="/venv" \
     UV_COMPILE_BYTECODE=1 \
