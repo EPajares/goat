@@ -141,7 +141,6 @@ import {
   faUsers,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { SvgIcon } from "@mui/material";
 import type { SvgIconProps } from "@mui/material";
 
@@ -538,12 +537,18 @@ export const brandColors: BrandColors = {
 library.add(...Object.values(nameToIcon));
 
 export function Icon({ iconName, ...rest }: SvgIconProps & { iconName: ICON_NAME }): JSX.Element {
-  if (!(iconName in nameToIcon)) {
-    throw new Error(`Invalid icon name: ${iconName}`);
-  }
+  const def = nameToIcon[iconName];
+  if (!def) throw new Error(`Invalid icon name: ${iconName}`);
+
+  const [width, height, , , svgPathData] = def.icon;
+
   return (
-    <SvgIcon {...rest}>
-      <FontAwesomeIcon icon={nameToIcon[iconName]} />
+    <SvgIcon viewBox={`0 0 ${width} ${height}`} {...rest}>
+      {Array.isArray(svgPathData) ? (
+        svgPathData.map((d, i) => <path key={i} d={d} fill="currentColor" />)
+      ) : (
+        <path d={svgPathData} fill="currentColor" />
+      )}
     </SvgIcon>
   );
 }
