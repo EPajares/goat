@@ -42,7 +42,7 @@ const Datasets = () => {
   const [queryParams, setQueryParams] = useState<PaginatedQueryParams>({
     order: "descendent",
     order_by: "updated_at",
-    size: 10,
+    size: 12,
     page: 1,
   });
   const [datasetSchema, setDatasetSchema] = useState<GetDatasetSchema>({});

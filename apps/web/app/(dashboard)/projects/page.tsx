@@ -22,7 +22,7 @@ const Projects = () => {
   const [queryParams, setQueryParams] = useState<GetProjectsQueryParams>({
     order: "descendent",
     order_by: "updated_at",
-    size: 10,
+    size: 12,
     page: 1,
   });
   const [view, setView] = useState<"list" | "grid">("grid");
