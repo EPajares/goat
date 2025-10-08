@@ -24,7 +24,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { languages } from "@/i18n/settings";
 
-import { updateSystemSettings } from "@/lib/api/system";
+import { updateSystemSettings } from "@/lib/api/system/client";
 import { type SystemSettingsUpdate, systemSettingsSchemaUpdate } from "@/lib/validations/system";
 
 import { ColorModeContext } from "@/components/@mui/ThemeRegistry";
