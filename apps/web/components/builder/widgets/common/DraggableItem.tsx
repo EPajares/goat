@@ -1,10 +1,9 @@
 import { useDraggable } from "@dnd-kit/core";
 import { Card, CardHeader, Stack, Typography, useTheme } from "@mui/material";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { WidgetTypes } from "@/lib/validations/widget";
 

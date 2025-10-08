@@ -1,67 +1,65 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
-import { type NextFetchEvent, type NextMiddleware, NextResponse } from "next/server";
-
-import { fallbackLng, cookieName as lngCookieName } from "@/i18n/settings";
-
-import type { InvitationPaginated } from "@/lib/validations/invitation";
-
-import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
+import { NextResponse } from "next/server";
 import type { MiddlewareFactory } from "@/middlewares/types";
+import type { InvitationPaginated } from "@/lib/validations/invitation";
+import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
 
-export const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL).href;
-const protectedPaths = ["/home", "/projects", "datasets", "/settings", "/map"];
+export const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL!).href;
+
+const protectedPaths = ["/home", "/projects", "/datasets", "/settings", "/map"];
 const publicPaths = ["/map/public"];
 
-export const withOrganization: MiddlewareFactory = (next: NextMiddleware) => {
-  return async (request: NextRequest, _next: NextFetchEvent) => {
+export const withOrganization: MiddlewareFactory = (next) => {
+  return async (request: NextRequest, _next) => {
     const { pathname, origin, basePath } = request.nextUrl;
 
-    const lng = request.cookies.get(lngCookieName)?.value;
-    const lngPath = lng ? `/${lng}` : fallbackLng ? `/${fallbackLng}` : "";
+    // Skip public paths
+    const isPublicPath = publicPaths.some((p) => pathname.startsWith(p));
+    if (isPublicPath) return next(request, _next);
 
-    // Remove language prefix from pathname for public path check
-    const strippedPathname = pathname.startsWith(lngPath) ? pathname.slice(lngPath.length) : pathname;
-    // Check if the path is public
-    const isPublicPath = publicPaths.some((p) => strippedPathname.startsWith(p));
-    if (isPublicPath) {
-      return await next(request, _next);
-    }
-
-    const organizationPageCreate = `${lngPath}/onboarding/organization/create`;
-
-    const _protectedPaths = protectedPaths.map((p) => (lngPath ? `${lngPath}${p}` : p));
-
-    if (!_protectedPaths.some((p) => pathname.startsWith(p))) return await next(request, _next);
+    // Skip unprotected paths
+    const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+    if (!isProtected) return next(request, _next);
 
     const token = await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
     });
-    if (!token) return await next(request, _next);
+    if (!token) return next(request, _next);
+
     try {
       let _token = token;
+      // Refresh expired token
       if (Date.now() >= token.expires_at * 1000) {
         _token = await refreshAccessToken(token);
       }
-      const checkOrganization = await fetch(`${USERS_API_BASE_URL}/organization`, {
+
+      // Check user's organization status
+      const orgRes = await fetch(`${USERS_API_BASE_URL}/organization`, {
         headers: {
           Authorization: `Bearer ${_token.access_token}`,
         },
       });
-      if (checkOrganization.ok) {
-        const organization = await checkOrganization.json();
+
+      if (orgRes.ok) {
+        const organization = await orgRes.json();
+
+        // Suspended org
         if (organization?.suspended) {
-          const suspendedUrl = new URL(`${lngPath}/onboarding/organization/suspended`, origin);
-          return NextResponse.redirect(suspendedUrl);
+          return NextResponse.redirect(new URL(`${basePath}/onboarding/organization/suspended`, origin));
         }
+
+        // Valid org
         if (organization?.id) {
           const response = (await next(request, _next)) as NextResponse;
-          response.cookies.set("organization", organization.id);
+          response.cookies.set("organization", organization.id, { path: "/" });
           return response;
         }
       }
-      const pendingInvitations = await fetch(
+
+      // Check for invitations
+      const invitationRes = await fetch(
         `${USERS_API_BASE_URL}/invitations?type=organization&status=pending`,
         {
           headers: {
@@ -70,20 +68,22 @@ export const withOrganization: MiddlewareFactory = (next: NextMiddleware) => {
         }
       );
 
-      if (pendingInvitations.ok) {
-        const invitations: InvitationPaginated = await pendingInvitations.json();
+      if (invitationRes.ok) {
+        const invitations: InvitationPaginated = await invitationRes.json();
         if (invitations?.items?.length > 0) {
-          const invitationId = invitations.items[0].id;
-          const invitationUrl = new URL(`${lngPath}/onboarding/organization/invite/${invitationId}`, origin);
-          return NextResponse.redirect(invitationUrl);
+          const firstInvitationId = invitations.items[0].id;
+          return NextResponse.redirect(
+            new URL(`${basePath}/onboarding/organization/invite/${firstInvitationId}`, origin)
+          );
         }
       }
+
     } catch (error) {
       console.error("Error while fetching organization", error);
     }
 
-    const organizationUrl = new URL(`${basePath}${organizationPageCreate}`, origin);
-
-    return NextResponse.redirect(organizationUrl);
+    // No org or invite → redirect to create org page
+    const createUrl = new URL(`${basePath}/onboarding/organization/create`, origin);
+    return NextResponse.redirect(createUrl);
   };
 };

@@ -1,6 +1,5 @@
 import { Box, Button, Stack, Typography } from "@mui/material";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 type DropdownFooterProps = {
   isValid: boolean;

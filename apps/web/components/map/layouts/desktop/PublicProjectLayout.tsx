@@ -1,8 +1,7 @@
 import { Box } from "@mui/material";
 import React, { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
-
-import { useTranslation } from "@/i18n/client";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
 import { removeTemporaryFilter, setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";

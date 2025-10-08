@@ -7,10 +7,9 @@ import {
 import { Box, IconButton, Stack, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { BuilderPanelSchema, BuilderWidgetSchema, ProjectLayer } from "@/lib/validations/project";
 

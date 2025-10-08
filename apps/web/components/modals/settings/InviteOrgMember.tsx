@@ -15,9 +15,8 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { inviteMember } from "@/lib/api/organizations";
 import { useOrganization } from "@/lib/api/users";

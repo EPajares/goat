@@ -16,10 +16,11 @@ import {
 } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import type { Layer } from "@/lib/validations/layer";
 import type { Project } from "@/lib/validations/project";

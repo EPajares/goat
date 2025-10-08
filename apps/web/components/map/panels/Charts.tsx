@@ -1,6 +1,6 @@
-import { ICON_NAME } from "@p4b/ui/components/Icon";
+import { useTranslation } from "react-i18next";
 
-import { useTranslation } from "@/i18n/client";
+import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { setActiveLeftPanel } from "@/lib/store/map/slice";
 

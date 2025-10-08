@@ -1,9 +1,8 @@
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { computeHeatmapConnectivity } from "@/lib/api/tools";
 import { heatmapConnectivitySchema } from "@/lib/validations/tools";

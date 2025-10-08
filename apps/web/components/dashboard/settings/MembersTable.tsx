@@ -19,10 +19,9 @@ import {
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { Order } from "@/lib/utils/helpers";
 import { getComparator, stableSort } from "@/lib/utils/helpers";

@@ -24,13 +24,13 @@ import {
 } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { useMemo, useState } from "react";
-import { Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
 
 import { Loading } from "@p4b/ui/components/Loading";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import { LAYERS_API_BASE_URL } from "@/lib/api/layers";
 import {

@@ -2,6 +2,7 @@ import { Global } from "@emotion/react";
 import type { Theme } from "@mui/material";
 import { Box, IconButton, Stack, SwipeableDrawer, Typography, styled, useTheme } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import "swiper/css";
 import "swiper/css/pagination";
 import { Pagination } from "swiper/modules";
@@ -9,8 +10,6 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
 import { setGeocoderResult } from "@/lib/store/map/slice";

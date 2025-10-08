@@ -2,8 +2,7 @@ import { useDraggable } from "@dnd-kit/core";
 import { Search as SearchIcon } from "@mui/icons-material";
 import { Box, Grid, InputAdornment, Stack, TextField } from "@mui/material";
 import React, { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { WidgetTypes } from "@/lib/validations/widget";
 import { chartTypes, dataTypes, elementTypes, informationTypes } from "@/lib/validations/widget";

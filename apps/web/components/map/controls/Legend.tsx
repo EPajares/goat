@@ -1,10 +1,9 @@
 import { Divider, IconButton, Paper, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { formatNumber, rgbToHex } from "@/lib/utils/helpers";
 import { zoomToLayer } from "@/lib/utils/map/navigate";

@@ -1,8 +1,7 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import LinearProgress from "@mui/material/LinearProgress";
 import { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { useProjectLayerAggregationStats } from "@/lib/api/projects";
 import { formatNumber } from "@/lib/utils/format-number";

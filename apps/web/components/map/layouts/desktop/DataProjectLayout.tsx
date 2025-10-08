@@ -1,9 +1,8 @@
 import { Box, Collapse, Stack, useTheme } from "@mui/material";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
 import { setActiveLeftPanel, setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";

@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { setActiveLeftPanel } from "@/lib/store/map/slice";
 import type { ProjectLayer } from "@/lib/validations/project";

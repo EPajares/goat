@@ -17,10 +17,9 @@ import {
   debounce,
 } from "@mui/material";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useLayerUniqueValues } from "@/lib/api/layers";
 import type { GetLayerUniqueValuesQueryParams } from "@/lib/validations/layer";

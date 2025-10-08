@@ -1,10 +1,9 @@
 import { Box, Collapse, IconButton, LinearProgress, Stack, Typography, useTheme } from "@mui/material";
 import { format, parseISO } from "date-fns";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { JobStatusType, JobType } from "@/lib/validations/jobs";
 

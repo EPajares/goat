@@ -1,7 +1,6 @@
 import { Box, Grid, MenuItem, Select, Stack, TextField, Typography, useTheme } from "@mui/material";
 import { useMemo } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { formatNumber } from "@/lib/utils/helpers";
 import type { ClassBreaks, ColorMap, ColorRange } from "@/lib/validations/layer";

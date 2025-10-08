@@ -5,10 +5,9 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import TextField from "@mui/material/TextField";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 const FolderSelect = ({ folders, selectedFolder, setSelectedFolder }) => {
   const { t } = useTranslation("common");
@@ -31,9 +30,7 @@ const FolderSelect = ({ folders, selectedFolder, setSelectedFolder }) => {
         return option.name;
       }}
       renderOption={(props, option) => (
-        <ListItem
-          key={option.id}
-          {...props}>
+        <ListItem key={option.id} {...props}>
           <ListItemIcon>
             <Icon
               iconName={option?.id === "0" ? ICON_NAME.HOUSE : ICON_NAME.FOLDER}

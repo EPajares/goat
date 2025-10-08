@@ -1,8 +1,9 @@
 import { Divider, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import type { Project } from "@/lib/validations/project";
 

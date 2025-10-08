@@ -14,11 +14,10 @@ import {
 } from "@mui/material";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useProjectLayerChartData } from "@/lib/api/projects";
 import type { ProjectLayer } from "@/lib/validations/project";

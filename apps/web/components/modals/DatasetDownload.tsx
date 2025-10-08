@@ -12,9 +12,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { downloadDataset } from "@/lib/api/layers";
 import type { FeatureDataExchangeType } from "@/lib/validations/common";

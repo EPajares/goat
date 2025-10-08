@@ -2,7 +2,7 @@ import { countries } from "country-flag-icons";
 import getUnicodeFlagIcon from "country-flag-icons/unicode";
 import { useMemo } from "react";
 
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from 'react-i18next'
 
 import { dataCategory, dataLicense } from "@/lib/validations/common";
 

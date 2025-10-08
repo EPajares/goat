@@ -2,11 +2,10 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Box, Button, Chip, MenuItem, Select, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { formatNumber, isValidHex } from "@/lib/utils/helpers";
 import type { ClassBreaks, ColorMap } from "@/lib/validations/layer";

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { ColorRange, FeatureLayerProperties, LayerFieldType } from "@/lib/validations/layer";
 

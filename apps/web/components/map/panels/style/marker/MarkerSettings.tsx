@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { Layer } from "@/lib/validations/layer";
 import { type FeatureLayerProperties } from "@/lib/validations/layer";

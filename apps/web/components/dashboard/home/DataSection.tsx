@@ -1,10 +1,9 @@
 import { Box, Button, Divider, Grid, Skeleton, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { Layer } from "@/lib/validations/layer";
 

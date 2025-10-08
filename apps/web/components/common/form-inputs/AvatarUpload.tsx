@@ -2,9 +2,8 @@ import { Avatar, Button, Stack, Typography } from "@mui/material";
 import React, { useRef } from "react";
 import type { Control, FieldValues, Path } from "react-hook-form";
 import { Controller } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 interface RhfAvatarUploadProps<TField extends FieldValues> {
   title: string;

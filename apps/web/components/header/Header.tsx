@@ -5,13 +5,13 @@ import { Box, Button, Chip, IconButton, Link, Stack, Tooltip, Typography, useThe
 import Divider from "@mui/material/Divider";
 import { format, formatDistance, parseISO } from "date-fns";
 import { useMemo, useState } from "react";
-import { Trans } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl";
 
 import { GOATLogoIconOnlyGreen } from "@p4b/ui/assets/svg/GOATLogoIconOnlyGreen";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import { useOrganization } from "@/lib/api/users";
 import { CONTACT_US_URL, DOCS_URL, DOCS_VERSION, WEBSITE_URL } from "@/lib/constants";

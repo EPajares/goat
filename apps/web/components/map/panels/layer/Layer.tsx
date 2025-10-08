@@ -22,12 +22,11 @@ import {
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 import { toast } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import {
   addProjectLayers,

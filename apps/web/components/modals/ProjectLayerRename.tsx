@@ -13,10 +13,9 @@ import {
 } from "@mui/material";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
-
-import { useTranslation } from "@/i18n/client";
 
 import { LAYERS_API_BASE_URL, updateDataset, useDataset } from "@/lib/api/layers";
 import { updateProjectLayer } from "@/lib/api/projects";

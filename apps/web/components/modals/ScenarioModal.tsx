@@ -13,9 +13,8 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { createProjectScenario, updateProjectScenario } from "@/lib/api/projects";
 import { type PostScenario, type Scenario, postScenarioSchema } from "@/lib/validations/scenario";

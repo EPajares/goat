@@ -1,7 +1,6 @@
 import { Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { type FeatureLayerProperties, type LayerFieldType, TextLabelSchema } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";

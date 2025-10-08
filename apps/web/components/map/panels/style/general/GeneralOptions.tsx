@@ -1,8 +1,7 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { FeatureLayerProperties } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";

@@ -1,10 +1,9 @@
 import { Divider, Link, Stack, Typography, styled, useTheme } from "@mui/material";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
 import { Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { type Layer, datasetMetadataAggregated } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";

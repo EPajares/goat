@@ -1,7 +1,6 @@
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { type StatisticOperation, statisticOperationEnum } from "@/lib/validations/common";
 

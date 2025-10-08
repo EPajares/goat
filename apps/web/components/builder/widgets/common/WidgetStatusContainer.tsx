@@ -1,9 +1,8 @@
 import { Alert } from "@mui/material";
 import { Stack } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 interface WidgetStatusContainerProps {
   isLoading?: boolean;

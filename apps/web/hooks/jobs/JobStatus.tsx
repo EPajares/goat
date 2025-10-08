@@ -1,7 +1,6 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useJobs } from "@/lib/api/jobs";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";

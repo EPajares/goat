@@ -12,7 +12,7 @@ export const MAPBOX_TOKEN =
 
 export const MAPTILER_KEY = "tffQ1wAu9TKyVMHrc3o3"
 
-export const THEME_COOKIE_NAME = "client_theme";
+
 export const ORG_DEFAULT_AVATAR = "https://assets.plan4better.de/img/no-org-thumb.jpg";
 
 export const STREET_NETWORK_LAYER_ID = "903ecdca-b717-48db-bbce-0219e41439cf"
@@ -22,3 +22,7 @@ export const GEOFENCE_LAYERS_PATH = "https://assets.plan4better.de/other/geofenc
 export const DEFAULT_WKT_EXTENT = "POLYGON((-180 -90, -180 90, 180 90, 180 -90, -180 -90))";
 
 export const ASSETS_URL = "https://assets.plan4better.de";
+
+
+export const THEME_COOKIE_NAME = "client_theme";
+export const LANGUAGE_COOKIE_NAME = "client_language";

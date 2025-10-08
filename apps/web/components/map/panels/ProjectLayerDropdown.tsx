@@ -1,7 +1,6 @@
 import { FormControl, InputLabel, MenuItem, Select, Typography } from "@mui/material";
 import { useMemo } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { setActiveLayer } from "@/lib/store/layer/slice";
 import type { LayerType } from "@/lib/validations/common";

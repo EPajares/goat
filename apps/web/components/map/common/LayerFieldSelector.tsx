@@ -14,8 +14,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { LayerFieldType } from "@/lib/validations/layer";
 

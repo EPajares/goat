@@ -2,7 +2,7 @@
 import { debounce } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from 'react-i18next'
 
 import { useLayerUniqueValues } from "@/lib/api/layers";
 import type { GetLayerUniqueValuesQueryParams } from "@/lib/validations/layer";
