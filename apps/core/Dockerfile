@@ -39,7 +39,7 @@ FROM runtime-deps AS python-base
 # Install debian dependencies
 RUN apt-get install --no-install-recommends -y build-essential gettext
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 # Create virtual environment and install dependencies
 COPY apps/core /app/apps/core
 COPY pyproject.toml uv.lock /app/

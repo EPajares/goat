@@ -1,0 +1,13 @@
+[project]
+name = "goatlib"
+version = "2.0.0"
+requires-python = ">3.10,<3.12"
+description = "GOAT Library"
+authors = [
+    { name = "Plan4Better GmbH", email = "dev@plan4better.de" },
+]
+dependencies = []
+
+[build-system]
+requires = ["uv_build>=0.9.2,<0.10.0"]
+build-backend = "uv_build"

@@ -71,7 +71,7 @@ jobs:
           filters: |
             web:
                 - 'apps/web/**'
-                - 'packages/**'
+                - 'packages/js/**'
                 - '.prettier*'
                 - 'pnpm-lock.yaml'
 
@@ -97,27 +97,27 @@ jobs:
 
             docs:
                 - 'apps/docs/**'
-                - 'packages/**'
+                - 'packages/js/**'
                 - '.prettier*'
                 - 'pnpm-lock.yaml'
 
             keycloak-theme:
-                - 'packages/keycloak-theme/**'
-                - 'packages/eslint-config-p4b/**'
-                - 'packages/prettier-config/**'
-                - 'packages/tsconfig/**'
-                - 'packages/types/**'
-                - 'packages/ui/**'
+                - 'packages/js/keycloak-theme/**'
+                - 'packages/js/eslint-config-p4b/**'
+                - 'packages/js/prettier-config/**'
+                - 'packages/js/tsconfig/**'
+                - 'packages/js/types/**'
+                - 'packages/js/ui/**'
                 - '.prettier*'
                 - 'pnpm-lock.yaml'
 
             storybook:
                 - 'apps/storybook/**'
-                - 'packages/ui/**'
-                - 'packages/eslint-config-p4b/**'
-                - 'packages/prettier-config/**'
-                - 'packages/tsconfig/**'
-                - 'packages/types/**'
+                - 'packages/js/ui/**'
+                - 'packages/js/eslint-config-p4b/**'
+                - 'packages/js/prettier-config/**'
+                - 'packages/js/tsconfig/**'
+                - 'packages/js/types/**'
                 - '.prettier*'
                 - 'pnpm-lock.yaml'
 

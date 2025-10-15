@@ -4,7 +4,7 @@
       "pattern": "apps/*/"
     },
     {
-      "pattern": "packages/*/"
+      "pattern": "packages/js/*/"
     }
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
@@ -22,11 +22,32 @@
   "i18n-ally.keepFulfilled": true,
   "i18n-ally.namespace": true,
   "i18n-ally.keystyle": "nested",
-  "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
   "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "githubPullRequests.experimental.chat": true,
   "githubPullRequests.experimental.notificationsView": true,
   "python.defaultInterpreterPath": ".venv/bin/python",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "apps/core/tests",
+    "apps/routing/tests"
+  ],
+  "python.testing.cwd": "${workspaceFolder}",
   "mypy-type-checker.ignorePatterns": [
     ".direnv/*",
     "docs/*",

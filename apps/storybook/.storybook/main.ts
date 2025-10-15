@@ -5,10 +5,10 @@ const config: StorybookConfig = {
     disableTelemetry: true,
   },
   stories: [
-    "../../../packages/keycloak-theme/src/stories/*.mdx",
-    "../../../packages/keycloak-theme/src/stories/*.stories.@(js|jsx|ts|tsx)",
-    "../../../packages/ui/stories/**/*.mdx",
-    "../../../packages/ui/stories/**/*.stories.@(js|jsx|ts|tsx)",
+    "../../../packages/js/keycloak-theme/src/stories/*.mdx",
+    "../../../packages/js/keycloak-theme/src/stories/*.stories.@(js|jsx|ts|tsx)",
+    "../../../packages/js/ui/stories/**/*.mdx",
+    "../../../packages/js/ui/stories/**/*.stories.@(js|jsx|ts|tsx)",
   ],
   addons: [
     "@storybook/addon-links",
@@ -25,6 +25,6 @@ const config: StorybookConfig = {
     name: "@storybook/nextjs",
     options: {},
   },
-  staticDirs: ["../public", "../../../packages/keycloak-theme/public"],
+  staticDirs: ["../public", "../../../packages/js/keycloak-theme/public"],
 };
 export default config;

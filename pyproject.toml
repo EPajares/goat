@@ -3,14 +3,8 @@ name = "goat-monorepo"
 description = "GOAT, an intelligent software for modern web mapping and integrated planning"
 version = "2.0.0"
 requires-python = ">3.10,<3.12"
-dependencies = [
-    "boto3>=1.38.23",
-    "dotenv>=0.9.9",
-    "python-jose>=3.4.0",
-]
-authors = [
-    { name = "Plan4Better GmbH", email = "info@plan4better.de" },
-]
+dependencies = ["boto3>=1.38.23", "dotenv>=0.9.9", "python-jose>=3.4.0"]
+authors = [{ name = "Plan4Better GmbH", email = "info@plan4better.de" }]
 [tool.uv]
 package = false
 dev-dependencies = [
@@ -24,7 +18,7 @@ dev-dependencies = [
     "pytest-sugar==1.0.0",
     "pytest==8.3.5",
     "mypy==1.13.0",
-    "ruff==0.7.3"
+    "ruff==0.7.3",
 ]
 
 [tool.uv.sources]
@@ -32,9 +26,16 @@ core = { workspace = true }
 geoapi = { workspace = true }
 routing = { workspace = true }
 accounts = { workspace = true }
+goatlib = { workspace = true }
 
 [tool.uv.workspace]
-members = ["apps/geoapi", "apps/routing", "apps/accounts", "apps/core"]
+members = [
+    "apps/geoapi",
+    "apps/routing",
+    "apps/accounts",
+    "apps/core",
+    "packages/python/goatlib",
+]
 
 [tool.mypy]
 strict = true
@@ -43,9 +44,21 @@ exclude = ["venv", ".venv", "alembic"]
 
 [tool.ruff.lint]
 select = ["F", "E", "W", "N", "I", "ANN"]
-ignore = ["E501", "ANN101", "ANN102", "ANN401"]
-per-file-ignores = { "*/__init__.py" = ["F401"], "*/alembic/*" = ["ANN", "F401", "I001", "W291"] }
+ignore = ["E501", "ANN401"]
+per-file-ignores = { "*/__init__.py" = [
+    "F401",
+], "*/alembic/*" = [
+    "ANN",
+    "F401",
+    "I001",
+    "W291",
+] }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = ["--import-mode=importlib"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*", "*Tests"]
+python_functions = ["test_*"]
 markers = ["unit: Unit tests", "integration: Integration tests"]
+asyncio_default_fixture_loop_scope = "function"

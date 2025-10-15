@@ -4,7 +4,7 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/js/*"
   ],
   "scripts": {
     "clean": "turbo run clean && rimraf node_modules lint lint-results",

@@ -33,7 +33,7 @@ runs:
       env:
         cache-name: prod-build
         key-1: ${{ inputs.node_version }}-${{ hashFiles('${{ inputs.cwd }}/pnpm-lock.yaml') }}
-        key-2: ${{ hashFiles('${{ inputs.cwd }}/apps/**/**.[jt]s', '${{ inputs.cwd }}/apps/**/**.[jt]sx', '${{ inputs.cwd }}/packages/**/**.[jt]s', '${{ inputs.cwd }}/packages/**/**.[jt]sx', '!**/node_modules') }}
+        key-2: ${{ hashFiles('${{ inputs.cwd }}/apps/**/**.[jt]s', '${{ inputs.cwd }}/apps/**/**.[jt]sx', '${{ inputs.cwd }}/packages/js/**/**.[jt]s', '${{ inputs.cwd }}/packages/js/**/**.[jt]sx', '!**/node_modules') }}
         key-3: ${{ github.event.pull_request.number || github.ref }}
         # Ensures production-build.yml will always be fresh
         key-4: ${{ github.sha }}

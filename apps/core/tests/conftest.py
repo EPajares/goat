@@ -3,21 +3,12 @@ import asyncio
 import logging
 import os
 
+# Import Env variables
+import core._dotenv  # noqa: E402, F401, I001
+
 # Third party imports
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-from jose import jwt
-from sqlalchemy import text
-from tests.utils import (
-    check_job_status,
-    check_user_data_deleted,
-    generate_random_string,
-    upload_file,
-    upload_invalid_file,
-    upload_valid_file,
-    upload_valid_files,
-)
 
 # Local application imports
 from core.core.config import settings
@@ -44,6 +35,19 @@ from core.schemas.catchment_area import (
 from core.schemas.layer import request_examples as layer_request_examples
 from core.schemas.project import (
     request_examples as project_request_examples,
+)
+from httpx import AsyncClient
+from jose import jwt
+from sqlalchemy import text
+
+from tests.utils import (
+    check_job_status,
+    check_user_data_deleted,
+    generate_random_string,
+    upload_file,
+    upload_invalid_file,
+    upload_valid_file,
+    upload_valid_files,
 )
 
 
@@ -1108,7 +1112,6 @@ def create_generic_toolbox_fixture(endpoint: str, request_examples: dict):
 async def fixture_create_shared_team_layers(
     client: AsyncClient, fixture_create_folder, db_session
 ):
-
     # Create five layers
     layers = []
     for _i in range(5):
@@ -1151,7 +1154,6 @@ async def fixture_create_shared_team_layers(
 async def fixture_create_shared_organization_layers(
     client: AsyncClient, fixture_create_folder, db_session
 ):
-
     # Create five layers
     layers = []
     for _i in range(5):
@@ -1198,7 +1200,6 @@ async def fixture_create_shared_organization_layers(
 async def fixture_create_shared_team_projects(
     client: AsyncClient, fixture_create_folder, fixture_create_projects, db_session
 ):
-
     # Create projects
     projects = fixture_create_projects
 
