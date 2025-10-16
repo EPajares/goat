@@ -1,0 +1,125 @@
+import logging
+from pathlib import Path
+from typing import Literal
+
+import pytest
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+)
+
+# ---------------------------------------------------------------------------
+# Global root
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def data_root() -> Path:
+    """Base directory containing all static test data (data/io)."""
+    return Path(__file__).parent / "data" / "io"
+
+
+# ---------------------------------------------------------------------------
+# Raster
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def raster_valid(data_root: Path) -> Path:
+    """Valid raster GeoTIFF."""
+    return data_root / "raster" / "imagery.tif"
+
+
+# ---------------------------------------------------------------------------
+# Tabular (CSV / Excel)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def tabular_valid_csv(data_root: Path) -> Path:
+    return data_root / "tabular" / "valid" / "table.csv"
+
+
+@pytest.fixture(scope="session")
+def tabular_valid_xlsx(data_root: Path) -> Path:
+    return data_root / "tabular" / "valid" / "table.xlsx"
+
+
+@pytest.fixture(scope="session")
+def tabular_invalid_no_header(data_root: Path) -> Path:
+    return data_root / "tabular" / "invalid" / "no_header.csv"
+
+
+@pytest.fixture(scope="session")
+def tabular_invalid_bad_xlsx(data_root: Path) -> Path:
+    return data_root / "tabular" / "invalid" / "bad_formed.xlsx"
+
+
+# ---------------------------------------------------------------------------
+# Vector (GeoJSON / GPKG / KML / Shapefile)
+# ---------------------------------------------------------------------------
+
+VectorType = Literal["geojson", "gpkg", "kml", "shapefile"]
+
+
+@pytest.fixture(scope="session", params=["geojson", "gpkg", "kml", "shapefile"])
+def vector_type(request: pytest.FixtureRequest) -> VectorType:  # type: ignore[return-type]
+    """Enumerate supported vector types."""
+    return request.param
+
+
+@pytest.fixture(scope="session")
+def vector_valid_dir(data_root: Path, vector_type: VectorType) -> Path:
+    """Sub‑directory with valid vector files for each format."""
+    return data_root / "vector" / "valid" / vector_type
+
+
+@pytest.fixture(scope="session")
+def vector_invalid_zip(data_root: Path) -> Path:
+    """Corrupted zipped shapefile (negative tests)."""
+    return data_root / "vector" / "invalid" / "shapefile_missing_file.zip"
+
+
+# ---------------------------------------------------------------------------
+# Single‑file vector shortcuts (used by converter tests)
+# ---------------------------------------------------------------------------
+
+
+def _collect_vector_files(fmt: str) -> list[Path]:
+    base = Path(__file__).parent / "data" / "io" / "vector" / "valid" / fmt
+    if fmt == "shapefile":
+        return sorted(base.glob("*.zip"))
+    return sorted(base.glob(f"*.{fmt}"))
+
+
+@pytest.fixture(
+    params=_collect_vector_files("geojson"), ids=lambda p: p.name, scope="session"
+)
+def geojson_path(request: pytest.FixtureRequest) -> Path:
+    """Each GeoJSON file (points, lines, polygons)."""
+    return request.param
+
+
+@pytest.fixture(
+    params=_collect_vector_files("gpkg"), ids=lambda p: p.name, scope="session"
+)
+def gpkg_path(request: pytest.FixtureRequest) -> Path:
+    """Each GeoPackage file."""
+    return request.param
+
+
+@pytest.fixture(
+    params=_collect_vector_files("kml"), ids=lambda p: p.name, scope="session"
+)
+def kml_path(request: pytest.FixtureRequest) -> Path:
+    """Each KML file."""
+    return request.param
+
+
+@pytest.fixture(
+    params=_collect_vector_files("shapefile"), ids=lambda p: p.name, scope="session"
+)
+def shapefile_path(request: pytest.FixtureRequest) -> Path:
+    """Each zipped shapefile."""
+    return request.param

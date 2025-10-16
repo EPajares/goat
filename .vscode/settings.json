@@ -44,8 +44,7 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": [
-    "apps/core/tests",
-    "apps/routing/tests"
+    "packages/python/goatlib/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   "mypy-type-checker.ignorePatterns": [
