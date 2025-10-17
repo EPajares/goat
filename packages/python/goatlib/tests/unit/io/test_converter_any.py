@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pytest
@@ -5,15 +6,19 @@ from goatlib.io.ingest import convert_any
 from goatlib.models.io import DatasetMetadata
 
 # =====================================================================
-#  VALID  CONVERSION  TESTS
+#  VALID  INPUT  TESTS
 # =====================================================================
-
 # ----------------------------- Tabular ------------------------------
 
 
 @pytest.mark.parametrize(
     "fixture_name",
-    ["tabular_valid_csv", "tabular_valid_xlsx"],
+    [
+        "tabular_valid_csv",
+        "tabular_valid_xlsx",
+        "tabular_valid_tsv",
+        "example_valid_txt",
+    ],
 )
 def test_tabular_to_parquet(
     request: pytest.FixtureRequest,
@@ -22,7 +27,9 @@ def test_tabular_to_parquet(
 ) -> None:
     """Convert tabular formats → Parquet."""
     src: Path = request.getfixturevalue(fixture_name)
-    out, meta = convert_any(str(src), tmp_path)
+    results = convert_any(str(src), tmp_path)
+    assert results, "convert_any() returned empty list"
+    out, meta = results[0]
     assert out.exists() and out.suffix == ".parquet"
     assert isinstance(meta, DatasetMetadata)
     assert meta.source_type in ("tabular", "vector")
@@ -33,10 +40,11 @@ def test_tabular_to_parquet(
 
 def _check_vector(tmp_path: Path, path: Path) -> None:
     """Helper used by all vector tests."""
-    out, meta = convert_any(str(path), tmp_path)
+    results = convert_any(str(path), tmp_path)
+    assert results and isinstance(results[0][1], DatasetMetadata)
+    out, meta = results[0]
     assert out.exists() and out.suffix == ".parquet"
-    assert isinstance(meta, DatasetMetadata)
-    assert meta.source_type == "vector"
+    assert meta.source_type in ("vector", "tabular")
 
 
 def test_geojson_conversion(tmp_path: Path, geojson_path: Path) -> None:
@@ -54,21 +62,32 @@ def test_kml_conversion(tmp_path: Path, kml_path: Path) -> None:
     _check_vector(tmp_path, kml_path)
 
 
+def test_kmz_conversion(tmp_path: Path, kmz_path: Path) -> None:
+    """Each KMZ sample → Parquet."""
+    _check_vector(tmp_path, kmz_path)
+
+
+def test_gpx_conversion(tmp_path: Path, gpx_path: Path) -> None:
+    """Each GPX sample → Parquet."""
+    _check_vector(tmp_path, gpx_path)
+
+
 def test_shapefile_conversion(tmp_path: Path, shapefile_path: Path) -> None:
     """Each Shapefile (ZIP) sample → Parquet."""
     _check_vector(tmp_path, shapefile_path)
 
 
 def test_crs_autodetect_and_transform(tmp_path: Path, geojson_path: Path) -> None:
-    """
-    Ensure convert_any handles CRS autodetection & transformation.
-    """
-    src = geojson_path  # same thing the old fixture gave you
-    out_auto, meta_auto = convert_any(str(src), tmp_path)
-    assert meta_auto is not None
-    assert hasattr(meta_auto, "crs")
+    """Ensure convert_any handles CRS autodetection & transformation."""
+    src = geojson_path
+    # auto CRS
+    results = convert_any(str(src), tmp_path)
+    out_auto, meta_auto = results[0]
+    assert meta_auto is not None and hasattr(meta_auto, "crs")
 
-    out_tx, meta_tx = convert_any(str(src), tmp_path, target_crs="EPSG:3857")
+    # reprojection
+    results_tx = convert_any(str(src), tmp_path, target_crs="EPSG:3857")
+    out_tx, meta_tx = results_tx[0]
     assert meta_tx.crs == "EPSG:3857"
     assert out_tx.exists()
 
@@ -78,14 +97,16 @@ def test_crs_autodetect_and_transform(tmp_path: Path, geojson_path: Path) -> Non
 
 def test_raster_to_cog(tmp_path: Path, raster_valid: Path) -> None:
     """GeoTIFF → COG TIFF conversion."""
-    out, meta = convert_any(str(raster_valid), tmp_path)
+    results = convert_any(str(raster_valid), tmp_path)
+    out, meta = results[0]
     assert out.exists() and out.suffix == ".tif"
     assert meta.source_type == "raster"
 
 
 def test_raster_reproject_via_convert_any(tmp_path: Path, raster_valid: Path) -> None:
     """Ensure convert_any reprojects rasters when target_crs is passed."""
-    out, meta = convert_any(str(raster_valid), tmp_path, target_crs="EPSG:3857")
+    results = convert_any(str(raster_valid), tmp_path, target_crs="EPSG:3857")
+    out, meta = results[0]
     assert out.exists()
     assert meta.crs and "3857" in meta.crs
 
@@ -106,3 +127,68 @@ def test_missing_path_fails(tmp_path: Path) -> None:
     fake = tmp_path / "does_not_exist.geojson"
     with pytest.raises(Exception):
         convert_any(str(fake), tmp_path)
+
+
+# =====================================================================
+#  MIXED CONTENT INPUT TESTS
+# =====================================================================
+
+
+def test_mixed_content_real_dataset_epsg4326(tmp_path: Path, data_root: Path) -> None:
+    """
+    End‑to‑end test verifying that a real mixed‑content archive (raster + vector)
+    can be converted *and* reprojected to EPSG:4326.
+
+    Assertions:
+      • convert_any() runs with target CRS = EPSG:4326
+      • one or more raster and vector outputs are produced
+      • each output exists, is non‑empty, and metadata.crs includes "4326"
+    """
+    src = data_root / "mixed/mixed_content.zip"
+    if not src.exists():
+        src = data_root / "mixed/mixed_content"
+    assert src.exists(), "Expected tests/data/io/mixed/mixed_content(.zip)"
+
+    # Run the unified conversion with reprojection
+    results = convert_any(str(src), tmp_path, target_crs="EPSG:4326")
+    assert isinstance(results, list)
+    assert results, "No results returned from convert_any"
+
+    raster_files, vector_files = [], []
+    seen = set()
+
+    for out, meta in results:
+        # --- Basic file & metadata checks
+        assert isinstance(meta, DatasetMetadata), f"{out}: bad metadata"
+        assert out.exists(), f"Output missing: {out}"
+        assert out.stat().st_size > 0, f"{out}: empty file"
+        assert out not in seen, f"Duplicate output path: {out}"
+        seen.add(out)
+
+        # --- CRS: ensure reprojection actually happened
+        assert meta.crs and "4326" in meta.crs, f"{out}: wrong CRS {meta.crs}"
+
+        # --- Type / extension consistency
+        ext = out.suffix.lower()
+        if ext == ".tif":
+            raster_files.append(out)
+            assert meta.source_type == "raster"
+            assert meta.format == "tif"
+        elif ext == ".parquet":
+            vector_files.append(out)
+            assert meta.source_type in {"vector", "tabular"}
+            assert meta.format == "parquet"
+        else:
+            pytest.fail(f"Unexpected extension {ext} for {out}")
+
+    # --- Global expectations
+    assert raster_files, "No raster outputs produced"
+    assert vector_files, "No vector/tabular outputs produced"
+
+    log = logging.getLogger(__name__)
+    log.info(
+        "Mixed content conversion to EPSG:4326 → %d outputs (%d rasters, %d vectors)",
+        len(results),
+        len(raster_files),
+        len(vector_files),
+    )

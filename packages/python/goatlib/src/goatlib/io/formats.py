@@ -7,12 +7,17 @@ class FileFormat(StrEnum):
 
     CSV = ".csv"
     XLSX = ".xlsx"
+    TSV = ".tsv"
+    TXT = ".txt"
+    DSV = ".dsv"
     GEOJSON = ".geojson"
     JSON = ".json"
     GPKG = ".gpkg"
     SHP = ".shp"
-    ZIP = ".zip"  # usually zipped Shapefile
+    ZIP = ".zip"
     KML = ".kml"
+    KMZ = ".kmz"
+    GPX = ".gpx"
     PARQUET = ".parquet"
     TIF = ".tif"
     TIFF = ".tiff"
@@ -29,12 +34,21 @@ VECTOR_EXTS: FrozenSet[str] = frozenset(
         FileFormat.SHP,
         FileFormat.ZIP,
         FileFormat.KML,
+        FileFormat.KMZ,
+        FileFormat.GPX,
         FileFormat.PARQUET,
     }
 )
 
 TABULAR_EXTS: FrozenSet[str] = frozenset(
-    {FileFormat.CSV, FileFormat.XLSX, FileFormat.PARQUET}
+    {
+        FileFormat.CSV,
+        FileFormat.XLSX,
+        FileFormat.TXT,
+        FileFormat.PARQUET,
+        FileFormat.TSV,
+        FileFormat.DSV,
+    }
 )
 RASTER_EXTS: FrozenSet[str] = frozenset({FileFormat.TIF, FileFormat.TIFF})
 ALL_EXTS: FrozenSet[str] = VECTOR_EXTS | TABULAR_EXTS | RASTER_EXTS

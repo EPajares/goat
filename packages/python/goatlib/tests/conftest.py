@@ -47,6 +47,16 @@ def tabular_valid_xlsx(data_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
+def tabular_valid_tsv(data_root: Path) -> Path:
+    return data_root / "tabular" / "valid" / "table.tsv"
+
+
+@pytest.fixture(scope="session")
+def example_valid_txt(data_root: Path) -> Path:
+    return data_root / "tabular" / "valid" / "example.txt"
+
+
+@pytest.fixture(scope="session")
 def tabular_invalid_no_header(data_root: Path) -> Path:
     return data_root / "tabular" / "invalid" / "no_header.csv"
 
@@ -57,7 +67,7 @@ def tabular_invalid_bad_xlsx(data_root: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Vector (GeoJSON / GPKG / KML / Shapefile)
+# Vector (GeoJSON / GPKG / KML / KMZ / GPX / Shapefile)
 # ---------------------------------------------------------------------------
 
 VectorType = Literal["geojson", "gpkg", "kml", "shapefile"]
@@ -118,8 +128,32 @@ def kml_path(request: pytest.FixtureRequest) -> Path:
 
 
 @pytest.fixture(
+    params=_collect_vector_files("kmz"), ids=lambda p: p.name, scope="session"
+)
+def kmz_path(request: pytest.FixtureRequest) -> Path:
+    """Each KMZ file."""
+    return request.param
+
+
+@pytest.fixture(
+    params=_collect_vector_files("gpx"), ids=lambda p: p.name, scope="session"
+)
+def gpx_path(request: pytest.FixtureRequest) -> Path:
+    """Each GPX file."""
+    return request.param
+
+
+@pytest.fixture(
     params=_collect_vector_files("shapefile"), ids=lambda p: p.name, scope="session"
 )
 def shapefile_path(request: pytest.FixtureRequest) -> Path:
     """Each zipped shapefile."""
+    return request.param
+
+
+@pytest.fixture(
+    params=_collect_vector_files("mixed"), ids=lambda p: p.name, scope="session"
+)
+def mixed_content_path(request: pytest.FixtureRequest) -> Path:
+    """Each mixed content file."""
     return request.param

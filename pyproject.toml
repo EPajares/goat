@@ -60,5 +60,9 @@ addopts = ["--import-mode=importlib"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*", "*Tests"]
 python_functions = ["test_*"]
-markers = ["unit: Unit tests", "integration: Integration tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "network: Tests that access external network services (WFS, HTTP, etc.)",
+]
 asyncio_default_fixture_loop_scope = "function"
