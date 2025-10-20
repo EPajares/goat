@@ -17,7 +17,7 @@ logging.basicConfig(
 @pytest.fixture(scope="session")
 def data_root() -> Path:
     """Base directory containing all static test data (data/io)."""
-    return Path(__file__).parent / "data" / "io"
+    return Path(__file__).parent / "data"
 
 
 # ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ def data_root() -> Path:
 @pytest.fixture(scope="session")
 def raster_valid(data_root: Path) -> Path:
     """Valid raster GeoTIFF."""
-    return data_root / "raster" / "imagery.tif"
+    return data_root / "io" / "raster" / "imagery.tif"
 
 
 # ---------------------------------------------------------------------------
@@ -38,32 +38,32 @@ def raster_valid(data_root: Path) -> Path:
 
 @pytest.fixture(scope="session")
 def tabular_valid_csv(data_root: Path) -> Path:
-    return data_root / "tabular" / "valid" / "table.csv"
+    return data_root / "io" / "tabular" / "valid" / "table.csv"
 
 
 @pytest.fixture(scope="session")
 def tabular_valid_xlsx(data_root: Path) -> Path:
-    return data_root / "tabular" / "valid" / "table.xlsx"
+    return data_root / "io" / "tabular" / "valid" / "table.xlsx"
 
 
 @pytest.fixture(scope="session")
 def tabular_valid_tsv(data_root: Path) -> Path:
-    return data_root / "tabular" / "valid" / "table.tsv"
+    return data_root / "io" / "tabular" / "valid" / "table.tsv"
 
 
 @pytest.fixture(scope="session")
 def example_valid_txt(data_root: Path) -> Path:
-    return data_root / "tabular" / "valid" / "example.txt"
+    return data_root / "io" / "tabular" / "valid" / "example.txt"
 
 
 @pytest.fixture(scope="session")
 def tabular_invalid_no_header(data_root: Path) -> Path:
-    return data_root / "tabular" / "invalid" / "no_header.csv"
+    return data_root / "io" / "tabular" / "invalid" / "no_header.csv"
 
 
 @pytest.fixture(scope="session")
 def tabular_invalid_bad_xlsx(data_root: Path) -> Path:
-    return data_root / "tabular" / "invalid" / "bad_formed.xlsx"
+    return data_root / "io" / "tabular" / "invalid" / "bad_formed.xlsx"
 
 
 # ---------------------------------------------------------------------------
@@ -82,13 +82,13 @@ def vector_type(request: pytest.FixtureRequest) -> VectorType:  # type: ignore[r
 @pytest.fixture(scope="session")
 def vector_valid_dir(data_root: Path, vector_type: VectorType) -> Path:
     """Sub‑directory with valid vector files for each format."""
-    return data_root / "vector" / "valid" / vector_type
+    return data_root / "io" / "vector" / "valid" / vector_type
 
 
 @pytest.fixture(scope="session")
 def vector_invalid_zip(data_root: Path) -> Path:
     """Corrupted zipped shapefile (negative tests)."""
-    return data_root / "vector" / "invalid" / "shapefile_missing_file.zip"
+    return data_root / "io" / "vector" / "invalid" / "shapefile_missing_file.zip"
 
 
 # ---------------------------------------------------------------------------

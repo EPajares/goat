@@ -24,8 +24,6 @@ def from_wfs(
     layer: str | List[str] | None = None,
     target_crs: str | None = None,
     list_layers: bool = False,
-    progress: bool = True,
-    progress_style: str = "auto",
 ) -> WfsResult:
     """
     Read or inspect a WFS service and convert layers to Parquet/GeoParquet.
@@ -61,8 +59,6 @@ def from_wfs(
         layers=layers_to_process,
         out_dir=out_dir,
         target_crs=target_crs,
-        progress=progress,
-        progress_style=progress_style,
     )
 
 
@@ -114,8 +110,6 @@ def _convert_wfs_layers(
     layers: List[str],
     out_dir: Path,
     target_crs: str | None,
-    progress: bool = True,
-    progress_style: str = "auto",
 ) -> WfsResult:
     """Convert WFS layers to Parquet/GeoParquet."""
     results: List[Tuple[Path, DatasetMetadata]] = []
@@ -128,8 +122,6 @@ def _convert_wfs_layers(
                 layer_name=layer_name,
                 out_dir=out_dir,
                 target_crs=target_crs,
-                progress=progress,
-                progress_style=progress_style,
             )
             results.extend(layer_results)
 
@@ -147,8 +139,6 @@ def _convert_single_wfs_layer(
     layer_name: str,
     out_dir: Path,
     target_crs: str | None,
-    progress: bool = True,
-    progress_style: str = "auto",
 ) -> List[Tuple[Path, DatasetMetadata]]:
     """Convert a single WFS layer to Parquet/GeoParquet."""
     xml_path = None
@@ -165,8 +155,6 @@ def _convert_single_wfs_layer(
             dest_dir=out_dir,
             geometry_col=None,
             target_crs=target_crs,
-            progress=progress,
-            progress_style=progress_style,
         )
 
     finally:

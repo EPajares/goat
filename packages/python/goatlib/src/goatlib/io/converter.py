@@ -1,6 +1,4 @@
 # src/goatlib/io/converter.py
-from __future__ import annotations
-
 import logging
 import shutil
 import tempfile
@@ -11,14 +9,12 @@ from typing import Iterator, Self
 from urllib.parse import urlparse
 
 import duckdb
-import requests
 from osgeo import gdal
 
 from goatlib.config import settings
 from goatlib.io.formats import ALL_EXTS, FileFormat
-from goatlib.io.utils import detect_path_type
+from goatlib.io.utils import detect_path_type, download_if_remote
 from goatlib.models.io import DatasetMetadata
-from goatlib.utils.progress import ProgressReporter
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +49,9 @@ class IOConverter:
     Works locally, over HTTP, and on S3.
     """
 
-    def __init__(self: Self, progress_reporter: ProgressReporter | None = None) -> None:
+    def __init__(self: Self) -> None:
         self.con = duckdb.connect(database=":memory:")
         self._setup_duckdb_extensions()
-        self.progress_reporter = progress_reporter
 
     def _setup_duckdb_extensions(self: Self) -> None:
         """Configure DuckDB with necessary extensions and settings."""
@@ -74,19 +69,6 @@ class IOConverter:
                 "SET s3_secret_access_key = $1;", [io.s3_secret_access_key]
             )
 
-    def _update_progress(
-        self: Self, progress: float, message: str, current_item: str = None
-    ) -> None:
-        """Helper method to update progress if reporter is available."""
-        if self.progress_reporter:
-            from goatlib.utils.progress import ProgressState
-
-            self.progress_reporter.update(
-                ProgressState(
-                    current=progress, message=message, current_item=current_item
-                )
-            )
-
     # ------------------------------------------------------------------
     # Vector/Tabular → Parquet / GeoParquet
     # ------------------------------------------------------------------
@@ -98,7 +80,6 @@ class IOConverter:
         target_crs: str | None = None,
         column_mapping: ColumnMapping | None = None,
         timeout: int | None = None,
-        progress_reporter: ProgressReporter | None = None,
     ) -> DatasetMetadata:
         """
         Convert any vector/tabular dataset to Parquet/GeoParquet.
@@ -110,13 +91,11 @@ class IOConverter:
             target_crs: Target CRS for reprojection
             column_mapping: Dictionary for column renaming
             timeout: Timeout for HTTP requests
-            progress_reporter: Progress reporter instance
 
         Returns:
             DatasetMetadata with conversion results
         """
-        reporter = progress_reporter or self.progress_reporter
-        self._update_progress(10, "Starting conversion", src_path)
+        logger.info("Starting conversion: %s", src_path)
 
         try:
             # Preprocess source
@@ -133,26 +112,25 @@ class IOConverter:
                     target_crs,
                     column_mapping,
                     timeout,
-                    reporter,
                 )
 
             # Convert single file
             return self._convert_single_file(
-                src_info, out, geometry_col, target_crs, column_mapping, reporter
+                src_info, out, geometry_col, target_crs, column_mapping
             )
 
         except Exception as e:
-            self._update_progress(0, f"Conversion failed: {e}", src_path)
+            logger.error("Conversion failed for %s: %s", src_path, e)
             raise
 
     def _preprocess_source(
         self: Self, src_path: str, timeout: int | None
     ) -> SourceInfo:
         """Preprocess source path and extract information."""
-        self._update_progress(20, "Preprocessing source", src_path)
+        logger.debug("Preprocessing source: %s", src_path)
 
         # Download HTTP sources
-        downloaded_path = self._download_if_http(src_path, timeout)
+        downloaded_path = download_if_remote(src_path, timeout)
 
         # Parse virtual dataset syntax
         base_path, layer_name = self._parse_virtual_dataset(downloaded_path)
@@ -210,11 +188,10 @@ class IOConverter:
         target_crs: str | None,
         column_mapping: ColumnMapping | None,
         timeout: int | None,
-        reporter: ProgressReporter | None,
     ) -> DatasetMetadata:
         """Handle conversion of archive formats (ZIP, KMZ)."""
-        self._update_progress(
-            30, f"Processing {src_info.path_obj.suffix.upper()} archive", src_info.path
+        logger.info(
+            "Processing %s archive: %s", src_info.path_obj.suffix.upper(), src_info.path
         )
 
         if src_info.path_obj.suffix.lower() == FileFormat.ZIP.value:
@@ -225,7 +202,6 @@ class IOConverter:
                 target_crs,
                 column_mapping,
                 timeout,
-                reporter,
             )
         else:  # KMZ
             return self._handle_kmz_conversion(
@@ -235,7 +211,6 @@ class IOConverter:
                 target_crs,
                 column_mapping,
                 timeout,
-                reporter,
             )
 
     def _handle_zip_conversion(
@@ -246,7 +221,6 @@ class IOConverter:
         target_crs: str | None = None,
         column_mapping: ColumnMapping | None = None,
         timeout: int | None = None,
-        reporter: ProgressReporter | None = None,
     ) -> DatasetMetadata:
         """Handle ZIP archive conversion."""
         for extracted in self._extract_supported_from_zip(zip_path):
@@ -258,7 +232,6 @@ class IOConverter:
                     target_crs=target_crs,
                     column_mapping=column_mapping,
                     timeout=timeout,
-                    progress_reporter=reporter,
                 )
             finally:
                 if extracted.parent.name.startswith("goatlib_zip_"):
@@ -273,7 +246,6 @@ class IOConverter:
         target_crs: str | None = None,
         column_mapping: ColumnMapping | None = None,
         timeout: int | None = None,
-        reporter: ProgressReporter | None = None,
     ) -> DatasetMetadata:
         """Handle KMZ archive conversion."""
         tmp_dir = Path(tempfile.mkdtemp(prefix="goatlib_kmz_"))
@@ -292,7 +264,6 @@ class IOConverter:
                             target_crs=target_crs,
                             column_mapping=column_mapping,
                             timeout=timeout,
-                            progress_reporter=reporter,
                         )
                 raise ValueError(f"No .kml found inside KMZ {kmz_path}")
         finally:
@@ -305,10 +276,9 @@ class IOConverter:
         geometry_col: str | None,
         target_crs: str | None,
         column_mapping: ColumnMapping | None,
-        reporter: ProgressReporter | None,
     ) -> DatasetMetadata:
         """Convert a single file to Parquet/GeoParquet."""
-        self._update_progress(40, "Analyzing source format", src_info.path)
+        logger.debug("Analyzing source format: %s", src_info.path)
 
         # Build source reader
         st_read = self._build_source_reader(src_info)
@@ -325,11 +295,11 @@ class IOConverter:
         self._validate_query_returns_data(query)
 
         # Execute conversion
-        self._update_progress(70, "Writing Parquet file", src_info.path)
+        logger.info("Writing Parquet file: %s", out_path)
         self._execute_parquet_conversion(query, out_path, geom_info.has_geometry)
 
         # Build metadata
-        self._update_progress(90, "Finalizing metadata", src_info.path)
+        logger.debug("Finalizing metadata for: %s", out_path)
         return self._build_parquet_metadata(
             out_path, src_info.path, geom_info, target_crs
         )
@@ -480,7 +450,7 @@ class IOConverter:
         self: Self, query: str, out_path: Path, has_geometry: bool
     ) -> None:
         """Execute the conversion query and save to Parquet."""
-        logger.info("DuckDB COPY start | query → %s", out_path)
+        logger.debug("DuckDB COPY start: %s", out_path)
         self.con.execute(
             f"COPY ({query}) TO '{out_path}' (FORMAT PARQUET, COMPRESSION ZSTD);"
         )
@@ -519,17 +489,9 @@ class IOConverter:
         src_path: str,
         out_path: str | Path,
         target_crs: str | None = None,
-        progress_reporter: ProgressReporter | None = None,
     ) -> DatasetMetadata:
         """Convert any raster to a Cloud-Optimized GeoTIFF (COG)."""
-        # Use method-level reporter if provided, otherwise instance-level
-        reporter = progress_reporter or self.progress_reporter
-
-        # Update progress using the reporter directly
-        if reporter:
-            from goatlib.utils.progress import ProgressState
-
-            reporter.update(ProgressState(10, "Opening raster", src_path))
+        logger.info("Converting raster to COG: %s", src_path)
 
         out = Path(out_path)
         out.parent.mkdir(parents=True, exist_ok=True)
@@ -544,25 +506,21 @@ class IOConverter:
             options = {"format": "COG", "creationOptions": ["COMPRESS=LZW"]}
 
             if target_crs:
-                if reporter:
-                    reporter.update(ProgressState(30, "Reprojecting raster", src_path))
+                logger.info("Reprojecting raster to %s: %s", target_crs, src_path)
                 with tempfile.TemporaryDirectory(prefix="goatlib_cog_") as tmp_dir:
                     tmp_reproj = Path(tmp_dir) / f"{out.stem}_tmp.tif"
                     warp_opts = gdal.WarpOptions(dstSRS=target_crs)
                     gdal.Warp(str(tmp_reproj), ds, options=warp_opts)
 
-                    if reporter:
-                        reporter.update(ProgressState(70, "Creating COG", src_path))
+                    logger.info("Creating COG: %s", out_path)
                     translate_opts = gdal.TranslateOptions(**options)
                     gdal.Translate(str(out), str(tmp_reproj), options=translate_opts)
             else:
-                if reporter:
-                    reporter.update(ProgressState(50, "Creating COG", src_path))
+                logger.info("Creating COG: %s", out_path)
                 translate_opts = gdal.TranslateOptions(**options)
                 gdal.Translate(str(out), ds, options=translate_opts)
 
-            if reporter:
-                reporter.update(ProgressState(100, "COG conversion complete", src_path))
+            logger.info("COG conversion complete: %s", out_path)
 
             return DatasetMetadata(
                 path=str(out_path),
@@ -599,33 +557,3 @@ class IOConverter:
         except Exception:
             shutil.rmtree(tmp_dir, ignore_errors=True)
             raise
-
-    def _download_if_http(self: Self, src_path: str, timeout: int | None = None) -> str:
-        """Download HTTP/HTTPS sources to a local temp file."""
-        parsed = urlparse(src_path)
-        scheme = (parsed.scheme or "").lower()
-
-        if scheme not in {"http", "https"}:
-            return src_path
-
-        # Normalize URL
-        if scheme in {"http", "https"} and not src_path.startswith(f"{scheme}://"):
-            src_path = src_path.replace(f"{scheme}:/", f"{scheme}://", 1)
-
-        effective_timeout = timeout if timeout is not None else 120
-
-        self._update_progress(15, "Downloading remote file", src_path)
-
-        r = requests.get(src_path, stream=True, timeout=effective_timeout)
-        r.raise_for_status()
-
-        tmp_dir = Path(tempfile.mkdtemp(prefix="goatlib_http_"))
-        filename = Path(parsed.path).name or "downloaded_file"
-        tmp_file = tmp_dir / filename
-
-        with open(tmp_file, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
-
-        logger.info("Downloaded %s → %s", src_path, tmp_file)
-        return str(tmp_file)
