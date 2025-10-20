@@ -5,13 +5,11 @@ from pydantic import BaseModel, Field, model_validator
 
 class BufferParams(BaseModel):
     """
-    Parameters for performing planar buffer operations using DuckDB Spatial.
+    Parameters for performing buffer operation
     """
 
     # Input and output configuration
-    input_path: str = Field(
-        ..., description="Path to the input dataset (any DuckDB-readable format)."
-    )
+    input_path: str = Field(..., description="Path to the input dataset.")
     output_path: str = Field(
         ..., description="Destination file path or table for buffered output."
     )
@@ -27,13 +25,11 @@ class BufferParams(BaseModel):
         description="Optional field name in the dataset that provides a per-feature buffer distance.",
     )
 
-    # Units of measurement (for documentation only; DuckDB operates in planar units)
     units: Literal[
         "meters", "kilometers", "feet", "miles", "nautical_miles", "yards"
     ] = Field(
         "meters",
-        description="Measurement units for buffer distances. DuckDB treats all operations as planar, "
-        "so this is metadata only and does not affect computation.",
+        description="Measurement units for buffer distances.",
     )
 
     # Controls whether overlapping buffers are dissolved into a single geometry
@@ -68,7 +64,7 @@ class BufferParams(BaseModel):
         description="Target coordinate reference system for the output geometry.",
     )
     output_name: Optional[str] = Field(
-        None, description="Optional name of the output layer or table in DuckDB."
+        None, description="Optional name of the output dataset."
     )
 
     # Validation logic

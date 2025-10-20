@@ -192,8 +192,7 @@ class BufferTool(AnalysisTool):
             con.execute(
                 f"""
                 CREATE OR REPLACE TEMP TABLE final_buffers AS
-                SELECT ST_Transform(geometry, 'EPSG:3857', '{source_crs_str}') AS geometry,
-                       * EXCLUDE (geometry)
+                SELECT * EXCLUDE (geometry), ST_Transform(geometry, 'EPSG:3857', '{source_crs_str}') AS geometry
                 FROM {source}
                 """
             )
