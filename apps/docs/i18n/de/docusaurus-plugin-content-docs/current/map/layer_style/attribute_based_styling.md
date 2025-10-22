@@ -1,23 +1,34 @@
 ---
-sidebar_position: 21
+sidebar_position: 2
 ---
 
 # Attribut-basiertes Styling
 
-GOAT unterstützt **attributbasiertes Styling**, um die Visualisierung von Daten auf Karten zu verbessern. Dieser Ansatz erlaubt es der visuellen Darstellung, Variationen und Muster in den Daten widerzuspiegeln, wodurch es einfacher wird, komplexe räumliche Informationen zu verstehen.
+GOAT unterstützt ***attribut-basiertes Styling***, um die Visualisierung von Daten auf Karten zu verbessern. Dies hilft dabei, Unterschiede und Muster in den Daten zu zeigen, indem ihr Stil auf Datenattributen basiert, was es einfacher macht, komplexe räumliche Informationen zu verstehen. Jeder Aspekt der Visualisierung eines Layers, wie **Füllfarbe**, **Strichfarbe**, **Benutzerdefinierte Marker** und **Beschriftungen**, kann individuell nach einem Feld der Layer-Daten gestaltet werden.
 
-Im Menü unter<code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code> sind Styling-Optionen für die ausgewählten Layer zu finden. Jeder Aspekt der Visualisierung eines Layers (<i>Füllfarbe</i>, <i>Strichfarbe</i>, <i>Benutzerdefinierte Icon</i> und <i>Beschriftungen</i>) kann individuell entsprechend einem Feld oder Attribut in den Daten des Layers gestaltet werden. Um das attributbasierte Styling für einen Layer zu aktivieren Klicken Sie auf <b>Erweiterte Einstellungen</b> <code><img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code>.
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/LKzuWNFk88s?si=SvKpL3hKkA9b1pov" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
+## Wie wird gestylt?
 
-:::tip TIPP
-Wenn Sie Ihre Styling-Einstellungen speichern und in weiteren Projekten verwenden möchten, können Sie dies durch [Speichern als Standard](../layer_style/styling/#default-settings) tun. 
-:::
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">Klicken Sie auf <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, öffnen Sie das <code> Stil</code>-Menü, stellen Sie sicher, dass der Attribut-Toggle aktiviert ist, und klicken Sie dann auf <code>Optionen <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code>, um mit dem Styling zu beginnen.</div>
+</div>
 
-## Attribut auswählen 
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Im Menü <code>Farbe basierend auf</code> wählen Sie das <strong>Feld</strong> aus, nach dem Sie stylen möchten.</div>
+</div>
 
-Um einen Stil basierend auf einem Attribut zu erstellen, wählen Sie es aus dem Dropdown-Menü des Feldes <code>Farbe basierend auf</code> aus. Daraufhin werden alle Attribute oder Spalten aufgelistet, die in den Daten Ihres Layers verfügbar sind.
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">Oben im Menü <code>Palette</code> können Sie eine andere <strong>Farbpalette</strong> auswählen oder die Standardpalette beibehalten. Mehr über die in GOAT verfügbaren Optionen erfahren Sie im Abschnitt Farbpalette auf dieser Seite.</div>
+</div>
 
-Die Visualisierung wird dann automatisch entsprechend dem Wertebereich der Daten gestaltet. Eine <code>Farbpalette</code> und eine <code>Farbskala</code> sind standardmäßig zugewiesen, können aber angepasst werden, um Ihren Daten und Visualisierungsanforderungen besser zu entsprechen. Die *Farbskala* verwendet eine [**Datenklassifizierungsmethode**](#datenklassifizierungsmethoden), um zu bestimmen, wie Datenwerte verschiedenen Farbkategorien zugewiesen werden.
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Unter dem Menü <code>Farbskala</code> können Sie die <strong>Datenklassifizierungsmethode</strong> auswählen, die Sie benötigen. Mehr über die verschiedenen verfügbaren Methoden erfahren Sie <a href="#datenklassifizierungsmethoden"><strong>hier</strong></a></div>
+</div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -26,22 +37,20 @@ Die Visualisierung wird dann automatisch entsprechend dem Wertebereich der Daten
 </div> 
 
 ## Farbpalette
+Eine Palette ist eine Reihe von Farben, die verwendet wird, um die Skala der Werte oder Kategorien in den Daten Ihres Layers darzustellen.
 
-In diesem Abschnitt finden Sie GOATs umfassende Paletten, die alle für eine **visuell eindrucksvolle räumliche Datendarstellung** entwickelt wurden. Eine Palette ist eine Sammlung von Farben, die ausgewählt wurden, um die Skala der Werte oder Kategorien in den Daten Ihrer Layer darzustellen.
- 
-  Für weitere Anpassungen können Sie einen anderen <code>Typ</code> der Palette, eine andere Anzahl von <code>Schritten</code> oder <code>Umgekehrt</code> der Farbreihenfolge wählen. Sie können auch eine benutzerdefinierte Farbpalette definieren, indem Sie die <code>Benutzerdefiniert</code>-Schaltfläche aktivieren.
- 
- GOAT bietet einen umfassenden Satz an vordefinierten Paletten, die in vier verschiedene *Palettentypen* unterteilt sind, um die Auswahl und Anwendung zu erleichtern.
+In GOAT können Sie Ihre Palette anpassen, indem Sie den <code>Typ</code> auswählen, die Anzahl der <code>Schritte</code> anpassen und die Farben <code>Umkehren</code>. Sie können auch einen benutzerdefinierten Farbbereich erstellen, indem Sie die <code>Benutzerdefiniert</code>-Schaltfläche aktivieren.
+
+GOAT bietet eine breite Palette vordefinierter Paletten, die in vier Typen kategorisiert sind, um die Auswahl und Anwendung zu erleichtern.
 
 <p></p>
 
 | Palettentyp | Beispiel | Beschreibung |
 | :-: | --- | ---|
-| Divergierend | <img src={require('/img/map/styling/diverging_palette.png').default} alt="diverging" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | Diese Art von Farbpalette ist ideal für die Darstellung von Daten, die um einen kritischen Mittelpunkt zentriert sind oder eine natürliche Teilung aufweisen. Sie eignet sich besonders für die Darstellung von Daten, die sowohl positive als auch negative Abweichungen von einem zentralen Wert aufweisen, so dass diese Abweichungen klar und effektiv visualisiert werden können. |
-| Sequentiell | <img src={require('/img/map/styling/sequential_palette.png').default} alt="sequential" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | Diese Farbpalette ist für Daten gedacht, die einem natürlichen Verlauf oder einer geordneten Abfolge folgen. Sie eignet sich hervorragend zur Visualisierung von kontinuierlichen Daten, bei denen die Werte entlang eines Spektrums entweder schrittweise ansteigen oder abfallen. Sie eignet sich daher besonders für die klare Darstellung von Daten, die sich allmählich von einem Extrem zum anderen verändern. |
-| Qualitativ | <img src={require('/img/map/styling/qualitative_palette.png').default} alt="qualitative" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | Diese Farbpalette ist für Daten gedacht, die in bestimmte, eindeutige Gruppen oder Klassen eingeteilt sind. Qualitative Farbpaletten sind so konzipiert, dass sie zwischen einzelnen Kategorien unterscheiden. Wichtig ist, dass diese Paletten dies tun, ohne eine inhärente Ordnung oder relative Bedeutung zwischen den verschiedenen Kategorien zu suggerieren. |
-| Einzelner Farbton| <img src={require('/img/map/styling/singlehue_palette.png').default} alt="singlehue" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | Bei dieser Farbpalette handelt es sich um ein Farbschema, das in der Datenvisualisierung verwendet wird und verschiedene Farbtöne, Schattierungen und Nuancen einer einzigen Farbe verwendet. Dieser Ansatz schafft eine visuell kohärente und harmonische Ästhetik, die besonders effektiv sein kann, um Informationen ohne die Ablenkung durch mehrere Farben zu vermitteln. |
-
+| Divergierend | <img src={require('/img/map/styling/diverging_palette.png').default} alt="diverging" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Nützlich für Daten mit einem zentralen Mittelpunkt**, wie positive und negative Werte. Hilft dabei, Variationen um diesen Mittelpunkt klar zu zeigen. |
+| Sequentiell | <img src={require('/img/map/styling/sequential_palette.png').default} alt="sequential" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Ideal für Daten, die einer natürlichen Progression oder geordneten Sequenz folgen**, wie ansteigende oder abnehmende Werte. Eignet sich hervorragend für die Visualisierung kontinuierlicher Daten und zeigt graduelle Änderungen von einem Extrem zum anderen.|
+| Qualitativ | <img src={require('/img/map/styling/qualitative_palette.png').default} alt="qualitative" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Entwickelt für unterschiedliche Kategorien oder Klassen.** Hilft dabei, zwischen diskreten Kategorien zu unterscheiden, ohne eine Ordnung oder Wichtigkeit zu implizieren.|
+| Einzelfarbton | <img src={require('/img/map/styling/singlehue_palette.png').default} alt="singlehue" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Verwendet verschiedene Schattierungen und Töne einer einzigen Farbe.** Schafft ein harmonisches Aussehen und ist effektiv für die Informationsvermittlung ohne die Ablenkung mehrerer Farben.|
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -49,22 +58,21 @@ In diesem Abschnitt finden Sie GOATs umfassende Paletten, die alle für eine **v
 
 </div> 
 
-## Farbskala
-
-Unter <code>Palette</code> finden Sie die **Farbe basierend auf** und die **Farbskala**, die Datenwerte mit einem Farbspektrum verbindet. Sie wandelt einen gegebenen Datenwert innerhalb eines gegebenen Bereichs in eine entsprechende Farbe aus einem gegebenen Farbspektrum um. GOAT bietet sechs vordefinierte **Datenklassifizierungsmethoden**: [Quantil](#quantil), [Standardabweichung](#standardabweichung), [Gleiches Intervall](#gleiches-intervall), [Heads und Tails](#heads-und-tails), [Benutzerdefinierte Schritte](#benutzerdefinierte-schritte-für-zahlen), und [Benutzerdefinierte Ordinalskala](#benutzerdefinierte-ordinalskala-für-zeichen).
-
 ## Datenklassifizierungsmethoden
+
+Unter der <code>Farbskala</code> finden Sie die **Datenklassifizierungsmethode** und die **Farbskala**, die Datenwerte mit Farben verknüpft. Sie ordnet jedem Datenwert basierend auf seiner Position innerhalb eines Bereichs eine Farbe zu. GOAT bietet sechs vordefinierte **Datenklassifizierungsmethoden**: [Quantil](#quantil), [Standardabweichung](#standardabweichung), [Gleiches Intervall](#gleiches-intervall), [Heads und Tails](#heads-und-tails), [Benutzerdefinierte Schritte](#benutzerdefinierte-schritte-für-zahlen), und [Benutzerdefinierte Ordinalskala](#benutzerdefinierte-ordinalskala-für-zeichen).
 
 ### Quantil
 
-Die Quantil-Klassifizierung unterteilt Daten in **Gruppen mit einer gleichen Anzahl von Werten in jeder Klasse**, basierend auf ihren Attributwerten. Diese Methode ist nützlich für die Analyse und Visualisierung von Mustern in Daten und kann dabei helfen, Trends und Muster zu erkennen, die vielleicht nicht so leicht zu erkennen sind. Die Tatsache, dass die Datenwerte in jeder Klasse in gleichen Mengen gruppiert werden, macht diesen Ansatz **ideal für Daten, die linear verteilt sind**. Standardmäßig werden die Daten in 7 Klassen aufgeteilt. 
+**Es unterteilt Daten in Klassen mit einer gleichen Anzahl von Beobachtungen**. Dies macht diesen Ansatz **ideal für Daten, die linear verteilt sind**, kann aber ungleichmäßige Klassenbereiche erstellen, wodurch einige Kategorien viel breiter als andere werden. Standardmäßig werden die Daten in 7 Klassen aufgeteilt.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div>  
 
+<p></p>
 
 :::tip TIPP
 Möchten Sie besser verstehen, was eine Quantilklassifizierung ist? Schauen Sie in unser [Glossar](../../further_reading/glossary/#quantile-classification).
@@ -72,52 +80,47 @@ Möchten Sie besser verstehen, was eine Quantilklassifizierung ist? Schauen Sie 
 
 ### Standardabweichung
 
-Die Methode der Standardabweichung ist ein **statistischer Ansatz**, der in der Datenvisualisierung verwendet wird. Sie verwendet das Konzept der Standardabweichung, ein Maß für das **Ausmaß der Variation oder Streuung in einer Gruppe von Werten**, um zu bestimmen, wie Datenpunkte verschiedenen Farbkategorien zugeordnet werden. Diese Methode ist wertvoll, da sie eine statistische Perspektive auf die Daten bietet und es den Benutzern ermöglicht, die **relative Streuung und Verteilung der Werte** innerhalb des Datensatzes schnell zu erfassen. Standardmäßig werden die Daten in 7 Klassen aufgeteilt. 
+**Es klassifiziert Daten basierend darauf, wie stark die Werte vom Durchschnitt abweichen**. Diese Methode ist wertvoll für ihre Fähigkeit, eine statistische Perspektive auf die Daten zu bieten, wodurch Benutzer schnell die **relative Streuung, Verteilung der Werte und Ausreißer** innerhalb des Datensatzes erfassen können, funktioniert aber möglicherweise nicht gut, wenn die Daten nicht normal verteilt sind. Standardmäßig werden die Daten in 7 Klassen aufgeteilt.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/standard_deviation.png').default} alt="Standard Deviation" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/standard_deviation.png').default} alt="Standard Deviation" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div> 
 
 ### Gleiches Intervall
 
-Bei der Klassifizierung „Gleiches Intervall“ wird der Bereich der Attributwerte in **gleiche Intervallklassen** unterteilt. Standardmäßig werden die Daten in 7 Klassen aufgeteilt. 
+**Es unterteilt Daten in gleichmäßig große Bereiche, wodurch es einfach wird, Werte zu vergleichen**. Diese Methode funktioniert gut für gleichmäßig verteilte Daten, kann aber irreführend sein, wenn die Daten schief sind, da einige Klassen nahezu leer sein könnten. Standardmäßig werden die Daten in 7 Klassen aufgeteilt.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/equal_interval.png').default} alt="Equal Interval" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/equal_interval.png').default} alt="Equal Interval" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div> 
 
 ### Heads und Tails
 
-Die Heads und Tails-Methode wird für **Datensätze mit einer schiefen Verteilung** verwendet. Sie wurde entwickelt, um die Extreme in den Daten hervorzuheben, indem sie sich auf die **'Heads' (die sehr hohen Werte)** und die **'Tails' (die sehr niedrigen Werte)** konzentriert. Diese Methode ist besonders nützlich für Datensätze, bei denen die wichtigsten Informationen in den Extremen zu finden sind, und bei denen die Hervorhebung dieser Werte zu einem besseren Einblick und Verständnis führen kann. Standardmäßig werden die Daten in 7 Klassen aufgeteilt.  
+**Es behandelt Datensätze mit einer schiefen Verteilung**. Es wurde entwickelt, um Extreme in den Daten hervorzuheben, wobei der Fokus auf den **'Heads' (den sehr hohen Werten)** und den **'Tails' (den sehr niedrigen Werten)** liegt. Diese Methode ist besonders nützlich für Datensätze, bei denen die wichtigsten Informationen in den Extremen zu finden sind und wo es wichtig ist, Disparitäten oder Schlüsselbereiche für Interventionen hervorzuheben. Standardmäßig werden die Daten in 7 Klassen aufgeteilt.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/heads_tails.png').default} alt="Heads and Tails" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/heads_tails.png').default} alt="Heads and Tails" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div> 
 
+### Benutzerdefinierte Ordinalskala (für **Zeichen**)
 
-### Benutzerdefinierte Schritte (für <code>Zahlen</code>)
-
-Die Klassifizierung Benutzerdefinierte Schritte ist eine Datenvisualisierungsmethode für **numerische Daten**. Sie ermöglicht die Definition von **benutzerdefinierten Zwischenpunkten** oder **Schwellenwerten** und bietet damit einen maßgeschneiderten Ansatz für kontextspezifische Visualisierungen. 
-
-
-### Benutzerdefinierte Ordinalskala (für <code>Zeichen</code>)
-
-Die benutzerdefinierte Ordinalskala ist eine Methode zur Datensortierung und -visualisierung, die auf **Zeichen-Daten** angewendet wird, wie z. B. Kategorien, Etiketten oder textbasierte Variablen. Im Gegensatz zu numerischen Daten, bei denen die Reihenfolge typischerweise auf der Größe basiert, fehlt bei Textdaten oft eine natürliche Reihenfolge. Die Benutzerdefinierte Ordinalskala ermöglicht es daher, **eigene Ordnungsregeln für Textfelder** zu definieren und eine individuelle, auf die eigenen Bedürfnisse zugeschnittene Reihenfolge zu erstellen. 
+**Es hilft beim Sortieren und Visualisieren von Zeichendaten**, wie Kategorien, Etiketten oder textbasierten Variablen. Da Zeichendaten oft keine natürliche Reihenfolge haben, **ermöglicht die benutzerdefinierte Ordinalmethode Benutzern, ihre eigenen Ordnungsregeln zu definieren**. Dies erstellt eine benutzerdefinierte Sequenz, die auf ihre spezifischen Bedürfnisse zugeschnitten ist.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/ordinal.png').default} alt="Custom Ordinal for strings" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/ordinal.png').default} alt="Custom Ordinal for strings" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div>
 
+<p></p>
 
-So können zusätzliche Schritte hinzugefügt und mehrere Text-Werte pro Gruppe aus einem Dropdown-Menü ausgewählt werden. Das Dropdown-Menü listet dabei alle Attributwerte des Datensatzes auf. 
+Daher können Sie weitere Schritte hinzufügen und mehrere Zeichenwerte pro Gruppe aus einem Dropdown-Menü auswählen. Das Menü listet alle Attributwerte aus dem Datensatz auf.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -125,17 +128,19 @@ So können zusätzliche Schritte hinzugefügt und mehrere Text-Werte pro Gruppe 
 
 </div> 
 
+### Benutzerdefinierte Schritte (für **Zahlen**)
 
+**Es wird für numerische Daten verwendet. Es ermöglicht Benutzern, benutzerdefinierte Schwellenwerte oder Grenzwerte zu definieren** und bietet somit einen maßgeschneiderten Ansatz für kontextspezifische Visualisierungen. **Es kann auch dabei helfen, Konsistenz zwischen Karten zu gewährleisten**. Diese Methode gibt volle Kontrolle über Klassifizierungen und stellt sicher, dass sie mit realen Kontexten übereinstimmen.
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-## Layer Design
+## Stil-Einstellungen
 
 <Tabs>
- <TabItem value="fill color" label="Füllfarbe" default> Die Füllfarbe kann entweder eine einzelne Farbe oder eine Farbpalette sein. GOAT bietet eine Reihe von voreingestellten Farben und Paletten zur Gestaltung Ihrer Karte an. 
-Für die attributbasierte Füllfarbe wählen Sie ein Feld aus dem ausgewählten <code>Layer</code> aus.
-GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
+  <TabItem value="fill color" label="Füllfarbe" default> Die Füllfarbe kann entweder eine einzelne Farbe oder eine Farbpalette sein. GOAT bietet eine Reihe von voreingestellten Farben und Paletten zur Gestaltung Ihrer Karte an. 
+    Für die attributbasierte Füllfarbe wählen Sie ein Feld aus dem ausgewählten <code>Layer</code> aus.
+    GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
    <img src={require('/img/map/layers/fill-color.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "500px", maxWidth: "500px", objectFit: "cover"}}/>
@@ -143,8 +148,8 @@ GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
    </div> 
 
   </TabItem>
-  <TabItem value="stroke color" label="Strichfarbe"> Die Strichfarbe ist standardmäßig eine einzige Farbe. Wenden Sie attributbasiertes Styling an, um eine Farbskala auf den Strichfabe für den Layer anzuwenden. 
-    Für die attributbasierte Strichfarbe wählen Sie ein Feld aus der ausgewählten <code>Layer</code>.
+  <TabItem value="stroke color" label="Strichfarbe"> Die Strichfarbe ist standardmäßig eine einzige Farbe. Wenden Sie attributbasiertes Styling an, um eine Farbskala auf den Strich des Layers anzuwenden. 
+    Für die attributbasierte Strichfarbe wählen Sie ein Feld aus dem ausgewählten <code>Layer</code>.
     GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an. 
 
    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -156,7 +161,7 @@ GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
 
 
   </TabItem>
-  <TabItem value="custom marker" label="Benutzerdefinierter Icon"> Diese sind verfügbar für Punktlayer. Aus einer Übersicht können passende Icons ausgewählt werden.
+  <TabItem value="custom marker" label="Benutzerdefinierte Marker"> Wenn verfügbar, hat der benutzerdefinierte Marker eine Icon-Bibliothek, um Ihren Datensatz am besten darzustellen.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -166,3 +171,8 @@ GOAT wendet eine zufällige Farbpalette auf Ihre Ergebnisse an.
 
   </TabItem>
 </Tabs>
+
+
+:::tip TIPP
+Wenn Sie Ihre Styling-Einstellungen speichern und in weiteren Projekten verwenden möchten, können Sie dies durch [Speichern eines Stils als Standard](../layer_style/styling#default-settings) tun. 
+:::

@@ -47,5 +47,6 @@
   },
   "dependencies": {
     "@types/memoizee": "^0.4.8"
-  }
+  },
+  "packageManager": "yarn@4.10.3"
 }

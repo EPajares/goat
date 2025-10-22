@@ -8,15 +8,15 @@
     "clean": "rimraf node_modules"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.7.3",
+    "@typescript-eslint/parser": "^6.7.3",
     "eslint": "^8.47.0",
     "eslint-config-next": "^13.4.12",
     "eslint-config-prettier": "^9.1.0",
-    "eslint-plugin-react": "7.33.2",
-    "eslint-plugin-playwright": "^0.15.3",
     "eslint-config-turbo": "1.10.12",
+    "eslint-plugin-playwright": "^0.15.3",
+    "eslint-plugin-react": "7.33.2",
     "eslint-plugin-unused-imports": "^2.0.0",
-    "eslint-plugin-you-dont-need-lodash-underscore": "^6.12.0",
-    "@typescript-eslint/eslint-plugin": "^6.7.3",
-    "@typescript-eslint/parser": "^6.7.3"
+    "eslint-plugin-you-dont-need-lodash-underscore": "^6.12.0"
   }
 }

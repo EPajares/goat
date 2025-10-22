@@ -15,9 +15,7 @@ A color-coded map to visualize the connectivity of locations within an area of i
 
 ## 1. Explanation
 
-Visualized as a color-coded hexagonal grid, the heatmap takes into account real-world transport and street networks to compute connectivity. After specifying a *routing type* (Walk, Bicycle, etc.) and *travel time limit*, the result will display a color-coded hexagonal grid representing the relative connectivity of all locations within the specified AOI.
-
-Unlike our other heatmaps which focus on visualizing the accessibility to specific points (such as [POI](../../further_reading/glossary#point-of-interest-poi "What is a POI?")) or amenities from surrounding areas, connectivity-based heatmaps represent the overall connectivity of an area. This means that all locations within your AOI are considered to be destinations, and for each location, its "connectivity" represents the geographic area (within and outside the AOI) from which the location is accessible, considering the specified *routing type* and *travel time limit*.
+The heatmap uses a color-coded hexagonal grid to show how well-connected different areas are. It takes an **Area of Interest** (AOI), a **routing type** (walking, cycling, etc.), and a **travel time limit** as inputs. Considering real-world transport and street networks, it calculates the connectivity of each hexagon within the AOI.
 
 ![Connectivity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity.png "Connectivity-based Heatmap in GOAT")
 
@@ -36,13 +34,10 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
 ## 2. Example use cases
 
- - How well connected is the street, footpath, or cycle lane network in a specific area?
-
- - How do locations within an AOI compare in terms of connectivity across the different modes of transport?
-
- - Are there barriers, gaps, or islands within the street network that hinder connectivity?
-
  - Does the existing transport network provide equitable access across the AOI?
+ - How well connected is the street, footpath, or cycle lane network in a specific area?
+ - How do locations within an AOI compare in terms of connectivity across the different modes of transport?
+ - Are there barriers, gaps, or islands within the street network that hinder connectivity?
 
 ## 3. How to use the indicator?
 
@@ -56,85 +51,45 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
   <div class="content">Under the <code>Accessibility Indicators</code> menu, click on <code>Heatmap Connectivity</code>.</div>
 </div>
 
-### Routing
-
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Pick the <code>Routing Type</code> you would like to use for the heatmap.</div>
+  <div class="content">Pick the <code>Routing Type</code> you would like to use for the heatmap:</div>
 </div>
 
+<div style={{ marginLeft: '60px' }}>
 <Tabs>
 
 <TabItem value="walk" label="Walk" default className="tabItemBox">
 
-#### Walk
-
-Considers all paths accessible by foot. For heatmaps, a walking speed of 5 km/h is assumed.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Walk](../../routing/walking).
-
-:::
+**Considers all paths accessible by foot**. For heatmaps, a walking speed of 5 km/h is assumed.
 
 </TabItem>
   
 <TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
-#### Bicycle
-
-Considers all paths accessible by bicycle. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-
-:::
+**Considers all paths accessible by bicycle**. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
 
 </TabItem>
 
 <TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-#### Pedelec
-
-Considers all paths accessible by pedelec. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-
-:::
+**Considers all paths accessible by pedelec**. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
 
 </TabItem>
 
 <TabItem value="car" label="Car" className="tabItemBox">
 
-#### Car
-
-Considers all paths accessible by car. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Car](../../routing/car).
-
-:::
+**Considers all paths accessible by car**. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
 
 </TabItem>
 
 </Tabs>
 
-### Configuration
-
+</div>
 <div class="step">
   <div class="step-number">4</div>
   <div class="content">Choose a <code>Travel Time Limit</code> for your heatmap. This will be used in the context of your previously selected <i>Routing Type</i>.</div>
 </div>
-
-:::tip Hint
-
-Need help choosing a suitable travel time limit for various common amenities? The ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
-
-:::
 
 <div class="step">
   <div class="step-number">5</div>
@@ -147,23 +102,14 @@ Need help choosing a suitable travel time limit for various common amenities? Th
   <div class="content">Click <code>Run</code> to start the calculation of the heatmap.</div>
 </div>
 
-:::tip Hint
-
-Depending on your configuration, the calculation might take a few minutes. The [status bar](../../workspace/home#status-bar) displays current progress.
-
-:::
-
-### Results
-
 <div class="step">
-  <div class="step-number">10</div>
+  <div class="step-number">7</div>
   <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Connectivity</i> layer will contain your color-coded heatmap.
   <p></p>
   Clicking on any of the heatmap's hexagonal cells will reveal the computed connectivity value for this cell.</div>
 </div>
 
-
-![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.png "Connectivity-based Heatmap Result in GOAT")
+![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.gif "Connectivity-based Heatmap Result in GOAT")
 
 
 :::tip Tip
@@ -176,7 +122,7 @@ Want to style your heatmaps and create nice-looking maps? See [Styling](../../ma
 
 ### Calculation
 
-For each cell of the hexagonal grid (within your AOI), the full extent of surrounding cells from which it is accessible are identified. These surrounding cells may be located outside of your AOI but must be within areas accessible according to the specified `Travel time limit` and `Routing type`.
+For each hexagon in the grid within the Area of Interest (AOI), the tool identifies all surrounding hexagons that can reach it. These surrounding hexagons can be outside the AOI but must be within the specified **travel time** and using the chosen **travel method**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/heatmap_connectivity_infographic.png').default} alt="Extent of cells from where destination cell within AOI is accessible." style={{ maxHeight: "400px", maxWidth: "500px", alignItems:'center'}}/>
@@ -186,45 +132,63 @@ Connectivity formula:
 
 <MathJax.Provider>
   <div style={{ marginTop: '20px', fontSize: '24px' }}>
-    <MathJax.Node formula={"\\text{connectivity} = \\sum_{i=1}^{n} (\\text{number of cells}_i \\times \\text{cell area})"} />
+    <MathJax.Node formula={"\\text{cell connectivity} = \\sum_{i=1}^{n} (\\text{number of reachable cells}_i \\times \\text{cell area})"} />
   </div>
 </MathJax.Provider>
 
+The connectivity formula calculates the total area (in square meters) from which a destination cell within the Area of Interest (AOI) can be reached. It does this by considering the **number of cells** that can reach the destination cell within each **travel time step** ***i*** up to the specified **travel time limit** ***n***. **The sum of all these reachable areas gives the final connectivity value for that cell.**
 
-
-Where ***i*** is a travel time step, ***n*** is the travel time limit and ***number cells*** is the number of cells origins reaching the considered location in i minutes. This function computes the total geographic area (in sq. meters) from which the destination cell in your AOI is accessible.
-
-### Classification
-To classify the connectivity levels that were computed for each grid cell (for color-coded visualization), a classification based on quantiles is used by default. However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
-
-### Visualization 
+### Grid cells 
 
 Heatmaps in GOAT utilize **[Uber's H3 grid-based](../../further_reading/glossary#h3-grid)** solution for efficient computation and easy-to-understand visualization. Behind the scenes, a pre-computed travel time matrix for each *routing type* utilizes this solution and is queried and further processed in real-time to compute accessibility and produce a final heatmap.
 
 The resolution and dimensions of the hexagonal grid used depend on the selected *routing type*:
 
-#### Walk
-- Resolution: 10
-- Average hexagon area: 11285.6 m²
-- Average hexagon edge length: 65.9 m
+<div style={{ marginLeft: '20px' }}>
 
-#### Bicycle
-- Resolution: 9
-- Average hexagon area: 78999.4 m²
-- Average hexagon edge length: 174.4 m
+<Tabs>
 
-#### Pedelec
-- Resolution: 9
-- Average hexagon area: 78999.4 m²
-- Average hexagon edge length: 174.4 m
+<TabItem value="walk" label="Walk" default className="tabItemBox">
 
-#### Car
-- Resolution: 8
-- Average hexagon area: 552995.7 m²
-- Average hexagon edge length: 461.4 m
+<li parentName="ul">{`Resolution: 10`}</li>
+<li parentName="ul">{`Average hexagon area: 11285.6 m²`}</li>
+<li parentName="ul">{`Average hexagon edge length: 65.9 m`}</li>
+</TabItem>
+  
+<TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
-### Example of calculation
+<li parentName="ul">{`Resolution: 9`}</li>
+<li parentName="ul">{`Average hexagon area: 78999.4 m²`}</li>
+<li parentName="ul">{`Average hexagon edge length: 174.4 m`}</li>
+</TabItem>
 
-The following example illustrates the computation of a connectivity-based heatmap for a specific AOI. The heatmap is computed for a `Travel time limit` of 15 minutes and a `Routing type` of `Walk`.
+<TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity-calculation.gif').default} alt="Options" style={{ maxHeight: "800px", maxWidth: "800px"}}/>
+<li parentName="ul">{`Resolution: 9`}</li>
+<li parentName="ul">{`Average hexagon area: 78999.4 m²`}</li>
+<li parentName="ul">{`Average hexagon edge length: 174.4 m`}</li> 
+</TabItem>
+
+<TabItem value="car" label="Car" className="tabItemBox">
+
+<li parentName="ul">{`Resolution: 8`}</li>
+<li parentName="ul">{`Average hexagon area: 552995.7 m²`}</li>
+<li parentName="ul">{`Average hexagon edge length: 461.4 m`}</li>
+
+</TabItem>
+
+</Tabs>
+</div>
+
+### Visualization
+
+For visualization, the result form the connectivity analysis, uses a classification method based on quantiles by default. However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
+
+:::tip Hint
+
+For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
+:::
+
+:::tip Hint
+Need help choosing a suitable travel time limit for various common amenities? The ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
+:::
