@@ -1,11 +1,15 @@
+import logging
 import os
 import tempfile
 import uuid
 from pathlib import Path
-from typing import Any, List, Self, Tuple
+from typing import Any, List, Self, Tuple, final
 
 import duckdb
+from goatlib.io.utils import Metadata, download_if_remote, get_metadata
 from goatlib.models.io import DatasetMetadata
+
+logger = logging.getLogger(__name__)
 
 
 class AnalysisTool:
@@ -43,6 +47,7 @@ class AnalysisTool:
         """Configure DuckDB with necessary extensions and settings."""
         self.con.execute("INSTALL spatial; LOAD spatial;")
         self.con.execute("INSTALL httpfs; LOAD httpfs;")
+        self.con.execute("SET memory_limit='2GB';")
 
     def cleanup(self: Self) -> None:
         """
@@ -61,10 +66,41 @@ class AnalysisTool:
                 wal_path = Path(str(self._temp_db_path) + ".wal")
                 if wal_path.exists():
                     os.remove(wal_path)
-                print(f"Cleaned up temporary DuckDB files: {self._temp_db_path}")
+                logger.info(f"Cleaned up temporary DuckDB files: {self._temp_db_path}")
             except Exception as e:
                 # Log a warning if cleanup fails, but don't stop execution
-                print(f"Warning: Failed to delete temporary DuckDB files: {e}")
+                logger.warning(f"Failed to delete temporary DuckDB files: {e}")
+
+    def import_input(
+        self: Self,
+        input_path: str,
+        table_name: str = "v_input",
+    ) -> Tuple[Metadata, str]:
+        """
+        Imports any supported vector or tabular dataset into DuckDB directly.
+
+        Returns:
+        - Metadata about the imported dataset.
+        - The name of the table/view created in DuckDB.
+        """
+        path = Path(download_if_remote(input_path))
+        suffix = path.suffix.lower()
+
+        # --- Get unified metadata for both parquet and other spatial formats
+        if suffix == ".parquet":
+            logger.info("Registering parquet dataset as table: %s", path)
+            self.con.execute(
+                f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM read_parquet('{path}')"
+            )
+        else:
+            logger.info("Reading dataset into DuckDB via ST_Read: %s", path)
+            self.con.execute(
+                f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM ST_Read('{path}')"
+            )
+
+        meta = get_metadata(self.con, str(path))
+
+        return meta, table_name
 
     def _run_implementation(
         self: Self, *args: Any, **kwargs: Any
@@ -76,6 +112,7 @@ class AnalysisTool:
             "Each tool must implement the _run_implementation() method."
         )
 
+    @final
     def run(
         self: Self, *args: Any, **kwargs: Any
     ) -> List[Tuple[Path, DatasetMetadata]]:

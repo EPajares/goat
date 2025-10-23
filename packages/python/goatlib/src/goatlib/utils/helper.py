@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 UNIT_TO_METERS = {
     "meters": 1.0,
     "kilometers": 1000.0,
@@ -6,3 +10,4 @@ UNIT_TO_METERS = {
     "miles": 1609.34,
     "nautical_miles": 1852.0,
 }
+

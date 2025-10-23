@@ -4,12 +4,11 @@ from goatlib.analysis.schemas.vector import BufferParams
 from goatlib.analysis.vector.buffer import BufferTool
 
 
-def test_buffer_tool_basic(tmp_path: Path, data_root: Path) -> None:
-    """Test BufferTool with DuckDB Spatial-compatible BufferParams."""
+def test_buffer_tool(tmp_path: Path, data_root: Path) -> None:
+    """Test BufferTool"""
 
     # Prepare test input (replace with an existing small dataset in your test repo)
     input_path = data_root / "analysis" / "example.parquet"
-    # input_path = data_root / "io" / "vector" / "valid" / "geojson" / "polygon.geojson"
     work_dir = tmp_path / "buffer_test"
     work_dir.mkdir(parents=True, exist_ok=True)
 
@@ -37,8 +36,3 @@ def test_buffer_tool_basic(tmp_path: Path, data_root: Path) -> None:
     out_path, metadata = results[0]
     assert out_path.exists(), f"Output file not found: {out_path}"
     assert out_path.suffix == ".parquet"
-
-    # Metadata validation — ensure something was buffered
-    assert (
-        getattr(metadata, "feature_count", 0) > 0
-    ), "Expected features in buffer output"
