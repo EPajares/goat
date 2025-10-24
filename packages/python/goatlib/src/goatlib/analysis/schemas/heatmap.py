@@ -47,7 +47,9 @@ class OpportunityBase(BaseModel):
             "if not set, the filename without extension is used."
         ),
     )
-    max_traveltime: int = Field(..., ge=1, le=60, description="Minutes.")
+    max_traveltime: int = Field(
+        ..., ge=1, le=60, description="Max travel time in minutes."
+    )
 
 
 class OpportunityGravity(OpportunityBase):
@@ -98,3 +100,22 @@ class HeatmapGravityParams(HeatmapCommon):
         10.0, gt=0.0, description="Max sensitivity used for normalization."
     )
     opportunities: list[OpportunityGravity]
+
+
+class OpportunityClosestAverage(OpportunityBase):
+    number_of_destinations: int = Field(
+        ..., ge=1, description="Number of closest destinations to average"
+    )
+
+
+class HeatmapClosestAverageParams(HeatmapCommon):
+    opportunities: list[OpportunityClosestAverage]
+
+
+class HeatmapConnectivityParams(HeatmapCommon):
+    reference_area_path: str = Field(
+        ..., description="Path to reference area dataset (polygons/points/lines)"
+    )
+    max_traveltime: int = Field(
+        ..., ge=1, le=60, description="Max travel time in minutes."
+    )

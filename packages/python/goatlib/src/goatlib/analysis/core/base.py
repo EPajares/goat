@@ -18,7 +18,7 @@ class AnalysisTool:
     Connects to a file-backed database by default to allow for disk spilling
     of large intermediate results (like buffers or joins), preventing Out-of-Memory errors.
 
-    The public run() method now handles automatic cleanup using a try...finally
+    The public run() method handles automatic cleanup using a try...finally
     block internally, fulfilling the requirement of simple usage: tool.run(params).
 
     Example Usage:
