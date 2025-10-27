@@ -2,7 +2,6 @@ import math
 from pathlib import Path
 
 import pytest
-from core.schemas.heatmap import OpportunityClosestAverage
 from goatlib.analysis.heatmap.closest_average import HeatmapClosestAverageTool
 from goatlib.analysis.heatmap.connectivity import HeatmapConnectivityTool
 from goatlib.analysis.heatmap.gravity import HeatmapGravityTool
@@ -11,6 +10,7 @@ from goatlib.analysis.schemas.heatmap import (
     HeatmapConnectivityParams,
     HeatmapGravityParams,
     ImpedanceFunction,
+    OpportunityClosestAverage,
     OpportunityGravity,
 )
 
@@ -92,7 +92,7 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
         opportunities=[
             OpportunityGravity(
                 input_path=str(data_root / "analysis" / "de_weihnachsmaerkte_25.gpkg"),
-                layer_name="weihnachsmaerkte_25",
+                name="weihnachsmaerkte_25",
                 potential_constant=1.0,
                 sensitivity=300000.0,
                 max_traveltime=30,
@@ -125,14 +125,12 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
         routing_mode="walking",
         od_matrix_source=od_matrix_source,
         output_path=str(work_dir / "heatmap_closest_average.parquet"),
-        impedance="linear",
         opportunities=[
             OpportunityClosestAverage(
                 input_path=str(data_root / "analysis" / "de_weihnachsmaerkte_25.gpkg"),
-                layer_name="weihnachsmaerkte_25",
-                potential_constant=1.0,
-                sensitivity=300000.0,
+                name="weihnachsmaerkte_25",
                 max_traveltime=30,
+                n_destinations=3,
             ),
         ],
     )
@@ -162,7 +160,7 @@ def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
         routing_mode="walking",
         od_matrix_source=od_matrix_source,
         output_path=str(work_dir / "heatmap_connectivity.parquet"),
-        max_traveltime=30,
+        max_traveltime=20,
         reference_area_path=str(data_root / "analysis" / "munich_districts.geojson"),
     )
 

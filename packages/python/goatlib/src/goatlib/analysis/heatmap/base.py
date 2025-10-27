@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Self
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.io.utils import Metadata
 
 logger = logging.getLogger(__name__)
 
@@ -148,108 +147,6 @@ class HeatmapToolBase(AnalysisTool):
         """).fetchall()
 
         return [row[0] for row in result] if result else []
-
-    def _process_table_to_h3(
-        self: Self,
-        input_table: str,
-        meta: Metadata,
-        h3_resolution: int,
-        output_table: str,
-    ) -> str:
-        """Convert any geometry (including Multi*) to H3 cells at specified resolution."""
-
-        geom_type = meta.geometry_type.lower()
-        geom_col = meta.geometry_column
-        if not geom_col or not geom_type:
-            raise ValueError(
-                "No geometry column or type found in input data. "
-                "H3 conversion requires geometries. "
-                "Please ensure your input data has proper geometry metadata."
-            )
-
-        if not hasattr(meta, "crs") or meta.crs is None:
-            raise ValueError(
-                "No CRS information found in input data. "
-                "H3 conversion requires known coordinate reference system. "
-                "Please ensure your input data has proper CRS metadata."
-            )
-
-        transform_to_4326 = geom_col
-        try:
-            if meta.crs.to_epsg() != 4326:
-                source_crs = meta.crs.to_string()
-                logger.info(f"Transforming geometry from {source_crs} to EPSG:4326")
-                transform_to_4326 = (
-                    f"ST_Transform({geom_col}, '{source_crs}', 'EPSG:4326')"
-                )
-            else:
-                logger.debug("Geometry is already in EPSG:4326")
-        except Exception as e:
-            raise ValueError(
-                f"Could not determine EPSG code from CRS: {e}. "
-                "H3 conversion requires known coordinate reference system."
-            )
-
-        # Base CTE for dumping geometries
-        # ST_Dump breaks Multi* geometries into simple components (e.g., MultiPoint -> individual Points)
-        # ST_Force2D ensures the geometries are 2D (removing any Z dimension)
-        # and returns a structure where we can unnest to get individual geometries
-        dumped_geoms_cte = f"""
-                    WITH dumped_geoms AS (
-                        SELECT
-                            (UNNEST(ST_Dump(ST_Force2D({transform_to_4326})))).geom AS simple_geom
-                        FROM {input_table}
-                        WHERE {geom_col} IS NOT NULL
-                    )
-                """
-
-        if "point" in geom_type:
-            query = f"""
-                    CREATE OR REPLACE TEMP TABLE {output_table} AS
-                    {dumped_geoms_cte},
-                    h3_cells AS (
-                        SELECT
-                            h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS h3_index
-                        FROM dumped_geoms
-                    )
-                    SELECT DISTINCT h3_index FROM h3_cells
-                """
-        elif "polygon" in geom_type:
-            query = f"""
-                    CREATE OR REPLACE TEMP TABLE {output_table} AS
-                    {dumped_geoms_cte},
-                    exploded AS (
-                        SELECT
-                            UNNEST(h3_polygon_wkt_to_cells(ST_AsText(simple_geom), {h3_resolution})) AS h3_index
-                        FROM dumped_geoms
-                    )
-                    SELECT DISTINCT h3_index FROM exploded
-                """
-        elif "line" in geom_type:
-            query = f"""
-                    CREATE OR REPLACE TEMP TABLE {output_table} AS
-                    {dumped_geoms_cte},
-                    sampled AS (
-                        SELECT ST_SamplePoints(simple_geom, 100) AS pts
-                        FROM dumped_geoms
-                    ),
-                    unnested AS (
-                        SELECT UNNEST(pts) AS geom FROM sampled
-                    ),
-                    h3_cells AS (
-                        SELECT
-                            h3_latlng_to_cell(ST_Y(geom), ST_X(geom), {h3_resolution}) AS h3_index
-                        FROM unnested
-                    )
-                    SELECT DISTINCT h3_index FROM h3_cells
-                """
-        else:
-            raise ValueError(f"Unsupported geometry type: '{geom_type}'")
-
-        self.con.execute(query)
-        count = self.con.execute(f"SELECT COUNT(*) FROM {output_table}").fetchone()[0]
-        logger.info("Converted %d geometries to H3 cells: %s", count, output_table)
-        return output_table
 
     def _export_h3_results(
         self: Self,

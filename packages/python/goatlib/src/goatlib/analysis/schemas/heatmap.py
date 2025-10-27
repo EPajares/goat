@@ -103,7 +103,7 @@ class HeatmapGravityParams(HeatmapCommon):
 
 
 class OpportunityClosestAverage(OpportunityBase):
-    number_of_destinations: int = Field(
+    n_destinations: int = Field(
         ..., ge=1, description="Number of closest destinations to average"
     )
 
