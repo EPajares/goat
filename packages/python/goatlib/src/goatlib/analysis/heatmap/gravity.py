@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Self, Tuple
+from typing import Self
 
 from goatlib.analysis.heatmap.base import HeatmapToolBase
 from goatlib.analysis.schemas.heatmap import (
@@ -22,12 +22,12 @@ class HeatmapGravityTool(HeatmapToolBase):
       1. Import and standardize all opportunity layers.
       2. Combine standardized layers into a unified opportunity table.
       3. Filter travel-time matrix and compute gravity accessibility.
-      4. Export results to GeoPackage/Parquet.
+      4. Export results
     """
 
     def _run_implementation(
         self: Self, params: HeatmapGravityParams
-    ) -> List[Tuple[Path, DatasetMetadata]]:
+    ) -> list[tuple[Path, DatasetMetadata]]:
         logger.info("Starting Heatmap Gravity Analysis")
 
         # Register OD matrix and detect H3 resolution
@@ -56,9 +56,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             len(h3_partitions),
         )
 
-        filtered_matrix = self._filter_traveltime_matrix(
-            od_table, origin_ids, h3_partitions
-        )
+        filtered_matrix = self._filter_od_matrix(od_table, origin_ids, h3_partitions)
 
         gravity_results = self._compute_gravity_accessibility(
             filtered_matrix,
@@ -67,13 +65,13 @@ class HeatmapGravityTool(HeatmapToolBase):
             params.impedance,
             params.max_sensitivity,
         )
-        self._export_results(gravity_results, params.output_path)
+        self._export_h3_results(gravity_results, params.output_path)
 
         logger.info("Heatmap gravity analysis completed successfully")
 
     def _process_opportunities(
-        self: Self, opportunities: List[OpportunityGravity], h3_resolution: int
-    ) -> List[Tuple[str, str]]:
+        self: Self, opportunities: list[OpportunityGravity], h3_resolution: int
+    ) -> list[tuple[str, str]]:
         """
         Imports and standardizes all opportunity datasets into the canonical schema:
         orig_id, potential, max_traveltime, sensitivity
@@ -114,8 +112,170 @@ class HeatmapGravityTool(HeatmapToolBase):
 
         return opportunity_tables
 
+    def _prepare_opportunity_table(
+        self: Self,
+        table_name: str,
+        meta: Metadata,
+        opp: OpportunityGravity,
+        h3_resolution: int,
+    ) -> str:
+        """
+        Converts an imported opportunity dataset into the canonical gravity schema:
+        orig_id, potential, max_traveltime, sensitivity.
+
+        Handles Point, MultiPoint, Polygon, and MultiPolygon geometries.
+        """
+
+        geom_type = (meta.geometry_type or "").lower()
+        geom_col = meta.geometry_column or "geom"
+        output_table = f"{table_name}_std"
+
+        # --- Transform to WGS84 if needed ---
+        transform_to_4326 = geom_col
+        try:
+            if meta.crs and meta.crs.to_epsg() != 4326:
+                source_crs = meta.crs.to_string()
+                transform_to_4326 = (
+                    f"ST_Transform({geom_col}, '{source_crs}', 'EPSG:4326')"
+                )
+        except Exception:
+            pass
+
+        potential_sql = self._get_potential_sql(opp, transform_to_4326, geom_type)
+
+        # --- Branch by geometry type ---
+        if "point" in geom_type:
+            # Points / MultiPoints: dump if multipoint
+            query = f"""
+            CREATE OR REPLACE TEMP TABLE {output_table} AS
+            WITH features AS (
+                SELECT
+                    {potential_sql}::DOUBLE AS total_potential,
+                    {transform_to_4326} AS geom
+                FROM {table_name}
+                WHERE {geom_col} IS NOT NULL
+            ),
+            exploded AS (
+                SELECT
+                        total_potential,
+                        ST_NumGeometries(geom) AS num_parts, -- Calculate the total number of parts ONCE
+                        (UNNEST(ST_Dump(geom))).geom AS simple_geom -- Dump the geometry ONCE
+                FROM features
+            )
+            SELECT
+                h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS orig_id,
+                SUM(total_potential / num_parts) AS potential,
+                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.sensitivity}::DOUBLE AS sensitivity
+            FROM exploded
+            GROUP BY orig_id
+            """
+        elif "polygon" in geom_type:
+            # Polygons / MultiPolygons: split into simple polygons and distribute potential
+            query = f"""
+            CREATE OR REPLACE TEMP TABLE {output_table} AS
+            WITH features AS (
+                SELECT
+                    {potential_sql}::DOUBLE AS total_potential,
+                    {transform_to_4326} AS geom
+                FROM {table_name}
+                WHERE {geom_col} IS NOT NULL
+            ),
+            polygons AS (
+                SELECT
+                    ROW_NUMBER() OVER () AS row_id,
+                    total_potential,
+                    (UNNEST(ST_Dump(ST_Force2D(geom))).geom) AS simple_geom
+                FROM features
+            ),
+            h3_cells_raw AS (
+                SELECT
+                    row_id,
+                    total_potential,
+                    UNNEST(h3_polygon_wkt_to_cells_experimental(ST_AsText(simple_geom), {h3_resolution}, 'CONTAINMENT_OVERLAPPING')) AS orig_id
+                FROM polygons
+            ),
+            h3_cells_unique AS (
+                SELECT DISTINCT row_id, total_potential, orig_id
+                FROM h3_cells_raw
+            ),
+            h3_counts AS (
+                SELECT
+                    row_id,
+                    COUNT(*) AS num_cells,
+                    total_potential
+                FROM h3_cells_unique
+                GROUP BY row_id, total_potential
+            )
+            SELECT
+                u.orig_id,
+                SUM(u.total_potential / hc.num_cells) AS potential,
+                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.sensitivity}::DOUBLE AS sensitivity
+            FROM h3_cells_unique u
+            JOIN h3_counts hc ON u.row_id = hc.row_id
+            GROUP BY u.orig_id
+            """
+
+        else:
+            raise ValueError(f"Unsupported geometry type: '{geom_type}'")
+
+        self.con.execute(query)
+        return output_table
+
+    def _get_potential_sql(
+        self: Self, opp: OpportunityGravity, wgs84_geom_sql: str, geom_type: str
+    ) -> str:
+        """
+        Determines the SQL expression for potential.
+
+        Priority:
+        1. potential_expression
+        2. potential_constant
+        3. potential_field
+        4. defaults to 1.0
+
+        Special rule:
+        - 'area' and 'perimeter' expressions are only valid for Polygon/MultiPolygon geometries.
+        """
+        geom_type_lower = (geom_type or "").lower()
+
+        # --- Handle potential_expression first ---
+        if opp.potential_expression:
+            expr = opp.potential_expression.lower().strip()
+
+            if expr in ("$area", "area"):
+                if "polygon" not in geom_type_lower:
+                    raise ValueError(
+                        f"Invalid potential_expression='{expr}' for geometry type '{geom_type}'. "
+                        "Area is only valid for Polygon or MultiPolygon geometries."
+                    )
+                return f"ST_Area_Spheroid({wgs84_geom_sql})"
+
+            if expr in ("$perimeter", "perimeter"):
+                if "polygon" not in geom_type_lower:
+                    raise ValueError(
+                        f"Invalid potential_expression='{expr}' for geometry type '{geom_type}'. "
+                        "Perimeter is only valid for Polygon or MultiPolygon geometries."
+                    )
+                return f"ST_Perimeter_Spheroid({wgs84_geom_sql})"
+
+            # Custom user expression (use as-is)
+            return expr
+
+        # --- Constant potential ---
+        if opp.potential_constant is not None:
+            return str(float(opp.potential_constant))
+
+        # --- Field-based potential ---
+        if opp.potential_field:
+            return f'"{opp.potential_field}"'
+
+        # --- Default constant ---
+        return "1.0"
+
     def _combine_opportunities(
-        self: Self, standardized_tables: List[Tuple[str, str]]
+        self: Self, standardized_tables: list[tuple[str, str]]
     ) -> str:
         """
         Combine opportunities.
@@ -162,208 +322,6 @@ class HeatmapGravityTool(HeatmapToolBase):
         )
 
         return unified_table
-
-    def _get_potential_sql(
-        self: Self, opp: OpportunityGravity, geom_col: str, geom_type: str
-    ) -> str:
-        """
-        Determines the SQL expression for potential.
-
-        Priority:
-        1. potential_expression
-        2. potential_constant
-        3. potential_field
-        4. defaults to 1.0
-
-        Special rule:
-        - 'area' and 'perimeter' expressions are only valid for Polygon/MultiPolygon geometries.
-        """
-        geom_type_lower = (geom_type or "").lower()
-
-        # --- Handle potential_expression first ---
-        if opp.potential_expression:
-            expr = opp.potential_expression.lower().strip()
-
-            if expr in ("$area", "area"):
-                if "polygon" not in geom_type_lower:
-                    raise ValueError(
-                        f"Invalid potential_expression='{expr}' for geometry type '{geom_type}'. "
-                        "Area is only valid for Polygon or MultiPolygon geometries."
-                    )
-                return f"ST_Area({geom_col}, 'metre')"
-
-            if expr in ("$perimeter", "perimeter"):
-                if "polygon" not in geom_type_lower:
-                    raise ValueError(
-                        f"Invalid potential_expression='{expr}' for geometry type '{geom_type}'. "
-                        "Perimeter is only valid for Polygon or MultiPolygon geometries."
-                    )
-                return f"ST_Perimeter({geom_col}, 'metre')"
-
-            # Custom user expression (use as-is)
-            return expr
-
-        # --- Constant potential ---
-        if opp.potential_constant is not None:
-            return str(float(opp.potential_constant))
-
-        # --- Field-based potential ---
-        if opp.potential_field:
-            return f'"{opp.potential_field}"'
-
-        # --- Default constant ---
-        return "1.0"
-
-    def _prepare_opportunity_table(
-        self: Self,
-        table_name: str,
-        meta: Metadata,
-        opp: OpportunityGravity,
-        h3_resolution: int,
-    ) -> str:
-        """
-        Converts an imported opportunity dataset into the canonical gravity schema:
-        orig_id, potential, max_traveltime, sensitivity
-        """
-        geom_type = (meta.geometry_type or "").lower()
-        geom_col = meta.geometry_column or "geom"
-        output_table = f"{table_name}_std"
-        potential_sql = self._get_potential_sql(opp, geom_col, geom_type)
-
-        logger.info(
-            "Standardizing opportunity '%s' (geom=%s, potential=%s)",
-            table_name,
-            geom_type,
-            potential_sql,
-        )
-
-        # --- Handle geometry types ---
-        if "point" in geom_type:
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {output_table} AS
-                SELECT
-                    h3_latlng_to_cell(ST_Y({geom_col}), ST_X({geom_col}), {h3_resolution}) AS orig_id,
-                    {potential_sql}::DOUBLE AS potential,
-                    {opp.max_traveltime}::DOUBLE AS max_traveltime,
-                    {opp.sensitivity}::DOUBLE AS sensitivity
-                FROM {table_name}
-            """
-
-        elif "polygon" in geom_type:
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {output_table} AS
-                WITH polys AS (
-                    SELECT
-                        h3_polygon_to_cells({geom_col}, {h3_resolution}) AS h3_cells,
-                        {potential_sql}::DOUBLE AS total_potential
-                    FROM {table_name}
-                ),
-                exploded AS (
-                    SELECT
-                        UNNEST(h3_cells) AS orig_id,
-                        total_potential / array_length(h3_cells) AS potential
-                    FROM polys
-                )
-                SELECT
-                    orig_id,
-                    potential,
-                    {opp.max_traveltime}::DOUBLE AS max_traveltime,
-                    {opp.sensitivity}::DOUBLE AS sensitivity
-                FROM exploded
-            """
-
-        elif "line" in geom_type:
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {output_table} AS
-                WITH sampled AS (
-                    SELECT ST_SamplePoints({geom_col}, 100) AS pts,
-                           {potential_sql}::DOUBLE AS potential_value
-                    FROM {table_name}
-                ),
-                unnested AS (
-                    SELECT UNNEST(pts) AS geom, potential_value FROM sampled
-                )
-                SELECT
-                    h3_latlng_to_cell(ST_Y(geom), ST_X(geom), {h3_resolution}) AS orig_id,
-                    potential_value AS potential,
-                    {opp.max_traveltime}::DOUBLE AS max_traveltime,
-                    {opp.sensitivity}::DOUBLE AS sensitivity
-                FROM unnested
-            """
-
-        else:
-            raise ValueError(f"Unsupported geometry type: '{geom_type}'")
-
-        self.con.execute(query)
-        return output_table
-
-    def _extract_origin_ids(self: Self, unified_table: str) -> List[int]:
-        """Extract unique origin IDs from the unified opportunity table."""
-        result = self.con.execute(f"""
-                SELECT DISTINCT orig_id
-                FROM {unified_table}
-                WHERE orig_id IS NOT NULL
-            """).fetchall()
-        return [row[0] for row in result] if result else []
-
-    def _compute_h3_partitions(self: Self, origin_ids: List[int]) -> List[int]:
-        """Convert origin IDs to H3 partition keys using the existing UDF."""
-        if not origin_ids:
-            return []
-
-        # Create a temporary table with origin IDs
-        self.con.execute(
-            """
-            CREATE OR REPLACE TEMP TABLE temp_origin_ids AS
-            SELECT UNNEST($1) AS orig_id
-        """,
-            [origin_ids],
-        )
-
-        # Use the existing UDF to compute H3 partition keys
-        result = self.con.execute("""
-            SELECT DISTINCT to_short_h3_3(orig_id) AS h3_partition
-            FROM temp_origin_ids
-            WHERE orig_id IS NOT NULL
-        """).fetchall()
-
-        return [row[0] for row in result] if result else []
-
-    def _filter_traveltime_matrix(
-        self: Self, od_view: str, origin_ids: List[int], h3_partitions: List[int]
-    ) -> str:
-        """Filter the travel time matrix using H3 partitioning for efficiency."""
-        filtered_table = "filtered_matrix"
-
-        if h3_partitions:
-            # Use H3 partitioning for efficient filtering with the UDF
-            h3_partitions_sql = ", ".join(map(str, h3_partitions))
-            origin_ids_sql = ", ".join(map(str, origin_ids))
-
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {filtered_table} AS
-                SELECT orig_id, dest_id, traveltime
-                FROM {od_view}
-                WHERE to_short_h3_3(orig_id) IN ({h3_partitions_sql})
-                AND orig_id IN ({origin_ids_sql})
-            """
-        else:
-            # Fallback: filter by origin IDs only
-            origin_ids_sql = ", ".join(map(str, origin_ids))
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {filtered_table} AS
-                SELECT orig_id, dest_id, traveltime
-                FROM {od_view}
-                WHERE orig_id IN ({origin_ids_sql})
-            """
-
-        self.con.execute(query)
-        row_count = self.con.execute(
-            f"SELECT COUNT(*) FROM {filtered_table}"
-        ).fetchone()[0]
-        logger.info("Filtered matrix created with %d rows", row_count)
-
-        return filtered_table
 
     def _impedance_sql(
         self: Self, which: ImpedanceFunction, max_sens: float, opportunity_name: str
@@ -412,7 +370,7 @@ class HeatmapGravityTool(HeatmapToolBase):
         self: Self,
         filtered_matrix: str,
         opportunities_table: str,
-        standardized_tables: List[Tuple[str, str]],
+        standardized_tables: list[tuple[str, str]],
         impedance_func: ImpedanceFunction,
         max_sensitivity: float,
     ) -> str:
@@ -442,7 +400,7 @@ class HeatmapGravityTool(HeatmapToolBase):
         query = f"""
             CREATE OR REPLACE TEMP TABLE {gravity_table} AS
             SELECT
-                m.dest_id,
+                m.dest_id AS h3_index,
                 {individual_columns_sql},
                 -- Total accessibility as sum of all individual accessibilities
                 ({' + '.join(sum_expressions)}) AS total_accessibility
@@ -466,32 +424,3 @@ class HeatmapGravityTool(HeatmapToolBase):
         )
 
         return gravity_table
-
-    def _export_results(
-        self: Self, gravity_table: str, output_path: str
-    ) -> List[Tuple[Path, DatasetMetadata]]:
-        """Export results to GeoParquet with H3 index ordering for optimal performance."""
-
-        # Create output directory if it doesn't exist
-        output_path_obj = Path(output_path)
-        output_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-        # Ensure .parquet extension
-        if output_path_obj.suffix.lower() != ".parquet":
-            output_path_obj = output_path_obj.with_suffix(".parquet")
-
-        # Convert H3 cells to geometry and export to GeoParquet, ordered by H3 index
-        query = f"""
-            COPY (
-                SELECT
-                    dest_id,
-                    * EXCLUDE (dest_id),
-                    ST_AsWKB(ST_GeomFromText(h3_cell_to_boundary_wkt(dest_id))) AS geometry
-                FROM {gravity_table}
-                ORDER BY dest_id  -- Order by H3 index for optimal spatial indexing
-            ) TO '{output_path_obj}' (FORMAT PARQUET, COMPRESSION ZSTD)
-        """
-
-        self.con.execute(query)
-
-        logger.info("GeoParquet written to %s", output_path)
