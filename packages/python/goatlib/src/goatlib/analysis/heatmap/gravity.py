@@ -21,7 +21,7 @@ class HeatmapGravityTool(HeatmapToolBase):
     Steps:
       1. Import and standardize all opportunity layers.
       2. Combine standardized layers into a unified opportunity table.
-      3. Filter travel-time matrix and compute gravity accessibility.
+      3. Filter OD matrix and compute gravity accessibility.
       4. Export results
     """
 
@@ -31,7 +31,9 @@ class HeatmapGravityTool(HeatmapToolBase):
         logger.info("Starting Heatmap Gravity Analysis")
 
         # Register OD matrix and detect H3 resolution
-        od_table, h3_resolution = self._prepare_od_matrix(params.od_matrix_source)
+        od_table, h3_resolution = self._prepare_od_matrix(
+            params.od_matrix_source, params.od_column_map
+        )
         logger.info(
             "OD matrix ready: table=%s, h3_resolution=%s", od_table, h3_resolution
         )
@@ -62,16 +64,17 @@ class HeatmapGravityTool(HeatmapToolBase):
             params.impedance,
             params.max_sensitivity,
         )
-        self._export_h3_results(gravity_results, params.output_path)
 
         logger.info("Heatmap gravity analysis completed successfully")
+
+        return self._export_h3_results(gravity_results, params.output_path)
 
     def _process_opportunities(
         self: Self, opportunities: list[OpportunityGravity], h3_resolution: int
     ) -> list[tuple[str, str]]:
         """
         Imports and standardizes all opportunity datasets into the canonical schema:
-        dest_id, potential, max_traveltime, sensitivity
+        dest_id, potential, max_cost, sensitivity
         Returns a list of (table_name, display_name).
         """
         opportunity_tables = []
@@ -118,7 +121,7 @@ class HeatmapGravityTool(HeatmapToolBase):
     ) -> str:
         """
         Converts an imported opportunity dataset into the canonical gravity schema:
-        dest_id, potential, max_traveltime, sensitivity.
+        dest_id, potential, max_cost, sensitivity.
 
         Handles Point, MultiPoint, Polygon, and MultiPolygon geometries.
         """
@@ -162,7 +165,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             SELECT
                 h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS dest_id,
                 SUM(total_potential / num_parts) AS potential,
-                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.max_cost}::DOUBLE AS max_cost,
                 {opp.sensitivity}::DOUBLE AS sensitivity
             FROM exploded
             GROUP BY dest_id
@@ -207,7 +210,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             SELECT
                 u.dest_id,
                 SUM(u.total_potential / hc.num_cells) AS potential,
-                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.max_cost}::DOUBLE AS max_cost,
                 {opp.sensitivity}::DOUBLE AS sensitivity
             FROM h3_cells_unique u
             JOIN h3_counts hc ON u.row_id = hc.row_id
@@ -289,7 +292,7 @@ class HeatmapGravityTool(HeatmapToolBase):
                     dest_id,
                     '{safe_name}' as opportunity_type,
                     potential,
-                    max_traveltime,
+                    max_cost,
                     sensitivity
                 FROM {std_table}
             """)
@@ -307,7 +310,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             ON opportunity_type
             USING
                 FIRST(potential) AS potential,
-                FIRST(max_traveltime) AS max_tt,
+                FIRST(max_cost) AS max_cost,
                 FIRST(sensitivity) AS sens
         """
 
@@ -329,25 +332,25 @@ class HeatmapGravityTool(HeatmapToolBase):
         """
         # Reference the pivoted column names
         potential_col = f"o.{opportunity_name}_potential"
-        max_tt_col = f"o.{opportunity_name}_max_tt"
+        max_cost_col = f"o.{opportunity_name}_max_cost"
         sens_col = f"o.{opportunity_name}_sens"
 
         if which == ImpedanceFunction.gaussian:
             return f"""
                 SUM(
                     EXP(
-                        ((((m.traveltime / {max_tt_col}) * (m.traveltime / {max_tt_col})) * -1)
+                        ((((m.cost / {max_cost_col}) * (m.cost / {max_cost_col})) * -1)
                         / ({sens_col} / {max_sens}))
                     ) * {potential_col}
                 )
             """
         elif which == ImpedanceFunction.linear:
-            return f"SUM( (1 - (m.traveltime / {max_tt_col})) * {potential_col} )"
+            return f"SUM( (1 - (m.cost / {max_cost_col})) * {potential_col} )"
         elif which == ImpedanceFunction.exponential:
             return f"""
                 SUM(
                     EXP(
-                        ((({sens_col} / {max_sens}) * -1) * (m.traveltime / {max_tt_col}))
+                        ((({sens_col} / {max_sens}) * -1) * (m.cost / {max_cost_col}))
                     ) * {potential_col}
                 )
             """
@@ -355,7 +358,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             return f"""
                 SUM(
                     POW(
-                        (m.traveltime / {max_tt_col}),
+                        (m.cost / {max_cost_col}),
                         (({sens_col} / {max_sens}) * -1)
                     ) * {potential_col}
                 )
@@ -404,7 +407,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             FROM {filtered_matrix} AS m
             JOIN {opportunities_table} AS o ON m.dest_id = o.dest_id
             WHERE (
-                {' OR '.join([f"m.traveltime <= o.{safe_name}_max_tt" for safe_name in safe_names])}
+                {' OR '.join([f"m.cost <= o.{safe_name}_max_cost" for safe_name in safe_names])}
             )
             GROUP BY m.orig_id
             HAVING total_accessibility IS NOT NULL

@@ -5,24 +5,23 @@ from typing import Self
 from goatlib.analysis.heatmap.base import HeatmapToolBase
 from goatlib.analysis.schemas.heatmap import HeatmapConnectivityParams
 from goatlib.io.utils import Metadata
-from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
 
 class HeatmapConnectivityTool(HeatmapToolBase):
     """
-    Computes connectivity heatmap - total area reachable within max travel time.
+    Computes connectivity heatmap - total area reachable within max cost.
     Only Polygon/MultiPolygon AOIs are supported.
     """
 
-    def _run_implementation(
-        self: Self, params: HeatmapConnectivityParams
-    ) -> list[tuple[Path, DatasetMetadata]]:
+    def _run_implementation(self: Self, params: HeatmapConnectivityParams) -> Path:
         logger.info("Starting Heatmap Connectivity Analysis")
 
         # --- Prepare OD matrix ---
-        od_table, h3_resolution = self._prepare_od_matrix(params.od_matrix_source)
+        od_table, h3_resolution = self._prepare_od_matrix(
+            params.od_matrix_source, params.od_column_map
+        )
         logger.info(
             "OD matrix ready: table=%s, h3_resolution=%s", od_table, h3_resolution
         )
@@ -45,13 +44,15 @@ class HeatmapConnectivityTool(HeatmapToolBase):
         filtered_matrix = self._filter_od_matrix(
             od_table,
             destination_ids=dest_ids,
-            max_traveltime=params.max_traveltime,
+            max_cost=params.max_cost,
         )
 
         # --- Compute connectivity scores for all reachable destinations ---
         connectivity_table_full = self._compute_connectivity_scores(
-            filtered_matrix, params.max_traveltime, "connectivity_full"
+            filtered_matrix, params.max_cost, "connectivity_full"
         )
+
+        logger.info("Heatmap connectivity analysis completed successfully")
 
         # --- Export results ---
         return self._export_h3_results(connectivity_table_full, params.output_path)
@@ -105,20 +106,20 @@ class HeatmapConnectivityTool(HeatmapToolBase):
         return output_table
 
     def _compute_connectivity_scores(
-        self: Self, filtered_matrix: str, max_traveltime: int, target_table: str
+        self: Self, filtered_matrix: str, max_cost: int, target_table: str
     ) -> str:
         """
         Compute connectivity scores for each destination by summing the area of reachable
-        destinations within max_traveltime.
+        destinations within max_cost.
 
-        Assumes filtered_matrix contains columns: orig_id, dest_id, traveltime.
+        Assumes filtered_matrix contains columns: orig_id, dest_id, cost.
         """
         query = f"""
             CREATE OR REPLACE TEMP TABLE {target_table} AS
             WITH reachable AS (
                 SELECT *
                 FROM {filtered_matrix}
-                WHERE traveltime <= {max_traveltime}
+                WHERE cost <= {max_cost}
             )
             SELECT
                 dest_id AS h3_index,

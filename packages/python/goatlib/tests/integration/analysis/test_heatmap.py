@@ -28,6 +28,11 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
     params = HeatmapGravityParams(
         routing_mode="walking",
         od_matrix_source=od_matrix_source,
+        od_column_map={
+            "cost": "traveltime",
+            "orig_id": "orig_id",
+            "dest_id": "dest_id",
+        },
         output_path=str(work_dir / "heatmap_gravity.parquet"),
         impedance="linear",
         opportunities=[
@@ -36,17 +41,17 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
                 name="weihnachsmaerkte_25",
                 potential_constant=1.0,
                 sensitivity=300000.0,
-                max_traveltime=30,
+                max_cost=30,
             ),
         ],
     )
 
     # Run the heatmap gravity analysis tool
     tool = HeatmapGravityTool()
-    results = tool.run(params)
+    path = tool.run(params)
 
     # Basic assertions on output
-    assert 1 == 1
+    assert path.exists()
 
 
 def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
@@ -65,12 +70,17 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
     params = HeatmapClosestAverageParams(
         routing_mode="walking",
         od_matrix_source=od_matrix_source,
+        od_column_map={
+            "cost": "traveltime",
+            "orig_id": "orig_id",
+            "dest_id": "dest_id",
+        },
         output_path=str(work_dir / "heatmap_closest_average.parquet"),
         opportunities=[
             OpportunityClosestAverage(
                 input_path=str(data_root / "analysis" / "de_weihnachsmaerkte_25.gpkg"),
                 name="weihnachsmaerkte_25",
-                max_traveltime=20,
+                max_cost=20,
                 n_destinations=3,
             ),
         ],
@@ -78,10 +88,10 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
 
     # Run the heatmap closest average analysis tool
     tool = HeatmapClosestAverageTool()
-    results = tool.run(params)
+    path = tool.run(params)
 
     # Basic assertions on output
-    assert 1 == 1
+    assert path.exists()
 
 
 def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
@@ -100,14 +110,19 @@ def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
     params = HeatmapConnectivityParams(
         routing_mode="walking",
         od_matrix_source=od_matrix_source,
+        od_column_map={
+            "cost": "traveltime",
+            "orig_id": "orig_id",
+            "dest_id": "dest_id",
+        },
         output_path=str(work_dir / "heatmap_connectivity.parquet"),
-        max_traveltime=20,
+        max_cost=20,
         reference_area_path=str(data_root / "analysis" / "munich_districts.geojson"),
     )
 
     # Run the heatmap connectivity analysis tool
     tool = HeatmapConnectivityTool()
-    results = tool.run(params)
+    path = tool.run(params)
 
     # Basic assertions on output
-    assert 1 == 1
+    assert path.exists()

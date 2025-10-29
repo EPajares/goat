@@ -9,23 +9,22 @@ from goatlib.analysis.schemas.heatmap import (
     OpportunityClosestAverage,
 )
 from goatlib.io.utils import Metadata
-from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
 
 class HeatmapClosestAverageTool(HeatmapToolBase):
     """
-    Computes closest average heatmap - average value of the closest features within max travel time.
+    Computes closest average heatmap - average value of the closest features within max cost.
     """
 
-    def _run_implementation(
-        self: Self, params: HeatmapClosestAverageParams
-    ) -> list[tuple[Path, DatasetMetadata]]:
+    def _run_implementation(self: Self, params: HeatmapClosestAverageParams) -> Path:
         logger.info("Starting Heatmap Closest Average Analysis")
 
         # Register OD matrix and detect H3 resolution
-        od_table, h3_resolution = self._prepare_od_matrix(params.od_matrix_source)
+        od_table, h3_resolution = self._prepare_od_matrix(
+            params.od_matrix_source, params.od_column_map
+        )
         logger.info(
             "OD matrix ready: table=%s, h3_resolution=%s", od_table, h3_resolution
         )
@@ -59,6 +58,9 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
 
         # Export results
         output_path = Path(params.output_path)
+
+        logger.info("Heatmap closest average analysis completed successfully")
+
         return self._export_h3_results(result_table, output_path)
 
     def _process_opportunities(
@@ -116,7 +118,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
         """
         Converts an imported opportunity dataset into canonical schema.
         These are DESTINATIONS, so we use dest_id instead of orig_id.
-        Schema: dest_id, max_traveltime, n_destinations
+        Schema: dest_id, max_cost, n_destinations
         """
         geom_col = meta.geometry_column or "geom"
         geom_type = (meta.geometry_type or "").lower()
@@ -147,7 +149,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             )
             SELECT
                 h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS dest_id,
-                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.max_cost}::DOUBLE AS max_cost,
                 {opp.n_destinations}::INT AS n_destinations
             FROM exploded
             WHERE simple_geom IS NOT NULL
@@ -169,7 +171,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             )
             SELECT
                 dest_id,
-                {opp.max_traveltime}::DOUBLE AS max_traveltime,
+                {opp.max_cost}::DOUBLE AS max_cost,
                 {opp.n_destinations}::INT AS n_destinations
             FROM h3_cells
             WHERE dest_id IS NOT NULL
@@ -186,7 +188,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
     ) -> str:
         """
         Combine standardized opportunity tables using a portable pivot (MAX(CASE ...)).
-        Creates columns: {opportunity_name}_max_tt, {opportunity_name}_n_dest
+        Creates columns: {opportunity_name}_max_cost, {opportunity_name}_n_dest
         """
         if not standardized_tables:
             raise ValueError("No standardized opportunity tables to combine")
@@ -200,7 +202,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
                 SELECT
                     dest_id,
                     '{safe_name}' as opportunity_type,
-                    max_traveltime,
+                    max_cost,
                     n_destinations
                 FROM {std_table}
                 WHERE dest_id IS NOT NULL
@@ -211,8 +213,8 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
         unified_table = f"opportunity_closest_avg_unified_{uuid.uuid4().hex[:8]}"
 
         # Build portable pivot using MAX(CASE WHEN ...)
-        max_tt_cols = ",\n            ".join(
-            f"MAX(CASE WHEN opportunity_type = '{sn}' THEN max_traveltime END) AS {sn}_max_tt"
+        max_cost_cols = ",\n            ".join(
+            f"MAX(CASE WHEN opportunity_type = '{sn}' THEN max_cost END) AS {sn}_max_cost"
             for sn in safe_names
         )
         n_dest_cols = ",\n            ".join(
@@ -224,7 +226,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             CREATE OR REPLACE TEMP TABLE {unified_table} AS
             SELECT
                 dest_id,
-                {max_tt_cols},
+                {max_cost_cols},
                 {n_dest_cols}
             FROM (
                 {union_query}
@@ -255,8 +257,8 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
         Creates one column per opportunity type: {opportunity_name}_accessibility
         and an overall total_accessibility column.
 
-        For each origin, computes average travel time to the closest N destinations
-        of each opportunity type within the max travel time threshold.
+        For each origin, computes average cost to the closest N destinations
+        of each opportunity type within the max cost threshold.
         """
 
         result_table = "closest_avg_final"
@@ -278,27 +280,27 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
                 SELECT
                     m.orig_id,
                     m.dest_id,
-                    m.traveltime,
+                    m.cost,
                     o.{safe_name}_n_dest AS n_dest_for_dest,
                     ROW_NUMBER() OVER (
                         PARTITION BY m.orig_id
-                        ORDER BY m.traveltime ASC
+                        ORDER BY m.cost ASC
                     ) AS destination_rank
                 FROM {filtered_matrix} m
                 JOIN {unified_table} o ON m.dest_id = o.dest_id
-                WHERE m.traveltime <= o.{safe_name}_max_tt
+                WHERE m.cost <= o.{safe_name}_max_cost
             ),
             closest_n_{safe_name} AS (
                 SELECT
                     orig_id,
-                    traveltime
+                    cost
                 FROM ranked_{safe_name}
                 WHERE destination_rank <= n_dest_for_dest
             ),
             aggregated_{safe_name} AS (
                 SELECT
                     orig_id AS h3_index,
-                    AVG(traveltime) AS {safe_name}_accessibility
+                    AVG(cost) AS {safe_name}_accessibility
                 FROM closest_n_{safe_name}
                 GROUP BY orig_id
             )
