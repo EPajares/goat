@@ -76,7 +76,7 @@
     "lodash.uniq": "^4.5.0",
     "maplibre-gl": "^4.5.2",
     "next": "v13.4.12",
-    "next-auth": "^4.22.3",
+    "next-auth": "^4.24.12",
     "nuqs": "^1.17.1",
     "ol": "10.1.0",
     "plotly.js": "^2.30.1",
