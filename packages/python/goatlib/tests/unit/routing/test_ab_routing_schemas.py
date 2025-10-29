@@ -14,6 +14,7 @@ from pydantic import ValidationError
 # =====================================================================
 #  FIXTURES: Test Data
 # =====================================================================
+# TODO use real motis responses
 
 
 @pytest.fixture
@@ -47,7 +48,6 @@ def valid_route_data(valid_leg_data: Dict[str, Any]) -> Dict[str, Any]:
         "distance": 1500,  # Inherited from base Route
         "time": datetime.now(timezone.utc),  # Inherited from base Route
         "legs": [valid_leg_data],
-        "optimization_score": 0.9,
     }
 
 
@@ -111,10 +111,25 @@ def test_ab_route_creation_success(valid_route_data: Dict[str, Any]) -> None:
     route = ABRoute(**valid_route_data)
 
     assert route.route_id == "route_abc"
-    assert route.optimization_score == 0.9
     assert len(route.legs) == 1
     assert isinstance(route.legs[0], ABRouteLeg)
-    assert route.duration == 25  # Check inherited field
+    assert route.duration == 25
+
+
+@pytest.mark.parametrize(
+    "duration, distance",
+    [
+        (0, 5000.0),  # Zero duration
+        (-10, 5000.0),  # Negative duration
+        (30.5, 0),  # Zero distance
+        (30.5, -100),  # Negative distance
+    ],
+    ids=["zero-duration", "neg-duration", "zero-distance", "neg-distance"],
+)
+def test_ab_route_creation_invalid(duration: float, distance: float) -> None:
+    """Tests that a Route with invalid duration or distance raises a ValueError."""
+    with pytest.raises(ValueError):
+        ABRoute(duration=duration, distance=distance, time=datetime.now(timezone.utc))
 
 
 # =====================================================================
@@ -127,39 +142,29 @@ def test_ab_response_creation_success(valid_route_data: Dict[str, Any]) -> None:
     route_obj = ABRoute(**valid_route_data)
 
     response = ABRoutingResponse(
-        request_id="req_123",
         routes=[route_obj],
-        total_routes=1,
     )
 
-    assert response.total_routes == 1
     assert response.type == "FeatureCollection"  # Check default
     assert isinstance(response.timestamp, datetime)
+    assert response.total_routes == 1
+    assert len(response.routes) == 1
 
 
-def test_ab_response_mismatch_route_count_fails(
+@pytest.mark.parametrize(
+    "num_routes",
+    [0, 1, 2, 5],
+)
+def test_ab_response_total_routes_is_always_correct(
+    num_routes: int,
     valid_route_data: Dict[str, Any],
 ) -> None:
-    """Tests the custom validator fails if total_routes != len(routes)."""
-    route_obj = ABRoute(**valid_route_data)
+    """
+    Tests that `total_routes` is always equal to the number of routes provided.
+    """
+    routes_list = [ABRoute(**valid_route_data) for _ in range(num_routes)]
 
-    # Using `match` to check for our specific custom error message
-    with pytest.raises(
-        ValidationError, match="Internal data inconsistency: route count mismatch"
-    ):
-        ABRoutingResponse(
-            request_id="req_456",
-            routes=[route_obj],  # List has 1 route
-            total_routes=5,  # but the total is stated as 5
-        )
+    response = ABRoutingResponse(routes=routes_list)
 
-
-def test_ab_response_zero_routes_success() -> None:
-    """Tests that a response with an empty routes list is valid."""
-    response = ABRoutingResponse(
-        request_id="req_789",
-        routes=[],
-        total_routes=0,
-    )
-    assert response.total_routes == 0
-    assert len(response.routes) == 0
+    assert response.total_routes == num_routes
+    assert len(response.routes) == num_routes

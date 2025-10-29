@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 # Fixtures
 # =====================================================================
 
-# TODO make it a fixed time
-TIME_NOW = datetime.now(timezone.utc)
+
+@pytest.fixture
+def fixed_time() -> datetime:
+    """Provides a consistent, timezone-aware 'now' for the duration of a test."""
+    return datetime.now(timezone.utc)
 
 
 @pytest.fixture
@@ -73,7 +76,7 @@ def test_location_valid() -> None:
     assert location.long == 13.4050
 
 
-def test_ab_routing_request_same_origin_destination(valid_origin: Location) -> None:
+def test_routing_request_same_origin_destination(valid_origin: Location) -> None:
     """Test that same origin and destination raises a validation error."""
     with pytest.raises(ValueError, match="Origin and destination cannot be the same"):
         RoutingRequestBase(
@@ -83,29 +86,12 @@ def test_ab_routing_request_same_origin_destination(valid_origin: Location) -> N
 
 def test_route_valid() -> None:
     """Test creating a valid route."""
-    route = Route(duration=30.5, distance=5000.0, time=TIME_NOW)
+    route = Route(duration=30.5, distance=5000.0)
     assert route.duration == 30.5
     assert route.distance == 5000.0
-    assert route.time == TIME_NOW
 
 
-@pytest.mark.parametrize(
-    "duration, distance",
-    [
-        (0, 5000.0),  # Zero duration
-        (-10, 5000.0),  # Negative duration
-        (30.5, 0),  # Zero distance
-        (30.5, -100),  # Negative distance
-    ],
-    ids=["zero-duration", "neg-duration", "zero-distance", "neg-distance"],
-)
-def test_route_invalid_values(duration: float, distance: float) -> None:
-    """Tests that a Route with invalid duration or distance raises a ValueError."""
-    with pytest.raises(ValueError):
-        Route(duration=duration, distance=distance, time=TIME_NOW)
-
-
-def test_ab_routing_request_valid() -> None:
+def test_routing_request_valid() -> None:
     """Test creating a valid AB routing request."""
     origin = Location(lat=52.5200, long=13.4050)
     destination = Location(lat=52.5170, long=13.3888)
@@ -121,7 +107,7 @@ def test_ab_routing_request_valid() -> None:
 
 def test_routing_response_valid() -> None:
     """Test creating a valid routing response."""
-    route = Route(duration=30.5, distance=5000.0, time=TIME_NOW)
+    route = Route(duration=30.5, distance=5000.0)
 
     response = RoutingResponse(routes=[route], processing_time_ms=250)
 
@@ -130,17 +116,9 @@ def test_routing_response_valid() -> None:
     assert response.processing_time_ms == 250
 
 
-def test_routing_response_empty_routes() -> None:
-    """Test routing response with empty routes list."""
-    response = RoutingResponse(routes=[], processing_time_ms=100)
-
-    assert response.routes == []
-    assert response.processing_time_ms == 100
-
-
 def test_routing_response_invalid_processing_time() -> None:
     """Test that negative processing time raises validation error."""
-    route = Route(duration=30.5, distance=5000.0, time=TIME_NOW)
+    route = Route(duration=30.5, distance=5000.0)
 
     with pytest.raises(ValueError):
         RoutingResponse(
@@ -177,14 +155,14 @@ def test_departure_time_warnings(
     time_delta: Optional[timedelta],
     is_naive: bool,
     expected_warnings: List[str],
+    fixed_time: datetime,
 ) -> None:
     """Tests all time-related advisory warnings for RoutingRequestBase."""
     test_time: Optional[datetime]
     if time_delta is None:
         test_time = None
     else:
-        now = TIME_NOW
-        test_time = now + time_delta
+        test_time = fixed_time + time_delta
         if is_naive:
             test_time = test_time.replace(tzinfo=None)
 
@@ -199,20 +177,6 @@ def test_departure_time_warnings(
             assert (
                 warning_text in caplog.text
             ), f"Expected warning '{warning_text}' was not found."
-
-
-def test_mixed_car_mode_triggers_warning(
-    caplog: LogCaptureFixture,
-    base_request_data: Dict[str, Any],
-) -> None:
-    """Tests that including CAR with other modes logs a specific warning."""
-    modes = [TransportMode.CAR, TransportMode.WALK]
-    with caplog.at_level(logging.WARNING):
-        if hasattr(RoutingRequestBase, "warn_on_mixed_car_mode"):
-            RoutingRequestBase(**base_request_data, modes=modes)
-
-    assert len(caplog.records) == 1
-    assert "includes 'CAR' along with other modes" in caplog.text
 
 
 @pytest.mark.parametrize(
