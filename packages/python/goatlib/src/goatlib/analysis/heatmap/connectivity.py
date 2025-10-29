@@ -34,17 +34,19 @@ class HeatmapConnectivityTool(HeatmapToolBase):
 
         # --- Convert AOI polygons to H3 cells ---
         reference_table_h3 = self._process_table_to_h3(
-            reference_table, meta, h3_resolution, "reference_area_h3", "orig_id"
+            reference_table, meta, h3_resolution, "reference_area_h3", "dest_id"
         )
 
-        origin_ids = self._extract_origin_ids(reference_table_h3)
-        if not origin_ids:
-            raise ValueError("No origin IDs found in opportunity data")
-
-        h3_partitions = self._compute_h3_partitions(origin_ids)
+        dest_ids = self._extract_destination_ids(reference_table_h3)
+        if not dest_ids:
+            raise ValueError("No destination IDs found in opportunity data")
 
         # --- Filter OD matrix: include all reachable destinations for calculation ---
-        filtered_matrix = self._filter_od_matrix(od_table, origin_ids, h3_partitions)
+        filtered_matrix = self._filter_od_matrix(
+            od_table,
+            destination_ids=dest_ids,
+            max_traveltime=params.max_traveltime,
+        )
 
         # --- Compute connectivity scores for all reachable destinations ---
         connectivity_table_full = self._compute_connectivity_scores(
@@ -60,7 +62,7 @@ class HeatmapConnectivityTool(HeatmapToolBase):
         meta: Metadata,
         h3_resolution: int,
         output_table: str,
-        h3_column: str = "orig_id",
+        h3_column: str = "dest_id",
     ) -> str:
         """Convert Polygon/MultiPolygon geometries to H3 cells (experimental)."""
         geom_type = (meta.geometry_type or "").lower()
@@ -106,7 +108,7 @@ class HeatmapConnectivityTool(HeatmapToolBase):
         self: Self, filtered_matrix: str, max_traveltime: int, target_table: str
     ) -> str:
         """
-        Compute connectivity scores for each origin by summing the area of reachable
+        Compute connectivity scores for each destination by summing the area of reachable
         destinations within max_traveltime.
 
         Assumes filtered_matrix contains columns: orig_id, dest_id, traveltime.
@@ -119,14 +121,14 @@ class HeatmapConnectivityTool(HeatmapToolBase):
                 WHERE traveltime <= {max_traveltime}
             )
             SELECT
-                orig_id AS h3_index,
-                SUM(h3_cell_area(dest_id, 'm^2')) AS accessibility
+                dest_id AS h3_index,
+                SUM(h3_cell_area(orig_id, 'm^2')) AS accessibility
             FROM reachable
-            GROUP BY orig_id
+            GROUP BY dest_id
         """
         self.con.execute(query)
         row_count = self.con.execute(f"SELECT COUNT(*) FROM {target_table}").fetchone()[
             0
         ]
-        logger.info("Computed connectivity scores for %d origins", row_count)
+        logger.info("Computed connectivity scores for %d destinations", row_count)
         return target_table

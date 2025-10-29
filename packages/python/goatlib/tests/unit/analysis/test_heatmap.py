@@ -129,7 +129,7 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
             OpportunityClosestAverage(
                 input_path=str(data_root / "analysis" / "de_weihnachsmaerkte_25.gpkg"),
                 name="weihnachsmaerkte_25",
-                max_traveltime=30,
+                max_traveltime=20,
                 n_destinations=3,
             ),
         ],

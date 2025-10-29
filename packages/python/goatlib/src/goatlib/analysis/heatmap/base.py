@@ -7,13 +7,6 @@ from goatlib.analysis.core.base import AnalysisTool
 logger = logging.getLogger(__name__)
 
 
-def to_short_h3(h3_index: int) -> int | None:
-    if h3_index is None:
-        return None
-    mask = 0x000FFFF000000000
-    return (h3_index & mask) >> 36
-
-
 class HeatmapToolBase(AnalysisTool):
     """Base class for heatmap analysis tools."""
 
@@ -25,7 +18,6 @@ class HeatmapToolBase(AnalysisTool):
     def _setup_heatmap_extensions(self: Self) -> None:
         """Install required extensions and register helper functions."""
         self.con.execute("INSTALL h3 FROM community; LOAD h3;")
-        self.con.create_function("to_short_h3", to_short_h3)
         logger.debug("H3 extensions and helper UDFs loaded.")
 
     def _prepare_od_matrix(
@@ -87,36 +79,84 @@ class HeatmapToolBase(AnalysisTool):
         raise ValueError("Could not detect H3 resolution from OD matrix")
 
     def _filter_od_matrix(
-        self: Self, od_table: str, origin_ids: list[int], h3_partitions: list[int]
+        self: Self,
+        od_table: str,
+        *,
+        origin_ids: list[int] = None,
+        destination_ids: list[int] = None,
+        max_traveltime: float = None,
+        min_traveltime: float = None,
     ) -> str:
-        """Efficiently filter the OD matrix by origin IDs and partitions."""
+        """
+        Efficiently filter the OD matrix by various criteria.
+
+        Args:
+            od_table: Name of the OD matrix table
+            origin_ids: List of origin H3 IDs to filter by
+            destination_ids: List of destination H3 IDs to filter by
+            max_traveltime: Maximum travel time to include
+            min_traveltime: Minimum travel time to include
+
+        Returns:
+            Name of the filtered table
+        """
         filtered_table = "filtered_matrix"
 
-        if not origin_ids:
-            raise ValueError("No origin IDs provided for filtering.")
+        if (
+            not origin_ids
+            and not destination_ids
+            and max_traveltime is None
+            and min_traveltime is None
+        ):
+            raise ValueError("At least one filtering criterion must be provided.")
 
-        origin_ids_sql = ", ".join(map(str, origin_ids))
+        # Build WHERE conditions - put partition filters FIRST for optimal performance
+        conditions = []
 
-        if h3_partitions:
-            h3_sql = ", ".join(map(str, h3_partitions))
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {filtered_table} AS
-                SELECT orig_id, dest_id, traveltime
-                FROM {od_table}
-                WHERE to_short_h3(orig_id) IN ({h3_sql})
-                  AND orig_id IN ({origin_ids_sql})
-            """
-        else:
-            query = f"""
-                CREATE OR REPLACE TEMP TABLE {filtered_table} AS
-                SELECT orig_id, dest_id, traveltime
-                FROM {od_table}
-                WHERE orig_id IN ({origin_ids_sql})
-            """
+        # Then specific ID filters
+        if origin_ids:
+            origin_ids_sql = ", ".join(map(str, origin_ids))
+            conditions.append(f"orig_id IN ({origin_ids_sql})")
+
+        if destination_ids:
+            dest_ids_sql = ", ".join(map(str, destination_ids))
+            conditions.append(f"dest_id IN ({dest_ids_sql})")
+
+        # Travel time filters last (usually less selective)
+        if max_traveltime is not None:
+            conditions.append(f"traveltime <= {max_traveltime}")
+
+        if min_traveltime is not None:
+            conditions.append(f"traveltime >= {min_traveltime}")
+
+        where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+        query = f"""
+            CREATE OR REPLACE TEMP TABLE {filtered_table} AS
+            SELECT orig_id, dest_id, traveltime
+            FROM {od_table}
+            WHERE {where_clause}
+        """
 
         self.con.execute(query)
         count = self.con.execute(f"SELECT COUNT(*) FROM {filtered_table}").fetchone()[0]
-        logger.info("Filtered OD matrix created with %d rows", count)
+
+        # Build filter description for logging
+        filter_desc = []
+        if origin_ids:
+            filter_desc.append(f"{len(origin_ids)} origins")
+        if destination_ids:
+            filter_desc.append(f"{len(destination_ids)} destinations")
+        if max_traveltime is not None:
+            filter_desc.append(f"max_tt={max_traveltime}")
+        if min_traveltime is not None:
+            filter_desc.append(f"min_tt={min_traveltime}")
+
+        logger.info(
+            "Filtered OD matrix created with %d rows (%s)",
+            count,
+            ", ".join(filter_desc),
+        )
         return filtered_table
 
     def _extract_origin_ids(self: Self, table: str) -> list[int]:
@@ -125,27 +165,11 @@ class HeatmapToolBase(AnalysisTool):
         ).fetchall()
         return [r[0] for r in res] if res else []
 
-    def _compute_h3_partitions(self: Self, origin_ids: list[int]) -> list[int]:
-        """Convert origin IDs to H3 partition keys using the existing UDF."""
-        if not origin_ids:
-            return []
-
-        # Create a temporary table with origin IDs
-        self.con.execute(
-            """
-            CREATE OR REPLACE TEMP TABLE temp_origin_ids AS
-            SELECT UNNEST($1) AS orig_id
-        """,
-            [origin_ids],
-        )
-
-        # Use the existing UDF to compute H3 partition keys
-        result = self.con.execute("""
-            SELECT DISTINCT to_short_h3(orig_id) AS h3_partition
-            FROM temp_origin_ids
-            WHERE orig_id IS NOT NULL
-        """).fetchall()
-
+    def _extract_destination_ids(self: Self, table: str) -> list[int]:
+        """Extract unique destination H3 IDs from unified opportunity table."""
+        result = self.con.execute(
+            f"SELECT DISTINCT dest_id FROM {table} WHERE dest_id IS NOT NULL"
+        ).fetchall()
         return [row[0] for row in result] if result else []
 
     def _export_h3_results(

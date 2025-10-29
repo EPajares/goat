@@ -45,18 +45,15 @@ class HeatmapGravityTool(HeatmapToolBase):
         unified_table = self._combine_opportunities(standardized_tables)
         logger.info("Unified opportunity table created: %s", unified_table)
 
-        origin_ids = self._extract_origin_ids(unified_table)
-        if not origin_ids:
-            raise ValueError("No origin IDs found in opportunity data")
+        destination_ids = self._extract_destination_ids(unified_table)
+        if not destination_ids:
+            raise ValueError("No destination IDs found in opportunity data")
 
-        h3_partitions = self._compute_h3_partitions(origin_ids)
-        logger.info(
-            "Found %d unique origin IDs across %d H3 partitions",
-            len(origin_ids),
-            len(h3_partitions),
+        logger.info("Found %d unique destination IDs across ", len(destination_ids))
+
+        filtered_matrix = self._filter_od_matrix(
+            od_table, destination_ids=destination_ids
         )
-
-        filtered_matrix = self._filter_od_matrix(od_table, origin_ids, h3_partitions)
 
         gravity_results = self._compute_gravity_accessibility(
             filtered_matrix,
@@ -74,7 +71,7 @@ class HeatmapGravityTool(HeatmapToolBase):
     ) -> list[tuple[str, str]]:
         """
         Imports and standardizes all opportunity datasets into the canonical schema:
-        orig_id, potential, max_traveltime, sensitivity
+        dest_id, potential, max_traveltime, sensitivity
         Returns a list of (table_name, display_name).
         """
         opportunity_tables = []
@@ -121,7 +118,7 @@ class HeatmapGravityTool(HeatmapToolBase):
     ) -> str:
         """
         Converts an imported opportunity dataset into the canonical gravity schema:
-        orig_id, potential, max_traveltime, sensitivity.
+        dest_id, potential, max_traveltime, sensitivity.
 
         Handles Point, MultiPoint, Polygon, and MultiPolygon geometries.
         """
@@ -163,12 +160,12 @@ class HeatmapGravityTool(HeatmapToolBase):
                 FROM features
             )
             SELECT
-                h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS orig_id,
+                h3_latlng_to_cell(ST_Y(simple_geom), ST_X(simple_geom), {h3_resolution}) AS dest_id,
                 SUM(total_potential / num_parts) AS potential,
                 {opp.max_traveltime}::DOUBLE AS max_traveltime,
                 {opp.sensitivity}::DOUBLE AS sensitivity
             FROM exploded
-            GROUP BY orig_id
+            GROUP BY dest_id
             """
         elif "polygon" in geom_type:
             # Polygons / MultiPolygons: split into simple polygons and distribute potential
@@ -192,11 +189,11 @@ class HeatmapGravityTool(HeatmapToolBase):
                 SELECT
                     row_id,
                     total_potential,
-                    UNNEST(h3_polygon_wkt_to_cells_experimental(ST_AsText(simple_geom), {h3_resolution}, 'CONTAINMENT_OVERLAPPING')) AS orig_id
+                    UNNEST(h3_polygon_wkt_to_cells_experimental(ST_AsText(simple_geom), {h3_resolution}, 'CONTAINMENT_OVERLAPPING')) AS dest_id
                 FROM polygons
             ),
             h3_cells_unique AS (
-                SELECT DISTINCT row_id, total_potential, orig_id
+                SELECT DISTINCT row_id, total_potential, dest_id
                 FROM h3_cells_raw
             ),
             h3_counts AS (
@@ -208,13 +205,13 @@ class HeatmapGravityTool(HeatmapToolBase):
                 GROUP BY row_id, total_potential
             )
             SELECT
-                u.orig_id,
+                u.dest_id,
                 SUM(u.total_potential / hc.num_cells) AS potential,
                 {opp.max_traveltime}::DOUBLE AS max_traveltime,
                 {opp.sensitivity}::DOUBLE AS sensitivity
             FROM h3_cells_unique u
             JOIN h3_counts hc ON u.row_id = hc.row_id
-            GROUP BY u.orig_id
+            GROUP BY u.dest_id
             """
 
         else:
@@ -289,7 +286,7 @@ class HeatmapGravityTool(HeatmapToolBase):
             safe_name = name.replace("-", "_").replace(" ", "_").lower()
             union_parts.append(f"""
                 SELECT
-                    orig_id,
+                    dest_id,
                     '{safe_name}' as opportunity_type,
                     potential,
                     max_traveltime,
@@ -400,16 +397,16 @@ class HeatmapGravityTool(HeatmapToolBase):
         query = f"""
             CREATE OR REPLACE TEMP TABLE {gravity_table} AS
             SELECT
-                m.dest_id AS h3_index,
+                m.orig_id AS h3_index,
                 {individual_columns_sql},
                 -- Total accessibility as sum of all individual accessibilities
                 ({' + '.join(sum_expressions)}) AS total_accessibility
             FROM {filtered_matrix} AS m
-            JOIN {opportunities_table} AS o ON m.orig_id = o.orig_id
+            JOIN {opportunities_table} AS o ON m.dest_id = o.dest_id
             WHERE (
                 {' OR '.join([f"m.traveltime <= o.{safe_name}_max_tt" for safe_name in safe_names])}
             )
-            GROUP BY m.dest_id
+            GROUP BY m.orig_id
             HAVING total_accessibility IS NOT NULL
         """
 
