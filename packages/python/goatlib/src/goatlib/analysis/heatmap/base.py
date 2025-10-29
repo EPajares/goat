@@ -159,12 +159,6 @@ class HeatmapToolBase(AnalysisTool):
         )
         return filtered_table
 
-    def _extract_origin_ids(self: Self, table: str) -> list[int]:
-        res = self.con.execute(
-            f"SELECT DISTINCT orig_id FROM {table} WHERE orig_id IS NOT NULL"
-        ).fetchall()
-        return [r[0] for r in res] if res else []
-
     def _extract_destination_ids(self: Self, table: str) -> list[int]:
         """Extract unique destination H3 IDs from unified opportunity table."""
         result = self.con.execute(

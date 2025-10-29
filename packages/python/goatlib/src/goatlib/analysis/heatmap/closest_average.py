@@ -1,4 +1,5 @@
 import logging
+import uuid
 from pathlib import Path
 from typing import Self
 
@@ -45,8 +46,10 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
 
         logger.info("Found %d unique destination IDs across ", len(destination_ids))
 
-        # Filter OD matrix to only relevant origins
-        filtered_matrix = self._filter_od_matrix(od_table, origin_ids=destination_ids)
+        # Filter OD matrix to only relevant destinations
+        filtered_matrix = self._filter_od_matrix(
+            od_table, destination_ids=destination_ids
+        )
 
         # Compute closest-average accessibility
         result_table = self._compute_closest_average(
@@ -182,16 +185,17 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
         self: Self, standardized_tables: list[tuple[str, str]]
     ) -> str:
         """
-        Combine standardized opportunity tables using PIVOT to create columns for each opportunity type.
+        Combine standardized opportunity tables using a portable pivot (MAX(CASE ...)).
         Creates columns: {opportunity_name}_max_tt, {opportunity_name}_n_dest
         """
         if not standardized_tables:
             raise ValueError("No standardized opportunity tables to combine")
 
-        # Create union of all standardized tables with opportunity type
-        union_parts = []
+        union_parts: list[str] = []
+        safe_names: list[str] = []
         for std_table, name in standardized_tables:
             safe_name = name.replace("-", "_").replace(" ", "_").lower()
+            safe_names.append(safe_name)
             union_parts.append(f"""
                 SELECT
                     dest_id,
@@ -204,18 +208,28 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
 
         union_query = "\nUNION ALL\n".join(union_parts)
 
-        unified_table = "opportunity_closest_avg_unified"
+        unified_table = f"opportunity_closest_avg_unified_{uuid.uuid4().hex[:8]}"
 
-        # Use PIVOT to create columns for each opportunity type
+        # Build portable pivot using MAX(CASE WHEN ...)
+        max_tt_cols = ",\n            ".join(
+            f"MAX(CASE WHEN opportunity_type = '{sn}' THEN max_traveltime END) AS {sn}_max_tt"
+            for sn in safe_names
+        )
+        n_dest_cols = ",\n            ".join(
+            f"MAX(CASE WHEN opportunity_type = '{sn}' THEN n_destinations END) AS {sn}_n_dest"
+            for sn in safe_names
+        )
+
         query = f"""
             CREATE OR REPLACE TEMP TABLE {unified_table} AS
-            PIVOT (
+            SELECT
+                dest_id,
+                {max_tt_cols},
+                {n_dest_cols}
+            FROM (
                 {union_query}
-            )
-            ON opportunity_type
-            USING
-                FIRST(max_traveltime) AS max_tt,
-                FIRST(n_destinations) AS n_dest
+            ) u
+            GROUP BY dest_id
         """
 
         self.con.execute(query)
@@ -225,30 +239,10 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             len(standardized_tables),
         )
 
-        # Log the schema to verify pivot worked correctly
         schema = self.con.execute(f"DESCRIBE {unified_table}").fetchall()
         logger.info("Unified table schema: %s", [col[0] for col in schema])
 
         return unified_table
-
-    def _find_reachable_origins(
-        self: Self, od_table: str, destination_ids: list[int]
-    ) -> list[int]:
-        """Find all origins that can reach at least one of the given destinations."""
-        if not destination_ids:
-            return []
-
-        dest_ids_sql = ", ".join(map(str, destination_ids))
-
-        query = f"""
-            SELECT DISTINCT orig_id
-            FROM {od_table}
-            WHERE dest_id IN ({dest_ids_sql})
-            AND orig_id IS NOT NULL
-        """
-
-        result = self.con.execute(query).fetchall()
-        return [row[0] for row in result] if result else []
 
     def _compute_closest_average(
         self: Self,
@@ -259,11 +253,16 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
         """
         Compute closest-average accessibility using the pivoted opportunity table.
         Creates one column per opportunity type: {opportunity_name}_accessibility
+        and an overall total_accessibility column.
 
-        For each origin, compute average travel time to the closest N destinations
-        of each opportunity type within the max travel time.
+        For each origin, computes average travel time to the closest N destinations
+        of each opportunity type within the max travel time threshold.
         """
+
         result_table = "closest_avg_final"
+
+        if not standardized_tables:
+            raise ValueError("No standardized opportunity tables provided.")
 
         # Build individual opportunity calculations
         opportunity_calculations = []
@@ -273,7 +272,6 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             safe_name = opp_name.replace("-", "_").replace(" ", "_").lower()
             safe_names.append(safe_name)
 
-            # Calculate closest average for this opportunity type
             calculation = f"""
             -- Calculate closest average for {safe_name}
             ranked_{safe_name} AS (
@@ -281,6 +279,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
                     m.orig_id,
                     m.dest_id,
                     m.traveltime,
+                    o.{safe_name}_n_dest AS n_dest_for_dest,
                     ROW_NUMBER() OVER (
                         PARTITION BY m.orig_id
                         ORDER BY m.traveltime ASC
@@ -294,7 +293,7 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
                     orig_id,
                     traveltime
                 FROM ranked_{safe_name}
-                WHERE destination_rank <= (SELECT {safe_name}_n_dest FROM {unified_table} WHERE dest_id = ranked_{safe_name}.dest_id LIMIT 1)
+                WHERE destination_rank <= n_dest_for_dest
             ),
             aggregated_{safe_name} AS (
                 SELECT
@@ -306,20 +305,21 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
             """
             opportunity_calculations.append(calculation)
 
-        # Build the main query that combines all opportunity types
+        # Build the final query
         if len(safe_names) == 1:
-            # Single opportunity type - simpler query
             safe_name = safe_names[0]
             query = f"""
             CREATE OR REPLACE TEMP TABLE {result_table} AS
             WITH {opportunity_calculations[0]}
-            SELECT * FROM aggregated_{safe_name}
+            SELECT
+                h3_index,
+                {safe_name}_accessibility,
+                {safe_name}_accessibility AS total_accessibility
+            FROM aggregated_{safe_name}
             """
         else:
-            # Multiple opportunity types - combine with FULL JOIN
             ctes = ",\n".join(opportunity_calculations)
 
-            # Build the select and join parts
             select_parts = ["t0.h3_index"]
             join_parts = []
 
@@ -330,12 +330,27 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
                         f"FULL JOIN aggregated_{safe_name} t{i} USING (h3_index)"
                     )
 
+            # Build total_accessibility as mean of available accessibilities
+            total_expr = " + ".join(
+                [f"t{i}.{name}_accessibility" for i, name in enumerate(safe_names)]
+            )
+            count_expr = " + ".join(
+                [
+                    f"(t{i}.{name}_accessibility IS NOT NULL)::INT"
+                    for i, name in enumerate(safe_names)
+                ]
+            )
+            total_accessibility = (
+                f"({total_expr}) / NULLIF({count_expr}, 0) AS total_accessibility"
+            )
+
             query = f"""
             CREATE OR REPLACE TEMP TABLE {result_table} AS
             WITH
             {ctes}
             SELECT
-                {', '.join(select_parts)}
+                {', '.join(select_parts)},
+                {total_accessibility}
             FROM aggregated_{safe_names[0]} t0
             {' '.join(join_parts)}
             """
