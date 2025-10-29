@@ -68,3 +68,7 @@ apps/accounts
 
 apps/core/data/*
 
+# Test
+.coverage
+
+data/*
