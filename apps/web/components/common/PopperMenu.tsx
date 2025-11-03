@@ -49,6 +49,7 @@ export default function PopperMenu(props: PopperMenuProps) {
       onClose={() => setPopperMenuOpen(false)}
       disablePortal={disablePortal}
       arrow={false}
+      popperStyle={{ zIndex: 10000 }} // Ensure the popper menu is above any other element
       content={
         <Paper
           elevation={8}

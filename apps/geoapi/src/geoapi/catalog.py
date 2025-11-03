@@ -88,7 +88,7 @@ class LayerCatalog:
         print(
             f"Received notification on channel {channel}: {operation} on layer {layer_id}"
         )
-        new_conn = await asyncpg.connect(str(PostgresSettings().database_url))
+        new_conn = await asyncpg.connect(str(postgres_settings.database_url))
         try:
             if operation == "UPDATE":
                 await self.update_insert(layer_id, new_conn)

@@ -8,14 +8,16 @@ const InputTextField = ({
   max = 100,
   step,
   error,
+  outlineInputSx = {},
 }: {
   value: number | number[];
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur: () => void;
+  onBlur?: () => void;
   min?: number;
   max?: number;
   step?: number;
   error?: boolean;
+  outlineInputSx?: React.CSSProperties;
 }) => {
   return (
     <OutlinedInput
@@ -31,6 +33,7 @@ const InputTextField = ({
         "& input[type=number]": {
           MozAppearance: "textfield",
         },
+        ...outlineInputSx,
       }}
       error={error}
       inputProps={{

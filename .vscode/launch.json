@@ -2,6 +2,30 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Core Debug",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "args": [
+          "dev",
+          "src/core/main.py",
+          "--reload",
+          "--port",
+          "8000"
+      ],
+      "consoleName": "Core Debug Console",
+      "cwd": "${workspaceFolder}/apps/core",
+      "justMyCode": false,
+      "jinja": true,
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
+    },
+    {
       "name": "GeoAPI Debug",
       "type": "debugpy",
       "request": "launch",
@@ -11,14 +35,45 @@
           "src/geoapi/main.py",
           "--reload",
           "--port",
-          "8080"
+          "8100"
       ],
+      "consoleName": "GeoAPI Debug Console",
       "cwd": "${workspaceFolder}/apps/geoapi",
       "justMyCode": false,
       "jinja": true,
       "envFile": "${workspaceFolder}/.env",
-      "preLaunchTask": "uv-sync"
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
     },
+    {
+      "name": "Accounts Debug",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "args": [
+          "dev",
+          "src/accounts/main.py",
+          "--reload",
+          "--port",
+          "8100"
+      ],
+      "consoleName": "Accounts Debug Console",
+      "cwd": "${workspaceFolder}/apps/accounts",
+      "justMyCode": false,
+      "jinja": true,
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
+    },
+
     {
       "name": "Routing Debug",
       "type": "debugpy",
@@ -29,48 +84,81 @@
           "src/routing/main.py",
           "--reload",
           "--port",
-          "8080"
+          "8200"
       ],
+      "consoleName": "Routing Debug Console",
       "cwd": "${workspaceFolder}/apps/routing",
       "justMyCode": false,
       "jinja": true,
       "envFile": "${workspaceFolder}/.env",
-      "preLaunchTask": "uv-sync"
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
     },
     {
-      "name": "Web Debug (Server-Side)",
+      "name": "Web Debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm run web"
-    },
-    {
-      "name": "Web Debug (Client)",
-      "type": "chrome",
-      "request": "launch",
-      "url": "http://localhost:3000"
-    },
-    {
-      "name": "Web Debug (Full Stack)",
-      "type": "node-terminal",
-      "request": "launch",
+      "envFile": "${workspaceFolder}/.env",
       "command": "pnpm run web",
-      "serverReadyAction": {
-        "pattern": "started server on .+, url: (https?://.+)",
-        "uriFormat": "%s",
-        "action": "debugWithChrome"
+      "presentation": {
+        "hidden": false,
+        "group": "frontend",
+        "order": 2
       }
     },
     {
       "name": "Storybook Debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "cd apps/storybook && pnpm run storybook",
-      "internalConsoleOptions": "openOnFirstSessionStart",
-      "serverReadyAction": {
-        "pattern": "Local:.+(https?://[^:]+:[0-9]+)",
-        "uriFormat": "%s",
-        "action": "debugWithChrome"
+      "envFile": "${workspaceFolder}/.env",
+      "command": "pnpm run storybook",
+      "presentation": {
+        "hidden": false,
+        "group": "frontend",
+        "order": 2
       }
     },
+    {
+      "name": "Heatmap Matrix Preparation",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "src/routing/preparation/heatmap_matrix.py",
+      "cwd": "${workspaceFolder}/apps/routing",
+      "justMyCode": false,
+      "jinja": true,
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "uv-sync",
+    },
+  ],
+  "compounds": [
+    {
+      "name": "Backend Debug",
+      "configurations": [
+        "GeoAPI Debug",
+        "Core Debug",
+      ],
+      "presentation": {
+        "hidden": false,
+        "group": "compounds",
+        "order": 1
+      }
+    },
+    {
+      "name": "Launch App",
+      "configurations": [
+        "GeoAPI Debug",
+        "Core Debug",
+        "Web Debug"
+      ],
+      "presentation": {
+        "hidden": false,
+        "group": "compounds",
+        "order": 1
+      }
+    }
   ]
 }

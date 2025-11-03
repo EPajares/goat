@@ -11,27 +11,19 @@ The **Public Transport Routing** in GOAT is essential for performing analyses th
 
 Public transport routing facilitates **intermodal analysis** by integrating access and egress modes, such as walking or biking to and from the station. This is more complex than the other routing modes as it requires the merging of different datasets (such as sidewalks & bike lanes, public transport stops & schedules, etc.) and calculation approaches.
 
-Public transport routing is used for many indicators in GOAT, such as [Catchment Areas](../toolbox/accessibility_indicators/catchments) and [Heatmaps](../toolbox/accessibility_indicators/connectivity).
-
-Moreover, with [Scenarios on the Street Network](../scenarios#4-street-network---edges), a **flexible routing algorithm** adapts to scenario changes in accessibility analyses in GOAT.
-
-### Configurable Options for Analyses
-
-- `weekday`: Choose from Weekday, Saturday, or Sunday.
-- `start time` and `end time`: Specify the analysis time window.
-
+Public transport routing is used for indicators such as [Catchment Areas](../toolbox/accessibility_indicators/catchments) in GOAT.
 
 
 ## 2. Data
 
 ### Transit Data
 
-Utilizes data in **[GTFS](https://developers.google.com/transit/gtfs)** (General Transit Feed Specification) for static public transport network information (stops, routes, schedules, transfers).
+Utilizes data in the **[GTFS](https://gtfs.org/)** (General Transit Feed Specification) format for static public transport network information (stops, routes, schedules, transfers, and more).
 
 
 ### Street Data
 
-Incorporates street-level information from  **[OpenStreetMap](https://wiki.openstreetmap.org/)** to support multi-modal routing and real-world path connections (includes sidewalks, bike paths, and crosswalks).
+Incorporates street-level information from  **[OpenStreetMap](https://wiki.openstreetmap.org/)** to support multi-modal routing and real-world path connections (includes sidewalks, bike lanes, and crosswalks).
 
 
 ## 3. Technical Details
@@ -42,18 +34,29 @@ Public transport routing is performed using the **[R5 Routing Engine](https://gi
 ### Routing Options
 
 #### Modes
+
+Analyses for the following modes of public transport are currently supported by GOAT. Choose between one or more, keeping in mind that some modes may not be available in all regions.
+
 `bus` `tram` `rail` `subway` `ferry` `cable_car` `gondola` `funicular`
 
-#### Access and Egress Modes
+#### Travel time limit
 
-- **Access Mode:** How users get to a transit stop from their starting location (`walk` `bicycle` `car`).
-- **Egress Mode:** How users proceed to their destination from a transit stop (`walk` `bicycle`).
+The maximum journey duration to consider for public transport routing. A maxium of `90 min` is currently supported. This includes the time spent during access and egress from public transport stations.
 
+#### Day
+
+The day of the week to consider for public transport routing. Choose between `Weekday`, `Saturday` and `Sunday`. This is useful for evaluating changes in service between weekdays and weekends.
+
+#### Start and End time
+
+A time window for public transport routing. All the fastest journeys during this time window are considered, resulting in for example, the largest possible catchment area from your specified origin point. A journey is considered to fall within the time window solely based on its start time, regardless of its end time or duration.
 
 #### Other (Default Configurations)
 
 The following default configurations are used while performing public transport routing. They are not currently user-configurable.
 
+- **Access Mode:** walk
+- **Egress Mode:** walk
 - **Decay function type:** logistic
 - **Standard deviation:** 12 minutes
 - **Width:** 10 minutes
@@ -64,5 +67,5 @@ The following default configurations are used while performing public transport 
 - **Bike traffic stress:** 4
 - **Maximum rides:** 4
 - **Zoom level:** 9
-- **Percentiles:** 5
+- **Percentiles:** 1st
 - **Monte Carlo draws:** 200

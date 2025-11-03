@@ -1,37 +1,27 @@
 [project]
 name = "core"
 version = "2.0.0"
+requires-python = ">3.10,<3.12"
 description = "GOAT Core"
 authors = [
-    { name = "Plan4Better GmbH", email = "info@plan4better.de" },
+    { name = "Plan4Better GmbH", email = "dev@plan4better.de" },
 ]
 dependencies = [
-    "fastapi[standard]==0.115.4",
-    "sqlmodel==0.0.22",
-    "pydantic==2.9.2",
     "asyncpg==0.30.0",
     "psycopg==3.2.3",
     "psycopg-binary==3.2.3",
-    "polars==1.13.1",
-    "numpy==2.0.2",
-    "scipy==1.14.1",
     "geopandas==1.0.1",
     "shapely==2.0.6",
     "celery==5.4.0",
     "redis==5.2.0",
     "aiohttp==3.11.2",
-    "boto3==1.35.63",
     "h3==4.1.2",
-    "numba==0.60.0",
-    "fastapi-pagination==0.12.32",
-    "Jinja2==3.1.4",
     "requests==2.32.3",
     "gdal==3.6.2",
     "alembic==1.14.0",
     "httpx==0.27.2",
     "asyncpg==0.30.0",
-    "python-jose[cryptography]==3.3.0",
-    "GeoAlchemy2==0.16.0",
+    "python-jose[cryptography]==3.4.0",
     "geojson==3.1.0",
     "alembic-utils==0.8.5",
     "rich==13.9.4",
@@ -42,7 +32,22 @@ dependencies = [
     "pymgl==0.5.0",
     "matplotlib==3.9.2",
     "cairosvg==2.7.1",
-    "sentry-sdk==2.18.0"
+    "sentry-sdk==2.18.0",
+    "fastapi[standard]==0.115.12",
+    "fastapi-pagination==0.13.1",
+    "pydantic==2.11.5",
+    "sqlalchemy[asyncio]==2.0.41",
+    "geoalchemy2==0.17.1",
+    "sqlmodel==0.0.24",
+    "scipy>=1.15.3",
+    "pyarrow>=20.0.0",
+    "numba==0.61.2",
+    "pydantic-settings==2.9.1",
+    "numpy==2.2.6",
+    "pytest>=8.3.5",
+    "types-requests>=2.32.4.20250611",
+    "polars==1.31.0",
+    "boto3==1.38.23",
 ]
 
 

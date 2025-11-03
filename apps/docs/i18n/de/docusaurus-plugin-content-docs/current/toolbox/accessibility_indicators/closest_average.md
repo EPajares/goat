@@ -9,9 +9,9 @@ import MathJax from 'react-mathjax';
 
 # Heatmap - Durchschnitt Reisezeit
 
-Eine farbkodierte Karte zur Visualisierung der durchschnittlichen Reisezeit zu Punkten (wie [POI](../../../further_reading/glossary#points-of-interest-poi "Was ist ein POI?")) aus umliegenden Gebieten.
+Eine farbkodierte Karte zur Visualisierung der durchschnittlichen Reisezeit zu Punkten (wie [POI](../../further_reading/glossary#points-of-interest-poi "Was ist ein POI?")) aus umliegenden Gebieten.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/uxY__6zzqIQ?si=t5enJc2BLJuPMkv3" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/3oAIv8ujWZQ?si=fDGFjqM64DZqHp8k" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
@@ -34,13 +34,27 @@ Kurz beschrieben, sind Erreichbarkeits-Heatmaps eine Visualisierung, die den *Zu
 
 ![Closest Average-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/closest_avg.png "Closest Average-based Heatmap in GOAT")
 
-  
+import MapViewer from '@site/src/components/MapViewer'; 
+
 :::info 
 
 Heatmaps sind in bestimmten Regionen verfügbar. Beim Auswählen eines `Verkehrsmittels` wird auf der Karte ein **Geofence** angezeigt, um die unterstützten Regionen hervorzuheben.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/geofence.png').default} alt="Geofence for Closest-average-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Heatmap-Abdeckung der Durchschnittsreisezeit", color: "#ffffff" }
+      ]}
+  />
+
 </div> 
 
 
@@ -220,7 +234,7 @@ Zur Klassifizierung der Erreichbarkeitsstufen, die für jede Rasterzelle berechn
 
 ### Visualisierung 
 
-Heatmaps in GOAT nutzen die **[Uber H3 auf Gitter basierende](../further_reading/glossary#h3-grid)** Lösung für effiziente Berechnungen und leicht verständliche Visualisierung. Hinter den Kulissen nutzt eine vorberechnete Reisezeitmatrix für jedes *Verkehrsmittel* diese Lösung und wird in Echtzeit abgefragt und weiterverarbeitet, um die Erreichbarkeit zu berechnen und eine endgültige Heatmap zu erstellen.
+Heatmaps in GOAT nutzen die **[Uber H3 auf Gitter basierende](../../further_reading/glossary#h3-gitter)** Lösung für effiziente Berechnungen und leicht verständliche Visualisierung. Hinter den Kulissen nutzt eine vorberechnete Reisezeitmatrix für jedes *Verkehrsmittel* diese Lösung und wird in Echtzeit abgefragt und weiterverarbeitet, um die Erreichbarkeit zu berechnen und eine endgültige Heatmap zu erstellen.
 
 Die Auflösung und die Abmessungen des verwendeten sechseckigen Gitters hängen vom gewählten *Verkehrsmittel* ab:
 

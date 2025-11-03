@@ -1,5 +1,6 @@
 import * as z from "zod";
 
+import { statisticOperationEnum } from "@/lib/validations/common";
 
 //**=== CATCHMENT AREA === */
 export const CatchmentAreaRoutingTypeEnum = z.enum(["walking", "bicycle", "pedelec", "car", "pt"]);
@@ -111,9 +112,11 @@ export const catchmentAreaBaseSchema = z.object({
   starting_points: startingPointSchema,
   polygon_difference: z.boolean().optional(),
   scenario_id: z.string().optional(),
-  street_network: z.object({
-    edge_layer_project_id: z.number().optional(),
-  }).optional(),
+  street_network: z
+    .object({
+      edge_layer_project_id: z.number().optional(),
+    })
+    .optional(),
 });
 
 export const activeMobilityAndCarCatchmentAreaSchema = catchmentAreaBaseSchema.extend({
@@ -153,14 +156,13 @@ export const tripCountSchema = z.object({
 });
 
 export const oevGueteklassenSchema = tripCountSchema.extend({
-  catchment_type: oevGueteklassenCatchmentType.default("buffer")
+  catchment_type: oevGueteklassenCatchmentType.default("buffer"),
 });
 
 export type PostTripCount = z.infer<typeof tripCountSchema>;
 export type PostOevGueteKlassen = z.infer<typeof oevGueteklassenSchema>;
 
 //**=== JOIN === */
-export const statisticOperationEnum = z.enum(["count", "sum", "mean", "median", "min", "max"]);
 
 export const joinSchema = z.object({
   target_layer_project_id: z.number(),
@@ -206,7 +208,8 @@ export const aggregatePointSchema = z.object({
   aggregation_layer_project_id: z.number().optional(),
   h3_resolution: z.number().optional(),
   column_statistics: z.object({
-    operation: statisticOperationEnum
+    operation: statisticOperationEnum,
+    field: z.string().optional(),
   }),
   source_group_by_field: z.string().array().optional(),
   scenario_id: z.string().optional(),
@@ -242,12 +245,18 @@ export const nearbyStationsSchema = z.object({
   mode: z.array(PTRoutingModes),
   time_window: ptTimeWindow,
   scenario_id: z.string().optional(),
-  street_network: z.object({
-    edge_layer_project_id: z.number().optional(),
-  }).optional(),
+  street_network: z
+    .object({
+      edge_layer_project_id: z.number().optional(),
+    })
+    .optional(),
 });
 
 export type PostNearbyStations = z.infer<typeof nearbyStationsSchema>;
+
+//**=== HEATMAP === */
+export const minSensitivityValue = 0;
+export const maxSensitivityValue = 1000000;
 
 //**=== HEATMAP GRAVITY === */
 export const heatmapImpedanceFunctionEnum = z.enum(["gaussian", "linear", "exponential", "power"]);
@@ -277,7 +286,7 @@ export const heatmapClosestAverageSchema = z.object({
     })
   ),
   routing_type: HeatmapRoutingTypeEnum,
-  scenario_id: z.string().optional()
+  scenario_id: z.string().optional(),
 });
 
 export type PostHeatmapClosestAverage = z.infer<typeof heatmapClosestAverageSchema>;
@@ -287,11 +296,10 @@ export const heatmapConnectivitySchema = z.object({
   reference_area_layer_project_id: z.number(),
   max_traveltime: z.number().min(1).max(60),
   routing_type: HeatmapRoutingTypeEnum,
-  scenario_id: z.string().optional()
+  scenario_id: z.string().optional(),
 });
 
 export type PostHeatmapConnectivity = z.infer<typeof heatmapConnectivitySchema>;
-
 
 //**=== MAX FEATURE COUNT === */
 export const maxFeatureCnt = {

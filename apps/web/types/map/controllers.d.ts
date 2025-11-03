@@ -15,6 +15,7 @@ export interface Feature {
   geometry: Geometry;
   address: string;
   context: Context[];
+  bbox?: [number, number, number, number];
 }
 
 export interface Context {

@@ -119,6 +119,6 @@ You can choose between several statistical operations. Some methods are only ava
 
 :::tip Tip
 
-Want to adjust the appearance of the result layer? Check out the [attribute-based styling](../../map/layer_style/attribute_based_styling.md).
+Want to adjust the appearance of the result layer? Check out the [attribute-based styling](../../map/layer_style/style/attribute_based_styling.md).
 
 :::

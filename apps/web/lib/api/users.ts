@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { fetchWithAuth, fetcher } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import type { InvitationPaginated } from "@/lib/validations/invitation";
 import type { Organization } from "@/lib/validations/organization";
 import type { GetInvitationsQueryParams, User, UserUpdate } from "@/lib/validations/user";
@@ -36,7 +36,7 @@ export const useUserProfile = () => {
 };
 
 export const updateUserProfile = async (user: UserUpdate) => {
-  const response = await fetchWithAuth(`${USERS_API_BASE_URL}/profile`, {
+  const response = await apiRequestAuth(`${USERS_API_BASE_URL}/profile`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -62,7 +62,7 @@ export const useInvitations = (queryParams?: GetInvitationsQueryParams) => {
 };
 
 export const acceptInvitation = async (invitationId: string) => {
-  const response = await fetchWithAuth(`${USERS_API_BASE_URL}/invitations/${invitationId}`, {
+  const response = await apiRequestAuth(`${USERS_API_BASE_URL}/invitations/${invitationId}`, {
     method: "PATCH",
   });
   if (!response.ok) throw await response.json();
@@ -70,7 +70,7 @@ export const acceptInvitation = async (invitationId: string) => {
 };
 
 export const declineInvitation = async (invitationId: string) => {
-  const response = await fetchWithAuth(`${USERS_API_BASE_URL}/invitations/${invitationId}`, {
+  const response = await apiRequestAuth(`${USERS_API_BASE_URL}/invitations/${invitationId}`, {
     method: "DELETE",
   });
   if (!response.ok) throw await response.json();
@@ -78,7 +78,7 @@ export const declineInvitation = async (invitationId: string) => {
 };
 
 export const deleteAccount = async () => {
-  const response = await fetchWithAuth(`${USERS_API_BASE_URL}`, {
+  const response = await apiRequestAuth(`${USERS_API_BASE_URL}`, {
     method: "DELETE",
   });
   if (!response.ok) throw await response.json();

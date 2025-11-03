@@ -9,7 +9,7 @@ import TabItem from '@theme/TabItem';
 
 The **Aggregate Points** tool performs statistical analysis of points, e.g. **count, sum, min, or max**, and aggregates the information on polygons.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/oBlbY67WtDY?si=6DkTqB5awYW83gGx" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/_ybPf_fuMLA?si=mX1-uugIA5LiCKss" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Explanation
 

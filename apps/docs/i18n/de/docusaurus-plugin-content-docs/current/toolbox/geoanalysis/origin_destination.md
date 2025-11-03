@@ -8,6 +8,8 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 Die **Quell-Ziel-Beziehungen**-Analyse wird in verschiedenen Bereichen wie Verkehrsplanung und Stadtplanung verwendet, um **Bewegungen oder Flüsse zwischen verschiedenen Orten** zu untersuchen.
 
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/v5zCF0_9W2I?si=Wq3gCDZuNtXykKHY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ## 1. Erklärung
 
 Das Quell-Ziel-Beziehungen (OD)-Werkzeug eignet sich zur Untersuchung von **Bewegungsmustern zwischen Standorten**, wie z.B. Pendlerströmen, und bietet Einblicke in räumliche Interaktionen. Dieser analytische Prozess visualisiert die Beziehungen zwischen **Ausgangspunkten (Quellen)** und **Endpunkten (Zielen)**, indem sie **mit einer geraden Linie verbunden** werden. Solche Analysen helfen zu verstehen, wie und warum Bewegungen in verschiedenen Kontexten stattfinden, und unterstützen die Bewertung und Planung von Verkehrsnetzen und städtischen Infrastrukturen. Es unterstützt datenbasierte Entscheidungen, indem **Muster und Trends in räumlichen Interaktionen** hervorgehoben werden, was zur Verbesserung der Effizienz und Nachhaltigkeit von Verkehrssystemen und Stadtstrukturen beiträgt.

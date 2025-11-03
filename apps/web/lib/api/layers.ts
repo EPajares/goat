@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { fetchWithAuth, fetcher } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import type { PaginatedQueryParams } from "@/lib/validations/common";
 import type {
   ClassBreaks,
@@ -70,7 +70,7 @@ export const useDataset = (datasetId: string) => {
 
 export const getDataset = async (datasetId: string): Promise<Layer> => {
   // The reason why getDataset is used instead of useDataset is when you want to get the data inside a function
-  const response = await fetchWithAuth(`${LAYERS_API_BASE_URL}/${datasetId}`, {
+  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${datasetId}`, {
     method: "GET",
   });
   if (!response.ok) {
@@ -80,7 +80,7 @@ export const getDataset = async (datasetId: string): Promise<Layer> => {
 }
 
 export const updateDataset = async (datasetId: string, payload: PostDataset) => {
-  const response = await fetchWithAuth(`${LAYERS_API_BASE_URL}/${datasetId}`, {
+  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${datasetId}`, {
     method: "PUT",
     body: JSON.stringify(payload),
     headers: {
@@ -93,10 +93,15 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
   return response;
 };
 
-export const updateLayerDataset = async (layerId: string, datasetId: string) => {
+export const updateLayerDataset = async (layerId: string, datasetId?: string, s3_key?: string) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
-  url.searchParams.append('dataset_id', datasetId);
-  const response = await fetchWithAuth(url.toString(), {
+  if (datasetId) {
+    url.searchParams.append('dataset_id', datasetId);
+  }
+  if (s3_key) {
+    url.searchParams.append('s3_key', s3_key);
+  }
+  const response = await apiRequestAuth(url.toString(), {
     method: "PUT",
   });
   if (!response.ok) {
@@ -151,7 +156,7 @@ export const useLayerClassBreaks = (
 
 export const deleteLayer = async (id: string) => {
   try {
-    await fetchWithAuth(`${LAYERS_API_BASE_URL}/${id}`, {
+    await apiRequestAuth(`${LAYERS_API_BASE_URL}/${id}`, {
       method: "DELETE",
     });
   } catch (error) {
@@ -165,7 +170,7 @@ export const createFeatureLayer = async (payload: CreateLayerFromDataset, projec
   if (projectId) {
     url.searchParams.append("project_id", projectId);
   }
-  const response = await fetchWithAuth(url.toString(), {
+  const response = await apiRequestAuth(url.toString(), {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -183,7 +188,7 @@ export const createTableLayer = async (payload: CreateLayerFromDataset, projectI
   if (projectId) {
     url.searchParams.append("project_id", projectId);
   }
-  const response = await fetchWithAuth(url.toString(), {
+  const response = await apiRequestAuth(url.toString(), {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -201,7 +206,7 @@ export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: 
   if (projectId) {
     url.searchParams.append("project_id", projectId);
   }
-  const response = await fetchWithAuth(url.toString(), {
+  const response = await apiRequestAuth(url.toString(), {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -215,21 +220,8 @@ export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: 
 }
 
 
-export const layerFileUpload = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
-  const response = await fetchWithAuth(`${LAYERS_API_BASE_URL}/file-upload`, {
-    method: "POST",
-    body: formData,
-  });
-  if (!response.ok) {
-    throw new Error("Failed to upload folder");
-  }
-  return await response.json();
-};
-
 export const layerFeatureUrlUpload = async (payload: ExternalDatasetFeatureUrl) => {
-  const response = await fetchWithAuth(`${LAYERS_API_BASE_URL}/file-upload-external-service`, {
+  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/file-upload-external-service`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {
@@ -248,7 +240,7 @@ export const getLayerClassBreaks = async (
   column: string,
   breaks: number
 ): Promise<LayerClassBreaks> => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${LAYERS_API_BASE_URL}/${layerId}/class-breaks/${operation}/${column}?breaks=${breaks}`,
     {
       method: "GET",
@@ -265,7 +257,7 @@ export const getLayerUniqueValues = async (
   column: string,
   size?: number
 ): Promise<LayerUniqueValuesPaginated> => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${LAYERS_API_BASE_URL}/${layerId}/unique-values/${column}${size ? `?size=${size}` : ""}`,
     {
       method: "GET",
@@ -298,7 +290,7 @@ export const useLayerUniqueValues = (
 };
 
 export const downloadDataset = async (payload: DatasetDownloadRequest) => {
-  const response = await fetchWithAuth(`${LAYERS_API_BASE_URL}/${payload.id}/export`, {
+  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${payload.id}/export`, {
     method: "POST",
     body: JSON.stringify(payload),
     headers: {

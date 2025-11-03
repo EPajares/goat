@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "@/lib/api/fetcher";
+import { apiRequestAuth } from "@/lib/api/fetcher";
 import type { PostActiveMobilityAndCarCatchmentArea, PostPTCatchmentArea } from "@/lib/validations/tools";
 
 const ACTIVE_MOBILITY_CATCHMENT_AREA_API_BASE_URL = new URL(
@@ -20,7 +20,7 @@ export const computeActiveMobilityCatchmentArea = async (
   body: PostActiveMobilityAndCarCatchmentArea,
   projectId: string
 ) => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${ACTIVE_MOBILITY_CATCHMENT_AREA_API_BASE_URL}?project_id=${projectId}`,
     {
       method: "POST",
@@ -38,7 +38,7 @@ export const computeCarCatchmentArea = async (
   body: PostActiveMobilityAndCarCatchmentArea,
   projectId: string
 ) => {
-  const response = await fetchWithAuth(`${CAR_CATCHMENT_AREA_API_BASE_URL}?project_id=${projectId}`, {
+  const response = await apiRequestAuth(`${CAR_CATCHMENT_AREA_API_BASE_URL}?project_id=${projectId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -50,7 +50,7 @@ export const computeCarCatchmentArea = async (
 };
 
 export const computePTCatchmentArea = async (body: PostPTCatchmentArea, projectId: string) => {
-  const response = await fetchWithAuth(`${PT_CATCHMENT_AREA_API_BASE_URL}?project_id=${projectId}`, {
+  const response = await apiRequestAuth(`${PT_CATCHMENT_AREA_API_BASE_URL}?project_id=${projectId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

@@ -1,4 +1,4 @@
-import { Divider, Grid, Link, Stack, Typography, useTheme } from "@mui/material";
+import { Divider, Link, Stack, Typography, styled, useTheme } from "@mui/material";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 
@@ -14,10 +14,51 @@ import { useGetMetadataValueTranslation } from "@/hooks/map/DatasetHooks";
 import { METADATA_HEADER_ICONS } from "@/components/dashboard/catalog/CatalogDatasetCard";
 
 interface DatasetSummaryProps {
-  dataset: ProjectLayer | Layer;
+  dataset: Layer | ProjectLayer;
+  hideEmpty?: boolean; // Prop to control empty field display
+  hideMainSection?: boolean; // Prop to control main section display
 }
 
-const DatasetSummary: React.FC<DatasetSummaryProps> = ({ dataset }) => {
+const ContainerWrapper = styled("div")({
+  containerType: "inline-size",
+  width: "100%",
+});
+
+const LayoutContainer = styled("div")({
+  display: "flex",
+  flexDirection: "row",
+  gap: "16px",
+  width: "100%",
+  "@container (max-width: 600px)": {
+    flexDirection: "column",
+  },
+});
+
+const MetadataSection = styled("div")({
+  flex: 4,
+  order: 1,
+
+  "@container (max-width: 600px)": {
+    order: 2,
+    flex: "1 1 100%",
+  },
+});
+
+const MainContentSection = styled("div")({
+  flex: 1,
+  order: 2,
+
+  "@container (max-width: 600px)": {
+    order: 1,
+    flex: "1 1 100%",
+  },
+});
+
+const DatasetSummary: React.FC<DatasetSummaryProps> = ({
+  dataset,
+  hideEmpty = false,
+  hideMainSection = false,
+}) => {
   const theme = useTheme();
   const { t, i18n } = useTranslation(["common", "countries"]);
   const getMetadataValueTranslation = useGetMetadataValueTranslation();
@@ -84,63 +125,94 @@ const DatasetSummary: React.FC<DatasetSummaryProps> = ({ dataset }) => {
     },
   ];
 
+  const hasAnyMetadata = metadataSummaryFields.some(({ field }) => !!dataset[field]);
+  const shouldRenderMetadataSection = !hideEmpty || hasAnyMetadata;
+
   return (
-    <>
-      <Grid container justifyContent="flex-start" spacing={4}>
-        <Grid item xs={12} sm={12} md={8} lg={9}>
-          <Stack spacing={6}>
-            {metadataSummaryFields.map(({ field, heading, noMetadataAvailable, type }) => (
-              <Stack key={field}>
-                <Typography variant="caption">{heading}</Typography>
-                <Divider />
-                {!dataset[field] && (
-                  <Typography variant="body2" sx={{ fontStyle: "italic" }}>
-                    {noMetadataAvailable}
-                  </Typography>
-                )}
-                {type === "markdown" && dataset[field] && <ReactMarkdown>{dataset[field]}</ReactMarkdown>}
-                {type === "email" && dataset[field] && (
-                  <Link href={`mailto:${dataset[field]}`} target="_blank" rel="noopener noreferrer">
-                    {dataset[field]}
-                  </Link>
-                )}
-                {type === "url" && dataset[field] && (
-                  <Link href={dataset[field]} target="_blank" rel="noopener noreferrer">
-                    {dataset[field]}
-                  </Link>
-                )}
-                {type === "text" && dataset[field] && <Typography>{dataset[field]}</Typography>}
-              </Stack>
-            ))}
-          </Stack>
-        </Grid>
-        <Grid item xs={12} sm={12} md={4} lg={3} sx={{ pl: 0 }}>
-          <Stack spacing={4}>
-            {Object.keys(datasetMetadataAggregated.shape).map((key) => {
-              return (
-                <Stack key={key} width="100%" alignItems="start" justifyContent="start">
-                  <Typography variant="caption">
-                    {i18n.exists(`common:metadata.headings.${key}`)
-                      ? t(`common:metadata.headings.${key}`)
-                      : key}
-                  </Typography>
-                  <Stack spacing={2} alignItems="center" justifyContent="start" direction="row">
-                    <Icon
-                      iconName={METADATA_HEADER_ICONS[key]}
-                      style={{ fontSize: 14 }}
-                      htmlColor={theme.palette.text.secondary}
-                    />
-                    <Typography variant="body2" fontWeight="bold">
+    <ContainerWrapper>
+      <LayoutContainer>
+        {shouldRenderMetadataSection && (
+          <MetadataSection>
+            <Stack spacing={4} sx={{ width: "100%" }}>
+              {metadataSummaryFields.map(({ field, heading, noMetadataAvailable, type }) => {
+                if (hideEmpty && !dataset[field]) return null;
+                return (
+                  <Stack key={field} spacing={1}>
+                    <Typography variant="caption">{heading}</Typography>
+                    <Divider />
+                    {!dataset[field] && (
+                      <Typography variant="body2" sx={{ fontStyle: "italic" }}>
+                        {noMetadataAvailable}
+                      </Typography>
+                    )}
+                    {type === "markdown" && dataset[field] && (
+                      <ReactMarkdown
+                        components={{
+                          img: ({ node: _, ...props }) => {
+                            const hasSize =
+                              props.width !== undefined ||
+                              props.height !== undefined ||
+                              (props.style && (props.style.width || props.style.height));
+
+                            const style = hasSize ? props.style : { width: "100%" };
+
+                            // eslint-disable-next-line jsx-a11y/alt-text
+                            return <img {...props} style={style} />;
+                          },
+                          a: ({ node: _, href, children, ...props }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+                              {children}
+                            </a>
+                          ),
+                        }}>
+                        {dataset[field]}
+                      </ReactMarkdown>
+                    )}
+                    {type === "email" && dataset[field] && (
+                      <Link href={`mailto:${dataset[field]}`} target="_blank" rel="noopener noreferrer">
+                        {dataset[field]}
+                      </Link>
+                    )}
+                    {type === "url" && dataset[field] && (
+                      <Link href={dataset[field]} target="_blank" rel="noopener noreferrer">
+                        {dataset[field]}
+                      </Link>
+                    )}
+                    {type === "text" && dataset[field] && <Typography>{dataset[field]}</Typography>}
+                  </Stack>
+                );
+              })}
+            </Stack>
+          </MetadataSection>
+        )}
+
+        {!hideMainSection && (
+          <MainContentSection>
+            <Stack spacing={2}>
+              {Object.keys(datasetMetadataAggregated.shape).map((key) => (
+                <div key={key} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <Icon
+                    iconName={METADATA_HEADER_ICONS[key]}
+                    style={{ fontSize: 14, flexShrink: 0 }}
+                    htmlColor={theme.palette.text.secondary}
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <Typography variant="caption" noWrap>
+                      {i18n.exists(`common:metadata.headings.${key}`)
+                        ? t(`common:metadata.headings.${key}`)
+                        : key}
+                    </Typography>
+                    <Typography variant="body2" fontWeight="bold" noWrap>
                       {getMetadataValueTranslation(key, dataset[key])}
                     </Typography>
-                  </Stack>
-                </Stack>
-              );
-            })}
-          </Stack>
-        </Grid>
-      </Grid>
-    </>
+                  </div>
+                </div>
+              ))}
+            </Stack>
+          </MainContentSection>
+        )}
+      </LayoutContainer>
+    </ContainerWrapper>
   );
 };
 

@@ -1,8 +1,8 @@
 {
-  "label": "Layer Styling",
+  "label": "Layer Design",
   "position": 3,
   "link": {
     "type": "generated-index",
-    "description": "All layers added to the map can be styled. This can be done using the same colour and appearance for all objects, or using an attribute-based styling."
-  }
+    "description": "It can be changed how all the added layers behave and appear on the map. There are several tools helping you to create unique-looking maps."
+  }  
 }

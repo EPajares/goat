@@ -19,7 +19,7 @@ export const useMemberSettingsMoreMenu = (type: "organization" | "team") => {
     ] : []),
     {
       id: OrgMemberActions.DELETE,
-      label: t("remove"),
+      label: t("delete"),
       icon: ICON_NAME.TRASH,
       color: "error.main",
     },

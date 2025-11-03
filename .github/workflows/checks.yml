@@ -18,7 +18,7 @@ on:
       routing:
         description: "Routing changed"
         value: ${{ jobs.checks.outputs.routing }}
-        
+
       accounts:
         description: "Accounts changed"
         value: ${{ jobs.checks.outputs.accounts }}
@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 📥 Checkout PR
-        uses: goat-community/.github/.github/actions/pr-git-checkout@main
+        uses: plan4better/.github/.github/actions/pr-git-checkout@main
 
       - name: 🕵️ Detect changes
         uses: dorny/paths-filter@v2

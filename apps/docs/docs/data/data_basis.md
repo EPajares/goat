@@ -26,7 +26,7 @@ The following datasets are available via the Catalog. These are managed as *feat
 
 ::::note
 
-This section provides technical details about datasets available in the Catalog. For a general overview of the Catalog and guidance on adding datasets to your projects, please refer to the [Catalog](../../workspace/catalog) page.
+This section provides technical details about datasets available in the Catalog. For a general overview of the Catalog and guidance on adding datasets to your projects, please refer to the [Catalog](../workspace/Catalog) page.
 
 ::::
 

@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { fetchWithAuth, fetcher } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import type {
   InvitationCreate,
   Organization,
@@ -30,7 +30,7 @@ export const useOrganizationMembers = (organizationId: string, queryParams?: Org
 
 
 export const createOrganization = async (payload: PostOrganization): Promise<Organization> => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -44,7 +44,7 @@ export const createOrganization = async (payload: PostOrganization): Promise<Org
 };
 
 export const updateOrganization = async (organization_id: string, organization: OrganizationUpdate) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}/profile`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}/profile`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -56,7 +56,7 @@ export const updateOrganization = async (organization_id: string, organization: 
 };
 
 export const deleteOrganization = async (organization_id: string) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}`, {
     method: "DELETE",
   });
   if (!response.ok) throw await response.json();
@@ -64,7 +64,7 @@ export const deleteOrganization = async (organization_id: string) => {
 };
 
 export const deleteMember = async (organization_id: string, user_id: string) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
     method: "DELETE",
   });
   if (!response.ok) throw await response.json();
@@ -76,7 +76,7 @@ export const updateOrganizationMemberRole = async (
   user_id: string,
   role: string
 ) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -93,7 +93,7 @@ export const updateOrganizationInvitationRole = async (
   invitation_id: string,
   role: string
 ) => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${ORG_API_BASE_URL}/${organization_id}/invitations/${invitation_id}/role`,
     {
       method: "PATCH",
@@ -108,7 +108,7 @@ export const updateOrganizationInvitationRole = async (
 }
 
 export const deleteInvitation = async (organization_id: string, invitation_id: string) => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${ORG_API_BASE_URL}/${organization_id}/invitations/${invitation_id}`,
     {
       method: "DELETE",
@@ -119,7 +119,7 @@ export const deleteInvitation = async (organization_id: string, invitation_id: s
 };
 
 export const updateMember = async (organization_id: string, user_id: string, role: string) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}/users/${user_id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -131,7 +131,7 @@ export const updateMember = async (organization_id: string, user_id: string, rol
 };
 
 export const transferOwnership = async (organization_id: string, user_id: string) => {
-  const response = await fetchWithAuth(
+  const response = await apiRequestAuth(
     `${ORG_API_BASE_URL}/${organization_id}/users/${user_id}/transfer-ownership`,
     {
       method: "PATCH",
@@ -142,7 +142,7 @@ export const transferOwnership = async (organization_id: string, user_id: string
 };
 
 export const inviteMember = async (organization_id: string, invitation: InvitationCreate) => {
-  const response = await fetchWithAuth(`${ORG_API_BASE_URL}/${organization_id}/invitations`, {
+  const response = await apiRequestAuth(`${ORG_API_BASE_URL}/${organization_id}/invitations`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

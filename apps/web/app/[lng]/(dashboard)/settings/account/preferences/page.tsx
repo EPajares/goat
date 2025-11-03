@@ -50,6 +50,7 @@ const AccountPreferences = ({ params: { lng } }) => {
   async function onSystemSettingsSubmit(systemSettings: SystemSettingsUpdate) {
     try {
       setIsBusy(true);
+      systemSettings.unit = "metric"; // Hardcode it for now.
       await updateSystemSettings(systemSettings);
       changeColorMode(systemSettings.client_theme as PaletteMode);
       Cookies.set(themeCookieName, systemSettings.client_theme);

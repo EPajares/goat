@@ -16,6 +16,7 @@ interface Props {
   placement?: PopperPlacementType;
   disablePortal?: boolean;
   isClickAwayEnabled?: boolean;
+  popperStyle?: React.CSSProperties;
 }
 
 const Popper = styled(MuiPopper, {
@@ -113,6 +114,7 @@ export function ArrowPopper({
   content,
   children,
   isClickAwayEnabled = true,
+  popperStyle,
 }: Props) {
   const [arrowRef, setArrowRef] = useState<HTMLElement | null>(null);
   const [childNode, setChildNode] = useState<HTMLElement | null>(null);
@@ -125,6 +127,7 @@ export function ArrowPopper({
         anchorEl={childNode}
         placement={placement}
         transition
+        style={popperStyle}
         disablePortal={disablePortal}
         modifiers={[
           {

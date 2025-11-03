@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 
+import routing._dotenv  # noqa: E402, F401, I001
 import sentry_sdk
 from celery import Celery, signals
 from redis import Redis

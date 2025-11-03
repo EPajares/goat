@@ -24,7 +24,7 @@ Folgende externe Datensätze werden in GOAT unterstützt: Web Map Service (WMS),
 ### 1. Features
 
 #### 1.1 Räumliche Features
-Feature-Datensätze dienen als dynamisches Repository für **räumliche Features** wie Punkte, Linien oder Polygone – sie enthalten räumlich referenzierte geografische Features. Benutzer können Daten aus **Shapefiles**, **Geopackages**, **GeoJSON** und **KML**-Dateien hochladen oder einen **WFS**-Link von einer externen URL hinzufügen. Feature-Datensätze können auf der Karte visualisiert, [gestylt](../category/layer-styling) und für Analysen mit Werkzeugen aus der [Toolbox](../category/toolbox) verwendet werden. Darüber hinaus können Feature-Datensätze als Datenbasis für die [Szenarioerstellung](../category/scenarios) dienen.
+Feature-Datensätze dienen als dynamisches Repository für **räumliche Features** wie Punkte, Linien oder Polygone – sie enthalten räumlich referenzierte geografische Features. Benutzer können Daten aus **Shapefiles**, **Geopackages**, **GeoJSON** und **KML**-Dateien hochladen oder einen **WFS**-Link von einer externen URL hinzufügen. Feature-Datensätze können auf der Karte visualisiert, [gestylt](../category/layer-styling) und für Analysen mit Werkzeugen aus der [Toolbox](../category/toolbox) verwendet werden. Darüber hinaus können Feature-Datensätze als Datenbasis für die [Szenarioerstellung](../Scenarios) dienen.
 
 <p> </p>
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

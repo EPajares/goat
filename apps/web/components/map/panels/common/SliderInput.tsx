@@ -23,6 +23,10 @@ const SliderInput = ({
   rootSx?: SxProps;
 }) => {
   const theme = useTheme();
+
+  // Helper function to clamp value between min and max
+  const clampValue = (val: number) => Math.min(Math.max(val, min), max);
+
   return (
     <Stack
       sx={{
@@ -44,7 +48,7 @@ const SliderInput = ({
           onChangeCommitted && onChangeCommitted(value);
         }}
       />
-      {!isRange && (
+      {!isRange && !Array.isArray(value) && (
         <Stack>
           <InputTextField
             min={min}
@@ -52,7 +56,8 @@ const SliderInput = ({
             step={step}
             value={value}
             onChange={(event) => {
-              onChange && onChange(Number(event.target.value));
+              const newValue = clampValue(Number(event.target.value));
+              onChange && onChange(newValue);
             }}
             onBlur={() => {
               onChangeCommitted && onChangeCommitted(value);
@@ -60,25 +65,33 @@ const SliderInput = ({
           />
         </Stack>
       )}
-      {isRange && (
+      {isRange && Array.isArray(value) && (
         <Stack
           direction="row"
           justifyContent="space-between"
           width="100%"
           style={{ marginTop: theme.spacing(1) }}>
           <InputTextField
+            min={min}
+            max={max}
+            step={step}
             value={value[0]}
             onChange={(event) => {
-              onChange && onChange([Number(event.target.value), value[1]]);
+              const newValue = clampValue(Number(event.target.value));
+              onChange && onChange([newValue, value[1]]);
             }}
             onBlur={() => {
               onChangeCommitted && onChangeCommitted(value);
             }}
           />
           <InputTextField
+            min={min}
+            max={max}
+            step={step}
             value={value[1]}
             onChange={(event) => {
-              onChange && onChange([value[0], Number(event.target.value)]);
+              const newValue = clampValue(Number(event.target.value));
+              onChange && onChange([value[0], newValue]);
             }}
             onBlur={() => {
               onChangeCommitted && onChangeCommitted(value);
@@ -89,4 +102,5 @@ const SliderInput = ({
     </Stack>
   );
 };
+
 export default SliderInput;

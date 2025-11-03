@@ -4,11 +4,17 @@ import { Layer as MapLayer, Source } from "react-map-gl/maplibre";
 
 import { GEOAPI_BASE_URL, SYSTEM_LAYERS_IDS } from "@/lib/constants";
 import { excludes as excludeOp } from "@/lib/transformers/filter";
-import { getHightlightStyleSpec, transformToMapboxLayerStyleSpec } from "@/lib/transformers/layer";
+import {
+  getHightlightStyleSpec,
+  getSymbolStyleSpec,
+  transformToMapboxLayerStyleSpec,
+} from "@/lib/transformers/layer";
 import { getLayerKey } from "@/lib/utils/map/layer";
 import type { Layer } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 import { type ScenarioFeatures, scenarioEditTypeEnum } from "@/lib/validations/scenario";
+
+import { useAppSelector } from "@/hooks/store/ContextHooks";
 
 interface LayersProps {
   layers?: ProjectLayer[] | Layer[];
@@ -18,6 +24,8 @@ interface LayersProps {
 }
 
 const Layers = (props: LayersProps) => {
+  const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
+  const mapMode = useAppSelector((state) => state.map.mapMode);
   const scenarioFeaturesToExclude = useMemo(() => {
     const featuresToExclude: { [key: string]: string[] } = {};
     props.scenarioFeatures?.features.forEach((feature) => {
@@ -41,10 +49,11 @@ const Layers = (props: LayersProps) => {
 
   const getLayerQueryFilter = (layer: ProjectLayer | Layer) => {
     const cqlFilter = layer["query"]?.cql;
-    if (!layer["layer_id"] || !Object.keys(scenarioFeaturesToExclude).length) return cqlFilter;
+    if (!layer["layer_id"] || (!Object.keys(scenarioFeaturesToExclude).length && mapMode === "data"))
+      return cqlFilter;
 
     const extendedFilter = JSON.parse(JSON.stringify(cqlFilter || {}));
-    if (scenarioFeaturesToExclude[layer.id]?.length) {
+    if (scenarioFeaturesToExclude[layer.id]?.length && mapMode === "data") {
       const scenarioFeaturesExcludeFilter = excludeOp("id", scenarioFeaturesToExclude[layer.id]);
       const parsedScenarioFeaturesExcludeFilter = JSON.parse(scenarioFeaturesExcludeFilter);
       // Append the filter to the existing filters
@@ -57,6 +66,25 @@ const Layers = (props: LayersProps) => {
       }
     }
 
+    if (mapMode !== "data" && temporaryFilters.length > 0) {
+      const nonCrossFilters = temporaryFilters
+        .filter((filter) => filter.layer_id === layer.id)
+        .map((filter) => filter.filter);
+      const spatialCrossFilters = temporaryFilters
+        .filter((filter) => filter.layer_id !== layer.id && filter.spatial_cross_filter)
+        .map((filter) => filter.spatial_cross_filter);
+      // 3- Merge all filters
+      const allFilters = [...nonCrossFilters, ...spatialCrossFilters];
+      if (allFilters.length === 0) return extendedFilter;
+      const extendedWithTemporaryFilters = {
+        op: "and",
+        args: allFilters,
+      };
+      if (extendedFilter["args"]) {
+        extendedWithTemporaryFilters["args"].push(extendedFilter);
+      }
+      return extendedWithTemporaryFilters;
+    }
     return extendedFilter;
   };
 
@@ -94,20 +122,26 @@ const Layers = (props: LayersProps) => {
             (() => {
               if (layer.type === "feature") {
                 return (
-                  <Source key={layer.updated_at} type="vector" tiles={[getFeatureTileUrl(layer)]}>
-                    <MapLayer
-                      key={getLayerKey(layer)}
-                      id={layer.id.toString()}
-                      {...(transformToMapboxLayerStyleSpec(layer) as LayerProps)}
-                      beforeId={
-                        index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
-                      }
-                      source-layer="default"
-                    />
+                  <Source key={layer.id} type="vector" tiles={[getFeatureTileUrl(layer)]}>
+                    {!layer.properties?.["custom_marker"] && (
+                      <MapLayer
+                        key={getLayerKey(layer)}
+                        minzoom={layer.properties.min_zoom || 0}
+                        maxzoom={layer.properties.max_zoom || 24}
+                        id={layer.id.toString()}
+                        {...(transformToMapboxLayerStyleSpec(layer) as LayerProps)}
+                        beforeId={
+                          index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
+                        }
+                        source-layer="default"
+                      />
+                    )}
                     {layer.feature_layer_geometry_type === "polygon" && (
                       <MapLayer
                         key={`stroke-${layer.id.toString()}`}
                         id={`stroke-${layer.id.toString()}`}
+                        minzoom={layer.properties.min_zoom || 0}
+                        maxzoom={layer.properties.max_zoom || 24}
                         beforeId={
                           index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
                         }
@@ -121,6 +155,25 @@ const Layers = (props: LayersProps) => {
                           },
                         }) as LayerProps)}
                         source-layer="default"
+                      />
+                    )}
+
+                    {/* Labels for all layers that aren't a custom marker*/}
+                    {(layer.properties?.text_label || layer.properties?.["custom_marker"]) && (
+                      <MapLayer
+                        key={
+                          layer.properties?.["custom_marker"] ? getLayerKey(layer) : `text-label-${layer.id}`
+                        }
+                        id={
+                          layer.properties?.["custom_marker"] ? layer.id.toString() : `text-label-${layer.id}`
+                        }
+                        source-layer="default"
+                        minzoom={layer.properties.min_zoom || 0}
+                        maxzoom={layer.properties.max_zoom || 24}
+                        {...(getSymbolStyleSpec(layer.properties?.text_label, layer) as LayerProps)}
+                        beforeId={
+                          index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
+                        }
                       />
                     )}
 
@@ -139,15 +192,20 @@ const Layers = (props: LayersProps) => {
               } else if (layer.type === "raster" && layer.url) {
                 return (
                   <Source
-                    key={layer.updated_at}
+                    key={layer.id}
                     type="raster"
                     tiles={[layer.url]}
                     tileSize={layer.other_properties?.tile_size || 256}>
                     <MapLayer
                       key={getLayerKey(layer)}
                       id={layer.id.toString()}
+                      minzoom={layer.properties.min_zoom || 0}
+                      maxzoom={layer.properties.max_zoom || 24}
                       type="raster"
                       source-layer="default"
+                      beforeId={
+                        index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
+                      }
                       layout={{
                         visibility: layer.properties?.visibility ? "visible" : "none",
                       }}
@@ -164,7 +222,7 @@ const Layers = (props: LayersProps) => {
         ? systemLayers.map((layer: ProjectLayer | Layer) =>
             props.selectedScenarioLayer?.id === layer.id ? (
               <Source
-                key={layer.updated_at}
+                key={layer.id}
                 type="vector"
                 tiles={[getFeatureTileUrl(layer)]}
                 minzoom={14}

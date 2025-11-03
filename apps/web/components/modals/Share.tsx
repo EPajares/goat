@@ -424,29 +424,28 @@ const ShareModal: React.FC<ShareProps> = ({ open, onClose, type, content }) => {
     handleRoleChange("teams", id, role);
   };
 
-  const isSharingUpdated = useMemo(() => {
-    const { teams = [], organizations = [] } = content.shared_with || {};
+  // const isSharingUpdated = useMemo(() => {
+  //   const { teams = [], organizations = [] } = content.shared_with || {};
 
-    const sharedWithTeams = sharedWith.teams;
-    const sharedWithOrgs = sharedWith.organizations;
+  //   const sharedWithTeams = sharedWith.teams;
+  //   const sharedWithOrgs = sharedWith.organizations;
 
-    const isTeamsUpdated = sharedWithTeams
-      ? sharedWithTeams.some((team) => {
-          const existingTeam = teams.find((t) => t.id === team.id);
-          return !existingTeam || existingTeam.role !== team.role;
-        })
-      : false;
+  //   const isTeamsUpdated = sharedWithTeams
+  //     ? sharedWithTeams.some((team) => {
+  //         const existingTeam = teams.find((t) => t.id === team.id);
+  //         return !existingTeam || existingTeam.role !== team.role;
+  //       })
+  //     : false;
 
-    const isOrgsUpdated = sharedWithOrgs
-      ? sharedWithOrgs.some((org) => {
-          const existingOrg = organizations.find((o) => o.id === org.id);
-          return !existingOrg || existingOrg.role !== org.role;
-        })
-      : false;
+  //   const isOrgsUpdated = sharedWithOrgs
+  //     ? sharedWithOrgs.some((org) => {
+  //         const existingOrg = organizations.find((o) => o.id === org.id);
+  //         return !existingOrg || existingOrg.role !== org.role;
+  //       })
+  //     : false;
 
-    return isTeamsUpdated || isOrgsUpdated;
-  }, [content.shared_with, sharedWith]);
-  console.log("isSharingUpdated", isSharingUpdated);
+  //   return isTeamsUpdated || isOrgsUpdated;
+  // }, [content.shared_with, sharedWith]);
 
   return (
     <>

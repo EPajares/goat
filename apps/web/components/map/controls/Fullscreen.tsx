@@ -34,8 +34,7 @@ export function Fullscren(props: FullscreenProps) {
             direction="column"
             sx={{
               alignItems: "flex-end",
-              marginTop: theme.spacing(1),
-              marginBottom: theme.spacing(1),
+              my: 1,
             }}>
             <Tooltip
               title={fullscreen ? props.tooltipExit || "Exit Fullscreen" : props.tooltipOpen || "Fullscreen"}
@@ -45,6 +44,7 @@ export function Fullscren(props: FullscreenProps) {
                 onClick={() => toggleFullscreen()}
                 size="small"
                 sx={{
+                  pointerEvents: "all",
                   backgroundColor: theme.palette.background.paper,
                   marginTop: theme.spacing(1),
                   marginBottom: theme.spacing(1),

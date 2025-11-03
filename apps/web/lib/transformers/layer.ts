@@ -1,7 +1,12 @@
 import type { MapGeoJSONFeature } from "react-map-gl/maplibre";
 
 import { rgbToHex } from "@/lib/utils/helpers";
-import type { FeatureLayerLineProperties, FeatureLayerPointProperties, Layer } from "@/lib/validations/layer";
+import type {
+  FeatureLayerLineProperties,
+  FeatureLayerPointProperties,
+  Layer,
+  TextLabelSchemaData,
+} from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 
 import type { RGBColor } from "@/types/map/color";
@@ -33,11 +38,11 @@ export function removeColorMapsDuplicates(colorMaps) {
 
 export function getMapboxStyleColor(data: ProjectLayer | Layer, type: "color" | "stroke_color") {
   const colors = data.properties[`${type}_range`]?.colors;
+
   const fieldName = data.properties[`${type}_field`]?.name;
   const fieldType = data.properties[`${type}_field`]?.type;
   const colorScale = data.properties[`${type}_scale`];
   const colorMaps = data.properties[`${type}_range`]?.color_map;
-
   if (colorMaps && fieldName && Array.isArray(colorMaps) && colorScale === "ordinal") {
     const valuesAndColors = [] as (string | number)[];
     colorMaps.forEach((colorMap) => {
@@ -165,22 +170,6 @@ export function transformToMapboxLayerStyleSpec(data: ProjectLayer | Layer) {
   const type = data.feature_layer_geometry_type;
   if (type === "point") {
     const pointProperties = data.properties as FeatureLayerPointProperties;
-    if (pointProperties.custom_marker) {
-      return {
-        type: "symbol",
-        layout: {
-          visibility: data.properties.visibility ? "visible" : "none",
-          "icon-image": getMapboxStyleMarker(data),
-          "icon-size": 1, // This is a scale factor not in px,
-          "icon-allow-overlap": data.properties["marker_allow_overlap"] || false,
-        },
-        paint: {
-          "icon-opacity": pointProperties.filled ? pointProperties.opacity : 1,
-          "icon-color": getMapboxStyleColor(data, "color"),
-        },
-      };
-    }
-
     return {
       type: "circle",
       layout: {
@@ -225,6 +214,50 @@ export function transformToMapboxLayerStyleSpec(data: ProjectLayer | Layer) {
   } else {
     throw new Error(`Invalid type: ${type}`);
   }
+}
+/** Used for both text labels and custom markers */
+export function getSymbolStyleSpec(data: TextLabelSchemaData, layer: ProjectLayer | Layer) {
+  const iconLayout = {};
+  const iconPaint = {};
+  const textLayout = {}
+  const textPaint = {};
+  if (layer.properties["custom_marker"]) {
+    const pointProperties = layer.properties as FeatureLayerPointProperties;
+    const markerSize = pointProperties.marker_size ?? 100
+    iconLayout["icon-image"] = getMapboxStyleMarker(layer);
+    iconLayout["icon-size"] = markerSize / 200;
+    iconLayout["icon-allow-overlap"] = pointProperties.marker_allow_overlap || false;
+    iconLayout["icon-anchor"] = pointProperties.marker_anchor || "center";
+    iconLayout["icon-offset"] = pointProperties.marker_offset || [0, 0];
+    iconPaint["icon-opacity"] = pointProperties.filled ? pointProperties.opacity : 1;
+    iconPaint["icon-color"] = getMapboxStyleColor(layer, "color");
+  }
+  if (data?.field) {
+    textLayout["text-field"] = ["get", data.field];
+    textLayout["text-size"] = data.size ?? 14;
+    // TODO: FIND A BETTER SOLUTION FOR THIS. THE GERMAN BASEMAPS ONLY SUPPORT ROBOTO REGULAR
+    textLayout["text-font"] = ["Roboto Regular"];
+    textLayout["text-allow-overlap"] = data.allow_overlap || false;
+    textLayout["text-anchor"] = data.anchor || "top";
+    textLayout["text-offset"] = data.offset || [0, 0];
+    textPaint["text-color"] = data.color ? rgbToHex(data.color as RGBColor) : "#000000";
+    textPaint["text-halo-color"] = data.outline_color ? rgbToHex(data.outline_color as RGBColor) : "#FFFFFF";
+    textPaint["text-halo-width"] = data.outline_width ?? 1;
+  }
+
+  return {
+    type: "symbol",
+    layout: {
+      "symbol-placement": layer?.feature_layer_geometry_type === "line" ? "line" : "point",
+      visibility: layer?.properties?.visibility ? "visible" : "none",
+      ...textLayout,
+      ...iconLayout,
+    },
+    paint: {
+      ...textPaint,
+      ...iconPaint,
+    },
+  };
 }
 
 export function getHightlightStyleSpec(highlightFeature: MapGeoJSONFeature) {
@@ -275,12 +308,19 @@ export function getHightlightStyleSpec(highlightFeature: MapGeoJSONFeature) {
   };
 }
 
-
-
-export const scenarioFeatureStateColor = ["match", ["get", "edit_type"], "n", "#007DC7", "m", "#FFC300", "d", "#C70039", "#000202"];
+export const scenarioFeatureStateColor = [
+  "match",
+  ["get", "edit_type"],
+  "n",
+  "#007DC7",
+  "m",
+  "#FFC300",
+  "d",
+  "#C70039",
+  "#000202",
+];
 export function scenarioLayerStyleSpec(data: ProjectLayer | Layer) {
   const geometryType = data.feature_layer_geometry_type;
-
 
   let style;
   if (geometryType === "point") {
@@ -289,7 +329,7 @@ export function scenarioLayerStyleSpec(data: ProjectLayer | Layer) {
         type: "symbol",
         layout: {
           "icon-image": getMapboxStyleMarker(data),
-          'icon-allow-overlap': data.properties["marker_allow_overlap"] || false,
+          "icon-allow-overlap": data.properties["marker_allow_overlap"] || false,
           "icon-size": 1,
         },
         paint: {
@@ -317,7 +357,7 @@ export function scenarioLayerStyleSpec(data: ProjectLayer | Layer) {
         "line-blur": 1,
         "line-color": scenarioFeatureStateColor,
         "line-width": width,
-        'line-dasharray': [3, 1],
+        "line-dasharray": [3, 1],
       },
     };
   } else if (geometryType === "polygon") {
@@ -333,7 +373,7 @@ export function scenarioLayerStyleSpec(data: ProjectLayer | Layer) {
 
   if (style) {
     style.layout = {
-      ...style.layout || {},
+      ...(style.layout || {}),
       visibility: data.properties.visibility ? "visible" : "none",
     };
   }

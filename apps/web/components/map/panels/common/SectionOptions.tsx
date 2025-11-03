@@ -15,7 +15,7 @@ const SectionOptions = ({
     <Collapse in={!!active}>
       <Stack direction="row" alignItems="center" sx={{ pl: 2, height: "100%" }}>
         <Divider orientation="vertical" sx={{ borderRightWidth: "2px", my: -4 }} />
-        <Stack sx={{ pl: 4, pr: 2, py: 4, width: "100%" }} spacing={4} justifyContent="center">
+        <Stack sx={{ pl: 4, pr: 2, py: 4, width: "100%", pt: 2 }} spacing={4} justifyContent="center">
           {baseOptions}
           {/* { Options } */}
           {advancedOptions && (

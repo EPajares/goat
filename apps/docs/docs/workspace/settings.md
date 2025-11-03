@@ -41,10 +41,22 @@ In the <code>Preferences</code> tab, you can choose your preferred **language** 
 
 ## Teams Settings
 
-:::info coming soon
+Simply clicking on a team, the **Teams Settings** will open. As the **owner of the team** in the <code>Profile</code> tab you can **rename** it, **modify the description** or **upload a logo or picture**.
 
-We currently implement this functionality. 🧑🏻‍💻
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+  <img src={require('/img/workspace/settings/team_settings.png').default} alt="Team members" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div> 
+
+In the <code>Members</code> tab, you can view the **members list** of your team. By clicking on the three dots <img src={require('/img/map/filter/3dots.png').default}  alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> you can **remove them.** Furthermore, you can add **new members.**
+
+:::info
+
+If you scroll down to the Danger zone, you also find an option to **delete your team**. Please only click on this button if you are certain about this step, as this cannot be undone. 
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+  <img src={require('/img/workspace/settings/delete_team.png').default} alt="Delete Team" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div> 
 :::
 
 ## Organization Settings

@@ -26,20 +26,46 @@ Darüber hinaus kann das Einzugsgebiet mit räumlichen Datensätzen wie Bevölke
 Sie kennen diese Funktion möglicherweise aus unseren früheren Softwareversionen unter den Begriffen Single-Isochrone und Multi-Isochrone. Mit der Veröffentlichung von GOAT Version 2.0 haben wir diese beiden Indikatoren im gleichen Ablauf zusammengeführt und mit weiteren Berechnungsoptionen angereichert.
 :::
 
-:::info 
-Einzugsgebiete sind für bestimmte Regionen verfügbar. Nach Auswahl eines <code>Verkehrsmittels</code>,  zeigt GOAT dynamisch eine Geofence für unterstützte Regionen an.
-Für <code>Zu Fuß</code>, <code>Fahrrad</code>, <code>Pedelec</code>, und <code>Auto</code>, erreicht der Geofence mehr als 30 europäische Länder:
+import MapViewer from '@site/src/components/MapViewer';
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/catchments/geofence.png').default} alt="Geofence für Einzugsgebiet-Berechnung in GOAT" style={{ maxHeight: "300px", maxWidth: "400px", alignItems:'center'}}/>
-</div> 
+:::info
+Die Berechnung von Einzugsgebieten ist in bestimmten Regionen möglich.
 
-Für <code>ÖV</code>, erreicht der Geofence ganz Deutschland:
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence for catchment area calculation in GOAT" style={{ maxHeight: "300px", maxWidth: "400px", alignItems:'center'}}/>
-</div> 
+Nach Auswahl eines <code>Routentyps</code> zeigt GOAT eine Kartenüberlagerung an, die dies anzeigt.  
+Für <code>Fußweg</code>, <code>Fahrrad</code>, <code>Pedelec</code> und <code>Auto</code> werden über 30 europäische Länder unterstützt, während Einzugsgebiete für <code>Öffentlichen Verkehr</code> für Deutschland berechnet werden können.
 
-Falls Sie Analysen außerhalb dieses Geofence durchführen müssen, kontaktieren Sie bitte den [Support](https://plan4better.de/de/contact/) und wir prüfen, was möglich ist.
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für Fußwege, Fahrrad, Pedelec und Auto", color: "#ffffff" }
+      ]}
+  />
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für den öffentlichen Nahverkehr", color: "#ffffff" }
+      ]}
+  />
+</div>
+
+<br />
+
+Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktieren Sie uns gerne](https://plan4better.de/en/contact/ "contact us") – wir besprechen mit Ihnen gerne weitere Möglichkeiten.
 :::
 
 ## 2. Anwendungsbeispiele
@@ -321,17 +347,31 @@ Für weitere Einblicke in den Routing-Algorithmus besuchen Sie [Verkehrsmittel/�
   <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_type.png').default} alt="Verkehrsmittel ÖV in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
 </div>
 
+<br />
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Legen Sie die Kofigurationen für <code>Reisezeitlimit</code>, <code>Anzahl der Schritte</code>, <code>Tag</code> <i>(Werktag, Samstag</i> oder <i>Sonntag</i>) und ein Zeitfenster (<code>Startzeit</code> und <code>Endzeit</code>)fest.</div>
+  <div class="content">
+    <code>Reisezeitlimit</code> – die maximal zulässige Dauer der Wege, die in der Analyse berücksichtigt werden  
+    <br />
+    <code>Anzahl der Intervalle</code> – bestimmt die Auflösung der resultierenden Isochrone für das Einzugsgebiet  
+    <br />
+    <code>Tag</code> – der Wochentag, an dem die Analyse durchgeführt wird: <i>Werktag, Samstag</i> oder <i>Sonntag</i>  
+    <br />
+    <code>Startzeit</code> und <code>Endzeit</code> – es werden die schnellstmöglichen Wege innerhalb dieses Zeitfensters berücksichtigt  
+    <br />
+    <p>
+      Mehr Informationen zu Routing-Optionen finden Sie {" "}
+      <a href="../../routing/public_transport#routing-options">hier</a>.
+    </p>
+  </div>
 </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/pt_config.png').default} alt="Konfigurationen für Reisezeit mit dem öffentlichen Verkehr" style={{ maxHeight: "400px", maxWidth: "400px"}}/>
+<img src={require('/img/toolbox/accessibility_indicators/catchments/pt_config.png').default} alt="ÖPNV-Konfigurationen" style={{ maxHeight: "400px", maxWidth: "400px"}}/>
 
 :::tip Tipp
 
-Für die Definition, welche Reisezeitlimits für welche Annehmlichkeit geeignet sind, bietet das  ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz hilfreiche Orientierung.
+Das ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz bietet hilfreiche Anhaltspunkte zur Wahl geeigneter Reisezeitgrenzen für die Bewertung der Erreichbarkeit verschiedener Einrichtungen.
 
 :::
 

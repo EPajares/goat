@@ -8,7 +8,7 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 The Public Transport Quality Classes <i>(German: ÖV-Güteklassen)</i> show the **attractiveness of public transport services** for a selected area.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/LL3qWCD_PCQ?si=LxAy40E9Whsc1swD" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/VT_8u7luh5s?si=YcHtT46OOUf36Dpw" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Explanation
 
@@ -16,11 +16,25 @@ Public Transport Quality Classes, also known as **ÖV-Güteklassen**, are a clas
 
 ![ÖV-Güteklassen in GOAT](/img/toolbox/accessibility_indicators/gueteklassen/example.png "ÖV-Güteklassen in GOAT")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 The calculation of the public transport quality classes is only available for areas where the transport network is integrated into GOAT.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence for ÖV-Güteklassen calculation in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for ÖV-Güteklassen", color: "#ffffff" }
+      ]}
+  />
 </div> 
 
 In case you need to perform analysis beyond this geofence, feel free to contact the [Support](https://plan4better.de/en/contact/ "Contact Support") and we will check what is possible. 
@@ -120,6 +134,16 @@ Subsequently, **buffers** or **network catchment areas** of the size shown are c
 
 ![Determination of Public Transport Quality Classes](/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_en.webp "Determination of Public Transport Quality Classes")
 
+<div></div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_en.png').default} alt="ÖV-Güteklassen calculation figure" style={{ maxHeight: "600px", maxWidth: "600px", alignItems:'center'}}/>
+</div> 
+
+<div></div>
+
+*Overview figure illustrating the calculation of the ÖV-Güteklassen*
+
 ### Visualization
 
 The created buffers/network catchment areas are visualized around the stations in the corresponding colors to highlight the **quality class** (<span style={{color: "#199741"}}>A</span>-<span style={{color: "#E4696A"}}>F</span>).
@@ -131,6 +155,8 @@ The created buffers/network catchment areas are visualized around the stations i
 ## 5. Further readings
 
 Sample projects where ÖV-Güteklassen was used:
+
+- [Germany-Wide Assessment of Public Transport Accessibility Through Public Transport Quality Classes white paper](https://www.plan4better.de/en/whitepapers/ov-erschliessung)
 - [Accessibility analyses for the "Mobility Guarantee" and "Public Transport Atlas" projects](https://www.plan4better.de/en/references/accessibility-analyses-for-the-mobility-guarantee-and-public-transport-atlas-projects) 
 - [Calculation of public transport quality classes in Austria](https://www.plan4better.de/en/references/guteklassen-osterreich)
 - [Calculation of public transport quality classes in Germany](https://www.plan4better.de/en/references/calculation-of-public-transport-quality-classes-in-germany)

@@ -57,8 +57,8 @@ export const MAKI_ICON_TYPES = [
       "water-solid",
       "wheelchair-solid",
       "wind-turbine-solid-pro",
-      "waste-basket",
-    ],
+      "waste-basket"
+    ]
   },
   {
     name: "Cultural and Landmark",
@@ -89,8 +89,8 @@ export const MAKI_ICON_TYPES = [
       "globe-solid",
       "location-crosshairs-solid",
       "location-dot-solid",
-      "map-pin-solid",
-    ],
+      "map-pin-solid"
+    ]
   },
   {
     name: "Shopping & Services",
@@ -116,9 +116,8 @@ export const MAKI_ICON_TYPES = [
       "farm_shop_basket",
       "library-icon",
       "grocery-or-supermarket",
-      "pharmacy",
-      "wine-glass-solid",
-    ],
+      "pharmacy"
+    ]
   },
   {
     name: "Recreation and Entertainment",
@@ -162,11 +161,8 @@ export const MAKI_ICON_TYPES = [
       "mug-hot-solid",
       "spa-solid",
       "volleyball-solid",
-      "wine-glass-solid",
-      "casino",
-      "cinema",
-      "stadium",
-    ],
+      "stadium"
+    ]
   },
   {
     name: "Nature and Environment",
@@ -179,13 +175,11 @@ export const MAKI_ICON_TYPES = [
       "hot-spring",
       "mountain",
       "natural",
-      "park-alt1",
-      "park",
       "viewpoint",
       "waterfall",
       "wetland",
-      "windmill",
-    ],
+      "windmill"
+    ]
   },
   {
     name: "Health and Safety",
@@ -193,12 +187,11 @@ export const MAKI_ICON_TYPES = [
       "defibrillator",
       "drinking-water",
       "emergency-phone",
-      "pharmacy",
       "veterinary",
       "radiation-solid",
       "stethoscope-solid",
-      "tooth-solid",
-    ],
+      "tooth-solid"
+    ]
   },
   {
     name: "Transportation and Vehicles",
@@ -209,8 +202,6 @@ export const MAKI_ICON_TYPES = [
       "bicycle",
       "electric-bike-icon",
       "bus",
-      "car-rental",
-      "car-repair",
       "ferry-JP",
       "ferry",
       "heliport",
@@ -233,7 +224,7 @@ export const MAKI_ICON_TYPES = [
       "road-accident",
       "parking-garage",
       "parking-paid",
-      "parking",
-    ],
-  },
+      "parking"
+    ]
+  }
 ];

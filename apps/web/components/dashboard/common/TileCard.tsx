@@ -179,7 +179,7 @@ const TileCard = (props: TileCard) => {
       </Stack>
       {/* Tags */}
       <Box sx={{ mt: theme.spacing(2) }} display="flex-start">
-        <CardTags tags={item.tags} maxTags={3} />
+        <CardTags tags={item.tags as never} maxTags={3} />
       </Box>
     </>
   );

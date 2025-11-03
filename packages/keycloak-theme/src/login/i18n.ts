@@ -55,8 +55,7 @@ export const { useI18n } = createUseI18n({
     scanQrCode: "Scan QR Code",
     loginToptConfigureManually: "Use the following configuration settings and code to manually configure your authenticator app.",
     changeLanguage: "Change language",
-    changeTheme: "Change theme color",
-    switchToV1: "You are using the new GOAT v2. You can still access the legacy GOAT v1 <a href='https://v1.goat.plan4better.de' style='cursor: pointer; color: #2BB381; font-weight: bold; text-decoration: none;'>here</a>, but please note that v1 and v2 are not linked, and you'll need a new account for GOAT v2."
+    changeTheme: "Change theme color"
   },
   de: {
     alphanumericalCharsOnly: "Nur alphanumerische Zeichen",
@@ -106,8 +105,7 @@ export const { useI18n } = createUseI18n({
     scanQrCode: "QR-Code scannen",
     loginToptConfigureManually: "Verwenden Sie die folgenden Konfigurationseinstellungen und den Code, um Ihre Authenticator-App manuell zu konfigurieren.",
     changeLanguage: "Sprache ändern",
-    changeTheme: "Themenfarbe ändern",
-    switchToV1: "Sie verwenden die neue GOAT-Version (v2). Klicken Sie <a href='https://v1.goat.plan4better.de' style='cursor: pointer; color: #2BB381; font-weight: bold; text-decoration: none;'>hier</a>, um GOAT v1 zu nutzen. Bitte beachten Sie, dass v1 und v2 nicht miteinander verbunden sind und Sie für v2 ein neues Konto benötigen."
+    changeTheme: "Themenfarbe ändern"
   },
 });
 

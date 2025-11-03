@@ -10,7 +10,7 @@ import MathJax from 'react-mathjax';
 # Heatmap - Closest Average
 A color-coded map to visualize the average travel time to points (such as [POI](../../further_reading/glossary#point-of-interest-poi "What is a POI?")) from surrounding areas.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/YGRfLugUEb8?si=6TfBiPEMt4mPiag4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/djd16SZJ-HA?si=vEKHhoI_2mQL2wxI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Explanation
 
@@ -32,13 +32,27 @@ Shortly, accessibility heatmaps are a visualization representing *access* from v
 
 ![Closest Average-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/closest_avg.png "Closest Average-based Heatmap in GOAT")
 
-  
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 
 Heatmaps are available in certain regions. Upon selecting a `Routing type`, a **geofence** will be displayed on the map to highlight supported regions.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/geofence.png').default} alt="Geofence for Closest-average-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for Closest-average-based Heatmaps", color: "#ffffff" }
+      ]}
+  />
+
 </div> 
 
 

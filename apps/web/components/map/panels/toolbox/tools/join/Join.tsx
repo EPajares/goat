@@ -10,9 +10,10 @@ import { useTranslation } from "@/i18n/client";
 import { useJobs } from "@/lib/api/jobs";
 import { computeJoin } from "@/lib/api/tools";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
+import { statisticOperationEnum } from "@/lib/validations/common";
 import { jobTypeEnum } from "@/lib/validations/jobs";
 import type { LayerFieldType } from "@/lib/validations/layer";
-import { joinSchema, maxFeatureCnt, statisticOperationEnum } from "@/lib/validations/tools";
+import { joinSchema, maxFeatureCnt } from "@/lib/validations/tools";
 
 import type { SelectorItem } from "@/types/map/common";
 import type { IndicatorBaseProps } from "@/types/map/toolbox";

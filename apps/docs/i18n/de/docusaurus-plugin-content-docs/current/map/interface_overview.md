@@ -38,7 +38,7 @@ In der folgenden Grafik werden die verschiedenen Elemente der Karteansicht erlä
 
 - <img src={require('/img/map/interface/toolbox.png').default} alt="Toolbox" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Werkzeuge</code>:  Lesen Sie mehr in <a title=" Toolbox " href="../category/toolbox"> Werkzeuge</a>.
 
-- <img src={require('/img/map/interface/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Szenario</code>:  Lesen Sie mehr in <a title="Scenarios" href="../category/scenarios "> Szenario</a>.
+- <img src={require('/img/map/interface/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Szenario</code>:  Lesen Sie mehr in <a title="Scenarios" href="../Scenarios "> Szenario</a>.
 
 ### Kartennavigation
 

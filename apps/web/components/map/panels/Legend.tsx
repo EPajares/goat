@@ -5,7 +5,7 @@ import { useTranslation } from "@/i18n/client";
 import { setActiveLeftPanel } from "@/lib/store/map/slice";
 import type { ProjectLayer } from "@/lib/validations/project";
 
-import { useAppDispatch } from "@/hooks/store/ContextHooks";
+import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import { Legend, LegendMapContainer } from "@/components/map/controls/Legend";
 import Container from "@/components/map/panels/Container";
@@ -25,14 +25,21 @@ const LegendPanel = ({
 }: PanelProps) => {
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
+  const currentZoom = useAppSelector((state) => state.map.currentZoom);
   const _layers = useMemo(
     () =>
       showAllLayers
         ? projectLayers
         : projectLayers?.filter((layer) => {
-            return layer.properties?.visibility;
+            const minZoom = layer.properties?.min_zoom;
+            const maxZoom = layer.properties?.max_zoom;
+            const isVisible = layer.properties?.visibility;
+            if (minZoom && maxZoom && currentZoom) {
+              return currentZoom >= minZoom && currentZoom <= maxZoom && isVisible;
+            }
+            return isVisible;
           }),
-    [projectLayers, showAllLayers]
+    [projectLayers, showAllLayers, currentZoom]
   );
   return (
     <>

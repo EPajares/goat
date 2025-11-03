@@ -16,10 +16,8 @@
 
 title Container Diagram (C4 Model)
 
-
 SHOW_PERSON_OUTLINE()
 Person(user, "User", "A user of the GOAT platform", $sprite="users")
-
 
 System_Boundary(c1, "Web Application"){
     Container(client, "Client", "React.js & Next.js", "Frontend of the GOAT application", $sprite="react")
@@ -31,29 +29,31 @@ System_Boundary(a1, "Authentication"){
 }
 
 System_Boundary(s1, "Authorization"){
-    Container(author, "Authorization & Accounts API", "Python and FastAPI", "It manages the subscriptions and features that are accessible by the users.", $sprite="python")
-    ContainerDb(authordb, "Accounts Database", "PostgreSQL", "Holds the user data and their subscriptions.", $sprite="postgresql")
+    Container(author, "Authorization & Accounts API", "Python and FastAPI", "Manages subscriptions, user access, and features via RBAC.", $sprite="python")
 }
 
 System_Boundary(a2, "GOAT Application"){
-    Container(applicationapi, "GOAT Core API", "Python and FastAPI", "It bundles the GOAT specific analyses and interacts with the content meta data.", $sprite="python")
-    Container(geoapi, "GEO API", "Python and FastAPI", "It bundles the geoservice namely OGC Feature and Vector tiles.", $sprite="python")
+    Container(applicationapi, "GOAT Core API", "Python and FastAPI", "Bundles GOAT-specific analyses and interacts with content metadata.", $sprite="python")
+    Container(geoapi, "GEO API", "Python and FastAPI", "Provides geoservices: OGC Features and Vector tiles.", $sprite="python")
 
-    ContainerDb(applicationdb, "Application Database", "PostgreSQL", "Holds the application specific base data.", $sprite="postgresql")
-    Container(r5, "Routing API Car/PT", "Java and R5", "Java engine handling travel-time calculation logic for public transport and car", $sprite="java")
-    Container(goatrouting, "Routing API Walking/Cycling", "Python and FastAPI", "Python engine using Numba for travel-time calculatuin for walking and cycling", $sprite="python")
-} 
+    ContainerDb(applicationdb, "Application Database", "PostgreSQL", "Holds application-specific base data, user accounts, and subscriptions.", $sprite="postgresql")
 
+    Container(r5, "Routing API PT", "Java and R5", "Java engine handling travel-time calculation logic for public transport (PT).", $sprite="java")
+    Container(goatrouting, "Routing API Car/Walking/Cycling", "Python and FastAPI", "Python engine using Numba for travel-time calculation (car, walking, cycling).", $sprite="python")
+}
 
-' ' Make a relation between auth and authdb
+' Relations
 Rel(auth, authdb, "Reads/Writes", "JDBC")
-Rel(author, authordb, "Reads/Writes", "SQLAlchemy")
+Rel(author, applicationdb, "Reads/Writes", "SQLAlchemy")
 Rel(applicationapi, applicationdb, "Reads/Writes", "SQLAlchemy")
 Rel(geoapi, applicationdb, "Reads", "SQLAlchemy")
+
 Rel_L(s1, a1, "")
 Rel_L(a1, s1, "")
+
 Rel(applicationapi, r5, "HTTP (Private)")
 Rel(applicationapi, goatrouting, "HTTP (Private)")
+
 Rel(user, c1, "")
 Rel(c1, a1, "")
 Rel(c1, s1, "")

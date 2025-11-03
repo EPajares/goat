@@ -33,10 +33,10 @@
   },
   "link.item.label.GitHub": {
     "message": "GitHub",
-    "description": "The label of footer link with label=GitHub linking to https://github.com/goat-community"
+    "description": "The label of footer link with label=GitHub linking to https://github.com/plan4better"
   },
   "copyright": {
-    "message": "Copyright © 2024 Plan4Better, Inc. Built with Docusaurus.",
+    "message": "Plan4Better GmbH 2025 | All Rights Reserved",
     "description": "The footer copyright"
   },
   "link.item.label.LinkedIn": {

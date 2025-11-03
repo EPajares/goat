@@ -6,6 +6,7 @@ from typing import Annotated, Any, Dict, TypedDict
 import numpy as np
 import numpy.typing as npt
 from numba import njit
+from rich import print as print
 
 
 class PixelCoordinates(TypedDict):
@@ -230,3 +231,14 @@ def format_value_null_sql(value: str) -> str:
         return "NULL"
     else:
         return f"'{value}'"
+
+def print_info(message: str) -> None:
+    print(f"[bold green]INFO[/bold green]: {message}")
+
+
+def print_error(message: str) -> None:
+    print(f"[bold red]ERROR[/bold red]: {message}")
+
+
+def print_warning(message: str) -> None:
+    print(f"[red magenta]WARNING[/red magenta]: {message}")

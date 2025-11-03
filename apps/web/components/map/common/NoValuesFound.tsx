@@ -6,9 +6,10 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 type NoValuesFoundProps = {
   text?: string;
+  icon?: ICON_NAME;
 };
 
-const NoValuesFound = ({ text }: NoValuesFoundProps) => {
+const NoValuesFound = ({ text, icon }: NoValuesFoundProps) => {
   const { t } = useTranslation("common");
   const theme = useTheme();
 
@@ -22,7 +23,7 @@ const NoValuesFound = ({ text }: NoValuesFoundProps) => {
         justifyContent: "center",
         alignItems: "center",
       }}>
-      <Icon iconName={ICON_NAME.TABLE} fontSize="small" htmlColor={theme.palette.text.secondary} />
+      <Icon iconName={icon || ICON_NAME.TABLE} fontSize="small" htmlColor={theme.palette.text.secondary} />
       <Typography variant="body2" fontWeight="bold" color={theme.palette.text.secondary}>
         {text || t("no_values_found")}
       </Typography>

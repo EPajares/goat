@@ -1,18 +1,29 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
+import type { MapGeoJSONFeature } from "react-map-gl/maplibre";
+
+import { MAPTILER_KEY } from "@/lib/constants";
+import type { BuilderPanelSchema, BuilderWidgetSchema, Project } from "@/lib/validations/project";
+import type { Scenario } from "@/lib/validations/scenario";
 
 import type { Basemap, SelectorItem } from "@/types/map/common";
 import { MapSidebarItemID } from "@/types/map/common";
-import type { Scenario } from "@/lib/validations/scenario";
 import type { MapPopoverEditorProps, MapPopoverInfoProps } from "@/types/map/popover";
-import type { MapGeoJSONFeature } from "react-map-gl/maplibre";
-import { MAPTILER_KEY } from "@/lib/constants";
-import type { Project } from "@/lib/validations/project";
+import type { Result } from "@/types/map/controllers";
+
+export type TemporaryFilter = {
+  id: string; // unique identifier
+  layer_id: number; // layer id
+  filter: object;
+  spatial_cross_filter?: object | undefined;
+};
+
+export type MapMode = "data" | "builder" | "public";
 
 export interface MapState {
   project: Project | undefined;
   basemaps: Basemap[];
-  activeBasemap: string;
+  activeBasemap: Basemap | undefined;
   maskLayer: string | undefined; // Toolbox mask layer
   toolboxStartingPoints: [number, number][] | undefined;
   activeLeftPanel: MapSidebarItemID | undefined;
@@ -24,6 +35,18 @@ export interface MapState {
   highlightedFeature: MapGeoJSONFeature | undefined;
   popupInfo: MapPopoverInfoProps | undefined;
   popupEditor: MapPopoverEditorProps | undefined;
+  mapMode: MapMode;
+  userLocation:
+  | {
+    active: boolean;
+    position: GeolocationPosition | undefined;
+  }
+  | undefined;
+  geocoderResult: Result | null;
+  selectedBuilderItem: BuilderPanelSchema | BuilderWidgetSchema | undefined;
+  currentZoom: number | undefined;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  temporaryFilters: TemporaryFilter[]; // Temporary filters for the map,
 }
 
 const initialState = {
@@ -77,10 +100,10 @@ const initialState = {
       title: "BKG Basemap",
       subtitle: "Topographic",
       thumbnail: "https://basemap.de/viewer/assets/basemap_hillshade.png",
-    }
+    },
   ],
   maskLayer: undefined,
-  activeBasemap: "streets",
+  activeBasemap: undefined,
   activeLeftPanel: MapSidebarItemID.LAYERS,
   toolboxStartingPoints: undefined,
   activeRightPanel: undefined,
@@ -91,6 +114,11 @@ const initialState = {
   popupInfo: undefined,
   popupEditor: undefined,
   highlightedFeature: undefined,
+  mapMode: "data",
+  userLocation: undefined,
+  geocoderResult: null,
+  selectedBuilderItem: undefined,
+  temporaryFilters: [] as TemporaryFilter[],
 } as MapState;
 
 const mapSlice = createSlice({
@@ -105,7 +133,7 @@ const mapSlice = createSlice({
         state.project = { ...state.project, ...action.payload };
       }
     },
-    setActiveBasemap: (state, action: PayloadAction<string>) => {
+    setActiveBasemap: (state, action: PayloadAction<Basemap>) => {
       state.activeBasemap = action.payload;
     },
     setActiveLeftPanel: (state, action: PayloadAction<MapSidebarItemID | undefined>) => {
@@ -148,8 +176,7 @@ const mapSlice = createSlice({
       state.mapCursor = action.payload;
     },
     setEditingScenario: (state, action: PayloadAction<Scenario | undefined>) => {
-      state.editingScenario = action
-        .payload;
+      state.editingScenario = action.payload;
       if (action.payload === undefined) {
         state.selectedScenarioLayer = undefined;
       }
@@ -164,9 +191,39 @@ const mapSlice = createSlice({
       state.popupEditor = action.payload;
     },
     setHighlightedFeature: (state, action) => {
-      state.highlightedFeature = action
-        .payload;
-    }
+      state.highlightedFeature = action.payload;
+    },
+    setMapMode: (state, action: PayloadAction<MapMode>) => {
+      state.mapMode = action.payload;
+      if (action.payload === "data") {
+        state.selectedBuilderItem = undefined;
+      }
+    },
+    setUserLocation: (state, action: PayloadAction<MapState["userLocation"]>) => {
+      state.userLocation = action.payload;
+    },
+    setGeocoderResult: (state, action: PayloadAction<MapState["geocoderResult"]>) => {
+      state.geocoderResult = action.payload;
+    },
+    setSelectedBuilderItem: (state, action: PayloadAction<MapState["selectedBuilderItem"]>) => {
+      state.selectedBuilderItem = action.payload;
+    },
+    setCurrentZoom: (state, action: PayloadAction<number | undefined>) => {
+      state.currentZoom = action.payload;
+    },
+    // Temporary filters for the map
+    addTemporaryFilter: (state, action: PayloadAction<TemporaryFilter>) => {
+      state.temporaryFilters.push(action.payload);
+    },
+    updateTemporaryFilter: (state, action: PayloadAction<TemporaryFilter>) => {
+      const index = state.temporaryFilters.findIndex((f) => f.id === action.payload.id);
+      if (index !== -1) {
+        state.temporaryFilters[index] = action.payload;
+      }
+    },
+    removeTemporaryFilter: (state, action: PayloadAction<string>) => {
+      state.temporaryFilters = state.temporaryFilters.filter((f) => f.id !== action.payload);
+    },
   },
 });
 
@@ -184,7 +241,15 @@ export const {
   setSelectedScenarioLayer,
   setPopupInfo,
   setPopupEditor,
-  setHighlightedFeature
+  setHighlightedFeature,
+  setMapMode,
+  setUserLocation,
+  setGeocoderResult,
+  setSelectedBuilderItem,
+  setCurrentZoom,
+  addTemporaryFilter,
+  updateTemporaryFilter,
+  removeTemporaryFilter,
 } = mapSlice.actions;
 
 export const mapReducer = mapSlice.reducer;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useTranslation } from "@/i18n/client";
 
@@ -49,6 +49,11 @@ const ColorOptions = ({
     [layerStyle, onStyleChange, type]
   );
   const [opacity, setOpacity] = useState(layerStyle?.opacity || 1);
+
+  // Resets opacity when layerStyle changes
+  useEffect(() => {
+    setOpacity(layerStyle?.opacity || 1);
+  }, [layerStyle]);
 
   return (
     <SectionOptions

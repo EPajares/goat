@@ -3,35 +3,30 @@ name = "routing"
 version = "2.0.0"
 description = "GOAT Routing"
 authors = [
-    { name = "Plan4Better GmbH", email = "info@plan4better.de" },
+    { name = "Plan4Better GmbH", email = "dev@plan4better.de" },
 ]
 dependencies = [
-    "fastapi[standard]==0.115.4",
-    "sqlmodel==0.0.22",
-    "pydantic==2.9.2",
+    "fastapi[standard]==0.115.12",
+    "sqlmodel==0.0.24",
     "asyncpg==0.30.0",
     "psycopg==3.2.3",
     "psycopg-binary==3.2.3",
-    "polars==1.13.1",
-    "numpy==2.0.2",
-    "numba==0.60.0",
-    "scipy==1.14.1",
+    "numba==0.61.2",
+    "scipy==1.15.3",
     "geopandas==1.0.1",
     "shapely==2.0.6",
-    "pyarrow==18.0.0",
+    "pyarrow==20.0.0",
     "celery==5.4.0",
     "redis==5.2.0",
     "tqdm==4.67.0",
     "sentry-sdk==2.18.0",
-    "connectorx==0.4.0"
+    "pydantic>=2.9.2",
+    "numpy>=2.0.2",
+    "connectorx>=0.4.3",
+    "polars==1.31.0",
+    "rich>=13.9.4",
+    "pydantic-settings==2.9.1",
 ]
-
-# "connextorx" does not provide aarch64 wheels for linux yet (linux/arm64). 
-# This is only relevant when working on dev containers on aarch64 (e.g. Apple Silicon) to avoid using Rosseta emulator. 
-# Prod containers are unaffected as they run on linux/amd64. 
-# https://github.com/sfu-db/connector-x/issues/386
-[tool.uv.sources]
-connectorx = { url = "https://assets.plan4better.de/other/libs/connectorx-0.4.0-cp312-cp312-manylinux_2_35_aarch64.whl", marker = "platform_machine == 'aarch64' and platform_system == 'Linux'" }
 
 [build-system]
 requires = ["hatchling"]

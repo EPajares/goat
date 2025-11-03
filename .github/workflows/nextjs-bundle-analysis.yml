@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      
+
 jobs:
   build:
     if: ${{ github.event_name == 'push' }}
@@ -21,10 +21,10 @@ jobs:
 
       - name: 📥 Checkout PR
         if: ${{ github.event_name == 'pull_request' }}
-        uses: goat-community/.github/.github/actions/pr-git-checkout@main
+        uses: plan4better/.github/.github/actions/pr-git-checkout@main
 
       - name: 📥 Monorepo install
-        uses: goat-community/.github/.github/actions/pnpm-install@main
+        uses: plan4better/.github/.github/actions/pnpm-install@main
         with:
           enable-corepack: true
           cwd: ${{ github.workspace }}
@@ -33,14 +33,14 @@ jobs:
         uses: ./.github/actions/pnpm-cache-build
         with:
           cwd: ${{ github.workspace }}
-          
-      - name: 📊 Analyze bundle 
+
+      - name: 📊 Analyze bundle
         run: |
           cd apps/web
           npx -p nextjs-bundle-analysis@0.5.0 report
 
       - name: 📤 Upload bundle
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bundle
           path: ${{ github.workspace }}/apps/web/.next/analyze/__bundle_analysis.json

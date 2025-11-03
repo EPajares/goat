@@ -38,7 +38,7 @@ The following graphic explains the different elements of the map interface:
 
 - <img src={require('/img/map/interface/toolbox.png').default} alt="Toolbox" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Toolbox</code>:  Read more in <a title=" Toolbox " href="../category/toolbox"> Toolbox</a>.
 
-- <img src={require('/img/map/interface/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Scenarios</code>:  Read more in <a title="Scenarios" href="../category/scenarios "> Scenarios</a>.
+- <img src={require('/img/map/interface/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Scenarios</code>:  Read more in <a title="Scenarios" href="../Scenarios "> Scenarios</a>.
 
 ### Map Navigation
 

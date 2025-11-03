@@ -91,6 +91,7 @@ type Props = {
   pointZoom?: number;
   placeholder?: string;
   tooltip?: string;
+  onSelect?: (feature: Result | null) => void;
 };
 
 const COORDINATE_REGEX_STRING =
@@ -122,6 +123,7 @@ export default function Geocoder({
   language,
   placeholder,
   tooltip,
+  onSelect,
 }: Props) {
   const [value, setValue] = useState<Result | null>(null);
   const [options, setOptions] = useState<readonly Result[]>([]);
@@ -130,7 +132,13 @@ export default function Geocoder({
   const [collapsed, setCollapsed] = useState(true);
   const { map } = useMap();
   const theme = useTheme();
-
+  useEffect(() => {
+    // Clear selection on unmount
+    return () => {
+      onSelect?.(null);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const fetch = useMemo(
     () =>
       debounce((request: { value: string }, onresult: (_error: Error, fc: FeatureCollection) => void) => {
@@ -232,6 +240,7 @@ export default function Geocoder({
                   "&:hover": {
                     backgroundColor: theme.palette.background.default,
                   },
+                  pointerEvents: "all",
                 }}>
                 <Icon iconName={ICON_NAME.SEARCH} htmlColor="inherit" fontSize="small" />
               </Fab>
@@ -243,6 +252,7 @@ export default function Geocoder({
                 alignItems: "flex-start",
                 marginTop: theme.spacing(1),
                 marginBottom: theme.spacing(1),
+                pointerEvents: "all",
               }}
               id="geocoder"
               freeSolo
@@ -272,6 +282,7 @@ export default function Geocoder({
                   ]}
                   sx={{
                     boxShadow: 2,
+                    pointerEvents: "all",
                   }}
                   style={{ ...style, width: 350 }}
                 />
@@ -281,11 +292,17 @@ export default function Geocoder({
               onChange={(_event: any, newValue: Result | null) => {
                 setOptions(newValue ? [newValue, ...options] : options);
                 setValue(newValue);
-                if (newValue?.feature?.center)
-                  map.flyTo({
-                    center: newValue?.feature.center,
-                    zoom: pointZoom,
-                  });
+                if (newValue?.feature?.center) {
+                  if (newValue.feature?.bbox) {
+                    map.fitBounds(newValue.feature.bbox, { padding: 40, maxZoom: pointZoom, duration: 1000 });
+                  } else {
+                    map.flyTo({
+                      center: newValue.feature.center,
+                      zoom: pointZoom,
+                    });
+                  }
+                  onSelect?.(newValue);
+                }
               }}
               onInputChange={(_event, newInputValue) => {
                 setInputValue(newInputValue);
@@ -340,6 +357,7 @@ export default function Geocoder({
                           setInputValue("");
                           setValue(null);
                           setOptions([]);
+                          onSelect?.(null);
                         }}>
                         <Icon
                           iconName={ICON_NAME.CLOSE}

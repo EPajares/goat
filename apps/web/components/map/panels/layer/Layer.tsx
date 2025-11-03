@@ -16,7 +16,6 @@ import {
   MenuItem,
   MenuList,
   Stack,
-  TextField,
   Tooltip,
   Typography,
   useTheme,
@@ -32,7 +31,6 @@ import { useTranslation } from "@/i18n/client";
 
 import {
   addProjectLayers,
-  deleteProjectLayer,
   updateProject,
   updateProjectLayer,
   useProject,
@@ -69,6 +67,8 @@ import DatasetExplorerModal from "@/components/modals/DatasetExplorer";
 import DatasetExternalModal from "@/components/modals/DatasetExternal";
 import DatasetUploadModal from "@/components/modals/DatasetUpload";
 import MapLayerChartModal from "@/components/modals/MapLayerChart";
+import ProjectLayerDeleteModal from "@/components/modals/ProjectLayerDelete";
+import ProjectLayerRenameModal from "@/components/modals/ProjectLayerRename";
 
 type SortableLayerTileProps = {
   id: number;
@@ -263,7 +263,6 @@ const AddLayerSection = ({ projectId }: { projectId: string }) => {
 
 export const LayerVisibilityToggle = ({ layer, toggleLayerVisibility }) => {
   const { t } = useTranslation("common");
-  const theme = useTheme();
   if (layer.type === "table") {
     return null;
   }
@@ -279,12 +278,6 @@ export const LayerVisibilityToggle = ({ layer, toggleLayerVisibility }) => {
         onClick={(event) => {
           event.stopPropagation();
           toggleLayerVisibility(layer);
-        }}
-        sx={{
-          transition: theme.transitions.create(["opacity"], {
-            duration: theme.transitions.duration.standard,
-          }),
-          opacity: !layer.properties?.visibility ? 1 : 0,
         }}>
         <Icon
           iconName={!layer.properties?.visibility ? ICON_NAME.EYE_SLASH : ICON_NAME.EYE}
@@ -320,8 +313,6 @@ const LayerPanel = ({ projectId }: PanelProps) => {
     return count;
   }, [scenarioFeatures]);
 
-  const [renameLayer, setRenameLayer] = useState<ProjectLayer | undefined>(undefined);
-  const [newLayerName, setNewLayerName] = useState<string>("");
   const {
     getLayerMoreMenuOptions,
     openMoreMenu,
@@ -375,19 +366,6 @@ const LayerPanel = ({ projectId }: PanelProps) => {
     }
   }
 
-  async function deleteLayer(layer: ProjectLayer) {
-    try {
-      await deleteProjectLayer(projectId, layer.id);
-      mutateProjectLayers(projectLayers?.filter((l) => l.id !== layer.id));
-      if (layer.id === activeLayerId) {
-        dispatch(setActiveLayer(null));
-      }
-      mutateProject();
-    } catch (error) {
-      toast.error(t("error_removing_layer_from_project"));
-    }
-  }
-
   async function duplicateLayer(layer: ProjectLayer) {
     try {
       await addProjectLayers(projectId, [layer.layer_id]);
@@ -395,21 +373,6 @@ const LayerPanel = ({ projectId }: PanelProps) => {
       mutateProject();
     } catch (error) {
       toast.error(t("error_duplicating_layer"));
-    }
-  }
-
-  async function renameLayerName(layer: ProjectLayer) {
-    try {
-      setRenameLayer(undefined);
-      const udpatedProjectLayers = JSON.parse(JSON.stringify(projectLayers));
-      const index = udpatedProjectLayers.findIndex((l) => l.id === layer.id);
-      udpatedProjectLayers[index].name = newLayerName;
-      mutateProjectLayers(udpatedProjectLayers, false);
-      await updateProjectLayer(projectId, layer.id, udpatedProjectLayers[index]);
-    } catch (error) {
-      toast.error(t("error_renaming_layer"));
-    } finally {
-      setNewLayerName("");
     }
   }
 
@@ -443,16 +406,45 @@ const LayerPanel = ({ projectId }: PanelProps) => {
         <>
           {(moreMenuState?.id === ContentActions.DOWNLOAD || moreMenuState?.id === ContentActions.TABLE) &&
             activeLayerMoreMenu && (
-              <>
-                <ContentDialogWrapper
-                  content={activeLayerMoreMenu}
-                  action={moreMenuState.id as ContentActions}
-                  onClose={closeMoreMenu}
-                  onContentDelete={closeMoreMenu}
-                  type="layer"
-                />
-              </>
+              <ContentDialogWrapper
+                content={activeLayerMoreMenu}
+                action={moreMenuState.id as ContentActions}
+                onClose={closeMoreMenu}
+                onContentDelete={closeMoreMenu}
+                type="layer"
+              />
             )}
+          {moreMenuState?.id === ContentActions.DELETE && activeLayerMoreMenu && (
+            <ProjectLayerDeleteModal
+              open={true}
+              onClose={closeMoreMenu}
+              projectLayer={activeLayerMoreMenu}
+              onDelete={() => {
+                mutateProjectLayers(projectLayers?.filter((l) => l.id !== activeLayerMoreMenu.id));
+                if (activeLayerMoreMenu.id === activeLayerId) {
+                  dispatch(setActiveLayer(null));
+                }
+                mutateProject();
+                closeMoreMenu();
+              }}
+            />
+          )}
+
+          {moreMenuState?.id === MapLayerActions.RENAME && activeLayerMoreMenu && (
+            <ProjectLayerRenameModal
+              open={true}
+              onClose={closeMoreMenu}
+              projectLayer={activeLayerMoreMenu}
+              onRename={() => {
+                mutateProjectLayers(
+                  projectLayers?.map((l) => (l.id === activeLayerMoreMenu.id ? activeLayerMoreMenu : l))
+                );
+                mutateProject();
+                closeMoreMenu();
+              }}
+            />
+          )}
+
           {moreMenuState?.id === MapLayerActions.CHART && activeLayerMoreMenu && (
             <MapLayerChartModal
               open={true}
@@ -512,54 +504,23 @@ const LayerPanel = ({ projectId }: PanelProps) => {
                             </Typography>
                           </Stack>
 
-                          {renameLayer?.id === layer.id ? (
-                            <TextField
-                              autoFocus
-                              variant="standard"
-                              size="small"
-                              sx={{
-                                width: `calc(100% - ${
-                                  getActionLayerWidthOffset(layer) ? getActionLayerWidthOffset(layer) : 0
-                                }px)`,
-                              }}
-                              inputProps={{
-                                style: {
-                                  fontSize: "0.875rem",
-                                  fontWeight: "bold",
-                                },
-                              }}
-                              defaultValue={renameLayer.name}
-                              onChange={(e) => {
-                                setNewLayerName(e.target.value);
-                              }}
-                              onBlur={async () => {
-                                if (newLayerName !== "" && layer.name !== newLayerName) {
-                                  await renameLayerName(layer);
-                                } else {
-                                  setNewLayerName("");
-                                  setRenameLayer(undefined);
-                                }
-                              }}
-                            />
-                          ) : (
-                            <Stack
-                              direction="row"
-                              sx={{
-                                width: `calc(100% - ${
-                                  getActionLayerWidthOffset(layer) ? getActionLayerWidthOffset(layer) : 0
-                                }px)`,
+                          <Stack
+                            direction="row"
+                            sx={{
+                              width: `calc(100% - ${
+                                getActionLayerWidthOffset(layer) ? getActionLayerWidthOffset(layer) : 0
+                              }px)`,
+                            }}>
+                            <OverflowTypograpy
+                              variant="body2"
+                              fontWeight="bold"
+                              tooltipProps={{
+                                placement: "bottom",
+                                arrow: true,
                               }}>
-                              <OverflowTypograpy
-                                variant="body2"
-                                fontWeight="bold"
-                                tooltipProps={{
-                                  placement: "bottom",
-                                  arrow: true,
-                                }}>
-                                {layer.name}
-                              </OverflowTypograpy>
-                            </Stack>
-                          )}
+                              {layer.name}
+                            </OverflowTypograpy>
+                          </Stack>
                         </>
                       }
                       actions={
@@ -693,12 +654,8 @@ const LayerPanel = ({ projectId }: PanelProps) => {
                             onSelect={async (menuItem: PopperMenuItem) => {
                               if (menuItem.id === MapLayerActions.PROPERTIES) {
                                 openPropertiesPanel(layer);
-                              } else if (menuItem.id === ContentActions.DELETE) {
-                                await deleteLayer(layer);
                               } else if (menuItem.id === MapLayerActions.DUPLICATE) {
                                 await duplicateLayer(layer);
-                              } else if (menuItem.id === MapLayerActions.RENAME) {
-                                setRenameLayer(layer);
                               } else if (menuItem.id === MapLayerActions.ZOOM_TO) {
                                 if (map) {
                                   zoomToLayer(map, layer.extent);

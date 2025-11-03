@@ -1,24 +1,34 @@
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
-import { Box, useTheme } from "@mui/material";
+import type { Theme } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { useCallback, useMemo } from "react";
 import { Map, type MapLayerMouseEvent, type MapRef, type ViewState } from "react-map-gl/maplibre";
 import type { ViewStateChangeEvent } from "react-map-gl/maplibre";
 import { v4 } from "uuid";
 
 import { PATTERN_IMAGES } from "@/lib/constants/pattern-images";
-import { setHighlightedFeature, setPopupInfo } from "@/lib/store/map/slice";
+import { setCurrentZoom, setHighlightedFeature, setPopupInfo } from "@/lib/store/map/slice";
 import { addOrUpdateMarkerImages, addPatternImages } from "@/lib/transformers/map-image";
-import type { FeatureLayerPointProperties, Layer } from "@/lib/validations/layer";
+import createPulsingDot from "@/lib/utils/map/pulsing-dot-image";
+import type { LayerInteractionFieldListContent } from "@/lib/validations/layer";
+import {
+  type FeatureLayerPointProperties,
+  type Layer,
+  layerInteractionContentType,
+  layerInteractionType,
+} from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 import type { ScenarioFeatures } from "@/lib/validations/scenario";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
+import GeocoderLayer from "@/components/map/GeocoderLayer";
 import Layers from "@/components/map/Layers";
 import ScenarioLayer from "@/components/map/ScenarioLayer";
 import ToolboxLayers from "@/components/map/ToolboxLayers";
+import UserLocationLayer from "@/components/map/UserLocationLayer";
+import { MapPopoverInfo } from "@/components/map/controls/LayerInfo";
 import MapPopoverEditor from "@/components/map/controls/PopoverEditor";
-import MapPopoverInfo from "@/components/map/controls/PopoverInfo";
 import DrawControl from "@/components/map/controls/draw/Draw";
 
 interface MapProps {
@@ -86,50 +96,101 @@ const MapViewer: React.FC<MapProps> = ({
   };
 
   const handleMapClick = (e: MapLayerMouseEvent) => {
-    const features = e.features;
+    const { features } = e;
     const hiddenProperties = ["layer_id", "id", "h3_3", "h3_6"];
-    if (features && features.length > 0 && isGetInfoActive) {
-      const feature = features[0];
-      dispatch(setHighlightedFeature(feature));
-      const layerName = layers?.find((layer) => layer.id == feature.layer.id)?.name;
-      let lngLat = [e.lngLat.lng, e.lngLat.lat] as [number, number];
-      if (feature.geometry.type === "Point" && feature.geometry.coordinates) {
-        lngLat = [feature.geometry.coordinates[0], feature.geometry.coordinates[1]];
-      }
-      const properties = feature.properties;
-      const jsonProperties = {};
-      const primitiveProperties = {};
 
-      if (properties) {
-        for (const key in properties) {
-          if (!hiddenProperties.includes(key)) {
-            const value = properties[key];
-            try {
-              const parsedValue = JSON.parse(value);
-              if (typeof parsedValue === "object" && parsedValue !== null) {
-                jsonProperties[key] = parsedValue;
-              } else {
-                throw new Error();
+    if (features && features.length > 0 && isGetInfoActive) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let interactiveFeature = null as any;
+      let interactiveLayer: Layer | ProjectLayer | undefined = undefined;
+
+      // Find the first feature that has a click interaction by iterating through them
+      for (const feature of features) {
+        const layer = layers?.find(
+          (l) =>
+            l.id.toString() === feature.layer.id &&
+            ![layerInteractionType.Enum.none, layerInteractionType.Enum.hover].includes(
+              l.properties.interaction?.type
+            )
+        );
+
+        if (layer) {
+          interactiveFeature = feature;
+          interactiveLayer = layer;
+          break; // Found the topmost interactive feature, so we stop.
+        }
+      }
+
+      if (interactiveFeature && interactiveLayer) {
+        dispatch(setHighlightedFeature(interactiveFeature));
+
+        const layerName = interactiveLayer.name;
+        let lngLat: [number, number] = [e.lngLat.lng, e.lngLat.lat];
+        if (interactiveFeature.geometry.type === "Point" && interactiveFeature.geometry.coordinates) {
+          lngLat = [interactiveFeature.geometry.coordinates[0], interactiveFeature.geometry.coordinates[1]];
+        }
+
+        const interactionFieldLists = interactiveLayer.properties?.interaction?.content?.filter(
+          (content) => content.type === layerInteractionContentType.Enum.field_list
+        ) as LayerInteractionFieldListContent[] | undefined;
+
+        const propertyLabels = interactionFieldLists?.reduce(
+          (acc, content) => {
+            content.attributes.forEach((attr) => {
+              if (attr.label) {
+                acc[attr.label] = interactiveFeature.properties[attr.name] || "";
               }
-            } catch (error) {
-              primitiveProperties[key] = value;
+            });
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+
+        const properties =
+          propertyLabels && Object.keys(propertyLabels).length > 0
+            ? propertyLabels
+            : interactiveFeature.properties;
+
+        const jsonProperties = {};
+        const primitiveProperties = {};
+        if (properties) {
+          for (const key in properties) {
+            if (!hiddenProperties.includes(key)) {
+              const value = properties[key];
+              try {
+                // Type assertion to satisfy JSON.parse
+                const parsedValue = JSON.parse(value as string);
+                if (typeof parsedValue === "object" && parsedValue !== null) {
+                  jsonProperties[key] = parsedValue;
+                } else {
+                  throw new Error("Parsed value is not an object");
+                }
+              } catch (error) {
+                primitiveProperties[key] = value;
+              }
             }
           }
         }
+        dispatch(
+          setPopupInfo({
+            lngLat,
+            properties: primitiveProperties,
+            jsonProperties: jsonProperties,
+            title: layerName ?? "",
+            onClose: handlePopoverClose,
+          })
+        );
+      } else {
+        // No interactive features were found in the click stack.
+        dispatch(setHighlightedFeature(undefined));
+        dispatch(setPopupInfo(undefined));
       }
-      dispatch(
-        setPopupInfo({
-          lngLat,
-          properties: primitiveProperties,
-          jsonProperties: jsonProperties,
-          title: layerName ?? "",
-          onClose: handlePopoverClose,
-        })
-      );
     } else {
-      setHighlightedFeature(null);
+      // No features clicked or get info tool is not active.
+      dispatch(setHighlightedFeature(undefined));
       dispatch(setPopupInfo(undefined));
     }
+
     if (onClick) {
       onClick(e);
     }
@@ -155,6 +216,7 @@ const MapViewer: React.FC<MapProps> = ({
   const handleMapLoad = useCallback(() => {
     if (mapRef?.current) {
       // get all icon layers and add icons to map using addOrUpdateMarkerImages method
+
       layers?.forEach((layer) => {
         if (layer.type === "feature" && layer.feature_layer_geometry_type === "point") {
           const pointFeatureProperties = layer.properties as FeatureLayerPointProperties;
@@ -164,9 +226,34 @@ const MapViewer: React.FC<MapProps> = ({
 
       // load pattern images
       addPatternImages(PATTERN_IMAGES ?? [], mapRef.current);
+
+      // load geolocation images
+      const geolocationPulsingDot = createPulsingDot(mapRef.current);
+      mapRef.current.addImage("geolocation-pulsing-dot", geolocationPulsingDot, { pixelRatio: 2 });
+
+      // set current zoom
+      const map = mapRef.current.getMap();
+      const zoom = map.getZoom();
+      dispatch(setCurrentZoom(zoom));
     }
     onLoad && onLoad();
-  }, [layers, mapRef, onLoad]);
+  }, [layers, mapRef, onLoad, dispatch]);
+
+  const _onMove = useCallback(
+    (e: ViewStateChangeEvent) => {
+      if (onMove) {
+        onMove(e);
+      }
+      if (mapRef?.current) {
+        const map = mapRef.current.getMap();
+        const zoom = map.getZoom();
+        dispatch(setCurrentZoom(zoom));
+      }
+    },
+    [dispatch, onMove, mapRef]
+  );
+
+  const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
 
   return (
     <>
@@ -207,10 +294,11 @@ const MapViewer: React.FC<MapProps> = ({
           interactiveLayerIds={interactiveLayerIds}
           dragRotate={dragRotate}
           touchZoomRotate={touchZoomRotate}
+          attributionControl={false}
           onMoveEnd={onMoveEnd}
           onClick={handleMapClick}
           onMouseMove={handleMapOverImmediate}
-          onMove={onMove}
+          onMove={_onMove}
           maxBounds={maxExtent}
           onLoad={handleMapLoad}>
           {isEditor && (
@@ -227,9 +315,11 @@ const MapViewer: React.FC<MapProps> = ({
             selectedScenarioLayer={selectedScenarioEditLayer as ProjectLayer}
           />
           <ScenarioLayer scenarioLayerData={scenarioFeatures} projectLayers={layers as ProjectLayer[]} />
+          <GeocoderLayer />
+          <UserLocationLayer />
           <ToolboxLayers />
-          {popupInfo && <MapPopoverInfo key={highlightedFeature?.id ?? v4()} {...popupInfo} />}
-          {popupEditor && isEditor && (
+          {!isMobile && popupInfo && <MapPopoverInfo key={highlightedFeature?.id ?? v4()} {...popupInfo} />}
+          {!isMobile && popupEditor && isEditor && (
             <MapPopoverEditor
               key={popupEditor.feature?.id || popupEditor.feature?.properties?.id || v4()}
               {...popupEditor}

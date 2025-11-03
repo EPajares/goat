@@ -59,12 +59,12 @@ def dijkstra(start_vertices, adj_list, travel_time, use_distance=False):
     """
     n = len(adj_list)
     # distances = [np.Inf for _ in range(n)]
-    distances = np.full(n, np.Inf, np.double)
+    distances = np.full(n, np.inf, np.double)
     # loop over all start vertices
     for start_vertex in start_vertices:
         distances[start_vertex] = 0.0
         # visited = [False for _ in range(n)]
-        visited = np.full(n, False, np.bool8)
+        visited = np.full(n, False, np.bool_)
         # set up priority queue
         pq = [(0.0, start_vertex)]
         while len(pq) > 0:
@@ -103,14 +103,14 @@ def dijkstra_h3(start_vertices, adj_list, travel_time, use_distance=False):
     """
     distances_list = []
     n = len(adj_list)
-    # distances = [np.Inf for _ in range(n)]
+    # distances = [np.inf for _ in range(n)]
 
     # loop over all start vertices
     for start_vertex in start_vertices:
-        distances = np.full(n, np.Inf, np.double)
+        distances = np.full(n, np.inf, np.double)
         distances[start_vertex] = 0.0
         # visited = [False for _ in range(n)]
-        visited = np.full(n, False, np.bool8)
+        visited = np.full(n, False, np.bool_)
         # set up priority queue
         pq = [(0.0, start_vertex)]
         while len(pq) > 0:
@@ -416,7 +416,7 @@ def build_grid_interpolate_(
     distances, indices = tree.query(
         grid_points, k=1, distance_upper_bound=200, workers=-1
     )
-    distances[distances == np.inf] = np.NaN
+    distances[distances == np.inf] = np.nan
     additional_costs = (
         distances
         if is_distance_based
@@ -428,9 +428,9 @@ def build_grid_interpolate_(
 
     unvalid_indices = np.asarray(indices_flatten == len(costs)).nonzero()[0]
     mapped_costs = np.take(costs, indices_flatten, mode="clip")
-    np.put(mapped_costs, unvalid_indices, np.NaN)
+    np.put(mapped_costs, unvalid_indices, np.nan)
     mapped_costs = np.rint(mapped_costs + additional_costs)
-    distances[distances > max_traveltime] = np.NaN
+    distances[distances > max_traveltime] = np.nan
     Z = mapped_costs
     Z = Z.reshape(len(X), len(X[0]))
 
@@ -469,10 +469,10 @@ def build_grid_interpolate_h3(
 
     # Discard cost of centroids which are too far from any node
     invalid_indices = np.asarray(indices == len(costs)).nonzero()[0]
-    np.put(mapped_costs, invalid_indices, np.NaN)
+    np.put(mapped_costs, invalid_indices, np.nan)
 
     # Account for additional cost of travel from node to centroid
-    distances[distances == np.inf] = np.NaN
+    distances[distances == np.inf] = np.nan
     additional_costs = (
         distances
         if is_distance_based
@@ -484,7 +484,7 @@ def build_grid_interpolate_h3(
 
     # Discard cost of centroids which are further than the max travel time
     invalid_costs = np.asarray(mapped_costs > max_traveltime).nonzero()[0]
-    np.put(mapped_costs, invalid_costs, np.NaN)
+    np.put(mapped_costs, invalid_costs, np.nan)
 
     return mapped_costs
 
@@ -749,6 +749,7 @@ def compute_isochrone(
                 }
                 for idx in edges_length
                 if distances[edges_target[idx]] != np.inf
+                and distances[edges_target[idx]] <= travel_time
             ],
         }
     else:

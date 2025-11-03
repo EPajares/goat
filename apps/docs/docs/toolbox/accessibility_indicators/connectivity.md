@@ -11,7 +11,7 @@ import MathJax from 'react-mathjax';
 # Heatmap - Connectivity
 A color-coded map to visualize the connectivity of locations within an area of interest ([AOI](../../further_reading/glossary#area-of-interest-aoi "What is an AOI?")).
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/Zv9oiKQAu-s?si=7mv4uduUTuk6Qgbe" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/W1NDJlzR_gM?si=wR19yHToaAeZG0kY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Explanation
 
@@ -19,12 +19,26 @@ The heatmap uses a color-coded hexagonal grid to show how well-connected differe
 
 ![Connectivity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity.png "Connectivity-based Heatmap in GOAT")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 
 Heatmaps are available in certain regions. Upon selecting a `Routing type`, a **geofence** will be displayed on the map to highlight supported regions.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/geofence.png').default} alt="Geofence for Connectivity-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Coverage for Connectivity-based Heatmaps", color: "#ffffff" }
+      ]}
+  />
 </div>
 
 

@@ -110,7 +110,7 @@ const ProjectModal: React.FC<ProjectDialogProps> = ({ open, onClose }) => {
               options={folderOptions ?? []}
               control={control}
               name="folder_id"
-              label="Folder location"
+              label={t("folder_location")}
             />
             <TextField
               fullWidth

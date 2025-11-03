@@ -63,12 +63,20 @@
     "message": "Wenn Sie ein Projekt öffnen, sehen Sie die Karte. Hier können Sie eine Vielzahl von Geodatenanalysen durchführen, Statistiken und Benchmarks berechnen oder Feature-Layer visualisieren und gestalten.",
     "description": "Die generierte Beschreibung der Indexseite für die Kategorie Map in der Seitenleiste tutorialSidebar"
   },
-  "sidebar.tutorialSidebar.category.Layer Styling": {
-    "message": "Layer Styling",
+  "sidebar.tutorialSidebar.category.Layer Design": {
+    "message": "Layer Design",
     "description": "Das Label für die Kategorie Layer Styling in der Seitenleiste tutorialSidebar"
   },
-  "sidebar.tutorialSidebar.category.Layer Styling.link.generated-index.description": {
-    "message": "Alle der Karte hinzugefügten Layer können gestaltet werden. Dies kann mit der gleichen Farbe und dem gleichen Aussehen für alle Objekte oder mit einem attributbasierten Styling geschehen.",
+  "sidebar.tutorialSidebar.category.Layer Design.link.generated-index.description": {
+    "message": "Es lässt sich ändern, wie alle hinzugefügten Layer sich verhalten und auf der Karte darstellen. Es gibt mehrere Tools, die Ihnen helfen, Karten mit einzigartigem Aussehen zu erstellen.",
+    "description": "Die generierte Index-Seite Beschreibung für die Kategorie Layer Styling in der Seitenleiste tutorialSidebar"
+  },
+    "sidebar.tutorialSidebar.category.Style": {
+    "message": "Stil",
+    "description": "Das Label für die Kategorie Styling in der Seitenleiste tutorialSidebar"
+  },
+    "sidebar.tutorialSidebar.category.Style.link.generated-index.description": {
+    "message": "Alle zur Karte hinzugefügten Layer können stilisiert werden. Dies kann durch die Verwendung der gleichen Farbe und Darstellung für alle Features erfolgen, oder durch ein attributbasiertes Styling.",
     "description": "Die generierte Index-Seite Beschreibung für die Kategorie Layer Styling in der Seitenleiste tutorialSidebar"
   },
   "sidebar.tutorialSidebar.category.Toolbox": {

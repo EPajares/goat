@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { fetchWithAuth, fetcher } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import type { SystemSettings, SystemSettingsUpdate } from "@/lib/validations/system";
 
 export const SYSTEM_API_BASE_URL = new URL("api/v2/system", process.env.NEXT_PUBLIC_API_URL).href;
@@ -22,7 +22,7 @@ export const useSystemSettings = () => {
 export const updateSystemSettings = async (
   system_settings: SystemSettingsUpdate
 ): Promise<SystemSettings> => {
-  const response = await fetchWithAuth(`${SYSTEM_API_BASE_URL}/settings`, {
+  const response = await apiRequestAuth(`${SYSTEM_API_BASE_URL}/settings`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

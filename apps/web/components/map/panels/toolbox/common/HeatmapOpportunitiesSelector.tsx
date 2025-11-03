@@ -9,6 +9,7 @@ import { useTranslation } from "@/i18n/client";
 
 import { generateSeries } from "@/lib/utils/helpers";
 import type { LayerFieldType } from "@/lib/validations/layer";
+import { maxSensitivityValue } from "@/lib/validations/tools";
 
 import type { SelectorItem } from "@/types/map/common";
 
@@ -40,7 +41,7 @@ const HeatmapOpportunitiesSelector = ({
   const { t } = useTranslation("common");
   const theme = useTheme();
   const { projectId } = useParams();
-  const { filteredLayers } = useLayerByGeomType(["feature"], ["point"], projectId as string);
+  const { filteredLayers } = useLayerByGeomType(["feature"], ["point", "polygon"], projectId as string);
 
   const createDefaultOpportunity = (options = {}) => ({
     layer: undefined,
@@ -98,16 +99,26 @@ const HeatmapOpportunitiesSelector = ({
     activeLayer?.value as number | undefined,
     projectId as string
   );
-  const { layerFields: activeLayerFields } = useLayerFields(activeLayerDatasetId || "", "number");
+
+  const { layerFields: activeLayerFields } = useLayerFields(
+    activeLayerDatasetId || "",
+    "number",
+    undefined,
+    true
+  );
 
   const sensitivityOptions = useMemo(() => {
-    const series = generateSeries(50000, 500000);
+    const series = generateSeries(50000, maxSensitivityValue);
     const options = series.map((s) => ({
       value: s,
       label: s.toString(),
     }));
     return options;
   }, []);
+
+  const isValid = useMemo(() => {
+    return !areOpportunitiesValid || !opportunityFilteredLayers.length || opportunities.length >= 5;
+  }, [areOpportunitiesValid, opportunityFilteredLayers, opportunities.length]);
 
   return (
     <>
@@ -232,7 +243,7 @@ const HeatmapOpportunitiesSelector = ({
       <Divider />
       <Button
         fullWidth
-        disabled={!areOpportunitiesValid || !opportunityFilteredLayers.length || opportunities.length >= 5}
+        disabled={isValid}
         onClick={() => {
           if (heatmapType === "gravity") {
             setOpportunities((prev) => [...prev, ...defaultGravityOpportunities]);

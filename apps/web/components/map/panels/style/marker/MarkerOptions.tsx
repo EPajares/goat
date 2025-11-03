@@ -36,6 +36,9 @@ const MarkerOptions = ({
           selectedMarker={{
             name: layerStyle?.[`${type}`]?.["name"] || t("select_marker"),
             url: layerStyle?.[`${type}`]?.["url"] || "",
+            category: layerStyle?.[`${type}`]?.["category"] || "",
+            source: layerStyle?.[`${type}`]?.["source"] || "custom",
+            id: layerStyle?.[`${type}`]?.["id"] || "",
           }}
           label={t("single_marker")}
           onSelectMarker={(marker) => {
@@ -43,6 +46,9 @@ const MarkerOptions = ({
             newStyle[`${type}`] = {
               name: marker.name,
               url: marker.url,
+              category: marker.category,
+              source: marker.source,
+              id: marker.id,
             };
             if (onStyleChange) {
               onStyleChange(newStyle);

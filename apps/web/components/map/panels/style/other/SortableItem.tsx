@@ -48,14 +48,16 @@ export function SortableItem(props: SortableItemProps) {
             <DragIndicator fontSize="small" />
           </DragHandle>
         </Grid>
-        <Grid item xs={2} zeroMinWidth>
-          {props.picker}
-        </Grid>
-        <Grid item xs={6} zeroMinWidth>
+        {props.picker && (
+          <Grid item xs={2} zeroMinWidth>
+            {props.picker}
+          </Grid>
+        )}
+        <Grid item xs zeroMinWidth>
           {props.children}
         </Grid>
-        <Grid item xs={2}>
-          <Stack direction="row" justifyContent="flex-end">
+        <Grid item xs={2} zeroMinWidth>
+          <Stack direction="row" justifyContent="flex-end" sx={{ pr: 3 }}>
             {props.actions && props.actions}
           </Stack>
         </Grid>

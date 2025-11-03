@@ -13,7 +13,7 @@ import type { MarkerMap } from "@/lib/validations/layer";
 import type { MarkerItem, MarkerMapItem, OrdinalMarkerSelectorProps, ValueItem } from "@/types/map/marker";
 
 import { OverflowTypograpy } from "@/components/common/OverflowTypography";
-import { MarkerPopper } from "@/components/map/panels/style/marker/MarkerPopper";
+import MarkerPopper from "@/components/map/panels/style/marker/MarkerPopper";
 import DropdownFooter from "@/components/map/panels/style/other/DropdownFooter";
 import { LayerValueSelectorPopper } from "@/components/map/panels/style/other/LayerValueSelectorPopper";
 import { MaskedImageIcon } from "@/components/map/panels/style/other/MaskedImageIcon";
@@ -90,7 +90,13 @@ const OrdinalMarker = (props: OrdinalMarkerSelectorProps) => {
     newMarkerMaps.push({
       id: v4(),
       value: null,
-      marker: { name: "", url: "" },
+      marker: {
+        name: "",
+        url: "",
+        category: "",
+        source: "library",
+        id: "",
+      },
     });
     setValueMaps(newMarkerMaps);
   };
@@ -137,7 +143,24 @@ const OrdinalMarker = (props: OrdinalMarkerSelectorProps) => {
 
   return (
     <>
-      <MarkerPopper editingItem={editingMarkerItem} anchorEl={anchorEl} onMarkerChange={onMarkerChange} />
+      <MarkerPopper
+        anchorEl={anchorEl}
+        selectedMarker={editingMarkerItem?.marker}
+        onClose={() => {
+          setEditingMarkerItem(null);
+          setEditingValues(null);
+        }}
+        open={!!editingMarkerItem}
+        onSelectMarker={(marker) => onMarkerChange({ id: editingMarkerItem?.id || "", marker })}
+        popperProps={{
+          modifiers: [
+            {
+              name: "offset",
+              options: { offset: [0, 80] },
+            },
+          ],
+        }}
+      />
       {editingValues && (
         <LayerValueSelectorPopper
           open={!!editingValues?.id}
@@ -187,7 +210,11 @@ const OrdinalMarker = (props: OrdinalMarkerSelectorProps) => {
                         />
                       )}
                       {item.marker.url && (
-                        <MaskedImageIcon imageUrl={`${item.marker.url}`} dimension="19px" />
+                        <MaskedImageIcon
+                          imageUrl={`${item.marker.url}`}
+                          dimension="19px"
+                          applyMask={item.marker?.source === "custom" ? false : true}
+                        />
                       )}
                     </IconButton>
                   </>

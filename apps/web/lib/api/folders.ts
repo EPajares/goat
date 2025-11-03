@@ -1,6 +1,6 @@
 import useSWR from "swr";
 
-import { fetchWithAuth, fetcher } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import type { GetContentQueryParams } from "@/lib/validations/common";
 import type { FolderResponse } from "@/lib/validations/folder";
 
@@ -21,7 +21,7 @@ export const useFolders = (queryParams?: GetContentQueryParams) => {
 };
 
 export const deleteFolder = async (id: string) => {
-  const response = await fetchWithAuth(`${FOLDERS_API_BASE_URL}/${id}`, {
+  const response = await apiRequestAuth(`${FOLDERS_API_BASE_URL}/${id}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -31,7 +31,7 @@ export const deleteFolder = async (id: string) => {
 };
 
 export const createFolder = async (name: string) => {
-  const response = await fetchWithAuth(`${FOLDERS_API_BASE_URL}`, {
+  const response = await apiRequestAuth(`${FOLDERS_API_BASE_URL}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -45,7 +45,7 @@ export const createFolder = async (name: string) => {
 };
 
 export const updateFolder = async (id: string, name: string) => {
-  const response = await fetchWithAuth(`${FOLDERS_API_BASE_URL}/${id}`, {
+  const response = await apiRequestAuth(`${FOLDERS_API_BASE_URL}/${id}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",

@@ -11,19 +11,21 @@ interface ContainerProps {
   direction?: "left" | "right";
   body?: React.ReactNode;
   action?: React.ReactNode;
-  close: (item: MapSidebarItem | undefined) => void;
+  close?: (item: MapSidebarItem | undefined) => void;
   disablePadding?: boolean;
+  backgroundColor?: string;
+  disableClose?: boolean;
 }
 
 export default function Container(props: ContainerProps) {
-  const { header, body, action, close, title } = props;
+  const { header, body, action, close, title, backgroundColor, disableClose } = props;
 
   const theme = useTheme();
 
   return (
     <Stack
       sx={{
-        backgroundColor: theme.palette.background.default,
+        backgroundColor: backgroundColor || theme.palette.background.default,
         height: "100%",
       }}>
       {(header || title) && (
@@ -47,9 +49,11 @@ export default function Container(props: ContainerProps) {
                   width: "100%",
                 }}>
                 {header}
-                <IconButton onClick={() => close(undefined)}>
-                  <Icon iconName={ICON_NAME.CLOSE} fontSize="small" />
-                </IconButton>
+                {disableClose !== true && close && (
+                  <IconButton onClick={() => close(undefined)}>
+                    <Icon iconName={ICON_NAME.CLOSE} fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             ) : (
               <Box
@@ -68,9 +72,11 @@ export default function Container(props: ContainerProps) {
                   }}>
                   {title}
                 </Typography>
-                <IconButton onClick={() => close(undefined)}>
-                  <Icon iconName={ICON_NAME.CLOSE} fontSize="small" />
-                </IconButton>
+                {disableClose !== true && close && (
+                  <IconButton onClick={() => close(undefined)}>
+                    <Icon iconName={ICON_NAME.CLOSE} fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             )}
           </Stack>
@@ -88,7 +94,6 @@ export default function Container(props: ContainerProps) {
             }),
             overflowY: "auto",
             height: "100%",
-            scrollbarGutter: "stable both-edges",
             "&::-webkit-scrollbar": {
               width: "6px",
             },

@@ -46,7 +46,7 @@ const CatchmentAreaDistanceSelectors: React.FC<CatchmentAreaDistanceSelectorsPro
         setSelectedItems={(item: SelectorItem[] | SelectorItem | undefined) => {
           setSteps(item as SelectorItem);
         }}
-        items={getTravelCostConfigValues(3, 9)}
+        items={getTravelCostConfigValues(1, 9)}
         label={t("travel_time_step") + " (Steps)"}
         tooltip={t("travel_time_step_tooltip")}
       />

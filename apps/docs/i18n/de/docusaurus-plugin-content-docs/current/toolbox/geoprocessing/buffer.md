@@ -12,6 +12,8 @@ import TabItem from '@theme/TabItem';
 
 Der Puffer erstellt einen **Puffer um** angegebene **Punkte, Linien oder Polygone** mit einer festgelegten Pufferdistanz.
 
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/QSikKxqHeYw?si=lOqZGxxMrO3OL3Vi" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
 ## 1. Erklärung
 
 Ein **Puffer** ist ein Werkzeug, das verwendet wird, um das Einzugsgebiet um einen bestimmten Punkt, eine Linie oder ein Polygon zu definieren und das Ausmaß des Einflusses oder der Reichweite von diesem Punkt darzustellen. Benutzer können den ``Pufferabstand`` definieren und so den Radius des abgedeckten Bereichs anpassen.

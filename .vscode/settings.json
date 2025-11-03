@@ -1,7 +1,11 @@
 {
   "eslint.workingDirectories": [
-    { "pattern": "apps/*/" },
-    { "pattern": "packages/*/" }
+    {
+      "pattern": "apps/*/"
+    },
+    {
+      "pattern": "packages/*/"
+    }
   ],
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.preferences.importModuleSpecifier": "non-relative",
@@ -23,4 +27,15 @@
   "githubPullRequests.experimental.chat": true,
   "githubPullRequests.experimental.notificationsView": true,
   "python.defaultInterpreterPath": ".venv/bin/python",
+  "mypy-type-checker.ignorePatterns": [
+    ".direnv/*",
+    "docs/*",
+    "*generated/*",
+    "*cache*",
+    "dist*",
+    "alembic"
+  ],
+  "mypy-type-checker.importStrategy": "fromEnvironment",
+  "mypy-type-checker.reportingScope": "workspace",
+  "mypy-type-checker.preferDaemon": false,
 }

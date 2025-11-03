@@ -54,7 +54,7 @@ export const fetcher = async (params) => {
   return res.json();
 };
 
-export const fetchWithAuth = async (url: string, options?: RequestInit): Promise<Response> => {
+export const apiRequestAuth = async (url: string, options?: RequestInit): Promise<Response> => {
   const session = await getSession();
   if (session?.access_token) {
     if (!options) {

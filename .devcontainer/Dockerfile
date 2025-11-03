@@ -1,6 +1,6 @@
-FROM python:3.12-bookworm
+FROM python:3.11.12-bookworm
 
-ARG PYTHON_VERSION="3.12"
+ARG PYTHON_VERSION="3.11.12"
 ARG NODE_VERSION="20.15.0"
 ARG PNPM_VERSION="9.5.0"
 
@@ -70,5 +70,8 @@ RUN curl -sSL https://raw.githubusercontent.com/celery/celery/master/extra/gener
 ENV PNPM_VERSION=$PNPM_VERSION
 RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
+
 # Start Xvfb (virtual display) in the background for pymgl and keep the container running
 CMD bash -c "Xvfb ${DISPLAY} -screen 0 '1024x768x24' -ac +extension GLX +render -noreset -nolisten tcp & while true; do sleep 1000; done"
+
+

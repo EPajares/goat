@@ -14,8 +14,10 @@ import { toast } from "react-toastify";
 
 import { useTranslation } from "@/i18n/client";
 
+import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useJobs } from "@/lib/api/jobs";
-import { layerFeatureUrlUpload, layerFileUpload, updateLayerDataset } from "@/lib/api/layers";
+import { layerFeatureUrlUpload, updateLayerDataset } from "@/lib/api/layers";
+import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { externalDatasetFeatureUrlSchema } from "@/lib/validations/layer";
 
@@ -46,6 +48,7 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
     try {
       setIsBusy(true);
       let uploadResponse;
+      let s3Key;
       if (content?.data_type === "wfs") {
         const featureUrlPayload = externalDatasetFeatureUrlSchema.parse({
           data_type: "wfs",
@@ -53,15 +56,25 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
           other_properties: content.other_properties,
         });
         uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
+        if (!uploadResponse) {
+          throw new Error("Failed to upload dataset");
+        }
       } else if (fileValue) {
-        uploadResponse = await layerFileUpload(fileValue);
+        // Request backend for presigned URL
+        const presigned = await requestDatasetUpload({
+          filename: fileValue.name,
+          content_type: fileValue.type || "application/octet-stream",
+          file_size: fileValue.size,
+        });
+
+        // Upload file to S3 directly
+        await uploadFileToS3(fileValue, presigned);
+        s3Key = presigned?.fields?.key;
       }
-      if (!uploadResponse) {
-        throw new Error("Failed to upload dataset");
-      }
-      const datasetId = uploadResponse.dataset_id;
+
+      const datasetId = uploadResponse?.dataset_id;
       const layerId = content.id;
-      const response = await updateLayerDataset(layerId, datasetId);
+      const response = await updateLayerDataset(layerId, datasetId, s3Key);
       const jobId = response?.job_id;
       if (jobId) {
         mutate();

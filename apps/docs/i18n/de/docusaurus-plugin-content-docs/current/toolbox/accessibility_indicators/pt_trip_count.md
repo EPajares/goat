@@ -7,21 +7,36 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 Dieser Indikator zeigt die **durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel** pro Stunde für jede Haltestelle des ÖVs an.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/PBSGDCfBewQ?si=zF_2bhcBv0y_gAbJ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/bLKcxAqSNjA?si=7YetwUdGHMRnmdHE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
-Das Werkzeug "Afahrten ÖPNV" zeigt die *durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel pro Stunde** für ein ausgewähltes **Zeitfenster** für jede Haltestelle des öffentlichen Verkehrs auf einem Punkt-Layer an. Die Ergebnisse können entweder als Summe aller Verkehrsmittel oder durch Fokussierung auf einen bestimmtes davon (z.B. Bus, Straßenbahn, U-Bahn, Bahn) visualisiert werden.
+Das Werkzeug "Abfahrten ÖPNV" zeigt die *durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel pro Stunde** für ein ausgewähltes **Zeitfenster** für jede Haltestelle des öffentlichen Verkehrs auf einem Punkt-Layer an. Die Ergebnisse können entweder als Summe aller Verkehrsmittel oder durch Fokussierung auf einen bestimmtes davon (z.B. Bus, Straßenbahn, U-Bahn, Bahn) visualisiert werden.
 
 Dieser Indikator dient als Grundlage für die [ÖV-Güteklassen](./oev_gueteklassen.md), kann aber auch eigenständig als einfache Maßnahme für das Angebot an öffentlichen Verkehrsmitteln auf **Haltestellenebene** verwendet werden. Er gibt eine Zusammenfassung der Abfahrten einer Haltestelle während eines bestimmten Zeitfensters und Tages und bietet einen wertvollen Überblick über das öffentliche Verkehrsangebot in einer Stadt. Daher wird der Indikator oft in **Schwachstellenanalysen von lokalen Verkehrsplänen** verwendet (siehe unter anderem [Richtlinie für die Nahverkehrsplanung in Bayern](https://www.demografie-leitfaden-bayern.de/index.html)).
 
 ![Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/sample.png "Public Transport Trip Count")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info
 Abfahrten ÖPNV ist nur in Gebieten verfügbar, in denen das Verkehrsnetz in GOAT integriert ist.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence für die Berechnung des PT Trip Count in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für die Berechnung der ÖPNV-Abfahrten", color: "#ffffff" }
+      ]}
+  />
+
 </div>
 
 Falls Sie Analysen außerhalb dieses Geofences durchführen müssen, kontaktieren Sie bitte den [Support](https://plan4better.de/de/contact/ "Contact Support") und wir werden prüfen, was möglich ist.

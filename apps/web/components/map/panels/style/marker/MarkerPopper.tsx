@@ -1,47 +1,62 @@
-import { Box, Fade, Popper } from "@mui/material";
+import { Box, ClickAwayListener, Fade, Popper, type PopperProps } from "@mui/material";
+import React from "react";
 
-import type { MarkerItem } from "@/types/map/marker";
+import type { Marker } from "@/lib/validations/layer";
 
 import MarkerGallery from "@/components/map/panels/style/marker/MarkerGallery";
 
-export function MarkerPopper(props: {
-  editingItem: MarkerItem | null;
+interface MarkerPopperProps {
+  open: boolean;
   anchorEl: HTMLElement | null;
-  onMarkerChange: (item: MarkerItem) => void;
-}) {
+  onClose: () => void;
+  selectedMarker?: Marker | undefined;
+  onSelectMarker: (marker: Marker) => void;
+  popperProps?: Partial<PopperProps>; // 🔹 allow any Popper props
+}
+
+const MarkerPopper: React.FC<MarkerPopperProps> = ({
+  open,
+  anchorEl,
+  onClose,
+  selectedMarker,
+  onSelectMarker,
+  popperProps,
+}) => {
   return (
     <Popper
-      open={props.editingItem !== null}
-      anchorEl={props.anchorEl}
+      open={open}
+      anchorEl={anchorEl}
       transition
-      sx={{ zIndex: 2000, maxWidth: "240px" }}
       placement="left"
       modifiers={[
         {
           name: "offset",
-          options: {
-            offset: [0, 75],
-          },
+          options: { offset: [0, 50] },
         },
-      ]}>
+      ]}
+      sx={{ zIndex: 1000 }}
+      {...popperProps} // 🔹 allow overwriting placement, modifiers, etc.
+    >
       {({ TransitionProps }) => (
         <Fade {...TransitionProps}>
-          <Box sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
-            {props.editingItem && (
-              <MarkerGallery
-                onSelectMarker={(marker) => {
-                  if (props.editingItem) {
-                    props.onMarkerChange({
-                      ...props.editingItem,
-                      marker: marker,
-                    });
-                  }
-                }}
-              />
-            )}
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              width: "370px",
+              boxShadow: "0px 0px 10px 0px rgba(58, 53, 65, 0.1)",
+              overflowY: "auto",
+            }}>
+            <ClickAwayListener onClickAway={onClose}>
+              <Box>
+                <MarkerGallery selectedMarker={selectedMarker} onSelectMarker={onSelectMarker} />
+              </Box>
+            </ClickAwayListener>
           </Box>
         </Fade>
       )}
     </Popper>
   );
-}
+};
+
+export default MarkerPopper;

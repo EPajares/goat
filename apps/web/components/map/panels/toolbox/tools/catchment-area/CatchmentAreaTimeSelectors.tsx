@@ -87,7 +87,7 @@ const CatchmentAreaTimeSelectors: React.FC<CatchmentAreaTimeSelectorsProps> = ({
           setSteps(item as SelectorItem);
         }}
         errorMessage={!areStepsValid ? t("travel_time_step_error") : ""}
-        items={getTravelCostConfigValues(3, 9)}
+        items={getTravelCostConfigValues(1, 9)}
         label={t("travel_time_step") + " (Steps)"}
         tooltip={t("travel_time_step_tooltip")}
       />

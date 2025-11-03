@@ -176,7 +176,6 @@ const Toolbox = () => {
   const handleChange = (newValue: string) => {
     setValue(newValue);
   };
-
   return (
     <Box sx={{ height: "100%" }}>
       {!value && (

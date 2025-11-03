@@ -15,9 +15,9 @@ Intelligent software for modern web mapping and integrated planning
 </p>
 
 <p align="center">
-   <a href="https://github.com/goat-community/goat/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL-purple" alt="License"></a>
-   <a href="https://github.com/goat-community/goat/pulse"><img src="https://img.shields.io/github/commit-activity/m/goat-community/goat" alt="Commits-per-month"></a>
-    <a href="https://github.com/goat-community/goat/issues?q=is:issue+is:open+label:%22%F0%9F%99%8B%F0%9F%8F%BB%E2%80%8D%E2%99%82%EF%B8%8Fhelp+wanted%22"><img src="https://img.shields.io/badge/Help%20Wanted-Contribute-blue"></a>
+   <a href="https://github.com/plan4better/goat/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL-purple" alt="License"></a>
+   <a href="https://github.com/plan4better/goat/pulse"><img src="https://img.shields.io/github/commit-activity/m/plan4better/goat" alt="Commits-per-month"></a>
+    <a href="https://github.com/plan4better/goat/issues?q=is:issue+is:open+label:%22%F0%9F%99%8B%F0%9F%8F%BB%E2%80%8D%E2%99%82%EF%B8%8Fhelp+wanted%22"><img src="https://img.shields.io/badge/Help%20Wanted-Contribute-blue"></a>
 </p>
 
 <br/>
@@ -44,6 +44,10 @@ For more information check out:
 
 ## 👨‍💻 Built on Open Source
 
+GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
+
+### Frontend & Shared UI Components
+
 - 💻 [Typescript](https://www.typescriptlang.org/)
 
 - 🚀 [Next.js](https://nextjs.org/)
@@ -57,6 +61,21 @@ For more information check out:
 - 🔒 [Auth.js](https://authjs.dev/)
 
 - 🧘‍♂️ [Zod](https://zod.dev/)
+
+
+### Backend & API Services
+
+- 🐍 [Python](https://www.python.org/)
+
+- ⚡️ [FastAPI](https://fastapi.tiangolo.com/)
+
+- 📦 [Pydantic](https://pydantic.dev/)
+
+- 🗄️ [SQLAlchemy](https://www.sqlalchemy.org/)
+
+- 📊 [PostgreSQL with PostGIS](https://www.postgresql.org/)
+
+- 🔐 [Keycloak](https://www.keycloak.org/)
 
 <br/>
 

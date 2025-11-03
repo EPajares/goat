@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { debounce } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
@@ -5,6 +6,7 @@ import { useTranslation } from "@/i18n/client";
 
 import { useLayerUniqueValues } from "@/lib/api/layers";
 import type { GetLayerUniqueValuesQueryParams } from "@/lib/validations/layer";
+
 
 export const useGetMetadataValueTranslation = () => {
   const { t, i18n } = useTranslation(["common", "countries"]);
@@ -33,6 +35,7 @@ type UseDatasetValueSelectorMethods = {
   onSelectedValuesChange: (values: string[] | null) => void; // replace with the actual type of onSelectedValuesChange
   fieldName: string;
   datasetId: string;
+  cqlFilter?: object | undefined;
   onDone?: () => void;
 };
 
@@ -41,21 +44,22 @@ export const useDatasetValueSelectorMethods = ({
   onSelectedValuesChange,
   fieldName,
   datasetId,
+  cqlFilter,
   onDone,
 }: UseDatasetValueSelectorMethods) => {
   const [searchText, setSearchText] = useState("");
   const [queryParams, setQueryParams] = useState<GetLayerUniqueValuesQueryParams>({
-    size: 50,
+    size: 100,
     page: 1,
     order: "descendent",
+    ...(cqlFilter ? { query: JSON.stringify(cqlFilter) } : {})
   });
 
   const _selectedValues = useMemo(() => selectedValues || [], [selectedValues]);
 
   const { data, isLoading } = useLayerUniqueValues(datasetId, fieldName, queryParams);
-
   const debouncedSetSearchText = debounce((value) => {
-    const query = {
+    let query: any = {
       op: "like",
       args: [
         {
@@ -64,24 +68,54 @@ export const useDatasetValueSelectorMethods = ({
         `%${value}%`,
       ],
     };
+    if (cqlFilter) {
+      query = {
+        op: "and",
+        args: [
+          cqlFilter,
+          {
+            op: "like",
+            args: [
+              {
+                property: fieldName,
+              },
+              `%${value}%`,
+            ],
+          },
+        ],
+      };
+    }
     if (value !== "") {
       setQueryParams((params) => ({ ...params, query: JSON.stringify(query) }));
     } else {
-      setQueryParams((params) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { query, ...rest } = params;
-        return rest;
-      });
+      // Reset query based on cqlFilter presence
+      if (cqlFilter) {
+        setQueryParams((params) => ({
+          ...params,
+          query: JSON.stringify(cqlFilter),
+        }));
+      } else {
+        setQueryParams((params) => {
+          const { query: _, ...rest } = params;
+          return rest;
+        });
+      }
     }
   }, 300);
 
   const handleClearText = () => {
     setSearchText("");
-    setQueryParams((params) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { query, ...rest } = params;
-      return rest;
-    });
+    if (cqlFilter) {
+      setQueryParams((params) => ({
+        ...params,
+        query: JSON.stringify(cqlFilter),
+      }));
+    } else {
+      setQueryParams((params) => {
+        const { query: _, ...rest } = params;
+        return rest;
+      });
+    }
   };
 
   const handleDelete = (value) => {

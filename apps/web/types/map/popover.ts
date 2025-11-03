@@ -20,13 +20,14 @@ export type MapPopoverEditorProps = {
   onConfirm: (payload: any) => void;
 };
 
-export type MapPopoverInfoProps = {
+
+
+export interface MapPopoverInfoProps {
   title: string;
+  properties?: Record<string, string>; // Keep properties flexible
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  properties: { [name: string]: any } | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  jsonProperties: { [name: string]: any } | null;
+  jsonProperties?: Record<string, Array<{ [key: string]: any }>>; // Allow any value type in data
   lngLat: [number, number];
   onClose: () => void;
-};
+}
 

@@ -17,6 +17,6 @@ services:
       proxy:
 
   geoapi:
-    image: ghcr.io/goat-community/goat/geoapi:latest
+    image: ghcr.io/plan4better/goat/geoapi:latest
     networks:
       proxy:

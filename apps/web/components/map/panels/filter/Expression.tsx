@@ -229,8 +229,16 @@ const Expression: React.FC<ExpressionProps> = (props) => {
                   {/* {Value Selector} */}
                   {["is", "is_not"].includes(selectedExpressionOperation.value as string) && (
                     <SelectorLayerValue
+                      clearable
                       selectedValues={expression.value as string}
                       onSelectedValuesChange={(values: string | null) => {
+                        if (values === null) {
+                          setExpression({
+                            ...expression,
+                            value: "",
+                          });
+                          return;
+                        }
                         const fieldType = selectedAttribute?.type;
                         if (fieldType === "number" && values) {
                           setExpression({
@@ -255,6 +263,13 @@ const Expression: React.FC<ExpressionProps> = (props) => {
                     <SelectorLayerValue
                       selectedValues={expression.value ? (expression.value as unknown[]).map(String) : []}
                       onSelectedValuesChange={(values: string[] | null) => {
+                        if (values && values.length === 0) {
+                          setExpression({
+                            ...expression,
+                            value: [],
+                          });
+                          return;
+                        }
                         const fieldType = selectedAttribute?.type;
                         if (fieldType === "number" && values) {
                           const _values = values.map((value) => Number(value));

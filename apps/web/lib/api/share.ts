@@ -1,4 +1,4 @@
-import { fetchWithAuth } from "@/lib/api/fetcher";
+import { apiRequestAuth } from "@/lib/api/fetcher";
 import type { LayerSharedWith } from "@/lib/validations/layer";
 import type { ProjectSharedWith } from "@/lib/validations/project";
 
@@ -22,7 +22,7 @@ const shareItem = async (
 
   const queryParams = [organizationIdsParams, teamIdsParams].filter(Boolean).join("&");
 
-  const response = await fetchWithAuth(`${SHARE_API_BASE_URL}/${itemType}/${itemId}?${queryParams}`, {
+  const response = await apiRequestAuth(`${SHARE_API_BASE_URL}/${itemType}/${itemId}?${queryParams}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

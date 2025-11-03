@@ -1,5 +1,6 @@
 import * as z from "zod";
-
+import { v4 } from "uuid";
+import { DEFAULT_WKT_EXTENT } from "@/lib/constants";
 import { DEFAULT_COLOR, DEFAULT_COLOR_RANGE } from "@/lib/constants/color";
 import {
   contentMetadataSchema,
@@ -14,7 +15,6 @@ import {
 } from "@/lib/validations/common";
 import { responseSchema } from "@/lib/validations/response";
 import { publicUserSchema } from "@/lib/validations/user";
-import { DEFAULT_WKT_EXTENT } from "@/lib/constants";
 
 export const layerRoleEnums = z.enum(["layer-owner", "layer-viewer", "layer-editor"]);
 
@@ -31,14 +31,12 @@ export const shareLayerWithTeamOrOrganizationSchema = z.object({
   name: z.string().optional(),
   avatar: z.string().optional(),
   role: layerShareRoleEnum,
-})
-
+});
 
 export const shareLayerSchema = z.object({
   teams: z.array(shareLayerWithTeamOrOrganizationSchema).optional(),
   organizations: z.array(shareLayerWithTeamOrOrganizationSchema).optional(),
-})
-
+});
 
 const HexColor = z.string();
 const ColorMap = z.array(z.tuple([z.union([z.array(z.string()), z.null()]), HexColor]));
@@ -54,6 +52,7 @@ export const classBreaks = z.enum([
 
 export const sizeScale = z.enum(["linear", "logarithmic", "exponential"]);
 const layerFieldType = z.object({
+  $ref: z.string().optional(),
   name: z.string(),
   type: z.union([z.literal("string"), z.literal("number"), z.literal("object")]),
 });
@@ -66,7 +65,7 @@ export const layerClassBreaks = z.object({
 });
 
 const ColorLegends = z.record(z.string());
-const ColorRange = z.object({
+export const colorRange = z.object({
   name: z.string().optional(),
   type: z.string().optional(),
   category: z.string().optional(),
@@ -76,20 +75,22 @@ const ColorRange = z.object({
   color_legends: ColorLegends.optional(),
 });
 
+export const SymbolPlacementAnchor = z.enum(["center", "left", "right", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"]);
 export const TextLabelSchema = z.object({
   size: z.number().min(1).max(100).default(14),
   color: z.array(z.number().min(0).max(255)).optional().default([0, 0, 0]),
   field: z.string().optional(),
-  offset: z.array(z.number().min(0).max(100)).optional().default([0, 0]),
-  anchor: z.enum(["start", "middle", "end"]).optional().default("middle"),
+  offset: z.array(z.number().min(-5).max(5)).optional().default([0, 0]),
+  anchor: SymbolPlacementAnchor.default("bottom"),
   alignment: z.enum(["center", "left", "right"]).optional().default("center"),
   background: z.boolean().optional().default(false),
-  background_color: z.array(z.number().min(0).max(255)).optional().default([0, 0, 200, 255]),
-  outline_color: z.array(z.number().min(0).max(255)).optional().default([255, 0, 0, 255]),
-  outline_width: z.number().min(0).max(100).optional().default(0),
+  allow_overlap: z.boolean().optional().default(false),
+  font_family: z.array(z.string()).optional().default(["Open Sans Regular", "Arial Unicode MS Regular"]),
+  background_color: z.array(z.number().min(0).max(255)).optional().default([0, 0, 0, 0]),
+  outline_color: z.array(z.number().min(0).max(255)).optional().default([255, 255, 255]),
+  outline_width: z.number().min(0).max(10).optional().default(0),
 });
 
-export const TextLabel = z.array(TextLabelSchema);
 
 export const layerPropertiesBaseSchema = z.object({
   opacity: z.number().min(0).max(1).default(0.8),
@@ -100,7 +101,7 @@ export const layerPropertiesBaseSchema = z.object({
 
 export const colorSchema = z.object({
   color: z.array(z.number().min(0).max(255)).optional().default(DEFAULT_COLOR),
-  color_range: ColorRange.optional().default(DEFAULT_COLOR_RANGE),
+  color_range: colorRange.optional().default(DEFAULT_COLOR_RANGE),
   color_field: layerFieldType.optional(),
   color_scale: classBreaks.optional().default("quantile"),
   color_scale_breaks: layerClassBreaks.optional(),
@@ -108,7 +109,7 @@ export const colorSchema = z.object({
 
 export const strokeColorSchema = z.object({
   stroke_color: z.array(z.number().min(0).max(255)).optional().default(DEFAULT_COLOR),
-  stroke_color_range: ColorRange.optional().default(DEFAULT_COLOR_RANGE),
+  stroke_color_range: colorRange.optional().default(DEFAULT_COLOR_RANGE),
   stroke_color_field: layerFieldType.optional(),
   stroke_color_scale: classBreaks.optional().default("quantile"),
   stroke_color_scale_breaks: layerClassBreaks.optional(),
@@ -130,8 +131,11 @@ export const radiusSchema = z.object({
 });
 
 export const marker = z.object({
+  id: z.string().optional(),
   name: z.string(),
   url: z.string(),
+  category: z.string().optional(),
+  source: z.enum(["library", "custom"]).optional().default("library"),
 });
 
 const MarkerMap = z.array(z.tuple([z.union([z.array(z.string()), z.null()]), marker]));
@@ -148,13 +152,55 @@ export const markerSchema = z.object({
   marker_size_field: layerFieldType.optional(),
   marker_background_type: markerBackgroundType.optional().default("marker"),
   marker_allow_overlap: z.boolean().optional().default(false),
+  marker_anchor: SymbolPlacementAnchor.optional().default("center"),
+  marker_offset: z.array(z.number().min(-5).max(5)).optional().default([0, 0]),
 });
+
+export const layerInteractionContentType = z.enum(["field_list", "image"]);
+
+export const attributeSchema = z.object({
+  name: z.string(),
+  label: z.string().optional(),
+  type: z.enum(["string", "number", "boolean"]),
+  format: z.string().optional(),
+});
+
+
+export const interactionFieldListContent = z.object({
+  id: z.string().uuid().default(() => v4()),
+  type: z.literal(layerInteractionContentType.Enum.field_list).default("field_list"),
+  title: z.string().optional(),
+  attributes: z.array(attributeSchema).optional().default([]),
+});
+
+export const interactionImageContent = z.object({
+  id: z.string().uuid().default(() => v4()),
+  type: z.literal(layerInteractionContentType.Enum.image).default("image"),
+  title: z.string().optional(),
+  url: z.string().optional().default(""),
+});
+
+export const layerInteractionContent = z.union([interactionFieldListContent, interactionImageContent]);
+
+export const layerInteractionType = z.enum(["click", "hover", "none"]);
+
+export const interactionProperties = z.object({
+  type: layerInteractionType.optional().default("click"),
+  content: z.array(interactionFieldListContent.or(interactionImageContent)).default([]),
+});
+
+export const layerLegend = z.object({
+  show: z.boolean().default(true),
+  caption: z.string().optional(),
+})
 
 export const featureLayerBasePropertiesSchema = z
   .object({
     filled: z.boolean().default(true),
     stroked: z.boolean().default(true),
-    text_label: TextLabel.optional(),
+    text_label: TextLabelSchema.optional(),
+    interaction: interactionProperties.optional().default({}),
+    legend: layerLegend.optional().default({}),
   })
   .merge(layerPropertiesBaseSchema)
   .merge(colorSchema)
@@ -173,6 +219,11 @@ export const featureLayerPolygonPropertiesSchema = featureLayerBasePropertiesSch
 export const featureLayerProperties = featureLayerPointPropertiesSchema
   .or(featureLayerLinePropertiesSchema)
   .or(featureLayerPolygonPropertiesSchema);
+
+export const featureLabelProperties = z.object({});
+
+
+
 
 // lineage, positional_accuracy, attribute_accuracy, completeness
 export const layerMetadataSchema = contentMetadataSchema.extend({
@@ -246,13 +297,12 @@ export const externalDatasetFeatureUrlSchema = z.object({
 });
 
 export const createLayerFromDatasetSchema = createLayerBaseSchema.extend({
-  dataset_id: z.string().uuid(),
+  s3_key: z.string().optional(),
+  dataset_id: z.string().optional(),
   project_id: z.string().uuid().optional(),
   data_type: dataType.optional(),
   other_properties: otherPropertiesSchmea.optional(),
 });
-
-
 
 export const createRasterLayerSchema = createLayerBaseSchema.extend({
   type: z.literal("raster"),
@@ -261,7 +311,7 @@ export const createRasterLayerSchema = createLayerBaseSchema.extend({
   extent: z.string().optional(),
   properties: z.record(z.any()).optional(), // add validation for raster properties
   other_properties: otherPropertiesSchmea,
-})
+});
 
 export const layerQueryables = z.object({
   title: z.string(),
@@ -358,9 +408,6 @@ export const datasetMetadataAggregated = z.object({
   license: z.array(datasetMetadataValue),
 });
 
-
-
-
 export type DatasetCollectionItems = z.infer<typeof datasetCollectionItems>;
 export type GetCollectionItemsQueryParams = z.infer<typeof datasetCollectionItemsQueryParams>;
 export type GetDatasetSchema = z.infer<typeof getDatasetSchema>;
@@ -373,7 +420,7 @@ export const layerResponseSchema = responseSchema(layerSchema);
 export const layerTypesArray = Object.values(layerType.Values);
 export const featureLayerTypesArray = Object.values(featureLayerType.Values);
 
-export type ColorRange = z.infer<typeof ColorRange>;
+export type ColorRange = z.infer<typeof colorRange>;
 export type ColorMap = z.infer<typeof ColorMap>;
 export type Layer = z.infer<typeof layerSchema>;
 export type PostDataset = z.infer<typeof postDatasetSchema>;
@@ -398,3 +445,7 @@ export type ExternalDatasetFeatureUrl = z.infer<typeof externalDatasetFeatureUrl
 export type CreateLayerFromDataset = z.infer<typeof createLayerFromDatasetSchema>;
 export type CreateRasterLayer = z.infer<typeof createRasterLayerSchema>;
 export type LayerSharedWith = z.infer<typeof shareLayerSchema>;
+export type TextLabelSchemaData = z.infer<typeof TextLabelSchema>;
+export type LayerInteractionContentType = z.infer<typeof layerInteractionContentType>;
+export type LayerInteractionContent = z.infer<typeof layerInteractionContent>;
+export type LayerInteractionFieldListContent = z.infer<typeof interactionFieldListContent>;

@@ -31,37 +31,55 @@ CONNECTOR_DATA_SCHEMA = {
 }
 
 VALID_WALKING_CLASSES = [
+    "primary",
     "secondary",
     "tertiary",
     "residential",
     "living_street",
     "trunk",
     "unclassified",
-    "parking_aisle",
-    "driveway",
-    "alley",
+    "service",
     "pedestrian",
     "footway",
-    "sidewalk",
-    "crosswalk",
     "steps",
+    "path",
     "track",
+    "cycleway",
     "bridleway",
     "unknown",
 ]
 
 VALID_BICYCLE_CLASSES = [
+    "primary",
     "secondary",
     "tertiary",
     "residential",
     "living_street",
     "trunk",
     "unclassified",
-    "parking_aisle",
-    "driveway",
-    "alley",
+    "service",
     "pedestrian",
-    "crosswalk",
+    "footway",
+    "path",
+    "track",
+    "cycleway",
+    "bridleway",
+    "unknown",
+]
+BICYCLE_SPEED_FOOTWAYS = 5
+
+VALID_WHEELCHAIR_CLASSES = [
+    "primary",
+    "secondary",
+    "tertiary",
+    "residential",
+    "living_street",
+    "trunk",
+    "unclassified",
+    "service",
+    "pedestrian",
+    "footway",
+    "path",
     "track",
     "cycleway",
     "bridleway",
@@ -77,9 +95,7 @@ VALID_CAR_CLASSES = [
     "living_street",
     "trunk",
     "unclassified",
-    "parking_aisle",
-    "driveway",
-    "alley",
+    "service",
     "track",
 ]
 
@@ -113,12 +129,20 @@ class CatchmentAreaRoutingTypeActiveMobility(str, Enum):
     walking = "walking"
     bicycle = "bicycle"
     pedelec = "pedelec"
-
+    wheelchair = "wheelchair"
 
 class CatchmentAreaRoutingTypeCar(str, Enum):
     """Routing car type schema."""
 
     car = "car"
+
+
+H3_CELL_RESOLUTION = {
+    CatchmentAreaRoutingTypeActiveMobility.walking: 10,
+    CatchmentAreaRoutingTypeActiveMobility.bicycle: 9,
+    CatchmentAreaRoutingTypeActiveMobility.pedelec: 9,
+    CatchmentAreaRoutingTypeCar.car: 8,
+}
 
 
 class CatchmentAreaTravelTimeCostActiveMobility(BaseModel):

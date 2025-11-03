@@ -1,14 +1,16 @@
 import { Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useTranslation } from "@/i18n/client";
 
-import type { FeatureLayerProperties, LayerFieldType } from "@/lib/validations/layer";
+import type { FeatureLayerProperties, Layer, LayerFieldType } from "@/lib/validations/layer";
+import type { ProjectLayer } from "@/lib/validations/project";
 
 import FormLabelHelper from "@/components/common/FormLabelHelper";
 import LayerFieldSelector from "@/components/map/common/LayerFieldSelector";
 import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import SliderInput from "@/components/map/panels/common/SliderInput";
+import MarkerSettings from "@/components/map/panels/style/marker/MarkerSettings";
 
 const Settings = ({
   type,
@@ -18,6 +20,7 @@ const Settings = ({
   onStyleChange,
   selectedField,
   layerFields,
+  activeLayer,
 }: {
   type: "stroke_width" | "radius" | "marker_size";
   layerStyle?: FeatureLayerProperties;
@@ -26,12 +29,23 @@ const Settings = ({
   onStyleChange?: (newStyle: FeatureLayerProperties) => void;
   selectedField?: LayerFieldType;
   layerFields: LayerFieldType[];
+  activeLayer?: ProjectLayer | Layer;
 }) => {
   const { t } = useTranslation("common");
 
-  const [value, setValue] = useState(
-    layerStyle?.[`${type}_field`] ? layerStyle?.[`${type}_range`] || [0, 50] : layerStyle?.[`${type}`] || 0
-  );
+  const initialValue = layerStyle?.[`${type}_field`]
+    ? layerStyle?.[`${type}_range`] || [0, 50]
+    : layerStyle?.[`${type}`] || 0;
+
+  const [value, setValue] = useState(initialValue);
+
+  // Resets value when activeLayer.id or layerStyle changes
+  useEffect(() => {
+    const newValue = layerStyle?.[`${type}_field`]
+      ? layerStyle?.[`${type}_range`] || [0, 50]
+      : layerStyle?.[`${type}`] || 0;
+    setValue(newValue);
+  }, [activeLayer?.id, layerStyle, type]);
 
   const isRange = useMemo(() => (layerStyle?.[`${type}_field`] ? true : false), [layerStyle, type]);
 
@@ -71,7 +85,16 @@ const Settings = ({
             </Stack>
             {type === "marker_size" && (
               <Stack>
-                <FormLabelHelper label={t("placement")} color="inherit" />
+                <Stack sx={{ mb: 4 }}>
+                  {activeLayer && (
+                    <MarkerSettings
+                      layer={activeLayer}
+                      onStyleChange={async (newStyle: FeatureLayerProperties) => {
+                        onStyleChange && onStyleChange(newStyle);
+                      }}
+                    />
+                  )}
+                </Stack>
                 <FormControlLabel
                   control={
                     <Checkbox

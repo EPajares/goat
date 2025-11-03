@@ -48,6 +48,7 @@ export function Recenter({ initialExtent }: RecenterProps) {
                   "&:hover": {
                     backgroundColor: theme.palette.background.default,
                   },
+                  pointerEvents: "all",
                 }}>
                 <Icon iconName={ICON_NAME.MINIMIZE} htmlColor="inherit" fontSize="small" />
               </Fab>

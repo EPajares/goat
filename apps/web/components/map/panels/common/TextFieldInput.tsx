@@ -13,6 +13,9 @@ type TextFieldInputProps = {
   onFocus?: () => void;
   type?: "text" | "number";
   clearable?: boolean;
+  placeholder?: string;
+  multiline?: boolean;
+  rows?: number;
 };
 
 const TextFieldInput: React.FC<TextFieldInputProps> = ({
@@ -23,7 +26,10 @@ const TextFieldInput: React.FC<TextFieldInputProps> = ({
   tooltip,
   onFocus,
   type,
+  placeholder = "",
   clearable = true,
+  multiline = false,
+  rows = 2,
 }) => {
   const theme = useTheme();
   const [focused, setFocused] = useState(false);
@@ -44,10 +50,13 @@ const TextFieldInput: React.FC<TextFieldInputProps> = ({
           setFocused(true);
           if (onFocus) onFocus();
         }}
+        multiline={multiline}
+        rows={rows}
+        placeholder={placeholder}
         onBlur={() => setFocused(false)}
         disabled={disabled}
         size="small"
-        sx={{ pr: 0 }}
+        sx={{ pr: 0, fontSize: "0.875rem" }}
         inputProps={{
           type,
           style: {

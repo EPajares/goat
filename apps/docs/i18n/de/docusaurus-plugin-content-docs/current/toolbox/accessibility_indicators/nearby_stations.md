@@ -21,11 +21,25 @@ Die Nahverkehrsanalyse (Nahgelegene ÖV-Haltestellen) ist ein geeignetes Werkzeu
 
 ![Nearby Stations in GOAT](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_example.png "Nearby Stations in GOAT")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 Die Berechnung der nahegelegenen Haltestellen ist nur für Gebiete verfügbar, in denen das öffentliche Verkehrsnetz in GOAT integriert ist.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/geofence-pt.png').default} alt="Geofence for nearby stations calculation in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für die Berechnung der nächstgelegenen ÖV-Haltestellen", color: "#ffffff" }
+      ]}
+  />
 </div> 
 
 Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, wenden Sie sich bitte an den [Support](https://plan4better.de/de/contact/ "Support") und wir werden prüfen, was möglich ist.

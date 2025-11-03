@@ -7,7 +7,7 @@ const unitEnum = z.enum(["metric", "imperial"]);
 export const systemSettingsSchemaBase = z.object({
   client_theme: clientThemeEnum,
   preferred_language: preferredLanguageEnum,
-  unit: unitEnum,
+  unit: unitEnum.default("metric")
 });
 
 export const systemSettingsSchema = systemSettingsSchemaBase.extend({

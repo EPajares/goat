@@ -1,270 +1,247 @@
 ---
-  name: Docker Build and Push
+name: Docker Build and Push
+on:
+  workflow_call:
+    inputs:
+      comment-enable:
+        description: Create a PR comment with image tags and labels
+        required: false
+        default: false
+        type: boolean
+      context:
+        description: Docker context (path) to start build from
+        required: false
+        type: string
+      dockerhub-enable:
+        description: Log into Docker Hub
+        required: false
+        default: false
+        type: boolean
+      file:
+        description: Dockerfile path relative to context
+        required: false
+        type: string
+      flavor-rules:
+        description: Metadata flavor rules
+        required: false
+        type: string
+        default: |
+          latest=auto
+      ghcr-enable:
+        description: Log into GHCR
+        required: false
+        default: true
+        type: boolean
+      image-name:
+        description: Docker image name to build
+        required: true
+        type: string
+        default: ghcr.io/${{ github.repository }}
+      platforms:
+        description: Platforms to build for
+        required: false
+        type: string
+        default: linux/amd64
+      push:
+        description: Push image(s) to registry
+        required: false
+        default: true
+        type: boolean
+      tag-rules:
+        description: Tag rules for docker/metadata-action
+        required: false
+        type: string
+        default: |
+          type=raw,value={{sha}}
+          type=ref,event=tag,priority=200
+          type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }},priority=100
+          type=ref,event=pr,priority=100
+      target:
+        description: Docker build target stage name
+        required: false
+        type: string
+    secrets:
+      dockerhub-username:
+        required: false
+      dockerhub-token:
+        required: false
 
-  on:
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
 
-    # REUSABLE WORKFLOW with INPUTS
-    # to keep this workflow simple, assumptions are made:
-      # - only able to push to Docker Hub and/or GHCR (GHCR by default)
-      # - adds a comment to PRs of tags and label metadata
-      # - you want to use GitHub cache for buildx image layers
-      # - Builds on PR with tag of `pr-NUMBER` (same tag each PR push)
-      # - Builds on push to default_branch will have a unique tag of `stable-YYYYMMDD-SHA`
-      # - Builds on push to default_branch will have a reusable tag of `latest` (useful for easy human testing, not servers)
-      # - Builds on a tag push with semver will also have a reusable tag of `latest` and also a semver tag
-      # - Defaults to only linux/amd64 platform builds, but can build for others in parallel
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-latest
+    steps:
+      - name: 📥 Prepare safe identifiers
+        run: |
+          # sanitize platform for artifact/cache scopes
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
-    workflow_call:
-      # allow reuse of this workflow in other repos
-      inputs:
-        comment-enable:
-          description: Create a PR comment with image tags and labels
-          required: false
-          default: false
-          type: boolean
-        context:
-          description: Docker context (path) to start build from
-          # To set to a subdir, use format of "{{defaultContext}}:mysubdir"
-          required: false
-          type: string
-        dockerhub-enable:
-          description: Log into Docker Hub
-          required: false
-          default: false
-          type: boolean
-        file:
-          description: Dockerfile to build, relative to context path
-          required: false
-          type: string
-        flavor-rules:
-          # https://github.com/marketplace/actions/docker-metadata-action#flavor-input
-          description: Three rules to (optionally) set for tag-rules, latest, prefix, and suffix
-          required: false
-          type: string
-          default: |
-              latest=auto
-        ghcr-enable:
-          description: Log into GHCR
-          required: false
-          default: true
-          type: boolean
-        image-name:
-          description: Docker image name to build
-          required: true
-          type: string
-          default: |
-            ghcr.io/${{ github.repository }}
-        platforms:
-          description: Platforms to build for
-          required: false
-          type: string
-          # common ones: linux/amd64,linux/arm64,linux/arm/v7
-          default: linux/amd64
-        push:
-          description: Push image to registry(s)
-          required: false
-          type: boolean
-          default: true
-        tag-rules:
-          # https://github.com/marketplace/actions/docker-metadata-action#tags-input
-          description: Use docker-metadata action to create tags from a key-value pair list in CSV format
-          required: false
-          type: string
-          default: |
-            type=raw,value={{sha}}
-            type=ref,event=tag,priority=200
-            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }},priority=100
-            type=ref,event=pr,priority=100
+          # sanitize image name for artifact uniqueness
+          image="${{ inputs.image-name }}"
+          safe_image=${image//\//-}
+          echo "SAFE_IMAGE=$safe_image" >> $GITHUB_ENV
 
-        target:
-          description: Build stage to target
-          required: false
-          type: string
+      - uses: actions/checkout@v4
 
-      secrets:
-        dockerhub-username:
-          description: Docker Hub username
-          required: false
-        dockerhub-token:
-          description: Docker Hub token
-          required: false
+      - name: 🐹 Set up QEMU for cross-arch builds
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
 
-  # set permissions here for what's required to run this Reusable Workflow
-  # However, permisions are set in the GITHUB_TOKEN by the **calling** workflow
-  # Calling permissions must be equal to or greater than these reusable permissions for it to work
-  # https://docs.github.com/en/actions/using-workflows/reusing-workflows#supported-keywords-for-jobs-that-call-a-reusable-workflow
+      - name: 🐳 Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3
 
-  permissions:
-    contents: read
-    packages: write # needed to push docker image to ghcr.io
-    pull-requests: write # needed to create and update comments in PRs
+      - name: 🐳 Login to DockerHub
+        if: inputs.dockerhub-enable
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.dockerhub-username }}
+          password: ${{ secrets.dockerhub-token }}
 
-  jobs:
-    build:
-      runs-on: ${{ matrix.runner }}
-      strategy:
-        matrix:
-          platform: [linux/amd64, linux/arm64]
-          include:
-            - platform: linux/amd64
-              runner: ubuntu-latest
-            - platform: linux/arm64
-              runner: ubuntu-latest
+      - name: 📦 Login to GHCR
+        if: inputs.ghcr-enable
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      steps:
-        - name: 📥 Prepare
-          run: |
-            platform=${{ matrix.platform }}
-            echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+      - name: 🐳 Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.image-name }}
+          flavor: ${{ inputs.flavor-rules }}
+          tags: ${{ inputs.tag-rules }}
 
-        - name: 📥 Checkout
-          uses: actions/checkout@v4
+      - name: 🐳 Build and Push per-platform (digest only)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          provenance: false
+          platforms: ${{ matrix.platform }}
+          context: ${{ inputs.context }}
+          file: ${{ inputs.file }}
+          target: ${{ inputs.target }}
+          push: true
+          outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=true
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          cache-from: type=gha,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
 
-        - name: 🐳 Set up Docker Buildx
-          id: buildx
-          uses: docker/setup-buildx-action@v3
+      - name: 📤 Export digest
+        run: |
+          mkdir -p /tmp/digests
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"
 
-        - name: 🐳 Login to DockerHub
-          if: inputs.dockerhub-enable
-          uses: docker/login-action@v2.2.0
-          with:
-            username: ${{ secrets.dockerhub-username }}
-            password: ${{ secrets.dockerhub-token }}
+      - name: 📤 Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
 
-        - name: 📦 Login to GHCR
-          if: inputs.ghcr-enable
-          uses: docker/login-action@v2.2.0
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
+      # --- Optional PR comment
+      - name: 💬 Find PR comment
+        if: github.event_name == 'pull_request' && inputs.comment-enable
+        id: fc
+        uses: peter-evans/find-comment@v2
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: "📦 Docker image tags pushed"
 
-        - name: 🐳 Docker meta
-          id: docker_meta
-          uses: docker/metadata-action@v5
-          with:
-            # list of Docker images to use as base name for tags
-            images: ${{ inputs.image-name }}
+      - name: 💬 Create/update PR comment
+        if: github.event_name == 'pull_request' && inputs.comment-enable
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            📦 Docker image tags pushed:
+            ```text
+            ${{ steps.meta.outputs.tags }}
+            ```
+            🏷 Labels added:
+            ```text
+            ${{ steps.meta.outputs.labels }}
+            ```
 
-        - name: 🐳 Docker Build and Push
-          id: build_image
-          uses: docker/build-push-action@v5
-          with:
-            provenance: false
-            platforms: ${{ matrix.platform }}
-            context: ${{ inputs.context }}
-            file: ${{ inputs.file }}
-            target: ${{ inputs.target }}
-            builder: ${{ steps.buildx.outputs.name }}
-            labels: ${{ steps.docker_meta.outputs.labels }}
-            annotations: ${{ steps.docker_meta.outputs.annotations }}
-            outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push }}
-            # it uses github cache API for faster builds:
-            # https://github.com/docker/build-push-action/blob/master/docs/advanced/cache.md#cache-backend-api
-            cache-from: type=gha,scope=build-${{ env.PLATFORM_PAIR }}
-            cache-to: type=gha,mode=max,scope=build-${{ env.PLATFORM_PAIR }}
+      - name: 🏷 Output primary image tag
+        id: image-tag
+        run: echo "image-tag=${{ steps.meta.outputs.version }}" >> $GITHUB_OUTPUT
 
-        - name: 📤 Export digest
-          run: |
-            mkdir -p /tmp/digests
-            digest="${{ steps.build_image.outputs.digest }}"
-            touch "/tmp/digests/${digest#sha256:}"
+  merge:
+    runs-on: ubuntu-latest
+    needs: build
+    if: inputs.push
+    steps:
+      - name: 📥 Prepare safe image identifier
+        run: |
+          image="${{ inputs.image-name }}"
+          safe_image=${image//\//-}
+          echo "SAFE_IMAGE=$safe_image" >> $GITHUB_ENV
 
-        - name: 📤 Upload digest
-          uses: actions/upload-artifact@v4
-          with:
-            name: digests-${{ env.PLATFORM_PAIR }}
-            path: /tmp/digests/*
-            if-no-files-found: error
-            retention-days: 1
+      - name: 📥 Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          # ✅ only grab digests for THIS image
+          pattern: digests-${{ env.SAFE_IMAGE }}-*
+          merge-multiple: true
 
-          # If PR, put image tags in the PR comments
-          # from https://github.com/marketplace/actions/create-or-update-comment
-        - name: 💬 Find comment for image tags
-          uses: peter-evans/find-comment@v2.4.0
-          if: github.event_name == 'pull_request' && inputs.comment-enable
-          id: fc
-          with:
-            issue-number: ${{ github.event.pull_request.number }}
-            comment-author: 'github-actions[bot]'
-            body-includes: Docker image tag(s) pushed
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          # If PR, put image tags in the PR comments
-        - name: 💬 Create or update comment for image tags
-          uses: peter-evans/create-or-update-comment@v3.0.2
-          if: github.event_name == 'pull_request' && inputs.comment-enable
-          with:
-            comment-id: ${{ steps.fc.outputs.comment-id }}
-            issue-number: ${{ github.event.pull_request.number }}
-            body: |
-              Docker image tag(s) pushed:
-              ```text
-              ${{ steps.docker_meta.outputs.tags }}
-              ```
+      - name: 🐳 Login to DockerHub
+        if: inputs.dockerhub-enable
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.dockerhub-username }}
+          password: ${{ secrets.dockerhub-token }}
 
-              Labels added to images:
-              ```text
-              ${{ steps.docker_meta.outputs.labels }}
-              ```
-            edit-mode: replace
+      - name: 📦 Login to GHCR
+        if: inputs.ghcr-enable
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-          # for dependent jobs, we need to output the unique tag for this GHA run
-          # based on the docker_meta tag priority rules, the highest priority tag
-          # will be sent to this output
-          # this step output is sent to job output, which is sent to workflow output
-          # use this tag in another job with needs.<job-name>.outputs.image-tag
-        - name: 🏷️ Find the primary image tag we just pushed, and output it
-          id: image-tag
-          run: |
-            # shellcheck disable=SC2086
-            echo "image-tag=${{ steps.docker_meta.outputs.version }}" >> $GITHUB_OUTPUT
+      - name: 🐳 Docker metadata extraction
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ inputs.image-name }}
+          flavor: ${{ inputs.flavor-rules }}
+          tags: ${{ inputs.tag-rules }}
 
-    merge:
-      runs-on: ubuntu-latest
-      needs:
-        - build
-      if: inputs.push
-      steps:
-        - name: 📥 Download digests
-          uses: actions/download-artifact@v4
-          with:
-            path: /tmp/digests
-            pattern: digests-*
-            merge-multiple: true
+      - name: 🐳 Create and push multi-arch manifest
+        working-directory: /tmp/digests
+        run: |
+          echo "Merging digests for ${{ inputs.image-name }}..."
+          ls -l .
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ inputs.image-name }}@sha256:%s ' *)
 
-        - name: 🐳 Set up Docker Buildx
-          id: buildx
-          uses: docker/setup-buildx-action@v3
-
-        - name: 🐳 Login to DockerHub
-          if: inputs.dockerhub-enable
-          uses: docker/login-action@v2.2.0
-          with:
-            username: ${{ secrets.dockerhub-username }}
-            password: ${{ secrets.dockerhub-token }}
-
-        - name: 📦 Login to GHCR
-          if: inputs.ghcr-enable
-          uses: docker/login-action@v2.2.0
-          with:
-            registry: ghcr.io
-            username: ${{ github.actor }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-
-        - name: 🐳 Docker metadata extraction
-          id: meta
-          uses: docker/metadata-action@v5
-          with:
-            images: ${{ inputs.image-name }}
-            flavor: ${{ inputs.flavor-rules }}
-            tags: ${{ inputs.tag-rules }}
-
-        - name: 🐳 Create manifest list and push
-          working-directory: /tmp/digests
-          run: |
-            docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-              $(printf '${{ inputs.image-name }}@sha256:%s ' *)
-
-        - name: 🐳 Inspect image
-          run: |
-            docker buildx imagetools inspect ${{ inputs.image-name }}:${{ steps.meta.outputs.version }}
+      - name: 🐳 Inspect Built Image
+        run: docker buildx imagetools inspect ${{ inputs.image-name }}:${{ steps.meta.outputs.version }}

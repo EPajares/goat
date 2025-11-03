@@ -4,6 +4,8 @@ import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useTranslation } from "@/i18n/client";
 
+import { useProjectLayers, useProjectScenarios } from "@/lib/api/projects";
+import { statisticOperationEnum } from "@/lib/validations/common";
 import type { LayerFieldType } from "@/lib/validations/layer";
 import {
   CatchmentAreaRoutingTypeEnum,
@@ -13,12 +15,11 @@ import {
   catchmentAreaConfigDefaults,
   catchmentAreaShapeEnum,
   maxFeatureCnt,
-  statisticOperationEnum,
 } from "@/lib/validations/tools";
 
 import type { SelectorItem } from "@/types/map/common";
+
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
-import { useProjectLayers, useProjectScenarios } from "@/lib/api/projects";
 
 export const usePTTimeSelectorValues = () => {
   const { t } = useTranslation("common");
@@ -163,8 +164,6 @@ export const useStartingPointMethods = () => {
   };
 };
 
-
-
 export const useCatchmeMaxStartingPoints = (selectedRouting: SelectorItem | undefined) => {
   const maxStartingPoints = useMemo(() => {
     if (selectedRouting?.value === CatchmentAreaRoutingTypeEnum.Enum.pt) {
@@ -178,9 +177,8 @@ export const useCatchmeMaxStartingPoints = (selectedRouting: SelectorItem | unde
 
   return {
     maxStartingPoints,
-  }
+  };
 };
-
 
 export const useRoutingTypes = () => {
   const { t } = useTranslation("common");
@@ -310,11 +308,11 @@ export const useLayerDatasetId = (layerId: number | undefined, projectId: string
   return layerDatasetId;
 };
 
-export const useStatisticValues = () => {
+export const useStatisticValues = (hasExpression: boolean = false) => {
   // Statistics values
   const { t } = useTranslation("common");
   const statisticMethods: SelectorItem[] = useMemo(() => {
-    return [
+    const baseMethods: SelectorItem[] = [
       {
         value: statisticOperationEnum.Enum.count,
         label: t("count"),
@@ -332,7 +330,14 @@ export const useStatisticValues = () => {
         label: t("max"),
       },
     ];
-  }, [t]);
+    if (hasExpression) {
+      baseMethods.push({
+        value: statisticOperationEnum.Enum.expression,
+        label: t("expression"),
+      });
+    }
+    return baseMethods;
+  }, [hasExpression, t]);
 
   const [statisticMethodSelected, setStatisticMethodSelected] = useState<SelectorItem | undefined>(undefined);
 
@@ -369,4 +374,4 @@ export const useScenarioItems = (projectId: string) => {
   return {
     scenarioItems,
   };
-}
+};

@@ -1,0 +1,8 @@
+{
+  "label": "Builder",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "The Builder mode allows you to create customized maps and interactive dashboards. Choose from various indicators, layers, and visual settings to build a view that fits your project."
+  }
+}

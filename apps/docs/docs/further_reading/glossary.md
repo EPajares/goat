@@ -94,7 +94,7 @@ A **Point of Interest (POI)** refers to a distinct location or site that holds s
 
 In GIS, quantile classification is often used to create choropleth maps, which are maps that use color to represent different values of a variable. For example, a choropleth map of the population density of a city. The map would be divided into e.g. five color-coded categories, with each category representing a different range of population densities. 
 
-The quantile classification can be used for [attribute-based styling](../map/layer_style/attribute_based_styling.md) in GOAT. 
+The quantile classification can be used for [attribute-based styling](../map/layer_style/style/attribute_based_styling.md) in GOAT. 
 
 ### Routing 
 **Routing** <img src={require('/img/literature/glossary/routing_logo.webp').default} width="1000px" alt="routing" style={{width: "100px", height: "170px", maxHeight: "50px", maxWidth: "50px", objectFit: "cover"}}/> refers to the process of finding the fastest or shortest path from one location to another. This is commonly used in transportation planning and navigation systems to help people get from point A to point B but is also crucial to accessibility analysis.

@@ -10,7 +10,7 @@ import MathJax from 'react-mathjax';
 # Heatmap - Gravity
 Eine farblich gekennzeichnete Karte zur Visualisierung der Erreichbarkeit von Punkten (wie z.B. [POI](../../further_reading/glossary#points-of-interest-poi "What is a POI?")) aus der Umgebung.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/qVV63ZN-gVE?si=c-2n7O002Ze4dWgH" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/jOV5dSk64rM?si=s7PZIatUHvnLsKA0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
@@ -31,13 +31,27 @@ Kurz gesagt, sind Erreichbarkeits-Heatmaps eine Visualisierung, die die *Erreich
 :::
 
 ![Gravity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_based.webp "Gravity-based Heatmap in GOAT")
-  
+
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 
 Heatmaps sind in bestimmten Regionen verfügbar. Bei der Auswahl eines „Verkehrsmittels“ wird auf der Karte ein **Geofence** angezeigt, um die unterstützten Regionen hervorzuheben.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/geofence.png').default} alt="Geofence for Gravity-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für gravitationsbasierte Heatmaps", color: "#ffffff" }
+      ]}
+  />
 </div> 
 
 
@@ -104,7 +118,7 @@ Berücksichtigt alle mit dem Fahrrad befahrbaren Wege. Dieser Routing-Modus ber�
 
 :::tip Tipp
 
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/fahrrad). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/bicycle). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
 
 :::
 
@@ -162,6 +176,24 @@ Wie Studien gezeigt haben, ist die Beziehung zwischen Reisezeit und Erreichbarke
 Mit Hilfe der von Ihnen definierten *Sensitivität* ermöglicht die Gauß-Funktion eine genauere Modellierung dieses Aspekts des Verhaltens in der realen Welt.
 
 :::
+
+:::note Hinweis
+
+**Wie wählen Sie den Sensitivitätswert aus?**
+
+Die Auswahl des passendsten Sensitivitätswerts *hängt immer vom Kontext der Analyse ab*, und es gibt keine strikten Regeln.
+
+- **Niedriger β:** Ein guter Ausgangspunkt könnte sein, niedrigere Sensitivität bei **Analysen im städtischen Maßstab** zu verwenden, da dies zu einem schärferen Rückgang des Erreichbarkeitswerts bei zunehmender Reisezeit führt. In städtischen Gebieten gibt es mehr verfügbare Möglichkeiten, und *Menschen wählen wahrscheinlicher die nächstgelegene aus*.
+- **Hoher β:** Im Gegensatz dazu könnte eine höhere Sensitivität bei Analysen im **regionalen Maßstab** verwendet werden, wo die Möglichkeiten spärlicher sind und *Menschen wahrscheinlicher weiter reisen*, um sie zu erreichen.
+
+Siehe den **[Berechnung](#berechnung)**-Abschnitt für detaillierte visuelle Erklärungen zur Formel.
+
+:::
+
+
+
+
+
 
 </TabItem>
   
@@ -231,6 +263,20 @@ Benötigen Sie Hilfe bei der Auswahl einer geeigneten Reisezeit für verschieden
 :::tip Pro-Tipp
 
 Das *Zielpotenzialfeld* ist eine nützliche Methode, um bestimmte Möglichkeiten gegenüber anderen zu bevorzugen. Wenn es zum Beispiel zwei Supermärkte gibt und einer näher liegt als der andere, würde er aufgrund seiner Nähe in der Regel eine höhere Erreichbarkeitsbewertung erhalten. Wenn der weiter entfernte Supermarkt jedoch größer ist, sollten Sie ihm eine höhere Priorität einräumen. Mit *Zielpotenzialfeld* können Sie eine zusätzliche Eigenschaft (z. B. die Größe von Supermärkten) verwenden, um Gelegenheiten ein "Potenzial" zuzuweisen und bei der Berechnung der Erreichbarkeit qualitative Informationen zu verwenden.
+
+Das folgende Beispiel zeigt, wie das Zielpotenzial die Schwerkraft-Heatmap beeinflussen kann. Sein Zielpotenzial basiert auf der Gesamtzahl der stündlichen Abfahrten des öffentlichen Verkehrs von einer Haltestelle. Es führt zu einer anderen Verteilung der Erreichbarkeit, da der Bereich um Punkte mit einem höheren Zielpotenzial in der Berechnung bevorzugt wird.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_without_destination_potential.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+*Die erste Karte wird ohne Zielpotenzial berechnet.*
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_with_destination_potential.png').default} alt="gravity-with-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+*Die zweite Karte verwendet die gleichen Einstellungen, fügt aber Zielpotenzial basierend auf der Gesamtzahl der Abfahrten hinzu. Dadurch ändern sich die Erreichbarkeitswerte jedes Hexagons und sie ergeben einen größeren Bereich, da der höchste Wert noch weiter zunimmt. Höhere Erreichbarkeitswerte sind stärker um Haltestellen mit einer größeren Abfahrtsanzahl (rote Punkte) konzentriert.* 
 
 :::
 
@@ -318,7 +364,8 @@ wobei die Erreichbarkeit **A** des Ausgangspunkts **i** die Summe aller am Zielo
 </MathJax.Provider>
 </div>
 
-*Inverse Power, (Kwan,1998):*
+
+*Inverse Power, (Kwan,1998) ('Powerfunktion' im GOAT):*
 
 <div>
 <MathJax.Provider>
@@ -332,24 +379,33 @@ wobei die Erreichbarkeit **A** des Ausgangspunkts **i** die Summe aller am Zielo
 </div>
 
 Die Reisezeit wird in Minuten gemessen. Bei einer maximalen Reisezeit von 30 Minuten gelten Ziele, die weiter als 30 Minuten entfernt sind, als nicht erreichbar und werden daher bei der Berechnung der Erreichbarkeit nicht berücksichtigt.
-Der Parameter *Sensitivität* bestimmt, wie sich die Erreichbarkeit mit zunehmender Reisezeit verändert. Da der Parameter *Sensitivität* für die Messung der Erreichbarkeit entscheidend ist, können Sie ihn in GOAT anpassen. Die folgenden Diagramme zeigen den Einfluss des Parameters *Sensitivität* auf die Erreichbarkeit:
+Der Parameter *Sensitivität* bestimmt, wie sich die Erreichbarkeit mit zunehmender Reisezeit verändert. Da der Parameter *Sensitivität* für die Messung der Erreichbarkeit entscheidend ist, können Sie ihn in GOAT anpassen. Die folgenden Diagramme zeigt, wie die Bereitschaft, zu Fuß zu gehen, mit zunehmender Reisezeit auf der Grundlage der gewählten Impedanzfunktion und des Sensitivität (β) abnimmt.
 
-:::info demnächst verfügbar
+import ImpedanceFunction from '@site/src/components/ImpedanceFunction';
 
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
+<div style={{ display: 'block', textAlign: 'center'}}>
+  <div style={{ maxHeight: "auto", maxWidth: "auto"}}>
+    <ImpedanceFunction />
+   </div> 
+</div>
 
-:::
+In ähnlicher Weise kann auch das *Zielpotenzialfeld* verändert werden. So kann z.B. einem POI-Typ (z.B. Verbrauchermärkte) ein höherer Erreichbarkeitseffekt zugeordnet werden als anderen POI-Typen (z.B. Discounter). Im [Gelegenheit](#gelegenheit) Abschnitt, bei **Schritt 7**, decken wir das *Zielpotenzial* im Detail ab.
 
-In ähnlicher Weise kann auch das *Zielpotenzialfeld* verändert werden. So kann z.B. einem POI-Typ (z.B. Verbrauchermärkte) ein höherer Erreichbarkeitseffekt zugeordnet werden als anderen POI-Typen (z.B. Discounter). Die folgenden Bilder zeigen den Einfluss des Parameters *Zielpotenzialfeld* auf die Erreichbarkeit:
 
-:::info demnächst verfügbar
+:::tip
 
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
+Für ein Berechnungsbeispiel siehe unser Tutorial-Video.
 
 :::
 
 ### Klassifizierung
-Zur Klassifizierung der Erreichbarkeitsstufen, die für jede Rasterzelle berechnet wurden (für die farbige Visualisierung), wird standardmäßig eine Klassifizierung auf der Grundlage von Quantilen verwendet. Es können jedoch auch verschiedene andere Klassifizierungsmethoden verwendet werden. Weitere Informationen finden Sie im Abschnitt **[Datenklassifizierungsmethoden](../../map/layer_style/attribute_based_styling#datenklassifizierungsmethoden)** auf der Seite *attributbasiertes Styling*.
+Zur Klassifizierung der Erreichbarkeitsstufen, die für jede Rasterzelle berechnet wurden (für die farbige Visualisierung), wird **standardmäßig** eine Klassifizierung basierend auf **8 Quantil-Gruppen** verwendet. Das bedeutet, dass jede Farbe 12,5 % der Gitterzellen abdeckt. Der Bereich außerhalb der berechneten Ebene hat keinen Zugriff innerhalb der definierten Reisezeit.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_default_classification_de.png').default} alt="gravity-default-classification" style={{ maxHeight: "250px", maxWidth: "auto"}}/>
+</div>
+
+Es können jedoch auch verschiedene andere Klassifizierungsmethoden verwendet werden. Weitere Informationen finden Sie im Abschnitt **[Datenklassifizierungsmethoden](../../map/layer_style/attribute_based_styling#datenklassifizierungsmethoden)** auf der Seite *attributbasiertes Styling*.
 
 ### Visualisierung
 
@@ -377,47 +433,6 @@ Die Auflösung und die Abmessungen des verwendeten sechseckigen Gitters hängen 
 - Durchschnittliche Sechseckfläche: 552995.7 m²
 - Durchschnittliche Kantenlänge des Sechsecks: 461,4 m
 
-### Beispiel einer Berechnung
-#### Berechnung der Reisezeiten
-Das folgende Beispiel veranschaulicht, wie die Heatmap der lokalen Erreichbarkeit berechnet wird. Für jede Rasterzelle werden die Fahrtzeiten zum jeweiligen Ziel im Straßennetz berechnet.
-
-Für das hier dargestellte Sechseck ergibt die Berechnung je nach Sensitivitätsparameter folgende Ergebnisse:
-
-##### Einheitlicher Empfindlichkeitsparameter:
-:::info demnächst verfügbar
-
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
-
-:::
-
-##### Variierender Empfindlichkeitsparameter für Hypermarkt:
-:::info demnächst verfügbar
-
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
-
-:::
-
-In GOAT angewandt, ergeben sich folgende Unterschiede:
-
-#### Berechnung mit einheitlichem Empfindlichkeitsparameter
-Im ersten Beispiel wird die Erreichbarkeit von Lebensmittelgeschäften in 15 min mit einem einheitlichen Empfindlichkeitsparameter (β=300.000) für alle Geschäfte berechnet. Das Ergebnis sieht wie folgt aus:
-
-:::info demnächst verfügbar
-
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
-
-:::
-
-#### Berechnung mit verschiedenen Empfindlichkeitsparametern
-Im zweiten Beispiel wird die Erreichbarkeit von Lebensmittelgeschäften in 15 min mit unterschiedlichen Sensitivitätsparametern (β=300.000 und β=400.000) durchgeführt. Das bedeutet, dass der Sensitivitätsparameter von den verschiedenen Lebensmittelladentypen abhängt. Für dieses Beispiel haben wir β=400.000 für Hypermärkte und β=300.000 für Discounter und Supermärkte verwendet. Daraus ergibt sich das folgende Ergebnis:
-
-:::info demnächst verfügbar
-
-Beispiele für diese Funktionalität werden bald online sein. 🧑🏻‍💻
-
-:::
-
-Wenn Sie die beiden Ergebnisse vergleichen, bekommen Sie einen Eindruck davon, wie sich die *Sensitivität* auf die Erreichbarkeit auswirkt.
 
 ## 5. Referenzen
 

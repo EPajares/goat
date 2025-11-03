@@ -12,7 +12,7 @@ const config = {
   favicon: "img/favicon.ico",
   url: "https://goat.plan4better.de",
   baseUrl: "/docs/",
-  organizationName: "goat-community",
+  organizationName: "plan4better",
   projectName: "goat",
   onBrokenLinks: "warn",
   onBrokenMarkdownLinks: "warn",
@@ -37,12 +37,12 @@ const config = {
         docs: {
           routeBasePath: "/",
           sidebarPath: require.resolve("./sidebars.js"),
-          editUrl: ({locale, versionDocsDirPath, docPath}) => {
+          editUrl: ({ locale, versionDocsDirPath, docPath }) => {
             const translation = locale || 'en';
             if (translation !== 'en') {
-              return `https://github.com/goat-community/goat-docs/edit/main/i18n/${translation}/docusaurus-plugin-content-docs/current/${docPath}`;
+              return `https://github.com/plan4better/goat/edit/main/apps/docs/i18n/${translation}/docusaurus-plugin-content-docs/current/${docPath}`;
             }
-            return `https://github.com/goat-community/goat-docs/edit/main/docs/${docPath}`;
+            return `https://github.com/plan4better/goat/edit/main/apps/docs/${docPath}`;
           },
           lastVersion: "current",
           versions: {
@@ -91,7 +91,7 @@ const config = {
             dropdownActiveClassDisabled: true,
           },
           {
-            href: "https://github.com/goat-community/goat",
+            href: "https://github.com/plan4better/goat",
             label: "GitHub",
             position: "right",
           },
@@ -108,7 +108,7 @@ const config = {
               },
               {
                 label: "GitHub",
-                href: "https://github.com/goat-community",
+                href: "https://github.com/plan4better",
               },
             ],
           },
@@ -130,7 +130,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Plan4Better, Inc. Built with Docusaurus.`,
+        copyright: `Plan4Better GmbH ${new Date().getFullYear()} | All Rights Reserved`,
       },
       algolia: {
         indexName: 'goat-plan4better',

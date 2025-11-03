@@ -175,6 +175,7 @@ export function isValidRGB(rgb) {
   return rgb.r >= 0 && rgb.r <= 255 && rgb.g >= 0 && rgb.g <= 255 && rgb.b >= 0 && rgb.b <= 255;
 }
 
+
 export function hexToRgb(hex: string): RGBColor {
   const result = isHexColor(hex);
 
@@ -314,3 +315,12 @@ export const getNextMonthDate = () => {
   const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
   return nextMonth;
 };
+
+export const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}

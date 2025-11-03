@@ -33,7 +33,9 @@ const DataSection = (props: DataSectionProps) => {
   const [openDatasetUploadModal, setOpenDatasetUploadModal] = useState(false);
   return (
     <Box>
-      <DatasetUploadModal open={openDatasetUploadModal} onClose={() => setOpenDatasetUploadModal(false)} />
+      {openDatasetUploadModal && (
+        <DatasetUploadModal open={openDatasetUploadModal} onClose={() => setOpenDatasetUploadModal(false)} />
+      )}
       {activeContent && moreMenuState && (
         <>
           <ContentDialogWrapper

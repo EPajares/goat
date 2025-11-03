@@ -19,12 +19,26 @@ Die Heatmap verwendet ein farbkodiertes sechseckiges Gitter, um zu zeigen, wie g
 
 ![Connectivity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity.png "Connectivity-based Heatmap in GOAT")
 
+import MapViewer from '@site/src/components/MapViewer';
+
 :::info 
 
 Heatmaps sind in bestimmten Regionen verfügbar. Bei der Auswahl eines `Routing-Typs` wird auf der Karte ein **Geofence** angezeigt, um die unterstützten Regionen hervorzuheben.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/geofence.png').default} alt="Geofence for Connectivity-based Heatmaps in GOAT" style={{ maxHeight: "400px", maxWidth: "400px", alignItems:'center'}}/>
+  <MapViewer
+      geojsonUrls={[
+        "https://assets.plan4better.de/other/geofence/geofence_heatmap.geojson"
+      ]}
+      styleOptions={{
+        fillColor: "#808080",
+        outlineColor: "#808080",
+        fillOpacity: 0.8
+      }}
+      legendItems={[
+        { label: "Abdeckung für konnektivitätsbasierte Heatmaps", color: "#ffffff" }
+      ]}
+  />
 </div>
 
 
@@ -138,7 +152,7 @@ Berücksichtigt alle mit dem Fahrrad befahrbaren Wege. Dieser Routing-Modus ber�
 
 :::tip Hinweis
 
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/fahrrad). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/bicycle). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
 
 :::
 

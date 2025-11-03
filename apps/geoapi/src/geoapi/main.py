@@ -6,7 +6,6 @@ https://github.com/developmentseed/tipg
 The original code/repository is licensed under MIT License.
 ---------------------------------------------------------------------------------
 """
-
 import os  # noqa: I001
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Dict
@@ -20,7 +19,7 @@ from starlette_cramjam.middleware import CompressionMiddleware
 from tipg import __version__ as tipg_version
 from tipg import collections, dependencies
 from tipg.database import close_db_connection, connect_to_db
-from tipg.factory import Endpoints
+
 from tipg.filter.filters import Operator
 from tipg.middleware import CacheControlMiddleware
 from tipg.settings import (
@@ -29,26 +28,30 @@ from tipg.settings import (
     DatabaseSettings,
     MVTSettings,
 )
+
+import geoapi._dotenv  # noqa: E402, F401, I001
+
 from .exts import (
     ExtCollection,
     filter_query,
 )
 
-
 dependencies.filter_query = filter_query  # type: ignore
 collections.Collection = ExtCollection  # type: ignore
 from .catalog import LayerCatalog, postgres_settings  # noqa: E402, I001
+from tipg.factory import Endpoints # noqa: E402
 
 from .exts import (  # noqa: E402
     Operator as OperatorPatch,
 )
+
+
 
 mvt_settings = MVTSettings()
 mvt_settings.max_features_per_tile = 20000
 settings = APISettings()
 db_settings = DatabaseSettings()
 custom_sql_settings = CustomSQLSettings()
-
 
 if os.getenv("SENTRY_DSN") and os.getenv("ENVIRONMENT"):
     sentry_sdk.init(

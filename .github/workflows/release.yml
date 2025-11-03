@@ -31,7 +31,7 @@ jobs:
   release-docker-web:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.web == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: goat-community/.github/.github/workflows/reusable-docker-build.yml@main
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -112,7 +112,7 @@ jobs:
   release-docker-storybook:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.storybook == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: goat-community/.github/.github/workflows/reusable-docker-build.yml@main
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -128,7 +128,7 @@ jobs:
   release-docker-docs:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.docs == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: goat-community/.github/.github/workflows/reusable-docker-build.yml@main
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write

@@ -83,6 +83,7 @@ const HeatmapGravity = ({ onBack, onClose }: IndicatorBaseProps) => {
             layers && layers.find((layer) => layer.id === opportunity.layer?.value)?.id,
           max_traveltime: opportunity.maxTravelTime?.value,
           sensitivity: opportunity.sensitivity,
+          destination_potential_column: opportunity.destinationPotentialColumn?.name,
         };
       }),
     };

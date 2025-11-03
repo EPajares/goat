@@ -1,4 +1,4 @@
-import { fetcher, fetchWithAuth } from "@/lib/api/fetcher";
+import { fetcher, apiRequestAuth } from "@/lib/api/fetcher";
 import type { Team, TeamBase, TeamMember, TeamUpdate } from "@/lib/validations/team";
 import useSWR from "swr";
 
@@ -53,7 +53,7 @@ export const useTeamMembers = (teamId: string) => {
 
 
 export const createTeam = async (payload: TeamBase) => {
-  const response = await fetchWithAuth(`${TEAMS_API_BASE_URL}`, {
+  const response = await apiRequestAuth(`${TEAMS_API_BASE_URL}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -67,7 +67,7 @@ export const createTeam = async (payload: TeamBase) => {
 }
 
 export const updateTeam = async (teamId: string, organization: TeamUpdate) => {
-  const response = await fetchWithAuth(`${TEAMS_API_BASE_URL}/${teamId}/profile`, {
+  const response = await apiRequestAuth(`${TEAMS_API_BASE_URL}/${teamId}/profile`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
@@ -80,7 +80,7 @@ export const updateTeam = async (teamId: string, organization: TeamUpdate) => {
 
 
 export const deleteTeam = async (teamId: string) => {
-  const response = await fetchWithAuth(`${TEAMS_API_BASE_URL}/${teamId}`, {
+  const response = await apiRequestAuth(`${TEAMS_API_BASE_URL}/${teamId}`, {
     method: "DELETE",
   });
   if (!response.ok) {
@@ -90,7 +90,7 @@ export const deleteTeam = async (teamId: string) => {
 }
 
 export const deleteMember = async (teamId: string, memberId: string) => {
-  const response = await fetchWithAuth(`${TEAMS_API_BASE_URL}/${teamId}/users/${memberId}`, {
+  const response = await apiRequestAuth(`${TEAMS_API_BASE_URL}/${teamId}/users/${memberId}`, {
     method: "DELETE",
   });
   if (!response.ok) throw await response.json();
@@ -99,7 +99,7 @@ export const deleteMember = async (teamId: string, memberId: string) => {
 
 
 export const createTeamMember = async (teamId: string, memberId: string) => {
-  const response = await fetchWithAuth(`${TEAMS_API_BASE_URL}/${teamId}/users/${memberId}`, {
+  const response = await apiRequestAuth(`${TEAMS_API_BASE_URL}/${teamId}/users/${memberId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -20,9 +20,10 @@ export const getContentQueryParamsSchema = paginatedSchema.extend({
 export const contentMetadataSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional().nullable(),
   thumbnail_url: z.string().url().optional(),
 });
+
 
 export const dataLicense = z.enum([
   "DDN2",
@@ -56,14 +57,19 @@ export const featureLayerType = z.enum(["standard", "tool", "street_network"]);
 export const tableDataExchangeType = z.enum(["csv", "xlsx"]);
 export const featureDataExchangeType = z.enum(["csv", "xlsx", "geojson", "gpkg", "kml", "shp"]);
 
-export const featureDataExchangeCRS = z.enum(["4326", "3857", "4258", "27700", "4269"]);
+export const featureDataExchangeCRS = z.enum(["4326", "3857", "4258"]);
 
 export const featureLayerGeometryType = z.enum(["point", "line", "polygon"]);
 
 export const vectorDataType = z.enum(["mvt", "wfs"]);
 export const imageryDataType = z.enum(["xyz", "wms", "wmts"]);
 export const dataType = z.union([vectorDataType, imageryDataType]);
+export const sortTypes = z.enum(["asc", "desc"]);
+export const statisticOperationEnum = z.enum(["count", "sum", "mean", "median", "min", "max", "expression"]);
 
+
+export type SortType = z.infer<typeof sortTypes>;
+export type StatisticOperation = z.infer<typeof statisticOperationEnum>;
 export type LayerType = z.infer<typeof layerType>;
 export type DataLicense = z.infer<typeof dataLicense>;
 export type DataCategory = z.infer<typeof dataCategory>;

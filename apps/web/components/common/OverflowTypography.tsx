@@ -11,13 +11,15 @@ export interface OverflowTypograpyProps extends TypographyProps {
 export const OverflowTypograpy: FC<OverflowTypograpyProps> = ({ children, tooltipProps, ...props }) => {
   const ref = useRef<HTMLSpanElement>(null);
   const [tooltipEnabled, setTooltipEnabled] = useState(false);
-
   useEffect(() => {
     const compareSize = () => {
       if (ref.current) {
-        const compare = ref.current.scrollWidth > ref.current.clientWidth;
-
-        setTooltipEnabled(compare);
+        requestAnimationFrame(() => {
+          if (!ref.current) return;
+          const scrollWidth = ref.current.scrollWidth;
+          const clientWidth = ref.current.clientWidth;
+          setTooltipEnabled(scrollWidth > clientWidth);
+        });
       }
     };
     compareSize();

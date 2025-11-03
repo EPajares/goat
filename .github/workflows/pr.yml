@@ -20,7 +20,7 @@ jobs:
 
   pr-base:
     name: pr-base
-    uses: "goat-community/.github/.github/workflows/reusable-pr-base.yml@main"
+    uses: "plan4better/.github/.github/workflows/reusable-pr-base.yml@main"
     permissions:
       contents: none
       issues: read

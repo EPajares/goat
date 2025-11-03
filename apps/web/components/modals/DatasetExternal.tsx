@@ -385,7 +385,7 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
     read: false,
   });
   const { mutate: mutateProjectLayers } = useProjectLayers(projectId);
-  const { mutate: mutateProject } = useProject(projectId);
+  const { mutate: mutateProject, project } = useProject(projectId);
   // Step 0: Enter URL
   const steps = [t("enter_url"), t("select_dataset"), t("destination_and_metadata"), t("confirmation")];
 
@@ -455,8 +455,10 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
       if (urlCapabilities) {
         setCapabilities(urlCapabilities);
         const homeFolder = folders?.find((folder) => folder.name === "home");
-        if (homeFolder) {
-          setSelectedFolder(homeFolder);
+        const projectFolder = folders?.find((folder) => folder.id === project?.folder_id);
+        const preselectedFolder = projectFolder || homeFolder;
+        if (preselectedFolder) {
+          setSelectedFolder(preselectedFolder);
         }
         // Skip dataset selection step if it's a direct link and go to destination and metadata step
         setActiveStep((prevActiveStep) => prevActiveStep + 2);
@@ -510,8 +512,10 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
     else if (activeStep === 1) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
       const homeFolder = folders?.find((folder) => folder.name === "home");
-      if (homeFolder) {
-        setSelectedFolder(homeFolder);
+      const projectFolder = folders?.find((folder) => folder.id === project?.folder_id);
+      const preselectedFolder = projectFolder || homeFolder;
+      if (preselectedFolder) {
+        setSelectedFolder(preselectedFolder);
       }
       if (
         (capabilities?.type === vectorDataType.Enum.wfs ||
@@ -560,10 +564,10 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           },
         });
         const uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
-        const datasetId = uploadResponse?.dataset_id;
+        const s3Key = uploadResponse?.s3_key;
         const payload = createLayerFromDatasetSchema.parse({
           ...layerPayload,
-          dataset_id: datasetId,
+          s3_key: s3Key,
           ...featureUrlPayload,
         });
         const response = await createFeatureLayer(payload, projectId);

@@ -115,7 +115,22 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
     }));
   }, []);
 
-  const { statisticMethods, statisticMethodSelected, setStatisticMethodSelected } = useStatisticValues();
+  const {
+    statisticMethods,
+    statisticMethodSelected,
+    setStatisticMethodSelected,
+    statisticField,
+    setStatisticField,
+  } = useStatisticValues();
+
+  const { layerFields: statisticLayerFields } = useLayerFields(
+    sourceLayerDatasetId || "",
+    statisticMethodSelected?.value === "count" ? undefined : "number"
+  );
+
+  const isStatisticFieldVisible = useMemo(() => {
+    return statisticMethodSelected?.value !== "count";
+  }, [statisticMethodSelected]);
 
   const { layerFields: allSourceLayerFields } = useLayerFields(sourceLayerDatasetId || "");
 
@@ -142,6 +157,10 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
       return false;
     }
 
+    if (isStatisticFieldVisible && !statisticField) {
+      return false;
+    }
+
     return !!sourceLayerItem && !!areaType && !!statisticMethodSelected;
   }, [
     sourceLayerItem,
@@ -152,6 +171,8 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
     sourceLayer,
     selectedAreaLayer?.filtered_count,
     aggregateMaxFeatureCnt,
+    statisticField,
+    isStatisticFieldVisible,
     type,
   ]);
 
@@ -167,6 +188,10 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
           }),
       column_statistics: {
         operation: statisticMethodSelected?.value,
+        ...(isStatisticFieldVisible &&
+          statisticField && {
+            field: statisticField?.name,
+          }),
       },
     };
     if (fieldGroup && fieldGroup?.length > 0) {
@@ -207,6 +232,7 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
     setWeightPolygonByIntersectingArea(false);
     setFieldGroup([]);
     setSelectedScenario(undefined);
+    setStatisticField(undefined);
   };
 
   return (
@@ -381,6 +407,18 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
                       placeholder={t("select_statistic_method_placeholder")}
                       tooltip={t("select_statistic_method_tooltip")}
                     />
+                    {isStatisticFieldVisible && (
+                      <LayerFieldSelector
+                        fields={statisticLayerFields}
+                        selectedField={statisticField}
+                        disabled={!statisticMethodSelected}
+                        setSelectedField={(field) => {
+                          setStatisticField(field);
+                        }}
+                        label={t("select_field_to_calculate_statistics")}
+                        tooltip={t("select_field_to_calculate_statistics_tooltip")}
+                      />
+                    )}
                   </>
                 }
                 collapsed={statisticAdvancedOptions}
