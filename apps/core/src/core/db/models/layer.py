@@ -377,7 +377,6 @@ def internal_layer_table_name(values: SQLModel | BaseModel) -> str:
     # Ensure the layer type is correct by validating available attributes
     if (
         not hasattr(values, "type")
-        or not hasattr(values, "feature_layer_geometry_type")
         or not hasattr(values, "user_id")
     ):
         raise ValueError("A valid layer must be provided.")
