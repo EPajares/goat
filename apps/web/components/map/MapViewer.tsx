@@ -1,6 +1,8 @@
+import { cogProtocol } from "@geomatico/maplibre-cog-protocol";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Theme } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
+import maplibregl from "maplibre-gl";
 import { useCallback, useMemo } from "react";
 import { Map, type MapLayerMouseEvent, type MapRef, type ViewState } from "react-map-gl/maplibre";
 import type { ViewStateChangeEvent } from "react-map-gl/maplibre";
@@ -30,6 +32,8 @@ import UserLocationLayer from "@/components/map/UserLocationLayer";
 import { MapPopoverInfo } from "@/components/map/controls/LayerInfo";
 import MapPopoverEditor from "@/components/map/controls/PopoverEditor";
 import DrawControl from "@/components/map/controls/draw/Draw";
+
+maplibregl.addProtocol("cog", cogProtocol);
 
 interface MapProps {
   mapRef: React.RefObject<MapRef> | null;

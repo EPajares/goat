@@ -163,6 +163,7 @@
   "click_to_start_drawing_line": "Click to start drawing the line feature",
   "click_to_start_drawing_polygon": "Click to start drawing the polygon feature",
   "close": "Close",
+  "collapsible_panel": "Collapsible panel",
   "color": "Color",
   "color_based_on": "Color based on",
   "color_based_on_desc": "Apply a color based on a field value",
