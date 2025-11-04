@@ -44,6 +44,10 @@ For more information check out:
 
 ## 👨‍💻 Built on Open Source
 
+GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
+
+### Frontend & Shared UI Components
+
 - 💻 [Typescript](https://www.typescriptlang.org/)
 
 - 🚀 [Next.js](https://nextjs.org/)
@@ -57,6 +61,21 @@ For more information check out:
 - 🔒 [Auth.js](https://authjs.dev/)
 
 - 🧘‍♂️ [Zod](https://zod.dev/)
+
+
+### Backend & API Services
+
+- 🐍 [Python](https://www.python.org/)
+
+- ⚡️ [FastAPI](https://fastapi.tiangolo.com/)
+
+- 📦 [Pydantic](https://pydantic.dev/)
+
+- 🗄️ [SQLAlchemy](https://www.sqlalchemy.org/)
+
+- 📊 [PostgreSQL with PostGIS](https://www.postgresql.org/)
+
+- 🔐 [Keycloak](https://www.keycloak.org/)
 
 <br/>
 
