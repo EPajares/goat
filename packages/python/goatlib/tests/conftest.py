@@ -157,3 +157,14 @@ def shapefile_path(request: pytest.FixtureRequest) -> Path:
 def mixed_content_path(request: pytest.FixtureRequest) -> Path:
     """Each mixed content file."""
     return request.param
+
+
+# ---------------------------------------------------------------------------
+# MOTIS adapter fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def motis_fixtures_dir(data_root: Path) -> Path:
+    """Directory containing MOTIS fixture data for routing tests."""
+    return data_root / "routing" / "motis"
