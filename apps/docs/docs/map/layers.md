@@ -20,7 +20,7 @@ In the **Layers** section, layers can be **added and organized**. Among others, 
 You can add layers from [different sources](../data/dataset_types) to your map. You can either integrate **datasets from your data explorer or the catalog explorer** or upload new **datasets from your local device** (GeoPackage, GeoJSON, Shapefile, KML, CSV, or XLSX). External layers can be added by inserting the **url of the external source** (WMS, WMTS, or MVT).
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/map/layers/overview.png').default} alt="Layer View in GOAT" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/>
+  <img src={require('/img/map/layers/add_layer.png').default} alt="Add layers in GOAT" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/>
 </div>
 
 Follow these steps to add a layer to the map: 
@@ -161,9 +161,11 @@ To temporarily **hide** a layer from the map view, click the eye icon for that l
 
 By clicking on three dots <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> you have further options to manage and organize the selected layer.
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/map/layers/layer_options.png').default} alt="Layer Options" style={{ maxHeight: "250px", maxWidth: "250px", objectFit: "cover", alignItems: 'center'}}/>
+</div>
 
-<img src={require('/img/map/layers/layer_options.png').default} alt="Layer Options" style={{ maxHeight: "250px", maxWidth: "250px", objectFit: "cover"}}/> 
-
+<p></p>
 
 :::tip tip
 

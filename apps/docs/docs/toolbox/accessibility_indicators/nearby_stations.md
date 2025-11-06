@@ -131,10 +131,7 @@ Depending on the number of the selected starting points, the calculation might t
 
 <div class="step">
   <div class="step-number">9</div>
-  <div class="content">As soon as the calculation process is finished, the resulting layers will be added to the map. The results consist of one layer called <b>"Nearby Stations"</b>, showing the Nearby PT Stations, and one layer called <b>"Starting Points - Nearby Stations"</b> which provides all starting points that were used for the calculation of this indicator. 
-  <p></p>
-  When clicking on a point in the map, further details, such as <b>stop name</b>, <b>access time [min]</b> and <b>aggregate frequency of PT service [min]</b>, become visible.
-</div>
+  <div class="content">As soon as the calculation process is finished, the resulting layers will be added to the map. The results consist of one layer called <b>"Nearby Stations"</b>, showing the Nearby PT Stations, and one layer called <b>"Starting Points - Nearby Stations"</b> which provides all starting points that were used for the calculation of this indicator. <p></p> When clicking on a point in the map, further details, such as <b>stop name</b>, <b>access time [min]</b> and <b>aggregate frequency of PT service [min]</b>, become visible.</div>
 </div>
 
 

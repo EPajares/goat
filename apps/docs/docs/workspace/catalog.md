@@ -1,68 +1,116 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Catalog
 
-The **Data Catalog** is a comprehensive listing of all [geospatial datasets](../further_reading/glossary#geospatial-data) available for exploration and analysis. A wide range of datasets are provided by Plan4Better based on official open-data providers and other sources, ensuring that **reliable** data is immediately available to carry out analysis and visualization within your projects.
+The **Data Catalog** is your gateway to exploring Plan4Better's comprehensive collection of high-quality [geospatial datasets](../further_reading/glossary#geospatial-data). **This curated library provides reliable, ready-to-use data from official open-data providers and other trusted sources**, enabling you to immediately start analysis and visualization within your GOAT projects. From the Catalog you can:
 
-<div class="content"><img src={require('/img/workspace/catalog/home-catalog.png').default} alt="Data Catalog" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
+- **Explore our dataset collection** spanning multiple thematic areas and geographic regions
+- **Search and filter through it** by keyword, spatial extent, and dataset attributes
 
-## Explore the catalog
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/workspace/catalog/catalog_general.png').default} alt="Data Catalog" style={{ maxHeight: "700px", maxWidth: "800px"}}/>
+</div>
 
-Accessed from the [Workspace](../category/workspace) or via the [`+ Add layer`](../map/layers#add-layers) button in your GOAT project, you can search our collection of datasets by *keyword*, or by applying *spatial* and *non-spatial filters* for efficient discovery. You can also interactively preview datasets within our interface to assess content and quality, enabling visual exploration.
+## Exploring the Catalog
 
-Our catalog features an extensive collection of datasets spanning different thematic areas, under different categories including:
+Access the Data Catalog from the [Workspace](../category/workspace) or directly through the <code>+ Add layer</code> button in your GOAT projects. The catalog provides powerful discovery tools including:
 
-- **Basemap:** Foundational map layer providing essential geographic features such as coastlines, rivers, and terrain, serving as a backdrop for additional data layers.
+- **Keyword search** for finding specific datasets or topics
+- **Filters** to browse datasets by Type, [Data Category](#Data-Category) , Region, Language, Distributor Name, and Licence
+- **Interactive preview** to assess data quality and content before use
 
-- **Imagery:** High-resolution visual data captured from satellites or aerial photography, offering detailed views of landscapes, urban areas, and infrastructure.
+### Dataset Category {#dataset-category}
 
-- **Boundary:** Spatial demarcations delineating administrative, political, or geographic boundaries, including country borders, state/province lines, and municipal districts.
+One way of filtering the Catalog is through **Data Category**, which organizes datasets into clear thematic categories for easy navigation:
 
-- **Land-use:** Categorization of land areas based on their primary usage, including classifications such as residential, commercial, industrial, agricultural, and recreational zones.
+- **Boundary** - Administrative, political, and geographic boundaries including borders and districts
+- **Land-use** - Classifications of land areas by usage type (residential, commercial, industrial, etc.)
+- **People** - Demographic data including population density, age groups, and socio-economic characteristics
+- **Places** - Points of interest such as schools, hospitals, tourist attractions, and services
+- **Transportation** - Road networks, railways, airports, ports, and public transport infrastructure
 
-- **Environment:** Data depicting natural features and phenomena, such as ecosystems, climate patterns, and ecological habitats.
+### Dataset Metadata
 
-- **People:** Demographic data related to human populations, such as population density, population distribution, age groups, and socio-economic characteristics.
+Each dataset includes comprehensive metadata accessible by clicking on the dataset name. The metadata view provides:
 
-- **Transportation:** Information on transportation networks and infrastructure, including roads, highways, railways, airports, ports, and public transport systems.
+- **Detailed descriptions** explaining dataset content and scope
+- **Dataset type** classification and technical specifications
+- **Geographic coverage** with **ISO 3166-1 alpha-2** country codes
+- **Source information** including distributor name and contact details
+- **License details** specifying usage rights and restrictions
+- **Interactive map preview** for visual data exploration
+- **Attribute information** showing available data fields and properties
 
-- **Places:** Points of interest and geographic landmarks such as schools, car-sharing locations, tourist attractions, and hospitals.
+### Available Dataset Types
 
-![Data Catalog in GOAT](/img/workspace/catalog/catalog_general.png "Data Catalog in GOAT")
+The catalog includes diverse datasets managed as feature layers containing geospatial features (points, lines, polygons) or non-geospatial tabular data. These datasets can be directly added to your projects for analysis and visualization.
 
-Clicking on a dataset within the Catalog page will take you to the **metadata** section. Here, you can explore detailed information about the dataset, including its **description**, **[dataset type](../data/dataset_types)**, **geographical and language codes** (based on [ISO 3166-1 alpha-2](https://www.iso.org/iso-3166-country-codes.html)), **distributor name**, and **license details**. You can also preview the **dataset map** and associated data directly from the data page.
+#### Points of Interest (POIs)
+Strategic locations of amenities, facilities, and attractions essential for accessibility planning and urban analysis, such as Public transport stops and stations, Shopping centers and retail locations, Tourism and leisure facilities, Food and beverage establishments, Healthcare facilities and hospitals, Educational institutions and schools.
 
-## Use catalog data in your GOAT project
+*Data Sources:* [Overture Maps Foundation](https://overturemaps.org/), [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/), government departments, health insurance providers, and retail companies. Additional field data collection conducted when necessary.
+
+#### Population and Buildings
+Detailed demographic data disaggregated to building and local levels, enhanced with land-use information for improved accuracy. We provide Building-level population data for German districts and municipalities, local population data from German Census 2022, and European NUTS-3 level population statistics (Nomenclature of Territorial Units for Statistics).
+
+*Data Sources:* [German Census 2022](https://ergebnisse.zensus2022.de/datenbank/online/), individual municipalities and districts, and 3D City Models from German federal states.
+
+#### Administrative Boundaries
+Comprehensive boundary datasets defining governmental and administrative jurisdictions at multiple scales, such as Municipal boundaries, District boundaries, Federal state boundaries, and Postal code regions.
+
+*Data Sources:* [Federal Agency for Cartography and Geodesy (BKG)](https://www.bkg.bund.de/) and [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/).
+
+## Adding Catalog data to your projects
+
+Follow these steps to add datasets from the catalog to your GOAT projects:
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content"> Under the <b>Layer</b> tab click <code> + Add Layer</code>.</div>
+  <div class="content">In your project, navigate to the <strong>Layers</strong> tab and click <code>+ Add Layer</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content"> Select <code>Catalog Explorer</code> and browse the <b>Data Catalog</b>.</div>
+  <div class="content">Select <code>Catalog Explorer</code> to browse the Data Catalog</div>
 </div>
-
-<div class="content"><img src={require('/img/workspace/catalog/map-catalog.png').default} alt="Catalog Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content"> Select a <i>dataset</i> and click <code>Add Layer</code>.</div>
+  <div class="content">Browse or search for your desired dataset, then click <code>Add Layer</code> to include it in your project</div>
 </div>
 
-<div class="content"><img src={require('/img/workspace/catalog/add-layer.png').default} alt="Catalog Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
-
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">After adding the layer, you can apply a <code><img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "16px", maxWidth: "16px"}}/> Filter</code>. This allows large layers to be constrained to the specific geographic extent or attributes necessary for your analysis, thereby reducing complexity and speeding up analytical operations. </div>
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/workspace/catalog/catalog_add-layer.gif').default} alt="Catalog Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/>
 </div>
 
+<p></p>
 
-:::tip HINT
-
-To learn more about GOAT's advanced filtering capabilities, see the [Filter](../map/filter.md "Filter dataset") page.
-
+:::tip Hint
+After adding the layer, you can apply [Filters](../map/filter.md "Filter dataset")  to constrain large datasets to specific geographic extents or attributes needed for your analysis
 :::
+
+
+## Data quality and maintenance
+
+Plan4Better ensures the reliability and currency of catalog data through comprehensive data management processes:
+
+### Data collection and preparation
+
+Our data collection process follows rigorous standards to ensure quality and reliability:
+
+- **Source identification** - We prioritize official open data portals and publicly available initiatives
+- **Format standardization** - Various formats (shapefiles, GeoJSON, etc.) are converted to consistent schemas
+- **Data integration** - Multiple datasets are combined and adapted to local contexts through fusion workflows
+- **Quality validation** - Comprehensive validation processes ensure accuracy and reliability
+- **Continuous expansion** - We actively seek and integrate additional datasets based on user needs
+
+### Update schedule
+
+To maintain data currency and relevance:
+
+- **Annual updates** - All datasets are refreshed at least once per year
+- **Dynamic data** - Rapidly changing data (POIs, public transport) receives more frequent updates
+- **On-demand updates** - Critical datasets can be updated as needed based on user requirements
+

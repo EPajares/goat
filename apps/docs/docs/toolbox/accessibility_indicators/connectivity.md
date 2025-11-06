@@ -118,8 +118,7 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Connectivity</i> layer will contain your color-coded heatmap.
-  <p></p>
+  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Connectivity</i> layer will contain your color-coded heatmap.<p></p>
   Clicking on any of the heatmap's hexagonal cells will reveal the computed connectivity value for this cell.</div>
 </div>
 

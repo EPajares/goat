@@ -68,3 +68,29 @@ apps/accounts
 
 apps/core/data/*
 
+# Docusaurus build artifacts
+apps/docs/.docusaurus/
+apps/docs/build/
+apps/docs/node_modules/
+
+# Yarn workspaces cache
+.yarn/
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# Storybook build output
+apps/storybook/node_modules/
+apps/storybook/storybook-static/
+apps/storybook/dist/
+
+# Local IDE config
+.vscode/
+
+
+
+
+
+

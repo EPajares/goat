@@ -201,8 +201,7 @@ Depending on your configuration, the calculation might take a few minutes. The [
 
 <div class="step">
   <div class="step-number">10</div>
-  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Closest Average</i> layer will contain your color-coded heatmap.
-  <p></p>
+  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Closest Average</i> layer will contain your color-coded heatmap.<p></p>
   Clicking on any of the heatmap's hexagonal cells will reveal the computed average travel time value for this cell.</div>
 </div>
 

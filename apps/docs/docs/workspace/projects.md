@@ -1,41 +1,62 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
 
 # Projects
 
-The **Projects** page allows users to **create, manage, and share** projects. The page provides users with an organized view of their projects, categorized into personal projects, team projects, and projects shared with the whole organization. In addition, projects can be organized into **folders** and can be **filtered** and **sorted** based on alphabetical order, date of creation, or date of last update. It is also possible to **delete projects** and **edit their metadata**. 
+The **Projects** page is your central hub for creating, managing, and sharing projects in GOAT. Here you can organize all your work with a clear overview of your projects, categorized into **Personal Projects**, **Team Projects**, and **Organization-wide Projects**. Here you can:
+
+- **Organize projects** into custom folders for better structure
+- **Filter and sort** projects by name, creation date, or last update
+- **Edit project metadata** including titles and descriptions
+- **Share projects** with team members or your entire organization
+- **Delete projects** when no longer needed
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/projects/projects_general.png').default} alt="Projects Page in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
 </div> 
 
 
-## Creating a new project
-Follow these steps to add a new project to your GOAT workspace:
+## Creating a New Project
+
+Follow these simple steps to create a new project:
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Navigate to the <b>"Projects"</b> page via the sidebar.</div>
+  <div class="content">Navigate to the <code>Projects</code> page using the sidebar navigation.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Click on <code>+ New Project</code>. </div>
+  <div class="content">Click the <code>+ New Project</code> button in the top-right corner.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Define the <b>Project title</b> and <b>Project Folder</b> for your new project. Furthermore, you can add a <b>Description</b> if you like. </div>
+  <div class="content">
+  <p>Fill in the required information:</p>
+    <ul>
+      <li><strong>Project Title</strong> - Give your project a descriptive name</li>
+      <li><strong>Project Folder</strong> - Choose or create a folder to organize your project</li>
+      <li><strong>Description</strong> (optional) - Add details about your project's purpose</li>
+    </ul>
+  </div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Check the information and click on <code>Create</code>.</div>
+  <div class="content">Review your information and click the <code>Create</code> button to finalize your new project.</div>
 </div>
 
+## Managing Projects
 
-## Managing projects
-By clicking on the three dots <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> , you can view and edit the metadata of projects, move a project into another folder, or share projects with other people.
-<img src={require('/img/workspace/projects/options.gif').default} alt="Options" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+Access additional project options by clicking the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to any project. This allows you to:
+
+- **View and edit metadata** - Update project titles, descriptions, and other details
+- **Move to different folders** - Reorganize your project structure
+- **Share with others** - Collaborate by sharing projects with team members or your organization
+- **Delete projects** - Remove projects you no longer need
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/workspace/projects/options.gif').default} alt="Project management options" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+</div>

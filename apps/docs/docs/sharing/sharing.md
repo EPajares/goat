@@ -42,7 +42,8 @@ Click on the three-dot menu <img src={require('/img/map/filter/3dots.png').defau
 <p> </p>
 
 <p>
-You can find the list of projects shared with you in <code>Workspace</code> --> <code>Projects</code> --> <code>Teams</code> / <code>Organizations</code> sections.</p>
+  You can find the list of projects shared with you in <code>Workspace</code> --> <code>Projects</code> --> <code>Teams</code> / <code>Organizations</code> sections.
+</p>
 You can find the list of datasets shared with you in <code>Workspace</code> -->  <code>Datasets</code> --> <code>Teams</code> / <code>Organizations</code> sections
 
 <p> </p>

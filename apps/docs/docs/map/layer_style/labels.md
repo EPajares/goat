@@ -7,89 +7,79 @@ import TabItem from '@theme/TabItem';
 
 # Labels
 
-You can display labels on your layers **based on any attribute**. Labels make your map easier to read and more informative.
+Labels allow you to display text on your map features based on any attribute field. This makes your maps more informative and easier to interpret by showing key information directly on the features.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/style_label.png').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "Auto", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/map/styling/labels.png').default} alt="Labels displayed on map features" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div>
 
-## Label by
+## How to add and configure labels
 
-First, **choose the attribute field** whose values you want to display as labels on the map. Then proceed to create further settings.
+### General settings
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/label_by.gif').default} alt="label by function" style={{ maxHeight: "Auto", maxWidth: "500px", objectFit: "cover"}}/>
-</div> 
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> and find the <strong>Labels section</strong></div>
+</div>
 
-## Label settings
-
-### Size
-
-Set the **size of the label text**. Values can range from 5 to 100. You can set it on the scale or type in the number manually.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/label_size.gif').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "600px", objectFit: "cover"}}/>
-</div> 
-
-### Color
-
-Choose **any color** using the <code>Color Picker</code> or select one from our <code>Preset Colors</code>.
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Choose the <strong>attribute field</strong> whose values you want to display as labels</div>
+</div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/label_color.png').default} alt="label font size" style={{ maxHeight: "200px", maxWidth: "Auto", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/map/styling/label_by.gif').default} alt="Selecting label attribute field" style={{ maxHeight: "auto", maxWidth: "500px", objectFit: "cover"}}/>
+</div>
 
-### Placement
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">Set the <strong>label size</strong> using the slider (5-100) or enter the value manually</div>
+</div>
 
-Define where the label appears **in relation to the feature**: center, top, bottom, left, right, top left, top right, bottom left, or bottom right.
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Choose a <strong>label color</strong> using the color picker or select from preset colors</div>
+</div>
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/label_placement.gif').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "500px", objectFit: "cover"}}/>
-</div> 
+<div class="step">
+  <div class="step-number">5</div>
+  <div class="content">Set the <strong>label placement</strong> to define where labels appear relative to features (center, top, bottom, left, right, or corner positions)</div>
+</div>
 
-<br></br> 
+### Advanced settings
 
----
+<div class="step">
+  <div class="step-number">6</div>
+  <div class="content">Click the <code>Advanced settings</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> button to access additional options</div>
+</div>
 
-::::info
-Open more setting with the <b>Advanced Settings</b> <code><img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> button.
-::::
+<div class="step">
+  <div class="step-number">7</div>
+  <div class="content">Adjust <strong>Offset X/Y</strong> to fine-tune label position by moving horizontally or vertically</div>
+</div>
 
-### Offset
+<div class="step">
+  <div class="step-number">8</div>
+  <div class="content">Configure <strong>Allow overlap</strong>: <strong>Enable</strong> to show all labels (may cause visual clutter) or <strong>Disable</strong> for automatic clustering at lower zoom levels (cleaner appearance)</div>
+</div>
 
-**Adjust the label's position** by moving it horizontally (<code>Offset X</code>) or vertically (<code>Offset Y</code>). Use the scalebar to create settings, or type in the number manually.
+<div class="step">
+  <div class="step-number">9</div>
+  <div class="content">Add a <strong>halo color</strong> to create a colored outline around text for better readability on busy backgrounds</div>
+</div>
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/offset.gif').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "500px", objectFit: "cover"}}/>
-</div> 
-
-### Allow overlap
-
-If **enabled**, labels will *appear on all zoom levels*. If **disabled**, the labels get *clustered at lower zoom levels*.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/overlap.gif').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "500px", objectFit: "cover"}}/>
-</div> 
-
-### Halo color
-
-A halo is an **outline around the label**, which helps to improve readability against busy backgrounds. Choose any color using the <code>Color Picker</code> or select one from our <code>Preset Colors</code>.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/halo_color.png').default} alt="label font size" style={{ maxHeight: "200px", maxWidth: "Auto", objectFit: "cover"}}/>
-</div> 
-
-### Halo width
-
-Set the **thickness of the halo**. The maximum value is one-quarter of the label's font size. Use the scalebar to create the setting, or type in the number manually.
+<div class="step">
+  <div class="step-number">10</div>
+  <div class="content">Set the <strong>halo width</strong> to control outline thickness (maximum is one-quarter of font size)</div>
+</div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/halo_width.gif').default} alt="label font size" style={{ maxHeight: "Auto", maxWidth: "500px", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/map/styling/labels_overlap.gif').default} alt="Label overlap and halo effects" style={{ maxHeight: "auto", maxWidth: "500px", objectFit: "cover"}}/>
+</div>
 
+## How to optimize label display
 
-## Tips
-
-- Use **smaller fonts** for *dense layers* to reduce visual clutter.
-- A **light halo** on **dark maps** (or vice versa) can make labels much *easier to read*.
-- **By default label overlap is disabled**, which *improves clarity*, but some labels might not appear if space is limited.
+- Use **smaller fonts** for dense layers to reduce visual clutter
+- Add **halos** with contrasting colors (light halos on dark maps, dark halos on light maps) to improve text readability
+- Keep **overlap disabled** by default for cleaner appearance, though some labels may be hidden in crowded areas
+- Test your label settings at different zoom levels to ensure they remain readable and useful across all scales

@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Attribute-based Styling
 
-GOAT supports ***attribute-based styling*** to enhance the visualization of data on maps. This helps show differences and patterns in the data by basing their style on data attributes, making it simpler to understand complex spatial information. Each aspect of a layer's visualization, such as **Fill Color**, **Stroke Color**, **Custom Marker** and **Labels** can be individually styled according to a field of the layer's data.
+GOAT supports **attribute-based styling**. You can style layers based on data attributes to easily identify differences and trends. Each visualization aspect—**Fill Color**, **Stroke Color**, **Custom Marker**, and **Labels**—can be styled by any field in your layer's data.
 
 <iframe width="100%" height="500" src="https://www.youtube.com/embed/cLIPMCOu4FQ?si=aydSJN_Pf0fusO9x" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
@@ -12,22 +12,22 @@ GOAT supports ***attribute-based styling*** to enhance the visualization of data
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Layer design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, open the <code> Style</code> menu,  ensure its attribute toggle is activated, and then click on <code>options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> to start styling.</div>
+  <div class="content">Click <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, open <code>Style</code>, activate the attribute toggle, then click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">On the <code>Color based on</code> menu, select the <strong>Field</strong> you want to style by.</div>
+  <div class="content">In <code>Color based on</code>, select the **field** to style by.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Above on the <code>Palette</code> menu,  you can select a different <strong>Color Palette</strong> or keep the default one. You can learn more about the options available in GOAT on the Color Palette section on this page.</div>
+  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Under the <code>Color Scale</code> menu, you can choose the <strong>Data Classification Method</strong> you need. You can learn more about the different methods we have <a href="#data-classification-methods"><strong>here</strong></a></div>
+  <div class="content">In <code>Color Scale</code>, choose your **data classification method**. See all methods in the [Data Classification](#data-classification-methods) section.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -37,11 +37,12 @@ GOAT supports ***attribute-based styling*** to enhance the visualization of data
 </div> 
 
 ## Color Palette
-A palette is a set of colors used to represent the scale of values or categories in your layer's data. 
 
-In GOAT, you can customize your palette by selecting the <code>Type</code>, adjusting the number of <code>Steps</code>, and <code>Reversing</code> the colors. You can also create a custom range of colors by enabling the <code>Custom</code> toggle button.
+A **palette** is a set of colors representing your data values or categories.
 
-GOAT offers a wide range of predefined palettes, categorized into four types, to make selection and application easier.
+Customize your palette by selecting the <code>Type</code>, adjusting <code>Steps</code>, <code>Reversing</code> colors, or enabling <code>Custom</code> for your own color range.
+
+GOAT offers four predefined palette types:
 
 <p></p>
 
@@ -52,19 +53,13 @@ GOAT offers a wide range of predefined palettes, categorized into four types, to
 | Qualitative | <img src={require('/img/map/styling/qualitative_palette.png').default} alt="qualitative" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Designed for distinct categories or classes.** It helps distinguish between discrete categories without implying any order or importance.|
 | Singlehue | <img src={require('/img/map/styling/singlehue_palette.png').default} alt="singlehue" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Uses different shades and tones of a single color.** It creates a harmonious look and is effective for conveying information without the distraction of multiple colors.|
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-
-  <img src={require('/img/map/styling/color_palettes.gif').default} alt="Color Palettes" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
-</div> 
-
 ## Data Classification Methods
 
-Under the <code>Color Scale</code>, you will find the **data classification method** and the **color scale** links data values to colors. It assigns a color to each data value based on its position within a range. GOAT offers six predefined **data classification methods**: [Quantile](#quantile), [Standard Deviation](#standard-deviation), [Equal Interval](#equal-interval), [Heads and Tails](#heads-and-tails), [Custom Breaks](#custom-breaks-for-numbers), and [Custom Ordinal](#custom-ordinal-for-strings).
+The <code>Color Scale</code> determines how data values map to colors. GOAT offers six data classification methods: **Quantile, Standard Deviation, Equal Interval, Heads and Tails, Custom Breaks, and Custom Ordinal.** All the methods default to 7 classes, but you can adjust this number as needed.
 
 ### Quantile
 
-**It divides data into classes with an equal number of observations**. This makes this approach **ideal for data that is linearly distributed**, but it can create uneven class ranges, making some categories much broader than others. Per default, the data is distributed into 7 classes.
+**Divides data into classes with equal numbers of features**. **Ideal for linearly distributed data**, but creates uneven value ranges.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -72,15 +67,9 @@ Under the <code>Color Scale</code>, you will find the **data classification meth
 
 </div>  
 
-<p></p>
-
-:::tip HINT
-Want to deeper understand what quantile classification is? Check our [Glossary](../../further_reading/glossary/#quantile-classification).
-:::
-
 ### Standard Deviation
 
-**It classifies data based on how much values deviate from the average**. This method is valuable for its ability to provide a statistical perspective on the data, allowing users to quickly grasp the **relative dispersion, distribution of values and outliers** within the dataset, but may not work well if the data isn’t normally distributed. Per default, the data is distributed into 7 classes. 
+**Classifies data by deviation from the average**. Shows **relative dispersion, distribution, and outliers** statistically, but requires normally distributed data.
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
   <img src={require('/img/map/styling/standard_deviation.png').default} alt="Standard Deviation" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
@@ -89,8 +78,7 @@ Want to deeper understand what quantile classification is? Check our [Glossary](
 
 ### Equal Interval
 
-**It divides data into equal-sized ranges, making it easy to compare values**. This method works well for evenly distributed data but can be misleading if the data is skewed, as some classes may end up nearly empty. Per default, the data is distributed into 7 classes. 
-
+**Divides data into equal-sized value ranges**. Works well for **evenly distributed data but can be misleading with skewed data** (some classes may be empty). 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
   <img src={require('/img/map/styling/equal_interval.png').default} alt="Equal Interval" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
@@ -99,7 +87,7 @@ Want to deeper understand what quantile classification is? Check our [Glossary](
 
 ### Heads and Tails
 
-**It handles datasets with a skewed distribution**. It's designed to highlight extremes in the data, focusing on the **'heads' (the very high values)** and the **'tails' (the very low values)**. This method is particularly useful for datasets where the most important information is found in the extremes, and where is important to highlight disparities or key areas for intervention. Per default, the data is distributed into 7 classes. 
+**Handles skewed data by highlighting extremes**. Focuses on 'heads' (very high values) and 'tails' (very low values). **Useful for datasets where extremes matter most and for highlighting disparities**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -109,7 +97,7 @@ Want to deeper understand what quantile classification is? Check our [Glossary](
 
 ### Custom Ordinal (for **strings**)
 
-**It helps sort and visualize string data**, like categories, labels, or text-based variables. Since string data often doesn't have a natural order, the **Custom Ordinal method lets users define their own ordering rules**. This creates a custom sequence tailored to their specific needs.
+**Sorts and visualizes string data** like categories or labels. Since strings lack natural order, **Custom Ordinal lets you define your own ordering rules** for tailored sequences.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -119,7 +107,7 @@ Want to deeper understand what quantile classification is? Check our [Glossary](
 
 <p></p>
 
-Therefore, you can add more steps and select multiple string values per group from a drop-down menu. The menu lists all attribute values from the dataset.
+You can add more steps and select multiple string values per group from the dropdown menu, which lists all values from your dataset.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -129,49 +117,9 @@ Therefore, you can add more steps and select multiple string values per group fr
 
 ### Custom Breaks (for **numbers**)
 
-**It is used for numerical data. It allows users to define custom breakpoints or thresholds** and therewith provides a tailored approach for context-specific visualizations. **It can also help maintain consistency across maps**. This method gives full control over classifications, ensuring they align with real-world contexts.
-
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
-## Style Settings
-
-<Tabs>
-  <TabItem value="fill color" label="Fill Color" default> Fill Color can either be one single color or a color palette. GOAT offers a set of preset colors and palettes to style your map. 
-    For attribute-based Fill Color select a Field from the selected <code>Layer</code>.
-    GOAT applies a random color palette to your results. 
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-
-   <img src={require('/img/map/layers/fill-color.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "500px", maxWidth: "500px", objectFit: "cover"}}/>
-
-   </div> 
-
-  </TabItem>
-  <TabItem value="stroke color" label="Stroke Color"> Stroke Color by default is one single color. Apply attribute-based styling to apply a color scale to the layer stroke. 
-    For attribute-based Stroke Color select a Field from the selected <code>Layer</code>.
-    GOAT applies a random color palette to your results. 
-
-   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-
-   <img src={require('/img/map/layers/stroke-color.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "500px", maxWidth: "500px", objectFit: "cover"}}/>
-
-   </div> 
-
-
-
-  </TabItem>
-  <TabItem value="custom marker" label="Custom Marker"> When available, the custom marker has an icon library to best represent your data set. You can also use your own uploaded custom markers as well.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-
-   <img src={require('/img/map/layers/attribute-based-custom-marker.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "500px", maxWidth: "500px", objectFit: "cover"}}/>
-
-   </div> 
-
-  </TabItem>
-</Tabs>
+**For numerical data with custom breakpoints or thresholds**. It provides tailored visualizations for specific contexts. **Helps maintain consistency across maps**. Gives full control over classifications aligned with real-world needs.
 
 
 :::tip HINT
-If you would like to save your styling settings and use them in further projects, you can do so by [saving a style as default](../layer_style/styling#default-settings). 
+To reuse your dataset with the styling settings in other projects, [save your style as default](../layer_style/styling#default-settings).
 :::
