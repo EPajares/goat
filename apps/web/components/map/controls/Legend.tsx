@@ -448,7 +448,7 @@ export function Legend(props: LegendProps) {
                     variant="body2"
                     fontWeight="bold"
                     style={{ wordBreak: "break-all" }}
-                    color={layer.properties.visibility ? "inherit" : theme.palette.text.disabled}>
+                    color={layer.properties?.visibility ? "inherit" : theme.palette.text.disabled}>
                     {layer.name}
                   </Typography>
                 </Stack>
@@ -485,12 +485,12 @@ export function Legend(props: LegendProps) {
                 </Typography>
               </Tooltip>
             )}
-            {layer.properties.legend?.caption && (
+            {layer.properties?.legend?.caption && (
               <Typography variant="caption" fontWeight="bold" sx={{ pt: 1 }}>
                 {layer.properties.legend.caption}
               </Typography>
             )}
-            {layer.properties.visibility && (
+            {layer.properties?.visibility && (
               <Stack sx={{ py: 1 }}>
                 {layer.type === "feature" && (
                   <>

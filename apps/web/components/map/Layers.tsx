@@ -151,7 +151,7 @@ const Layers = (props: LayersProps) => {
                           properties: {
                             ...layer.properties,
                             opacity: 1, // todo: add stroke_opacity to the layer properties
-                            visibility: layer.properties.visibility && layer.properties.stroked,
+                            visibility: layer.properties?.visibility && layer.properties?.stroked,
                           },
                         }) as LayerProps)}
                         source-layer="default"
