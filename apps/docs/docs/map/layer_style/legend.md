@@ -7,28 +7,23 @@ import TabItem from '@theme/TabItem';
 
 # Legend
 
-Legends help users understand the symbology and meaning of your map layers. GOAT automatically displays legends for all visible layers, but you can customize their appearance and add descriptive captions to make your maps more informative.
+**Legends help users understand the symbology and meaning of your map layers.** GOAT automatically displays legends for all visible layers, but you can customize their appearance and add descriptive captions to make your maps more informative.
 
 ## How to manage layer legends
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select your layer and navigate to <strong>Layer design</strong> and find the <strong>Legend</strong> section</div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> and find the <code>Legend section</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Toggle the <strong>Show</strong> checkbox to enable or disable the legend display</div>
+  <div class="content">Toggle the <code>Show</code> checkbox to **enable or disable the legend display**</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">You can add a <strong>Caption</strong> field explaining the layer's content</div>
-</div>
-
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">Click <strong>Save</strong> to apply your changes. The caption will appear below the layer name in the legend list</div>
+  <div class="content">You can add a <code>Caption</code> field **explaining the layer's content**. The caption will appear below the layer name in the legend list</div>
 </div>
 
 <p></p>

@@ -9,34 +9,26 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # Catchment Area
 
-**Catchment Areas** show how far people can travel within a certain travel time or distance, using one or more modes of transport.
+Catchment Areas show **how far people can travel within a certain travel time or distance, using one or more transport modes.**
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/AhQXTjxjhZY?si=cWaLkivPtvWNAByW" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/_clsR386b9w?si=ZInxlY_TjYiEda23" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
-Based on the specified starting point(s), maximum travel time or distance, and mode(s) of transport, **Catchment Areas** visualize the extent of accessibility. This is calculated using **real-world data** and provides useful insights into the quality, density, and extensiveness of an area's transport network.
+Based on specified starting point(s), maximum travel time or distance, and transport mode(s), **Catchment Areas visualize accessibility extent using real-world data.** This provides insights into transport network quality, density, and extensiveness.
 
-Furthermore, the catchment area can be intersected with spatial datasets, such as population and [POI](../../further_reading/glossary#point-of-interest-poi "What is a POI?") data. This allows you to assess - for example - how many POIs can be reached from a certain location and therefore identify what share of inhabitants has access to important amenities within a specific travel time.
-
-![Catchment Area in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_sample.png "Catchment Area in GOAT")
-  
-
-:::tip Hint
-You might know this feature from our previous software versions under the terms *Single-Isochrone* and *Multi-Isochrone*. With the release of GOAT version 2.0, we combined these two indicators in the same flow and enriched it with further calculation options. 
-:::
+The catchment area can be intersected with spatial datasets, such as population data, to assess reachable amenities and identify accessibility coverage for inhabitants.
 
 import MapViewer from '@site/src/components/MapViewer';
 
-
 :::info 
-The computation of Catchment Areas is possible in specific regions.
+Catchment Area computation is available in specific regions.
 
-Upon selecting a <code>Routing type</code>, GOAT will display a map overlay indicating this.
-For <code>Walk</code>, <code>Bicycle</code>, <code>Pedelec</code>, and <code>Car</code>, over 30 European countries are supported, while <code>Public Transport</code> Catchment Areas may be computed for Germany.
-
-
-
+When selecting a <code>Routing type</code>, GOAT displays a map overlay showing coverage.
+For <code>Walk</code>, <code>Bicycle</code>, <code>Pedelec</code>, and <code>Car</code>: over 30 European countries are supported.
+For <code>Public Transport</code>: Germany is supported.
 
 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
   <MapViewer
@@ -69,137 +61,96 @@ For <code>Walk</code>, <code>Bicycle</code>, <code>Pedelec</code>, and <code>Car
 
 <br />
 
-If you need to perform analyses beyond these regions, feel free to [contact us](https://plan4better.de/en/contact/ "contact us") and we would be happy to discuss further options.
+If you need analyses beyond these regions, feel free to [contact us](https://plan4better.de/en/contact/) and we'll discuss further options.
 :::
 
 ## 2. Example use cases
 
-- Which amenities can be reached from a certain point in a 15-minute walk?
-- How many inhabitants have access to a supermarket within 10 minutes of cycling?
-- What share of the population has a general practitioner (GP) within 500m distance?
-- How big is the catchment area of a workplace by car vs. by public transport? How many employees live within these catchment areas? 
-- How well are kindergartens currently distributed across the city? In which districts are there accessibility deficits?
+- Which amenities are reachable within a 15-minute walk?
+- How many inhabitants have access to supermarkets within 10 minutes by bicycle?
+- What share of the population has a general practitioner within 500m?
+- How do workplace catchment areas compare between car and public transport? How many employees live within these areas? 
+- How well are kindergartens distributed citywide? Which districts have accessibility deficits?
 
 
 ## 3. How to use the indicator?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Under the <code>Accessibility Indicators</code> menu, click on <code>Catchment Area</code>.</div>
+  <div class="content">Under <code>Accessibility Indicators</code>, click on <code>Catchment Area</code>.</div>
 </div>
 
 ### Routing
 
-
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Pick for which <code>Routing Type</code> you would like to calculate a catchment area.</div>
+  <div class="content">Select the <code>Routing Type</code> for your catchment area calculation.</div>
 </div>
-
 
 ### Configuration
 
 <Tabs>
   <TabItem value="walk" label="Walk" default className="tabItemBox">
 
-#### Walk
+  #### Walk
 
-Considers all paths accessible by foot.
+  Considers all paths accessible by foot.
 
-:::tip Hint
+  <div class="step">
+    <div class="step-number">4</div>
+    <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
+  </div>
 
-For further insights into the Routing algorithm, visit [Routing/Walk](../../routing/walking).
+  <Tabs>
+    <TabItem value="time" label="Time" default className="tabItemBox">
 
-:::
+  #### Time
 
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">Pick if you like to calculate the catchment area based on <b>time</b> or <b>distance</b>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Configure <code>Travel time limit</code>, <code>Travel speed</code>, and <code>Number of breaks</code>.</div>
+  </div>
 
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
+  :::tip Hint
 
-<Tabs>
-  <TabItem value="time" label="Time" default className="tabItemBox">
+  For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
 
-#### Time
-
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Set the configurations for <code>Travel time limit</code>, <code>Travel speed</code>, and <code> Number of breaks</code>.</div>
-</div>
-
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
-
-:::tip Hint
-
-For defining which travel time limits are suitable for which amenity, the ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
-
-:::
-
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
-
-  </TabItem>
+  :::
+    </TabItem>
+  
   <TabItem value="distance" label="Distance" default className="tabItemBox">
 
-#### Distance
+  #### Distance
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Set the configurations for <code>Travel distance</code> and <code> Number of breaks</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Set the configurations for <code>Travel distance</code> and <code> Number of breaks</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
-
-:::tip Hint
-
-For defining which travel distances are suitable for which amenity, the ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
-
-:::
-
-
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
-
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  
   </TabItem>
 
-</Tabs>
-
-  </TabItem>
+  </Tabs>
+</TabItem>
+  
   <TabItem value="cycling" label="Bicycle/Pedelec" className="tabItemBox">
 
     
 #### Bicycle/Pedelec
 
-Considers all paths accessible by bicycle. This routing mode takes into account the surface, smoothness, and slope of streets while computing accessibility. For Pedelec, slopes are considered with a lower impedance than for standard bicycles.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-
-:::
+Considers all bicycle-accessible paths. This routing mode accounts for surface, smoothness, and slope while computing accessibility. For Pedelec, slopes have lower impedance than standard bicycles.
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Pick if you like to calculate the catchment area based on <b>time</b> or <b>distance</b>.</div>
+  <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
 </div>
 
 <Tabs>
@@ -216,21 +167,12 @@ For further insights into the Routing algorithm, visit [Routing/Bicycle](../../r
 
 :::tip Hint
 
-For defining which travel time limits are suitable for which amenity, the ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
+For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
 
 :::
 
-
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
-
   </TabItem>
+  
   <TabItem value="distance" label="Distance" default className="tabItemBox">
 
 #### Distance
@@ -241,22 +183,6 @@ Per default, the catchment areas are calculated in polygon shape. In case you wa
 </div>
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
-
-:::tip Hint
-
-For defining which travel distances are suitable for which amenity, the ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
-
-:::
-
-
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
 
   </TabItem>
 
@@ -269,17 +195,11 @@ Per default, the catchment areas are calculated in polygon shape. In case you wa
 
 #### Car
 
-Considers all paths accessible by car. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Car](../../routing/car).
-
-:::
+Considers all car-accessible paths. This routing mode accounts for speed limits and one-way restrictions while computing accessibility.
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Pick if you like to calculate the catchment area based on <b>time</b> or <b>distance</b>.</div>
+  <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
 </div>
 
 <Tabs>
@@ -294,16 +214,11 @@ For further insights into the Routing algorithm, visit [Routing/Car](../../routi
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="travel-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
+:::tip Hint
 
+For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
 
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
+:::
 
   </TabItem>
   <TabItem value="distance" label="Distance" default className="tabItemBox">
@@ -317,17 +232,6 @@ Per default, the catchment areas are calculated in polygon shape. In case you wa
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="travel-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
-
-
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
-
   </TabItem>
 </Tabs>
 
@@ -336,18 +240,11 @@ Per default, the catchment areas are calculated in polygon shape. In case you wa
 
 #### Public Transport (PT)
 
-Considers all locations accessible by public transport. This routing mode considers inter-modal transfers including access to and from stations.
-
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Public Transport](../../routing/public_transport).
-
-:::
+Considers all locations accessible by public transport, including inter-modal transfers and station access.
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select the <code>Public transport modes</code> you want to analyze (<i>Bus, Tram, Rail, Subway, Ferry, Cable Car, Gondola</i> and/or <i>Funicular</i>).</div>
+  <div class="content">Select the <code>Public transport modes</code> to analyze: **Bus**, **Tram**, **Rail**, **Subway**, **Ferry**, **Cable Car**, **Gondola**, and/or **Funicular**.</div>
 </div>
 
 <div>
@@ -358,18 +255,9 @@ For further insights into the Routing algorithm, visit [Routing/Public Transport
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">
-    <code>Travel time limit</code> - the maximum allowed duration of journeys considered for the analysis
-    <br />
-    <code>Number of breaks</code> - determines the resolution of the resulting catchment area isochrone
-    <br />
-    <code>Day</code> - the weekday type on which the analysis is performed: <i>Weekday, Saturday</i> or <i>Sunday</i>
-    <br />
-    <code>Start Time</code> and <code>End Time</code> - the fastest possible journeys within this time window are considered for the analysis
-    <br />
-    <p>
-      Read more about routing options {" "}
-      <a href="../../routing/public_transport#routing-options">here</a>.
+  <div class="content"> 
+  <p>
+  Configure the following parameters: <code>Travel time limit</code>, <code>Number of breaks</code>, <code>Day</code>, and <code>Start Time</code> and <code>End Time</code>.
     </p>
   </div>
 </div>
@@ -378,49 +266,44 @@ For further insights into the Routing algorithm, visit [Routing/Public Transport
 
 :::tip Hint
 
-The ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance on suitable travel time limits for assessing accessibility to various amenities.
+For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
 
 :::
 
 
-#### Advanced Configurations
-
-Per default, the catchment areas are calculated in polygon shape. In case you want to adjust that, you find further options in the advanced configurations. 
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Click on <b>options button</b> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Here you can select the <code> Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
-</div>
-
   </TabItem>
+
 </Tabs>
 
+
+### Advanced Configuration
+
+  By default, catchment areas are calculated as polygons. To adjust this, use the advanced configurations.
+
+  <div class="step">
+    <div class="step-number">6</div>
+    <div class="content">Click on <code>Advanced Configurations</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> button. Here you can select the <code>Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
+  </div>
 
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
 
  #### Polygon
-- It is the *geometric representation* of the catchments.
-- Provides an easy-to-understand visualization of the catchment area.
-- One polygon is produced for each <code>step</code>.
+- It is a **geometric representation** of the catchments.
+- **Easy-to-understand** visualization
+- **One polygon per step**
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_polygon.png').default} alt="Catchment Area Shape (Polygon) Public Transport in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
-:::tip NOTE
-
-If you enable **Polygon Difference**, only the "incremental" (or differential) polygon will be created for each step, but if you disable **Polygon Difference**, a "full" polygon will be created for each step (including the areas covered by all previous steps).
-
-<img src={require('/img/toolbox/accessibility_indicators/catchments/polygon_difference.png').default} alt="Public Transport Configurations" style={{ maxHeight: "400px", maxWidth: "400px"}}/>
-
-:::
+You can choose <code>Polygon Difference</code> **enabled** which creates an "incremental" polygons for each step. On the other hand, **disabled** creates "full" polygons including all previous steps.
 
   </TabItem>
   <TabItem value="Network" label="Network" className="tabItemBox">
 
  #### Network
-- It is a *street-level representation* of the catchments.
-- Enables easy correlation to actual streets and their accessibility within the catchment area.
-- Fine-grained detail compared to the other catchment types.
+- It is a **street-level representation** of the catchments.
+- Enables **easy correlation to actual streets** and their accessibility within the catchment area.
+- **Fine-grained detail** compared to the other catchment types.
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_network.png').default} alt="Catchment Area Shape (Network) Public Transport in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
@@ -428,8 +311,8 @@ If you enable **Polygon Difference**, only the "incremental" (or differential) p
   <TabItem value="Rectangular Grid" label="Rectangular Grid" className="tabItemBox">
 
 #### Rectangular Grid
-- It is a *grid cell-based representation* of the catchments.
-- Appears similar to a “heatmap” visualization, however, differs conceptually & computationally (this represents egress from a specified origin to various other locations while heatmaps represent access from various locations to a specified destination).
+- It is a **grid cell-based** representation of the catchments.
+- Appears **similar to a “heatmap” visualization**, however, differs conceptually & computationally (this represents egress from a specified origin to various other locations while heatmaps represent access from various locations to a specified destination).
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_grid.png').default} alt="Catchment Area Shape (Grid) Public Transport in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
@@ -440,28 +323,25 @@ If you enable **Polygon Difference**, only the "incremental" (or differential) p
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Select the <code>Starting point method</code> to define how you like to define the starting point(s) for the catchment areas. You can either <b>Select on map</b> or <b>Select from layer</b>.</div>
+  <div class="content">Select the <code>Starting point method</code>: <code>Select on map</code> or <code>Select from layer</code>.</div>
 </div>
 
 <Tabs>
   <TabItem value="Select on Map" label="Select on Map" default className="tabItemBox">
 
- #### Select on Map
-
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Choose <code>Select on map</code>. Select the starting point(s) by clicking on the respective location(s) in the map. You can add <b>as many starting points</b> as you like.</div>
+  <div class="content">Choose <code>Select on map</code>. Click on the map to select starting point(s). You can add multiple starting points.</div>
 </div>
 
 
   </TabItem>
   <TabItem value="Select From Layer" label="Select From Layer" className="tabItemBox">
 
- #### Select From Layer
 
  <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Click on <code>Select from layer</code>. Select the <code>Point layer</code> which contains the starting point(s) you like to use.</div>
+  <div class="content">Click on <code>Select from layer</code>. Choose the <code>Point layer</code> containing your desired starting point(s).</div>
 </div>
 
 
@@ -471,42 +351,46 @@ If you enable **Polygon Difference**, only the "incremental" (or differential) p
 
 <div class="step">
   <div class="step-number">9</div>
-  <div class="content">Click on <code>Run</code>. This starts the calculation of the <b>catchment areas</b> from the selected starting point(s).</div>
+  <div class="content">Click on <code>Run</code>. This starts the catchment area calculation from the selected starting point(s).</div>
 </div>
 
 :::tip Hint
 
-Depending on the chosen settings, the calculation might take some minutes. The [status bar](../../workspace/home#status-bar) shows the current progress.
+Calculation time varies by settings. Check the [status bar](../../workspace/home#status-bar) for progress.
 
 :::
 
 ### Results
 
-<div class="step">
-  <div class="step-number">10</div>
-  <div class="content">As soon as the calculation process is finished, the resulting layer(s) will be added to the map. The layer called <b>"Catchment Area"</b> contains the calculated catchments. If the starting points were created by clicking on the map, they will also be saved in a layer called <b>"Starting Points"</b>. <p></p>
-  If you click on a catchment polygon on the map, you will see further details in its attribute table. The attribute <b>travel_cost</b> shows the travel distance or time, depending on which unit you picked for the calculation. If you have selected travel time, the travel_cost will show the <b>time in minutes</b>. If you have selected distance, the travel_cost will show the <b>distance in meters</b>.</div>
-</div>
+Once calculation finishes, the resulting layers are added to the map. The **"Catchment Area"** layer contains the calculated catchments. If starting points were created by map clicking, they're saved in the **"Starting Points"** layer.
 
-![Catchment Area Calculation Result in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_result.png "Catchment Area Calculation Result in GOAT")
+Click on a catchment polygon to view details. The **travel_cost** attribute shows travel distance or time based on your calculation unit: **time in minutes** or **distance in meters**.
+
+![Catchment Area Calculation in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif "Catchment Area Calculation Result in GOAT")
 
 :::tip Tip
-Want to style your catchment areas and create nice looking maps? See [Styling](../../map/layer_style/styling).
+Want to style your catchment areas? See [Styling](../../map/layer_style/styling).
 :::
 
 ## 4. Technical details
 
-Catchment areas are **isolines** connecting all points that can be reached from one or more starting points within a certain time interval (called *isochrones*) or distance (called *isodistance*). Depending on the chosen travel mode, the according transport networks are used for the [routing](../../routing/walking). 
+**Catchment areas are isolines connecting points reachable from starting point(s) within a time interval (*isochrones*) or distance (*isodistance*)**. The calculation uses the appropriate transport networks for routing based on the selected travel mode.
 
-The catchment areas are dynamically created in the front end based on a travel time/distance grid. Therefore, catchment areas can be created fast and for different intervals on the fly.
+Catchment areas are dynamically created in the frontend from a travel time/distance grid, enabling fast creation with different intervals on-demand.
+
+:::tip Hint
+
+For further insights into the Routing algorithm, visit [Routing](../../rcategory/routing).
+
+:::
 
 ### Scientific background
 
-From the scientific background, catchments are _contour-based measures_ (also known as _cumulative opportunities_). They are valued for their **easily interpretable results** ([Geurs and van Eck 2001](#6-references); [Albacete 2016](#6-references)), but have the drawback of not distinguishing between different travel times within the **cut-off range** ([Bertolini, le Clercq, and Kapoen 2005](#6-references)), as it is done by [heatmaps](../accessibility_indicators/closest_average.md).
+Catchments are *contour-based measures* (also *cumulative opportunities*), valued for their **easily interpretable results** ([Geurs and van Eck 2001](#6-references); [Albacete 2016](#6-references)). However, they don't distinguish between different travel times within the **cut-off range** ([Bertolini, le Clercq, and Kapoen 2005](#6-references)), unlike [heatmaps](../accessibility_indicators/closest_average.md).
 
 ### Visualization 
 
-The catchment shape is derived from the routing grid using the [Marching square contour line algorithm](https://en.wikipedia.org/wiki/Marching_squares "Wikipedia: Marching Squares"), a computer graphics algorithm that can generate two-dimensional contour lines from a rectangular array of values ([de Queiroz Neto et al. 2016](#6-references)). This algorithm transforms the grid from a 2D array to a shape to visualize or analyze. An illustration of 2D image processing is shown in the figure. 
+The catchment shape derives from the routing grid using the [Marching square contour line algorithm](https://en.wikipedia.org/wiki/Marching_squares), a computer graphics algorithm generating 2D contour lines from rectangular value arrays ([de Queiroz Neto et al. 2016](#6-references)). This transforms the grid from a 2D array to a shape for visualization or analysis. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/toolbox/accessibility_indicators/catchments/wiki.png').default} width="1000px" alt="marching square" style={{ width: "1000px", height: "400px", maxHeight: "400px", maxWidth: "400px", objectFit: "contain"}}/>
@@ -514,7 +398,7 @@ The catchment shape is derived from the routing grid using the [Marching square 
 
 ## 5. Further readings
 
-Further insights into the catchment calculation and its scientific background can be found in this [publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
+Further insights into catchment calculation and scientific background: [this publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
 
 ## 6. References
 

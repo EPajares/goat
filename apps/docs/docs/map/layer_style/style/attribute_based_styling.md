@@ -4,29 +4,34 @@ sidebar_position: 2
 
 # Attribute-based Styling
 
-GOAT supports **attribute-based styling**. You can style layers based on data attributes to easily identify differences and trends. Each visualization aspect—**Fill Color**, **Stroke Color**, **Custom Marker**, and **Labels**—can be styled by any field in your layer's data.
+**You can style layers based on data attributes to easily identify differences and trends.** Each visualization aspect—**Fill Color**, **Stroke Color**, **Custom Marker**, and **Labels**—can be styled by any field in your layer's data.
 
 <iframe width="100%" height="500" src="https://www.youtube.com/embed/cLIPMCOu4FQ?si=aydSJN_Pf0fusO9x" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-## How to style?
+## How to apply attribute-based styling
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, open <code>Style</code>, activate the attribute toggle, then click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code>.</div>
+  <div class="content">Click <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, and open the <code>Style section</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">In <code>Color based on</code>, select the **field** to style by.</div>
+  <div class="content">On <code>Fill color</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
+  <div class="content">In <code>Color based on</code>, select the **field to style by**.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
+  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
   <div class="content">In <code>Color Scale</code>, choose your **data classification method**. See all methods in the [Data Classification](#data-classification-methods) section.</div>
 </div>
 
@@ -38,9 +43,9 @@ GOAT supports **attribute-based styling**. You can style layers based on data at
 
 ## Color Palette
 
-A **palette** is a set of colors representing your data values or categories.
+A palette is a set of colors representing your data values or categories.
 
-Customize your palette by selecting the <code>Type</code>, adjusting <code>Steps</code>, <code>Reversing</code> colors, or enabling <code>Custom</code> for your own color range.
+You can customize your palette by selecting the <code>Type</code>, adjusting <code>Steps</code>, <code>Reversing</code> colors, or enabling <code>Custom</code> for your own color range.
 
 GOAT offers four predefined palette types:
 
@@ -107,7 +112,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 
 <p></p>
 
-You can add more steps and select multiple string values per group from the dropdown menu, which lists all values from your dataset.
+You can add more steps and select multiple string values per group from the <code>dropdown menu</code>, which lists all values from your dataset.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 

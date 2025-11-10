@@ -1,5 +1,5 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
 
@@ -9,33 +9,36 @@ import TabItem from '@theme/TabItem';
 
 # Layer
 
-Im Bereich **Layer** können Layer **hinzugefügt und organisiert** werden. Unter anderem kann die Reihenfolge der Layer angepasst werden, Layer können angezeigt/ausgeblendet, dupliziert, umbenannt, heruntergeladen und entfernt werden.
+**Im Layer-Bereich können Layer hinzugefügt und organisiert werden**. Unter anderem kann die Layer-Reihenfolge angepasst, Layer aktiviert/deaktiviert, dupliziert, umbenannt, heruntergeladen und entfernt werden.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/c_EoWW7HJVU?si=PBahX_5OTRpT5pjq" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/McjAUSq2p_k?si=2hh0hU10l95Tkjqt" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+
+
+## Wie Sie Ihre Layer verwalten
+
+### Layer hinzufügen
+
+Sie können Layer aus [verschiedenen Quellen](../data/dataset_types) zu Ihrer Karte hinzufügen. Sie können entweder **Datensätze aus Ihrem Datensatz-Explorer oder dem Katalog-Explorer integrieren** oder neue **Datensätze von Ihrem lokalen Gerät hochladen** (GeoPackage, GeoJSON, Shapefile, KML, CSV oder XLSX). Externe Layer können durch Eingabe der **URL der externen Quelle** hinzugefügt werden (WMS, WMTS oder MVT).
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/map/layers/overview.png').default} alt="Layer View in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/map/layers/add_layer.png').default} alt="Layer in GOAT hinzufügen" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/>
+</div>
 
-## Layer hinzufügen
-
-Sie können Ebenen aus [verschiedenen Quellen](../data/dataset_types) zu Ihrer Karte hinzufügen. Sie können entweder **Datensätze aus Ihrem Datenexplorer oder dem Katalogexplorer** integrieren oder neue **Datensätze von Ihrem lokalen Gerät** hochladen (GeoPackage, GeoJSON, Shapefile, KML, CSV oder XLSX). Externe Ebenen können durch Einfügen der **Url der externen Quelle** (WMS, WMTS oder MVT) hinzugefügt werden.
-
-Führen Sie die folgenden Schritte aus, um der Karte eine Layer hinzuzufügen: 
-
+<p></p>
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Navigieren Sie über die linke Seitenleiste zum Menü <b>"Layer"</b>.</div>
+  <div class="content">Navigieren Sie zum <code>Layer</code>-Menü über die **linke Seitenleiste**.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Klicken Sie auf <code>+ Layer hinzufügen</code>. </div>
+  <div class="content">Klicken Sie auf <code>+ Layer hinzufügen</code> um **die Layer-Optionen zu öffnen**. </div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie aus, ob Sie einen Datensatz aus Ihrem  <b>Datenexplorer</b> einbinden möchten,  <b>einen neuen Datensatz hochladen</b> oder einen <b>externen Datensatz</b> hinzufügen möchten.</div>
+  <div class="content">Wählen Sie aus, ob Sie einen Datensatz über folgende Optionen integrieren möchten: <code>Datensatz-Explorer</code>, <code>Datensatz-Upload</code>, <code>Externer Datensatz</code> oder <code>Datensatz-Katalog</code> um **Ihre Datenquelle zu wählen**.</div>
 </div>
 
 <Tabs>
@@ -44,12 +47,12 @@ Führen Sie die folgenden Schritte aus, um der Karte eine Layer hinzuzufügen:
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie die Datei aus, die Sie importieren möchten.</div>
+  <div class="content">Wählen Sie die Datei aus, die Sie **importieren** möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>+ Layer hinzufügen</code>.</div>
+  <div class="content">Klicken Sie auf <code>+ Layer hinzufügen</code> um **die ausgewählte Datei hinzuzufügen**.</div>
 </div>
 
 
@@ -59,70 +62,115 @@ Führen Sie die folgenden Schritte aus, um der Karte eine Layer hinzuzufügen:
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie die Datei aus, die Sie importieren möchten.</div>
+  <div class="content">Wählen Sie die Datei aus, die Sie **importieren** möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Bestimmen Sie den Namen des Datensatzes und fügen Sie ggf. eine Beschreibung hinzu.</div>
+  <div class="content">Definieren Sie den Namen des Datensatzes und **fügen Sie eine Beschreibung hinzu**, wenn Sie möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Kontrollieren Sie die Informationen und klicken Sie auf <code>Hochladen</code>.</div>
+  <div class="content">Überprüfen Sie die Informationen und klicken Sie auf <code>Hochladen</code> um **den Datensatz hochzuladen**.</div>
 </div>
 
-  </TabItem>
-  <TabItem value="Dataset External" label="Katalog-Explorer" className="tabItemBox">
-
-:::info demnächst verfügbar
-
-Wir implementieren derzeit diese Funktion.  🧑🏻‍💻
-
-:::
-
 
   </TabItem>
+  <TabItem value="Catalog Explorer" label="Katalog-Explorer" className="tabItemBox">
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Durchsuchen Sie den <code>GOAT Datensatz-Katalog</code> um **verfügbare Datensätze zu erkunden**.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
+  <div class="content">Wählen Sie den Datensatz aus, den Sie **importieren** möchten.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">6</div>
+  <div class="content">Klicken Sie auf <code>+ Layer hinzufügen</code> um **den ausgewählten Datensatz hinzuzufügen**.</div>
+</div>
+
+
+ </TabItem>
+  <TabItem value="Dataset External" label="Externer Datensatz" default className="tabItemBox">
+  
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Geben Sie Ihre <code>externe URL</code> ein und **folgen Sie den Schritten** abhängig vom Typ des Datensatzes, den Sie hinzufügen möchten.</div>
+</div>
+
+<Tabs>
+  <TabItem value="WFS" label="WFS" default className="tabItemBox">
+
+  <div class="step">
+      <div class="content"> <p>Wenn Sie einen WFS-Layer hinzufügen möchten, benötigen Sie einen **GetCapabilities**-Link. </p>
+      Im nächsten Schritt können Sie wählen, welchen Layer Sie zu Ihrem Datensatz hinzufügen möchten. *Sie können nur einen Layer zur Zeit auswählen.*</div>
+      </div>
+     </TabItem>
+
+  <TabItem value="WMS" label="WMS" className="tabItemBox">
+     
+  <div class="step">
+      <div class="content"> <p>Wenn Sie einen WMS-Layer hinzufügen möchten, benötigen Sie einen **GetCapabilities**-Link.</p> Hier haben Sie die Option, mehrere Layer auszuwählen, aber wenn sie zu GOAT hinzugefügt werden, *werden sie zu einem Layer zusammengeführt.* </div>
+      </div>
+      </TabItem>
+
+  <TabItem value="WMTS" label="WMTS" className="tabItemBox">
+
+  <div class="step">
+      <div class="content"> <p>Sie können einen WMTS zu Ihrem Datensatz über eine **direkte URL** oder einen **GetCapabilities**-Link hinzufügen. Sie können nur *einen Layer* zur Zeit auswählen, wenn Ihre URL mehr als einen Layer enthält.</p>
+      Die Projektion muss *Web Mercator (EPSG:3857) und GoogleMaps-kompatibel* sein. Da sie verschiedene Zoomstufen haben, würde der Datensatz nicht in der Liste der verfügbaren Layer erscheinen, wenn er nicht beide Anforderungen erfüllt.</div>
+      </div>
+    </TabItem>
+  </Tabs>
+</TabItem>
 </Tabs>
 
 :::tip Tipp
 
- Sie können alle Ihre Datasets auf der Seite [Datensätze-Seite](../workspace/datasets) verwalten. 
+Sie können alle Ihre Datensätze auf der [Datensätze-Seite](../workspace/datasets) verwalten. 
 
 :::
 
-## Organisieren von Layern
+### Layer organisieren
 
-Sobald Sie einen Datensatz zur Karte hinzugefügt haben, wird er in der **Layerliste** angezeigt. Von dort aus können Sie die verschiedenen Layer organisieren.
+Sobald Sie einen Datensatz zur Karte hinzugefügt haben, wird er in der **Layer-Liste** sichtbar. Von dort aus können Sie die verschiedenen Layer organisieren.
 
-### Layer-Reihenfolge
+#### Layer-Reihenfolge
 
-Wenn Sie mehrere Datensätze auf einmal visualisieren, ist die Reihenfolge der Layer entscheidend für die Erstellung guter Karten. Daher kann die **Layerreihenfolge** interaktiv geändert werden.
-Wenn Sie mit der Maus über den linken Rand der Layer in der Layer-Liste fahren, erscheint ein Pfeilsymbol. Durch Ziehen und Ablegen können Layer verschoben und neu angeordnet werden. 
+Bei der Visualisierung mehrerer Datensätze gleichzeitig ist die Layer-Reihenfolge entscheidend für die Erstellung klarer, lesbarer Karten. Daher **kann die Layer-Reihenfolge interaktiv geändert werden**.
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/layers/layer_order.gif').default} alt="Layer Order" style={{ maxHeight: "600px", maxWidth: "600px", objectFit: "cover"}}/>
-</div> 
-
-### Layer anzeigen/ausblenden
-
-Um einen Layer vorübergehend aus der Kartenansicht **auszublenden**, klicken Sie in der Layer-Liste auf das Augensymbol des betreffenden Layers. Wenn Sie erneut auf das Auge klicken, wird der Layer wieder **sichtbar**.
+Fahren Sie mit der Maus über den **linken Rand** des Layers in der Layer-Liste, bis ein Pfeilsymbol erscheint, dann **ziehen und lassen Sie los, um** den Layer an die gewünschte Position zu verschieben.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/layers/hide_layers.gif').default} alt="Hide Layer" style={{ maxHeight: "600px", maxWidth: "600px", objectFit: "cover"}}/>
+  <img src={require('/img/map/layers/layer_order.gif').default} alt="Layer-Reihenfolge" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/>
 </div> 
 
-### Weitere Optionen
+#### Layer anzeigen / ausblenden
 
-Durch Klicken auf die drei Punkte <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> erhalten Sie weitere Optionen zur Verwaltung und Organisation des ausgewählten Layers.
+Klicken Sie auf das <code>Augensymbol</code> für diesen Layer in der Layer-Liste, um einen Layer vorübergehend aus der Kartenansicht zu **ausblenden**. Ein erneuter Klick auf das Auge macht den **Layer wieder sichtbar**.
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+  <img src={require('/img/map/layers/hide_layers.gif').default} alt="Layer ausblenden" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/>
+</div> 
 
-<img src={require('/img/map/layers/layer_options.png').default} alt="Layer Options" style={{ maxHeight: "250px", maxWidth: "250px", objectFit: "cover"}}/> 
+#### Optionen
 
+Durch Klicken auf das <code>weitere Optionen</code> <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> Symbol haben Sie weitere Optionen zur **Verwaltung und Organisation** des ausgewählten Layers.
+
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/map/layers/layer_options.png').default} alt="Layer-Optionen" style={{ maxHeight: "250px", maxWidth: "250px", objectFit: "cover", alignItems: 'center'}}/>
+</div>
+
+<p></p>
 
 :::tip Tipp
 
-Möchten Sie das Design Ihres Layers ändern? Siehe [Layer Design](../category/layer-styling).  
-Möchten Sie nur Teile Ihres Datensatzes visualisieren? Siehe [Filtern](../map/filter). 
+Möchten Sie das Design Ihrer Layer ändern? Siehe [Layer-Styling](../category/layer-styling).  
+Möchten Sie nur Teile Ihres Datensatzes visualisieren? Siehe [Filter](../map/filter). 
 
 :::

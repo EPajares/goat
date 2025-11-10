@@ -9,9 +9,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import MathJax from 'react-mathjax';
 
 # Heatmap - Konnektivität
-Eine farbkodierte Karte zur Visualisierung der Konnektivität von Orten innerhalb eines Interessengebiets ([AOI](../../further_reading/glossary#area-of-interest-aoi "What is an AOI?")).
+Der Heatmap - Konnektivitäts-Indikator **erstellt eine farbkodierte Karte zur Visualisierung der Konnektivität von Orten innerhalb eines Interessengebiets** ([**AOI**](../../further_reading/glossary#area-of-interest-aoi "Was ist ein AOI?")).
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/Zv9oiKQAu-s?si=7mv4uduUTuk6Qgbe" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="100%" height="500" src="https://www.youtube.com/embed/W1NDJlzR_gM?si=wR19yHToaAeZG0kY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
@@ -42,19 +42,16 @@ Heatmaps sind in bestimmten Regionen verfügbar. Bei der Auswahl eines `Routing-
 </div>
 
 
-Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie sich bitte an unseren [Support](https://plan4better.de/de/contact/ "Support"). Wir besprechen mit Ihnen gerne weitere Möglichkeiten.
+Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie sich bitte an uns. Wir besprechen mit Ihnen gerne weitere Möglichkeiten. [Kontaktieren Sie uns](https://plan4better.de/en/contact/ "Kontaktieren Sie uns").
 
 :::
 
 ## 2. Anwendungsbeispiele
 
- - Wie gut ist das Straßen-, Fuß- oder Radwegenetz in einem bestimmten Gebiet vernetzt?
-
- - Wie schneiden die Orte innerhalb einer AOI in Bezug auf die Anbindung an die verschiedenen Verkehrsträger ab?
-
- - Gibt es Barrieren, Lücken oder Inseln im Straßennetz, die die Konnektivität behindern?
-
  - Bietet das bestehende Verkehrsnetz einen gleichberechtigten Zugang innerhalb der AOI?
+ - Wie gut ist das Straßen-, Fuß- oder Radwegenetz in einem bestimmten Gebiet vernetzt?
+ - Wie schneiden die Orte innerhalb einer AOI in Bezug auf die Konnektivität über die verschiedenen Verkehrsmittel ab?
+ - Gibt es Barrieren, Lücken oder Inseln im Straßennetz, die die Konnektivität behindern?
 
 ## 3. Wie ist der Indikator zu verwenden?
 
@@ -76,7 +73,7 @@ Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie
 <div style={{ marginLeft: '60px' }}>
 <Tabs>
 
-<TabItem value="walk" label="Zu Fuß" default className="tabItemBox">
+<TabItem value="walk" label="zu Fuß" default className="tabItemBox">
 
 **Berücksichtigt alle zu Fuß begehbaren Wege**. Für Heatmaps wird eine Gehgeschwindigkeit von 5 km/h angenommen.
 
@@ -101,132 +98,38 @@ Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie
 </TabItem>
 
 </Tabs>
-
 </div>
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">Wählen Sie ein <code>Reisezeitlimit</code> für Ihre Heatmap. Dies wird im Kontext Ihres zuvor ausgewählten <i>Routing-Typs</i> verwendet.</div>
-</div>
-
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Wählen Sie den <code>Referenz-Layer</code> (Layer, der Ihre AOI enthält), für den Sie die Heatmap berechnen möchten. Dies kann jeder Polygon-Feature-Layer sein.</div>
-</div>
-
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>, um mit der Berechnung der Heatmap zu beginnen.</div>
-</div>
-
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">Nach Abschluss der Berechnung wird ein Ergebnis-Layer zur Karte hinzugefügt. Dieser <i>Heatmap Konnektivität</i>-Layer enthält Ihre farbkodierte Heatmap.
-  <p></p>
-  Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Konnektivitätswert für diese Zelle angezeigt.</div>
-</div>
-
-![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.gif "Connectivity-based Heatmap Result in GOAT")
-
-<Tabs>
-
-<TabItem value="zu Fuß" label="zu Fuß" default className="tabItemBox">
-
-#### Zu Fuß
-
-Berücksichtigt alle zu Fuß begehbaren Wege. Für Heatmaps wird eine Gehgeschwindigkeit von 5 km/h angenommen.
-
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Zu Fuß](../../routing/walking).
-
-:::
-
-</TabItem>
-  
-<TabItem value="Fahrrad" label="Fahrrad" className="tabItemBox">
-
-#### Fahrrad
-
-Berücksichtigt alle mit dem Fahrrad befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit die Oberfläche, die Glätte und die Steigung der Straßen. Für Heatmaps wird eine Fahrradgeschwindigkeit von 15 km/h angenommen.
 
 :::tip Hinweis
 
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/bicycle). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+Für weitere Einblicke in den Routing-Algorithmus besuchen Sie [Routing](../../category/routing). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
 
 :::
-
-</TabItem>
-
-<TabItem value="Pedelec" label="Pedelec" className="tabItemBox">
-
-#### Pedelec
-
-Berücksichtigt alle mit dem Pedelec befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit die Oberfläche und Glätte der Straßen. Für Heatmaps wird eine Pedelec-Geschwindigkeit von 23 km/h angenommen.
-
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/fahrrad). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
-
-:::
-
-</TabItem>
-
-<TabItem value="Auto" label="Auto" className="tabItemBox">
-
-#### Auto
-
-Berücksichtigt alle mit dem Auto befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit Geschwindigkeitsbegrenzungen und Einbahnstraßenbeschränkungen.
-
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Auto](../../routing/car).
-
-:::
-
-</TabItem>
-
-</Tabs>
-
-### Konfiguration
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie ein <code>Reisezeitlimit</code> für Ihre Heatmap aus. Dies wird im Zusammenhang mit Ihrem zuvor ausgewählten <i>Verkehrsmittel</i> verwendet.</div>
+  <div class="content">
+  Wählen Sie ein <code>Reisezeitlimit</code> für Ihre Heatmap. Dies wird im Kontext Ihres zuvor ausgewählten <code>Routing-Typs</code> verwendet.
+  </div>
 </div>
 
-:::tip Tipp
-
-Benötigen Sie Hilfe bei der Auswahl einer geeigneten Reisezeit für verschiedene Gemeinschaftseinrichtungen? Das [„Standort-Werkzeug“] (https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz kann Ihnen dabei behilflich sein.
-
+:::tip Hinweis
+Benötigen Sie Hilfe bei der Auswahl eines geeigneten Reisezeitlimits für verschiedene gängige Einrichtungen? Das ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz kann hilfreiche Orientierung bieten.
 :::
+
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie die <code>Referenzlayer</code> (Layer, der Ihre AOI enthält), für den Sie die Heatmap berechnen möchten. Dies kann eine beliebiger Polygon-Feature-Layer sein.</div>
+  <div class="content">Wählen Sie den <code>Referenz-Layer</code> (Layer, der Ihre AOI enthält) **für den Sie die Heatmap berechnen möchten**. Dies kann jeder Polygon-Feature-Layer sein.</div>
 </div>
 
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>, um mit der Berechnung der Heatmap zu beginnen.</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung der Heatmap zu beginnen.</div>
 </div>
 
-:::tip Tipp
-
-Je nach Ihrer Konfiguration kann die Berechnung einige Minuten dauern. Die [Statusleiste](../../workspace/home#statusleiste) zeigt den aktuellen Fortschritt an.
-
-:::
-
-### Ergebnisse
-
-<div class="step">
-  <div class="step-number">10</div>
-  <div class="content">Nach Abschluss der Berechnung wird ein Ergebnisslayer zur Karte hinzugefügt. Dieser Layer "<i>Heatmap Konnektivität</i>" wird Ihre farblich gekennzeichnete Heatmap enthalten.
-  <p></p>
-  Durch Klicken auf eine der hexagonalen Zellen der Heatmap wird der berechnete Konnektivitätswert für diese Zelle angezeigt.</div>
-</div>
-
+Nach Abschluss der Berechnung wird ein Ergebnis-Layer zur Karte hinzugefügt. Dieser Heatmap-Konnektivitäts-Layer enthält Ihre farbkodierte Heatmap. **Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Konnektivitätswert für diese Zelle angezeigt.**
 
 ![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.gif "Connectivity-based Heatmap Result in GOAT")
 
@@ -267,7 +170,7 @@ Die Auflösung und Abmessungen des verwendeten sechseckigen Rasters hängen vom 
 
 <Tabs>
 
-<TabItem value="walk" label="Zu Fuß" default className="tabItemBox">
+<TabItem value="walk" label="zu Fuß" default className="tabItemBox">
 
 <li parentName="ul">{`Auflösung: 10`}</li>
 <li parentName="ul">{`Durchschnittliche Sechseckfläche: 11285.6 m²`}</li>
@@ -301,13 +204,4 @@ Die Auflösung und Abmessungen des verwendeten sechseckigen Rasters hängen vom 
 
 ### Visualisierung
 
-Zur Visualisierung verwendet das Ergebnis der Konnektivitätsanalyse standardmäßig eine Klassifizierungsmethode basierend auf Quantilen. Es können jedoch auch verschiedene andere Klassifizierungsmethoden verwendet werden. Lesen Sie mehr im Abschnitt **[Datenklassifizierungsmethoden](../../map/layer_style/attribute_based_styling#datenklassifizierungsmethoden)** der Seite *Attribut-basiertes Styling*.
-
-:::tip Hinweis
-
-Für weitere Einblicke in den Routing-Algorithmus besuchen Sie [Routing/Fahrrad](../../routing/bicycle). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
-:::
-
-:::tip Hinweis
-Benötigen Sie Hilfe bei der Auswahl eines geeigneten Reisezeitlimits für verschiedene gängige Einrichtungen? Das ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz kann hilfreiche Orientierung bieten.
-:::
+Zur Visualisierung verwendet das Ergebnis der Konnektivitätsanalyse standardmäßig eine Klassifizierungsmethode basierend auf Quantilen. Es können jedoch auch verschiedene andere Klassifizierungsmethoden verwendet werden. Lesen Sie mehr im Abschnitt **[Datenklassifizierungsmethoden](../../map/layer_style/attribute_based_styling#data-classification-methods)** der Seite *Attribut-basiertes Styling*.

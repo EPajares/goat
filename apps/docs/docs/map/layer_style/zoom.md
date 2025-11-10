@@ -7,7 +7,7 @@ import TabItem from '@theme/TabItem';
 
 # Zoom visibility
 
-The **Zoom visibility** feature controls the zoom range at which each layer appears on your map. This helps you display the most relevant data at different zoom levels and optimize map performance.
+**The Zoom visibility feature controls the zoom range at which each layer appears on your map.** This helps you display the most relevant data at different zoom levels and optimize map performance.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/styling/zoom.png').default} alt="Zoom visibility scale in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -31,17 +31,12 @@ All layers are visible across zoom levels 1-22 unless configured otherwise.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select your layer and navigate to <strong>Layer design</strong></div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> and find the <code>Zoom visibility section</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Find the <strong>Zoom visibility</strong> section</div>
-</div>
-
-<div class="step">
-  <div class="step-number">3</div>
-  <div class="content">Set your range by dragging the handles on the scale or manually entering values.</div>
+  <div class="content">Set your **range** by dragging the handles on the scale or manually entering values.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -56,7 +51,7 @@ All layers are visible across zoom levels 1-22 unless configured otherwise.
 
 **Background layers** (Roads, Water): Use full range (1-22) for consistent reference.
 
-**Summary data** (Heatmaps, Aggregated): Use lower levels (1-14) for overview.
+**Summary data** (Heat maps, Aggregated): Use lower levels (1-14) for overview.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/styling/zooming_out.gif').default} alt="Zoom visibility demonstration" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>

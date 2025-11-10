@@ -1,6 +1,0 @@
-node_modules
-**/**/node_modules
-**/**/.next
-**/**/public
-packages/ui/components/*.tsx
-packages/ui/stories/*.tsx

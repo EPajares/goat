@@ -7,7 +7,7 @@ import TabItem from '@theme/TabItem';
 
 # Popup
 
-Popups display relevant information when users click on map features. This keeps your map clean while providing detailed information on demand. By default, popups show all attribute fields, but you can customize which fields appear and how they're labeled.
+**Popups display relevant information when users click on map features.** This keeps your map clean while providing detailed information on demand. By default, popups show all attribute fields, but you can customize which fields appear and how they're labeled.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/map/styling/popup.png').default} alt="Popup displaying feature information" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -17,22 +17,22 @@ Popups display relevant information when users click on map features. This keeps
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select your layer and navigate to <strong>Layer design</strong> and find the <strong>Popup</strong> section</div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> and find the <code>Popup section</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Choose your popup <strong>Show</strong> option: <strong>On click</strong> to show popup with selected fields when clicking features, or <strong>Never</strong> for no popup</div>
+  <div class="content">Choose your <code>Show</code> option: **On click** to show popup with selected fields when clicking features, or **Never** for no popup</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Click on <code>+ Add content</code> and select the <strong>attribute fields</strong> you want to display in the popup (you can choose multiple fields)</div>
+  <div class="content">Click on <code>+ Add content</code> and select the **attribute fields** you want to display in the popup (you can choose multiple fields)</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">You can <strong>rename the fields</strong> and <strong>arrange</strong> them as you want</div>
+  <div class="content">You can **rename the fields** and **arrange** them as you want</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -42,7 +42,7 @@ Popups display relevant information when users click on map features. This keeps
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Click on <code>Save</code> to apply your changes</div>
+  <div class="content">Click on <code>Save</code> to **apply your changes**</div>
 </div>
 
 <div class="step">

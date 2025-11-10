@@ -8,30 +8,27 @@ import MathJax from 'react-mathjax';
 
 # Heatmap - Gravity
 
-A color-coded map to visualize the accessibility of points (such as [POI](../../further_reading/glossary#point-of-interest-poi "What is a POI?")) from surrounding areas.
+The Heatmap - Gravity indicator **produces a color-coded map to visualize the accessibility of points, such as POIs from surrounding areas**.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/ghXzZUCDsJ4?si=mUnoHHQZsRS1C9kf" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/yteOnb6N7hA?si=SYStNhRCpZidqY0p" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
-Visualized as a color-coded hexagonal grid, the heatmap takes into account real-world transport and street networks to compute accessibility. After specifying a *routing type* (Walk, Bicycle, etc.), *opportunity layer* and *travel time limit*, the result will display a color-coded hexagonal grid for all areas accessible under these conditions. The color scale refers to local accessibility.
+The heatmap Gravity displays a **color-coded hexagonal grid showing the accessibility of destinations (opportunities) based on travel time and destination attractiveness**. Accessibility is calculated using real-world transport networks and a gravity-based formula that reflects how people’s willingness to travel decreases with distance.
 
-:::info INFO
+You can specify the **routing type**, **opportunity layer**, **travel time limit**, and adjust **sensitivity** and **destination potential** to fine-tune how accessibility is calculated.
 
-An `Opportunity layer` contains [geographic point](../../data/data_types "What are geographic points?") data. Select one or more such layers containing your destination points (opportunities) as input to the heatmap.
+The **Opportunity layer** contains point-based destination data (such as POIs, transit stops, schools, amenities, or custom points). You can select multiple opportunity layers, which will be combined into a single unified heatmap.
 
-:::
+The **Sensitivity** controls how quickly accessibility decreases with increasing travel time, while the **Destination potential** lets you give more weight to destinations with higher capacity or quality (e.g., a larger supermarket or a bus stop with more departures). Together with the chosen **Impedance function**, these settings define how accessibility is calculated.
 
-Unique to the gravity-based heatmap, customizable properties such as *sensitivity*, the *impedance function* and *destination potential* give you minute control over the method used and metadata taken into account while computing the accessibility value for an area. Influenced by these properties, the accessibility of a point can model complex real-world human behavior and is a powerful measure for transport and accessibility planning.
+Using **Destination potential** helps prioritize certain opportunities over others. For example, a larger but farther supermarket can be valued more than a smaller nearby one. This allows you to include qualitative information—such as size, frequency, or service level—when computing accessibility, resulting in a more realistic heatmap.
 
-:::tip Pro tip
+Influenced by all these properties, the accessibility of a point can model complex real-world human behavior and is a powerful measure for transport and accessibility planning.
 
-Described shortly, accessibility heatmaps are a visualization representing *access* from various unspecified origins, to one or more specified destinations. This is in contrast to catchment areas which represent *egress* from one or more specified origins to various unspecified destinations.
-
-:::
-
-![Gravity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_based.webp "Gravity-based Heatmap in GOAT")
+**Key difference:** Unlike the *Closest-Average* heatmap, which measures travel effort, the *Gravity-based Heatmap* measures **attractiveness** — showing how accessible and appealing destinations are when both distance and quality are considered.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -70,12 +67,6 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
  - Is there potential to expand the availability of services such as bike sharing or car sharing stations?
 
- - How does the accessibility in various neighborhoods compare when taking into account the qualitative aspects of amenities (such as frequency of service at bus stops, size of supermarkets, capacity of schools, etc)?
-
- - What is the real-world accessibility of public transport stations when travel times to these stations impact their accessibility in a non-linear way?
-
-
-
 ## 3. How to use the indicator?
 
 <div class="step">
@@ -103,12 +94,6 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
 Considers all paths accessible by foot. For heatmaps, a walking speed of 5 km/h is assumed.
 
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Walk](../../routing/walking).
-
-:::
-
 </TabItem>
   
 <TabItem value="cycling" label="Bicycle" className="tabItemBox">
@@ -116,12 +101,6 @@ For further insights into the Routing algorithm, visit [Routing/Walk](../../rout
 #### Bicycle
 
 Considers all paths accessible by bicycle. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-
-:::
 
 </TabItem>
 
@@ -131,12 +110,6 @@ For further insights into the Routing algorithm, visit [Routing/Bicycle](../../r
 
 Considers all paths accessible by pedelec. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
 
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-
-:::
-
 </TabItem>
 
 <TabItem value="car" label="Car" className="tabItemBox">
@@ -144,12 +117,6 @@ For further insights into the Routing algorithm, visit [Routing/Bicycle](../../r
 #### Car
 
 Considers all paths accessible by car. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Car](../../routing/car).
-
-:::
 
 </TabItem>
 
@@ -169,27 +136,6 @@ For further insights into the Routing algorithm, visit [Routing/Car](../../routi
 #### Gaussian
 
 This function calculates accessibilities based on a Gaussian curve, which is influenced by the `sensitivity` and `destination_potential` you define. For a more in-depth understanding, refer to the [Technical details](./gravity#4-technical-details) section.
-
-:::tip Pro tip
-
-As studies have shown, the relationship between travel time and accessibility is often non-linear. This means that people may be willing to travel a short distance to reach an amenity, but as the distance increases, their willingness to travel rapidly decreases (often disproportionately).
-
-Leveraging the *sensitivity* you define, the Gaussian function allows you to model this aspect of real-world behaviour more accurately.
-
-:::
-
-:::note Hint
-
-**How to choose the sensitivity value?**
-
-Selecting the best fitting sensitivity always *depends on the context of the analysis*, and there are no strict rules.
-
-- **Low β:** A good strating point could be to use lower sensitivity on **urban scale analyses**, beacause it results in sharper accesssibility value drop with increasing travel time. In urban areas there are more opportunities available, and *people are more likely to choose the closest one*.
-- **High β:** In contrast, higher sensitivity could be used in regional **scale analyses**, where opportunities are more sparse and *people are more likely to travel further* to reach them.
-
-See the **[Calculation](#calculation)** section for a detailed visual explanations on the formula.
-
-:::
 
 </TabItem>
   
@@ -233,10 +179,6 @@ This feature is currently under development. 🧑🏻‍💻
 
 ### Opportunities
 
-Opportunities are essentially point-based data (such as [POI](../../further_reading/glossary#point-of-interest-poi "What is a POI?")) for which you would like to compute a heatmap. These are the "destinations" (such as transit stations, schools, other amenities, or your own custom point-based data) while surrounding areas are "origins" for which an accessibility value will be computed and visualized.
-
-Additionally, you may create more opportunities via the `+ Add Opportunity` button at the bottom of the drawer. All opportunity layers will be combined to produce a unified heatmap.
-
 <div class="step">
   <div class="step-number">5</div>
   <div class="content">Select your <code>Opportunity Layer</code> from the drop-down menu. This can be any previously created layer containing point-based data.</div>
@@ -258,25 +200,6 @@ Need help choosing a suitable travel time limit for various common amenities? Th
   <div class="content">If required, choose a <code>Destination Potential Field</code>. This must be a numeric field from your <i>Opportunity Layer</i> which will be used as a coefficient by the accessibility function.</div>
 </div>
 
-:::tip Pro tip
-
-**Destination potential** is a useful way to prioritize certain opportunities over others. For example, if there are two supermarkets and one is nearer than the other, it would typically receive a higher accessibility score due to its proximity. However, if the supermarket farther away is larger, you may want to give it a higher level of importance. *Destination potential* allows you to use an additional property (such as the size of supermarkets) to assign opportunities a "potential" and employ qualitative information while computing accessibility.
-
-The example below shows how the destination potential can affect the gravity heatmap. Its destination potential is based on the total number of hourly public transport departures from a stop. It will result in a different accessibility distribution, because the area around point with a higher destination potential will be favored in the computation.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_without_destination_potential.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
-</div>
-
-*The first map is calculated without destination potential.*
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_with_destination_potential.png').default} alt="gravity-with-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
-</div>
-
-*The second map used the same settings, but added destination potential based on the total number of departures. This altered the accessibility values of each hexagon and they returned in a wider range, because the highest value increased even more. Higher accessibility values are more concentrated around the stops that have larger trip count (red points).* 
-
-:::
 
 <div class="step">
   <div class="step-number">8</div>
@@ -284,40 +207,55 @@ The example below shows how the destination potential can affect the gravity hea
 </div>
 
 
+:::tip Hint
+
+**How to choose the sensitivity value?**
+
+The best **sensitivity (β)** value depends on your analysis — there’s no single correct number. It defines **how quickly accessibility decreases as travel time increases**.
+
+- **Low β (urban scale):** Use a lower sensitivity for city-level analyses. This makes accessibility drop faster with distance, which fits urban contexts where many destinations are nearby and people usually choose the closest one.
+- **High β (regional scale):** Use a higher sensitivity for regional or rural analyses. This makes accessibility decrease more slowly, which reflects that people are willing to travel longer distances when options are fewer.
+
+For a visual explanation of how sensitivity affects the calculation, see the **[Calculation](#calculation)** section.
+
+:::
+
 <div class="step">
   <div class="step-number">9</div>
   <div class="content">Click <code>Run</code> to start the calculation of the heatmap.</div>
 </div>
 
-:::tip Hint
-
-Depending on your configuration, the calculation might take a few minutes. The [status bar](../../workspace/home#status-bar) displays current progress.
-
-:::
-
 ### Results
 
-<div class="step">
-  <div class="step-number">10</div>
-  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Gravity</i> layer will contain your color-coded heatmap.<p></p> Clicking on any of the heatmap's hexagonal cells will reveal the computed accessibility value for this cell.</div>
-</div>
-
+Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Gravity</i> layer will contain your color-coded heatmap. Clicking on any of the heatmap's hexagonal cells will reveal the computed accessibility value for this cell.
 
 ![Heatmap Gravity-Based Calculation Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_result.png "Heatmap Gravity-Based Calculation Result in GOAT")
 
 
 :::tip Tip
 
-Want to style your heatmaps and create nice-looking maps? See [Styling](../../map/layer_style/styling).
+Want to create visually compelling maps that tell a clear story? Learn how to customize colors, legends, and styling in our [Styling section](../../map/layer_style/styling).
 
 :::
+
+### Example of calculation
+
+The example below shows how the changes in the opportunity settings can affect the gravity heatmap. Its destination potential is based on the total number of hourly public transport departures from a stop.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation_comparison.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+<p></p>
+
+The map on the back is calculated without destination potential. The second map used the same settings, but added destination potential based on the total number of departures. This altered the accessibility values of each hexagon and they returned in a wider range, because the highest value increased even more. **Higher accessibility values are more concentrated around the stops that have larger trip count (red points).**
 
 ## 4. Technical details
 
 ### Calculation
-The accessibility value of each hexagonal cell within a heatmap is calculated with the help of gravity-based measures and can be operationalized as:
+The accessibility value for each hexagonal cell is calculated using a **gravity-based formula**, which estimates how strongly destinations influence each location.
 
-*Accessibility Formula:*
+**Accessibility formula:**
 
 <MathJax.Provider>
   <div style={{ marginTop: '20px', fontSize: '24px'  }}>
@@ -325,8 +263,13 @@ The accessibility value of each hexagonal cell within a heatmap is calculated wi
   </div>
 </MathJax.Provider>
 
+In simple terms, the accessibility (**A**) of a cell (**i**) depends on:
+- the **number or importance of destinations** (**O**) nearby, and  
+- the **travel time** (**tᵢⱼ**) needed to reach them.
 
-where the accessibility **A** of origin **i** is the sum of all opportunities **O** available at destinations **j** weighted by some function of the travel time **tij** between **i** and **j**. The function **f(tij)** is the impedance function, which can be `gaussian`, `linear`, `exponential`, or `power`. The *sensitivity* parameter **β** and the *destination potential* are used to adjust the accessibility value.
+The function **f(tᵢⱼ)** reduces the influence of destinations that are farther away — this is called the **impedance function**. In GOAT you can choose between different impedance types: `gaussian`, `linear`, `exponential`, or `power`.
+
+and adjust how strongly distance affects accessibility using the **sensitivity (β)** parameter. If **destination potential** is included, it further increases the weight of destinations with higher capacity or quality (e.g., larger stores or frequent transit stops).
 
 #### GOAT uses the following formulas for its impedance functions:
 
@@ -337,6 +280,15 @@ where the accessibility **A** of origin **i** is the sum of all opportunities **
     <MathJax.Node formula={"f(t_{i,j})=\\exp^{(-t_{i,j}^2/\\beta)}"} />
   </div>
 </MathJax.Provider>
+
+:::tip Pro tip
+
+As studies have shown, the relationship between travel time and accessibility is often non-linear. This means that people may be willing to travel a short distance to reach an amenity, but as the distance increases, their willingness to travel rapidly decreases (often disproportionately).
+
+Leveraging the *sensitivity* you define, the Gaussian function allows you to model this aspect of real-world behaviour more accurately.
+
+:::
+
 
 *Cumulative Opportunities Linear, (Kwan,1998):*
 <div>
@@ -376,8 +328,7 @@ where the accessibility **A** of origin **i** is the sum of all opportunities **
 </MathJax.Provider>
 </div>  
 
-Travel times are measured in minutes. For a maximum travel time of 30 minutes, destinations that are farther than 30 minutes are considered non-accessible and therefore not considered in the calculation of the accessibility.
-The *sensitivity* parameter determines how accessibility changes with increasing travel time. As the *sensitivity* parameter is decisive when measuring accessibility, GOAT allows you to adjust this The graph shows how the willingness to walk decreases with increasing travel time based on the selected impedance function and sensitivity value (β).
+Travel times are measured in minutes. For a maximum travel time of 30 minutes, destinations that are farther than 30 minutes are considered non-accessible and therefore not considered in the calculation of the accessibility. The *sensitivity* parameter determines how accessibility changes with increasing travel time. As the *sensitivity* parameter is decisive when measuring accessibility, GOAT allows you to adjust this. The graph shows how the willingness to walk decreases with increasing travel time based on the selected impedance function and sensitivity value (β).
 
 import ImpedanceFunction from '@site/src/components/ImpedanceFunction';
 
@@ -386,15 +337,6 @@ import ImpedanceFunction from '@site/src/components/ImpedanceFunction';
     <ImpedanceFunction />
    </div> 
 </div>
-
-Similarly, the *destination potential* can be changed. Thus, for example, one POI type (e.g. hypermarkets) can be assigned a higher accessibility effect than other POI types (e.g. discount supermarkets). In the [Opportunities](#opportunities) section, at **step 7**,  we cover the *destination potential* in detail.
-
-:::tip
-
-For a calculation example see our tutorial video.
-
-:::
-
 
 ### Classification
 In order to classify the accessibility levels that were computed for each grid cell (for color-coded visualization), a classification based on **8 quantile group is used by default**. That means, each color covers 12,5 % of the grid cells. The area outside of the computed layer has no access within the defined travel time.
@@ -411,26 +353,50 @@ Heatmaps in GOAT utilize **[Uber's H3 grid-based](../further_reading/glossary#h3
 
 The resolution and dimensions of the hexagonal grid used depend on the selected *routing type*:
 
+<Tabs>
+
+<TabItem value="walk" label="Walk" default className="tabItemBox">
+
 #### Walk
 - Resolution: 10
 - Average hexagon area: 11285.6 m²
 - Average hexagon edge length: 65.9 m
+
+</TabItem>
+  
+<TabItem value="bicycle" label="Bicycle" className="tabItemBox">
 
 #### Bicycle
 - Resolution: 9
 - Average hexagon area: 78999.4 m²
 - Average hexagon edge length: 174.4 m
 
+</TabItem>
+
+<TabItem value="pedelec" label="Pedelec" className="tabItemBox">
+
 #### Pedelec
 - Resolution: 9
 - Average hexagon area: 78999.4 m²
 - Average hexagon edge length: 174.4 m
+
+</TabItem>
+
+<TabItem value="car" label="Car" className="tabItemBox">
 
 #### Car
 - Resolution: 8
 - Average hexagon area: 552995.7 m²
 - Average hexagon edge length: 461.4 m
 
+</TabItem>
+
+</Tabs>
+
+:::tip Hint
+
+For further insights into the Routing algorithm, visit [Routing](../../category/routing). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
+:::
 
 ## 5. References
 

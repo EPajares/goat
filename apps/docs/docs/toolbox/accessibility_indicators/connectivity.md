@@ -9,15 +9,15 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import MathJax from 'react-mathjax';
 
 # Heatmap - Connectivity
-A color-coded map to visualize the connectivity of locations within an area of interest ([AOI](../../further_reading/glossary#area-of-interest-aoi "What is an AOI?")).
+The Heatmap - Connectivity indicator, **produces a color-coded map to visualize the connectivity of locations within an area of interest** ([**AOI**](../../further_reading/glossary#area-of-interest-aoi "What is an AOI?")).
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/W1NDJlzR_gM?si=wR19yHToaAeZG0kY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/PzWEIbcSf4Y?si=MB4LNSEkMmnzccuX" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
-The heatmap uses a color-coded hexagonal grid to show how well-connected different areas are. It takes an **Area of Interest** (AOI), a **routing type** (walking, cycling, etc.), and a **travel time limit** as inputs. Considering real-world transport and street networks, it calculates the connectivity of each hexagon within the AOI.
-
-![Connectivity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity.png "Connectivity-based Heatmap in GOAT")
+The heatmap uses a color-coded hexagonal grid to show **how well-connected different areas are.** It takes an **Area of Interest** (AOI), a **routing type** (walking, cycling, etc.), and a **travel time limit** as inputs. Considering real-world transport and street networks, it calculates the connectivity of each hexagon within the AOI.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -65,10 +65,14 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
   <div class="content">Under the <code>Accessibility Indicators</code> menu, click on <code>Heatmap Connectivity</code>.</div>
 </div>
 
+### Routing 
+
 <div class="step">
   <div class="step-number">3</div>
   <div class="content">Pick the <code>Routing Type</code> you would like to use for the heatmap:</div>
 </div>
+
+### Configuration 
 
 <div style={{ marginLeft: '60px' }}>
 <Tabs>
@@ -98,16 +102,23 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 </TabItem>
 
 </Tabs>
-
 </div>
+
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Choose a <code>Travel Time Limit</code> for your heatmap. This will be used in the context of your previously selected <i>Routing Type</i>.</div>
+  <div class="content">
+  Choose a <code>Travel Time Limit</code> for your heatmap. This will be used in the context of your previously selected <code>Routing Type</code>.
+  </div>
 </div>
+
+:::tip Hint
+Need help choosing a suitable travel time limit for various common amenities? The ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
+:::
+
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Reference Layer</code> (layer containing your AOI) for which you would like to calculate the heatmap. This can be any polygon feature layer.</div>
+  <div class="content">Select the <code>Reference Layer</code> (layer containing your AOI) **for which you would like to calculate the heatmap**. This can be any polygon feature layer.</div>
 </div>
 
 
@@ -116,13 +127,11 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
   <div class="content">Click <code>Run</code> to start the calculation of the heatmap.</div>
 </div>
 
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Connectivity</i> layer will contain your color-coded heatmap.<p></p>
-  Clicking on any of the heatmap's hexagonal cells will reveal the computed connectivity value for this cell.</div>
-</div>
+### Results 
 
-![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.gif "Connectivity-based Heatmap Result in GOAT")
+Once the calculation is complete, a result layer will be added to the map. This Heatmap Connectivity layer will contain your color-coded heatmap. **Clicking on any of the heatmap's hexagonal cells will reveal the computed connectivity value for this cell.**
+
+![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_calculation.gif "Connectivity-based Heatmap Result in GOAT")
 
 
 :::tip Tip
@@ -193,15 +202,12 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
 </Tabs>
 </div>
 
+:::tip Hint
+
+For further insights into the Routing algorithm, visit [Routing](../../category/routing). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
+
+:::
+
 ### Visualization
 
 For visualization, the result form the connectivity analysis, uses a classification method based on quantiles by default. However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
-
-:::tip Hint
-
-For further insights into the Routing algorithm, visit [Routing/Bicycle](../../routing/bicycle). In addition, you can check this [Publication](https://doi.org/10.1016/j.jtrangeo.2021.103080).
-:::
-
-:::tip Hint
-Need help choosing a suitable travel time limit for various common amenities? The ["Standort-Werkzeug"](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) of the City of Chemnitz can provide helpful guidance.
-:::
