@@ -5,15 +5,15 @@ from typing import Any, Dict, List
 from pydantic import ValidationError
 
 from goatlib.routing.errors import ParsingError
-from goatlib.routing.schemas.ab_routing import ABRoute, ABRouteLeg, ABRoutingRequest
-from goatlib.routing.schemas.base import Location, TransportMode
+from goatlib.routing.schemas.ab_routing import ABLeg, ABRoute, ABRoutingRequest
+from goatlib.routing.schemas.base import Location, Mode
 
 from ..distance_utils import haversine_distance
 from .motis_mappings import (
     INTERNAL_TO_MOTIS_MODE_MAP,
     MOTIS_CONFIG,
     MOTIS_TO_INTERNAL_MODE_MAP,
-    MotisModes,
+    MotisMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,8 @@ def convert_request_to_api_params(request: ABRoutingRequest) -> Dict[str, Any]:
     api_params[params_cfg["num_itineraries"]] = (
         request.max_results or defaults_cfg["num_itineraries"]
     )
+
+    api_params[params_cfg["detailed_transters"]] = request.detailed_transfers
 
     # TODO: add the field to the ABRoutingRequest schema?
     # Handle arriveBy (with default)
@@ -123,7 +125,7 @@ def _convert_itinerary_to_route(
     for leg in parsed_legs:
         distance += leg.distance
 
-    # TODO: improve distance calculation using polylines
+    # TODO: improve distance calculation using polylines?
 
     return ABRoute(
         route_id=f"motis_route_{itinerary_idx}",
@@ -136,9 +138,9 @@ def _convert_itinerary_to_route(
 
 def _convert_leg_to_ab_leg(
     leg: Dict[str, Any], itinerary_idx: int, leg_idx: int
-) -> ABRouteLeg:
+) -> ABLeg:
     """
-    STRICTLY converts a MOTIS leg to an ABRouteLeg object, but
+    STRICTLY converts a MOTIS leg to an ABLeg object, but
     DOES NOT calculate or trust the distance field.
     """
     leg_fields = MOTIS_CONFIG["leg_fields"]
@@ -160,9 +162,7 @@ def _convert_leg_to_ab_leg(
         time_difference: timedelta = arrival_time - departure_time
         duration = int(time_difference.total_seconds())
 
-    geometry = leg.get(leg_fields.get("geometry", ""), None)
-
-    return ABRouteLeg(
+    return ABLeg(
         leg_id=f"i{itinerary_idx}_l{leg_idx}",
         mode=mode,
         origin=origin,
@@ -171,11 +171,10 @@ def _convert_leg_to_ab_leg(
         arrival_time=arrival_time,
         duration=duration,
         distance=distance,
-        geometry=geometry,
     )
 
 
-def _extract_transport_mode(leg: Dict[str, Any]) -> TransportMode:
+def _extract_transport_mode(leg: Dict[str, Any]) -> Mode:
     """Extract and convert transport mode from MOTIS leg."""
     leg_fields = MOTIS_CONFIG["leg_fields"]
     mode_str = leg[leg_fields["mode"]]
@@ -183,12 +182,12 @@ def _extract_transport_mode(leg: Dict[str, Any]) -> TransportMode:
     if mode_str in MOTIS_TO_INTERNAL_MODE_MAP:
         return MOTIS_TO_INTERNAL_MODE_MAP[mode_str]
 
-    motis_mode = getattr(MotisModes, mode_str, None)
+    motis_mode = getattr(MotisMode, mode_str, None)
     if motis_mode and motis_mode in MOTIS_TO_INTERNAL_MODE_MAP:
         return MOTIS_TO_INTERNAL_MODE_MAP[motis_mode]
 
     logger.warning(f"Unknown mode {mode_str} in MOTIS leg")
-    return TransportMode.WALK
+    return Mode.WALK
 
 
 def _extract_locations(leg: Dict[str, Any]) -> tuple[Location, Location]:

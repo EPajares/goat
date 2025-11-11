@@ -2,7 +2,7 @@ import json
 import logging
 import random
 from pathlib import Path
-from typing import Any, Dict, Optional, Self
+from typing import Any, Dict, Self
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class MotisServiceClient:
     base_url: str
     plan_endpoint: str
     use_fixtures: bool
-    _fixture_path: Optional[Path]
+    _fixture_path: Path | None
     _fixture_cache: Dict[Path, Any]
     _rng: random.Random
 
@@ -27,8 +27,8 @@ class MotisServiceClient:
         base_url: str = "https://api.transitous.org",
         plan_endpoint: str = "/api/v5/plan",
         use_fixtures: bool = True,
-        fixture_path: Optional[Path | str] = None,
-        seed: Optional[int] = 42,
+        fixture_path: Path | str | None = None,
+        seed: int | None = 42,
     ) -> None:
         self.base_url = base_url
         self.plan_endpoint = plan_endpoint

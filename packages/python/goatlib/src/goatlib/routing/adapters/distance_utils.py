@@ -22,6 +22,3 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2 * math.asin(math.sqrt(a))
     r = 6371000  # Earth radius in meters
     return round(c * r, 3)
-
-
-# TODO improve the heurisitcs using polyline analysis

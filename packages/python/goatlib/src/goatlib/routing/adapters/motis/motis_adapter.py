@@ -7,8 +7,8 @@ from goatlib.routing.schemas.ab_routing import (
     ABRoutingRequest,
     ABRoutingResponse,
 )
+from goatlib.routing.schemas.service import RoutingServiceTarget
 
-from ..base import RoutingServiceTarget
 from .motis_client import MotisServiceClient
 from .motis_converters import (
     convert_request_to_api_params,
@@ -43,12 +43,13 @@ class MotisPlanApiAdapter(RoutingServiceTarget):
             routes = convert_response_from_motis(motis_response)
 
             # TODO: investigate why MOTIS often ignores max_results parameter
+            # MOMENTARY FIX:
             # Apply client-side limit since many MOTIS APIs don't respect server-side parameters
-            # We send multiple parameter variations to maximize compatibility, but enforce limit here
             if request.max_results and len(routes) > request.max_results:
+                original_len = len(routes)
                 routes = routes[: request.max_results]
                 logger.debug(
-                    f"Applied client-side limit: reduced {len(motis_response.get('itineraries', []))} routes to {len(routes)}"
+                    f"Applied client-side limit: reduced {original_len} routes to {len(routes)}"
                 )
 
             ab_response: ABRoutingResponse = ABRoutingResponse(routes=routes)

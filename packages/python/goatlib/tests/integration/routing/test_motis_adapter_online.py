@@ -3,11 +3,9 @@ from datetime import datetime, timezone
 import pytest
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
-from goatlib.routing.schemas.base import Location, TransportMode
+from goatlib.routing.schemas.base import Location, Mode
 
 from .test_motis_adapter_fixture import validate_route_data
-
-"""Test the MOTIS adapter with real online APIs."""
 
 
 @pytest.fixture
@@ -22,7 +20,7 @@ def berlin_hamburg_request() -> ABRoutingRequest:
     return ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),  # Berlin
         destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
-        modes=[TransportMode.TRANSIT, TransportMode.WALK],
+        modes=[Mode.TRANSIT, Mode.WALK],
         max_results=3,
     )
 
@@ -55,7 +53,7 @@ def test_online_routing_basic_success(
         assert (
             leg.departure_time < leg.arrival_time
         ), "Arrival should be after departure"
-        assert leg.mode in TransportMode, "Mode should be valid TransportMode"
+        assert leg.mode in Mode, "Mode should be valid Mode"
 
 
 def test_online_routing_different_modes(online_adapter: MotisPlanApiAdapter) -> None:
@@ -63,7 +61,7 @@ def test_online_routing_different_modes(online_adapter: MotisPlanApiAdapter) -> 
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),  # Berlin
         destination=Location(lat=52.5244, lon=13.4105),  # Short distance in Berlin
-        modes=[TransportMode.WALK],  # Walking only
+        modes=[Mode.WALK],  # Walking only
         max_results=1,
     )
 
@@ -72,7 +70,7 @@ def test_online_routing_different_modes(online_adapter: MotisPlanApiAdapter) -> 
     assert len(routes) > 0
 
     # Should have walking legs
-    walk_legs = [leg for leg in routes[0].legs if leg.mode == TransportMode.WALK]
+    walk_legs = [leg for leg in routes[0].legs if leg.mode == Mode.WALK]
     assert len(walk_legs) > 0, "Should contain walking legs"
 
 
@@ -87,7 +85,7 @@ def test_online_routing_with_time_parameter(
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),  # Berlin
         destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
-        modes=[TransportMode.TRANSIT, TransportMode.WALK],
+        modes=[Mode.TRANSIT, Mode.WALK],
         time=future_time,
         max_results=2,
     )
@@ -137,7 +135,7 @@ def test_online_routing_multiple_transport_modes(
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),  # Berlin
         destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
-        modes=[TransportMode.TRANSIT, TransportMode.WALK, TransportMode.BUS],
+        modes=[Mode.TRANSIT, Mode.WALK, Mode.BUS],
         max_results=2,
     )
 
@@ -156,10 +154,10 @@ def test_online_routing_multiple_transport_modes(
 
 
 MAX_SPEEDS_KMH = {
-    TransportMode.BUS: 120,
-    TransportMode.TRAM: 80,
-    TransportMode.SUBWAY: 120,
-    TransportMode.RAIL: 400,  # Accommodates high-speed rail
+    Mode.BUS: 120,
+    Mode.TRAM: 80,
+    Mode.SUBWAY: 120,
+    Mode.RAIL: 400,  # Accommodates high-speed rail
 }
 DEFAULT_MAX_SPEED_KMH = 250
 
@@ -182,7 +180,7 @@ def test_distance_calculation_accuracy(
         ), f"Total route distance {route.distance/1000:.1f}km is unrealistic."
 
         for leg in route.legs:
-            if leg.mode != TransportMode.WALK and leg.duration > 0 and leg.distance > 0:
+            if leg.mode != Mode.WALK and leg.duration > 0 and leg.distance > 0:
                 speed_kmh = (leg.distance / 1000) / (leg.duration / 3600)
                 max_speed = MAX_SPEEDS_KMH.get(leg.mode, DEFAULT_MAX_SPEED_KMH)
 

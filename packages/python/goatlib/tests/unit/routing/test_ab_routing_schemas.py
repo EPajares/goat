@@ -3,12 +3,12 @@ from typing import Any, Dict
 
 import pytest
 from goatlib.routing.schemas.ab_routing import (
+    ABLeg,
     ABRoute,
-    ABRouteLeg,
     ABRoutingRequest,
     ABRoutingResponse,
 )
-from goatlib.routing.schemas.base import Location, TransportMode
+from goatlib.routing.schemas.base import Location, Mode
 from pydantic import ValidationError
 
 # =====================================================================
@@ -24,11 +24,11 @@ def valid_location_data() -> Dict[str, float]:
 
 @pytest.fixture
 def valid_leg_data(valid_location_data: Dict[str, float]) -> Dict[str, Any]:
-    """Provides a valid dictionary for creating an ABRouteLeg."""
+    """Provides a valid dictionary for creating an ABLeg."""
     now = datetime.now(timezone.utc)
     return {
         "leg_id": "leg_123",
-        "mode": TransportMode.WALK,
+        "mode": Mode.WALK,
         "origin": valid_location_data,
         "destination": {"lat": 48.8606, "lon": 2.3376},
         "departure_time": now,
@@ -62,11 +62,10 @@ def test_ab_request_creation_with_defaults(
     req = ABRoutingRequest(
         origin=valid_location_data,
         destination={"lat": 40.7128, "lon": -74.0060},
-        modes=[TransportMode.TRANSIT],
+        modes=[Mode.TRANSIT],
     )
 
     assert req.max_results == 3
-    assert req.include_geometry is True
 
 
 @pytest.mark.parametrize(
@@ -87,7 +86,7 @@ def test_ab_request_max_results_constraints(
     base_data = {
         "origin": valid_location_data,
         "destination": {"lat": 40.7128, "lon": -74.0060},
-        "modes": [TransportMode.TRANSIT],
+        "modes": [Mode.TRANSIT],
         "max_results": results,
     }
     if should_fail:
@@ -106,7 +105,7 @@ def test_same_origin_destination_validation() -> None:
         ABRoutingRequest(
             origin=location,
             destination=location,
-            modes=[TransportMode.WALK],
+            modes=[Mode.WALK],
             max_results=1,
         )
 
@@ -121,7 +120,7 @@ def test_extreme_max_results_validation() -> None:
         ABRoutingRequest(
             origin=Location(lat=52.5200, lon=13.4050),
             destination=Location(lat=53.5511, lon=9.9937),
-            modes=[TransportMode.TRANSIT],
+            modes=[Mode.TRANSIT],
             max_results=100,  # Too high - model limits to max 10
         )
 
@@ -140,7 +139,7 @@ def test_ab_route_creation_success(valid_route_data: Dict[str, Any]) -> None:
 
     assert route.route_id == "route_abc"
     assert len(route.legs) == 1
-    assert isinstance(route.legs[0], ABRouteLeg)
+    assert isinstance(route.legs[0], ABLeg)
     assert route.duration == 25
 
 
@@ -179,4 +178,3 @@ def test_ab_response_creation_success(valid_route_data: Dict[str, Any]) -> None:
     )
 
     assert response.type == "FeatureCollection"
-    assert isinstance(response.timestamp, datetime)

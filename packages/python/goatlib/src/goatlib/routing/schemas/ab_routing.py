@@ -1,35 +1,39 @@
 import logging
 import uuid
-from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Self
+from datetime import datetime, timezone
+from typing import List, Self
 
 from goatlib.routing.schemas.base import (
     Location,
+    Mode,
     Route,
-    RoutingRequestBase,
-    RoutingResponse,
-    TransportMode,
+    RoutingProvider,
 )
 from pydantic import BaseModel, Field, computed_field, model_validator
 
 logger = logging.getLogger(__name__)
 
 
-class ABRouteLeg(BaseModel):
+class ABLeg(BaseModel):
     """Individual leg of an AB route."""
 
-    leg_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    mode: TransportMode = Field(..., description="Transport mode for this leg.")
+    leg_id: str | None = Field(default=None, description="Optional leg identifier")
     origin: Location = Field(..., description="Starting location of the leg.")
     destination: Location = Field(..., description="Ending location of the leg.")
+    mode: Mode = Field(..., description="Transport mode for this leg.")
     departure_time: datetime = Field(..., description="Departure time of the leg.")
     arrival_time: datetime = Field(..., description="Arrival time of the leg.")
     duration: float = Field(..., description="Duration of the leg in seconds", ge=0)
-    distance: Optional[float] = Field(
+    distance: float | None = Field(
         None, description="Distance of the leg in meters", ge=0
     )
-    geometry: Optional[Dict[str, Any]] = Field(None)
+    # TODO add legGeometry? (EncodedPolyline)
+
+    def get_or_create_id(self: Self) -> str:
+        """Get existing ID or create new one if needed."""
+        if self.leg_id is None:
+            self.leg_id = str(uuid.uuid4())
+        return self.leg_i
 
     @model_validator(mode="after")
     def validate_leg_times(self: Self) -> Self:
@@ -39,34 +43,10 @@ class ABRouteLeg(BaseModel):
         return self
 
 
-# class ABRouteProperties(BaseModel):
-#     """Properties of a single route, used within a GeoJSON Feature."""
-
-#     duration: float = Field(..., description="Total route duration in seconds, > 0.")
-#     distance: float = Field(..., description="Total route distance in meters, >= 0.")
-#     departure_time: datetime
-
-
 class ABRoute(Route):
     """A complete AB route with all its constituent legs."""
 
-    route_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    legs: List[ABRouteLeg] = Field(..., min_length=1)
-    # properties: ABRouteProperties
-
-    @computed_field
-    @property
-    def geometry(self: Self) -> Dict[str, Any]:
-        """Generates the GeoJSON LineString geometry for the route."""
-        if not self.legs:
-            return {"type": "LineString", "coordinates": []}
-
-        coordinates = [[self.legs[0].origin.lon, self.legs[0].origin.lat]]
-        coordinates.extend(
-            [leg.destination.lon, leg.destination.lat] for leg in self.legs
-        )
-
-        return {"type": "LineString", "coordinates": coordinates}
+    legs: List[ABLeg] = Field(..., min_length=1)
 
     @model_validator(mode="after")
     def validate_route_consistency(self: Self) -> Self:
@@ -85,22 +65,53 @@ class ABRoute(Route):
         return self
 
 
-class ABRoutingRequest(RoutingRequestBase):
+class ABRoutingRequest(BaseModel):
     """A-B routing request."""
 
-    max_results: Optional[int] = Field(default=3, ge=1, le=10)
-    max_travel_time: Optional[int] = Field(None, ge=1, le=480)
-    max_transfers: Optional[int] = Field(None, ge=0, le=10)
-    max_walking_distance: Optional[int] = Field(None, ge=0, le=5000)
-    include_geometry: Optional[bool] = Field(default=True)
+    origin: Location = Field(..., description="Start location")
+    destination: Location = Field(..., description="End location")
+    # TODO: set it in the adapter
+    provider: RoutingProvider = Field(
+        default=RoutingProvider.MOTIS, description="Routing service provider"
+    )
+    modes: List[Mode] = Field(default=[Mode.WALK])
+    time: datetime = Field(default=None, description="Departure time")
+    # TODO: use it properly
+    time_is_arrival: bool = Field(
+        default=False, description="Whether the provided time is an arrival time"
+    )
+    # TODO use it properly
+    detailed_transfers: bool = Field(
+        default=False, description="Whether to include detailed transfer information"
+    )
+    max_results: int | None = Field(default=3, ge=1, le=10)
+    max_transfers: int | None = Field(None, ge=0, le=10)
+    max_walking_distance: int | None = Field(None, ge=0, le=5000)
+
+    @model_validator(mode="after")
+    def validate_locations_are_distinct(self: Self) -> Self:
+        if (
+            self.origin
+            and self.destination
+            and self.origin.lat == self.destination.lat
+            and self.origin.lon == self.destination.lon
+        ):
+            raise ValueError("Origin and destination cannot be the same")
+        return self
+
+    @model_validator(mode="after")
+    def normalize_time(self: Self) -> Self:
+        """Normalize timezone-naive datetime to UTC."""
+        if self.time and self.time.tzinfo is None:
+            self.time = self.time.replace(tzinfo=timezone.utc)
+        return self
 
 
-class ABRoutingResponse(RoutingResponse):
+class ABRoutingResponse(BaseModel):
     """A-B routing response structured as a GeoJSON FeatureCollection.."""
 
-    # Override the type of routes from the base class
-    routes: List[ABRoute] = Field(..., description="List of routes as ABRoute objects.")
-
+    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    routes: List[Route] = Field(..., description="List of routes", min_length=0)
     # Standard GeoJSON field
     type: str = Field("FeatureCollection", frozen=True)
 
@@ -108,35 +119,3 @@ class ABRoutingResponse(RoutingResponse):
     @property
     def features_property(self: Self) -> List[ABRoute]:
         return self.routes
-
-    def to_geojson_str(self: Self, indent: Optional[int] = 2) -> str:
-        """
-        Serializes the response object to a GeoJSON compliant string.
-
-        Args:
-            indent: The number of spaces to use for JSON indentation.
-                    Set to None for a compact string.
-
-        Returns:
-            A string containing the GeoJSON FeatureCollection.
-        """
-        return self.model_dump_json(
-            indent=indent,
-            exclude={"routes"},
-        )
-
-    def to_geojson_file(
-        self: Self, file_path: Path | str, indent: Optional[int] = 2
-    ) -> None:
-        """
-        Serializes the response to a GeoJSON compliant file.
-
-        Args:
-            file_path: The path to the output .geojson file.
-            indent: The number of spaces for JSON indentation.
-        """
-        path = Path(file_path)
-
-        path.parent.mkdir(parents=True, exist_ok=True)
-        geojson_str = self.to_geojson_str(indent=indent)
-        path.write_text(geojson_str, encoding="utf-8")

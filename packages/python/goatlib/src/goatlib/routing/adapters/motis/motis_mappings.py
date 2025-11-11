@@ -1,10 +1,10 @@
 from enum import StrEnum
 from typing import Any, List
 
-from goatlib.routing.schemas.base import TransportMode
+from goatlib.routing.schemas.base import Mode
 
 
-class MotisModes(StrEnum):
+class MotisMode(StrEnum):
     """MOTIS transport modes enum."""
 
     WALK = "WALK"
@@ -48,6 +48,7 @@ MOTIS_CONFIG = {
         "mode": "mode",  # Comma-separated string, e.g., "TRANSIT,WALK"
         "num_itineraries": "numItineraries",  # Integer for number of results
         "arrive_by": "arriveBy",  # Boolean
+        "detailed_transters": "detailedTransfers",  # Boolean for detailed transfer info
     },
     # =====================================================================
     # Response Structure Mappings (what we expect to receive)
@@ -69,7 +70,7 @@ MOTIS_CONFIG = {
         "end_time": "endTime",  # ISO 8601 string
         "from": "from",  # The origin location object for this leg
         "to": "to",  # The destination location object for this leg
-        "geometry": "legGeometry",  # The nested object containing the polyline
+        # "geometry": "legGeometry",  # The nested object containing the polyline
     },
     "location_fields": {
         "lat": "lat",  # Latitude coordinate
@@ -91,47 +92,47 @@ MOTIS_CONFIG = {
 }  # Mode mappings between MOTIS and internal representations
 MOTIS_TO_INTERNAL_MODE_MAP = {
     # Active mobility
-    MotisModes.WALK: TransportMode.WALK,
-    MotisModes.BIKE: TransportMode.BIKE,
+    MotisMode.WALK: Mode.WALK,
+    MotisMode.BIKE: Mode.BIKE,
     # Public transport - Direct mappings
-    MotisModes.BUS: TransportMode.BUS,
-    MotisModes.COACH: TransportMode.BUS,  # Coach is a type of bus
-    MotisModes.TRAM: TransportMode.TRAM,
-    MotisModes.SUBWAY: TransportMode.SUBWAY,
-    MotisModes.METRO: TransportMode.SUBWAY,  # Metro is subway
-    MotisModes.FERRY: TransportMode.FERRY,
-    MotisModes.CABLE_CAR: TransportMode.CABLE_CAR,
-    MotisModes.FUNICULAR: TransportMode.FUNICULAR,
+    MotisMode.BUS: Mode.BUS,
+    MotisMode.COACH: Mode.BUS,  # Coach is a type of bus
+    MotisMode.TRAM: Mode.TRAM,
+    MotisMode.SUBWAY: Mode.SUBWAY,
+    MotisMode.METRO: Mode.SUBWAY,  # Metro is subway
+    MotisMode.FERRY: Mode.FERRY,
+    MotisMode.CABLE_CAR: Mode.CABLE_CAR,
+    MotisMode.FUNICULAR: Mode.FUNICULAR,
     # Rail variants - All map to RAIL
-    MotisModes.RAIL: TransportMode.RAIL,
-    MotisModes.HIGHSPEED_RAIL: TransportMode.RAIL,
-    MotisModes.LONG_DISTANCE: TransportMode.RAIL,
-    MotisModes.NIGHT_RAIL: TransportMode.RAIL,
-    MotisModes.REGIONAL_FAST_RAIL: TransportMode.RAIL,
-    MotisModes.REGIONAL_RAIL: TransportMode.RAIL,
-    MotisModes.SUBURBAN: TransportMode.RAIL,  # S-Bahn/suburban rail
+    MotisMode.RAIL: Mode.RAIL,
+    MotisMode.HIGHSPEED_RAIL: Mode.RAIL,
+    MotisMode.LONG_DISTANCE: Mode.RAIL,
+    MotisMode.NIGHT_RAIL: Mode.RAIL,
+    MotisMode.REGIONAL_FAST_RAIL: Mode.RAIL,
+    MotisMode.REGIONAL_RAIL: Mode.RAIL,
+    MotisMode.SUBURBAN: Mode.RAIL,  # S-Bahn/suburban rail
     # Private transport
-    MotisModes.CAR: TransportMode.CAR,
-    MotisModes.CAR_PARKING: TransportMode.CAR,
-    MotisModes.CAR_DROPOFF: TransportMode.CAR,
+    MotisMode.CAR: Mode.CAR,
+    MotisMode.CAR_PARKING: Mode.CAR,
+    MotisMode.CAR_DROPOFF: Mode.CAR,
     # Meta-modes
-    MotisModes.TRANSIT: TransportMode.TRANSIT,
-    MotisModes.OTHER: TransportMode.OTHER,
+    MotisMode.TRANSIT: Mode.TRANSIT,
+    MotisMode.OTHER: Mode.OTHER,
 }
 
 INTERNAL_TO_MOTIS_MODE_MAP = {
     # Create reverse mapping, handling duplicates by preferring the primary mode
-    TransportMode.WALK: MotisModes.WALK,
-    TransportMode.BIKE: MotisModes.BIKE,
-    TransportMode.BUS: MotisModes.BUS,
-    TransportMode.TRAM: MotisModes.TRAM,
-    TransportMode.SUBWAY: MotisModes.SUBWAY,
-    TransportMode.RAIL: MotisModes.RAIL,
-    TransportMode.FERRY: MotisModes.FERRY,
-    TransportMode.CABLE_CAR: MotisModes.CABLE_CAR,
-    TransportMode.FUNICULAR: MotisModes.FUNICULAR,
-    TransportMode.CAR: MotisModes.CAR,
-    TransportMode.TRANSIT: MotisModes.TRANSIT,
+    Mode.WALK: MotisMode.WALK,
+    Mode.BIKE: MotisMode.BIKE,
+    Mode.BUS: MotisMode.BUS,
+    Mode.TRAM: MotisMode.TRAM,
+    Mode.SUBWAY: MotisMode.SUBWAY,
+    Mode.RAIL: MotisMode.RAIL,
+    Mode.FERRY: MotisMode.FERRY,
+    Mode.CABLE_CAR: MotisMode.CABLE_CAR,
+    Mode.FUNICULAR: MotisMode.FUNICULAR,
+    Mode.CAR: MotisMode.CAR,
+    Mode.TRANSIT: MotisMode.TRANSIT,
 }
 
 

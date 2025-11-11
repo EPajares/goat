@@ -1,15 +1,13 @@
 import pytest
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.schemas.ab_routing import ABRoute, ABRoutingRequest
-from goatlib.routing.schemas.base import Location, TransportMode
-
-"""Test the MOTIS adapter with fixture data for deterministic testing."""
+from goatlib.routing.schemas.base import Location, Mode
 
 MAX_SPEEDS_KMH = {
-    TransportMode.BUS: 120,
-    TransportMode.TRAM: 80,
-    TransportMode.SUBWAY: 120,
-    TransportMode.RAIL: 400,  # Accommodates high-speed rail
+    Mode.BUS: 120,
+    Mode.TRAM: 80,
+    Mode.SUBWAY: 120,
+    Mode.RAIL: 400,  # Accommodates high-speed rail
 }
 DEFAULT_MAX_SPEED_KMH = 250
 
@@ -47,7 +45,7 @@ def test_request() -> ABRoutingRequest:
     return ABRoutingRequest(
         origin=Location(lat=48.1351, lon=11.5820),  # Munich
         destination=Location(lat=48.7758, lon=9.1829),  # Stuttgart
-        modes=[TransportMode.TRANSIT, TransportMode.WALK],
+        modes=[Mode.TRANSIT, Mode.WALK],
         max_results=3,
     )
 
@@ -89,14 +87,14 @@ def test_fixture_different_requests_different_fixtures(
     request1 = ABRoutingRequest(
         origin=Location(lat=48.1351, lon=11.5820),
         destination=Location(lat=48.7758, lon=9.1829),
-        modes=[TransportMode.TRANSIT],
+        modes=[Mode.TRANSIT],
         max_results=5,
     )
 
     request2 = ABRoutingRequest(
         origin=Location(lat=50.0, lon=10.0),
         destination=Location(lat=51.0, lon=11.0),
-        modes=[TransportMode.WALK],
+        modes=[Mode.WALK],
         max_results=2,
     )
 
@@ -121,7 +119,7 @@ def test_fixture_max_results_enforcement(fixture_adapter: MotisPlanApiAdapter) -
     request = ABRoutingRequest(
         origin=Location(lat=48.1351, lon=11.5820),
         destination=Location(lat=48.7758, lon=9.1829),
-        modes=[TransportMode.TRANSIT],
+        modes=[Mode.TRANSIT],
         max_results=2,
     )
 
@@ -161,7 +159,7 @@ def test_fixture_distance_calculation_accuracy(
         ), f"Route duration {route.duration}s seems unrealistic"
 
         for leg in route.legs:
-            if leg.mode != TransportMode.WALK:
+            if leg.mode != Mode.WALK:
                 if leg.duration > 0 and leg.distance > 0:
                     # Check leg distance is reasonable (50m to 500km)
                     assert (

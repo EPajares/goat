@@ -4,9 +4,7 @@ import pytest
 from goatlib.routing.adapters.motis import create_motis_adapter
 from goatlib.routing.errors import RoutingError
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
-from goatlib.routing.schemas.base import Location, TransportMode
-
-"""Test error handling and edge cases."""
+from goatlib.routing.schemas.base import Location, Mode
 
 
 def test_invalid_api_url_handling() -> None:
@@ -18,7 +16,7 @@ def test_invalid_api_url_handling() -> None:
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
         destination=Location(lat=53.5511, lon=9.9937),
-        modes=[TransportMode.TRANSIT],
+        modes=[Mode.TRANSIT],
         max_results=1,
     )
 
@@ -36,7 +34,7 @@ def test_api_timeout_handling() -> None:
         request = ABRoutingRequest(
             origin=Location(lat=52.5, lon=13.4),
             destination=Location(lat=53.5, lon=9.9),
-            modes=[TransportMode.TRANSIT],
+            modes=[Mode.TRANSIT],
             max_results=1,
         )
 
@@ -57,7 +55,7 @@ def test_malformed_api_response_handling() -> None:
         request = ABRoutingRequest(
             origin=Location(lat=52.5, lon=13.4),
             destination=Location(lat=53.5, lon=9.9),
-            modes=[TransportMode.TRANSIT],
+            modes=[Mode.TRANSIT],
             max_results=1,
         )
 
@@ -79,7 +77,7 @@ def test_http_error_status_handling() -> None:
         request = ABRoutingRequest(
             origin=Location(lat=52.5, lon=13.4),
             destination=Location(lat=53.5, lon=9.9),
-            modes=[TransportMode.TRANSIT],
+            modes=[Mode.TRANSIT],
             max_results=1,
         )
 
@@ -100,7 +98,7 @@ def test_invalid_json_response_handling() -> None:
         request = ABRoutingRequest(
             origin=Location(lat=52.5, lon=13.4),
             destination=Location(lat=53.5, lon=9.9),
-            modes=[TransportMode.TRANSIT],
+            modes=[Mode.TRANSIT],
             max_results=1,
         )
 
@@ -117,7 +115,7 @@ def test_empty_fixture_directory(tmp_path: str) -> None:
     request = ABRoutingRequest(
         origin=Location(lat=48.1, lon=11.5),
         destination=Location(lat=48.2, lon=11.6),
-        modes=[TransportMode.WALK],
+        modes=[Mode.WALK],
         max_results=1,
     )
 
@@ -135,7 +133,7 @@ def test_corrupted_fixture_file_handling(tmp_path: str) -> None:
     request = ABRoutingRequest(
         origin=Location(lat=48.1, lon=11.5),
         destination=Location(lat=48.2, lon=11.6),
-        modes=[TransportMode.WALK],
+        modes=[Mode.WALK],
         max_results=1,
     )
 

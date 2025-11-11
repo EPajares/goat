@@ -1,7 +1,7 @@
 import pytest
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
-from goatlib.routing.schemas.base import Location, TransportMode
+from goatlib.routing.schemas.base import Location, Mode
 
 
 @pytest.fixture
@@ -10,7 +10,9 @@ def edge_adapter() -> MotisPlanApiAdapter:
     return create_motis_adapter(use_fixtures=False)
 
 
-"""Test edge cases and boundary conditions."""
+###########################################################################
+# Edge Case Tests
+###########################################################################
 
 
 def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) -> None:
@@ -18,7 +20,7 @@ def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) -> None:
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
         destination=Location(lat=52.5201, lon=13.4051),  # ~100m apart
-        modes=[TransportMode.WALK],
+        modes=[Mode.WALK],
         max_results=1,
     )
 
@@ -33,7 +35,7 @@ def test_single_transport_mode_edge_case(edge_adapter: MotisPlanApiAdapter) -> N
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
         destination=Location(lat=52.5200001, lon=13.4050001),  # Very close coordinates
-        modes=[TransportMode.WALK],  # Only walking for micro-distance
+        modes=[Mode.WALK],  # Only walking for micro-distance
         max_results=1,
     )
 
@@ -43,7 +45,7 @@ def test_single_transport_mode_edge_case(edge_adapter: MotisPlanApiAdapter) -> N
     if len(routes) > 0:
         # For very short distances, should primarily return walking
         walk_legs_found = any(
-            leg.mode == TransportMode.WALK for route in routes for leg in route.legs
+            leg.mode == Mode.WALK for route in routes for leg in route.legs
         )
         assert walk_legs_found, "Should have walking legs for micro-distances"
 
@@ -53,7 +55,7 @@ def test_extreme_coordinates_boundaries(edge_adapter: MotisPlanApiAdapter) -> No
     request = ABRoutingRequest(
         origin=Location(lat=85.0, lon=179.0),  # Near north pole and dateline
         destination=Location(lat=84.9, lon=178.9),  # Slightly different
-        modes=[TransportMode.WALK],
+        modes=[Mode.WALK],
         max_results=1,
     )
 
@@ -70,7 +72,7 @@ def test_duplicate_transport_modes_handling(
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
         destination=Location(lat=53.5511, lon=9.9937),
-        modes=[TransportMode.TRANSIT, TransportMode.TRANSIT],  # Duplicates
+        modes=[Mode.TRANSIT, Mode.TRANSIT],  # Duplicates
         max_results=1,
     )
 
