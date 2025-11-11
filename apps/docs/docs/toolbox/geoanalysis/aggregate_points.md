@@ -7,14 +7,13 @@ import TabItem from '@theme/TabItem';
 
 # Aggregate Points
 
-The **Aggregate Points** tool performs statistical analysis of points, e.g. **count, sum, min, or max**, and aggregates the information on polygons.
+The Aggregate Points tool **performs statistical analysis of points, e.g. count, sum, min, or max, and aggregates the information on polygons.**
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/_ybPf_fuMLA?si=mX1-uugIA5LiCKss" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/_ybPf_fuMLA?si=mX1-uugIA5LiCKss" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Explanation
 
-The Aggregate Points tool can be used to **analyze the characteristics of points within a given area**. It aggregates the information of the points and therewith allows calculation of the point **count**, the **sum** of point attributes, or derive e.g. the **maximum** value of a certain point attribute within a polygon. As a polygon layer, either a feature layer (e.g. city districts) or a hexagonal grid can be used. 
-
+The Aggregate Points tool can be used to **analyze the characteristics of points within a given area**. It aggregates the information of the points and therewith allows calculation of the point count, the sum of point attributes, or derive e.g. the maximum value of a certain point attribute within a polygon. As a polygon layer, either a feature layer (e.g. city districts) or a hexagonal grid can be used. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
@@ -41,15 +40,14 @@ The Aggregate Points tool can be used to **analyze the characteristics of points
   <div class="content">Under the <code>Geoanalysis</code> menu, click on <code>Aggregate Points</code>.</div>
 </div>
 
-
-<img src={require('/img/toolbox/geoanalysis/aggregate_points/aggregate_points.png').default} alt="Point Aggregation Tool in GOAT" style={{ maxHeight: "auto", maxWidth: "auto"}}/>
-
 ### Layer to aggregate
 
 <div class="step">
   <div class="step-number">3</div>
   <div class="content">Select your <code> Source Layer</code>, which contains the data you like to aggregate.</div>
 </div>
+
+### Summary Areas
 
 <div class="step">
   <div class="step-number">4</div>
@@ -110,18 +108,9 @@ Available **Statistics Methods** are listed in the following. The available meth
   <div class="content">Click on <code>Run</code>.</div>
 </div>
 
-:::tip Hint
-
-Depending on the size of the datasets, the calculation might take some minutes. The [status bar](../../workspace/home#status-bar) shows the current progress.
-
-:::
-
 ### Results
 
-<div class="step">
-  <div class="step-number">8</div>
-  <div class="content">As soon as the calculation process is finished, the resulting layer <b>"Aggregation Point"</b> will be added to the map. This layer consists of the information of the source layer and an <b>additional column</b> showing the results from the <b>statistical operation</b>. You can see the table by clicking on the polygon on the map.</div>
-</div>
+As soon as the calculation process is finished, the resulting layer **"Aggregation Point"** will be added to the map. This layer consists of the information of the source layer and an **additional column** showing the results from the **statistical operation**. You can see the table by clicking on the polygon on the map.
 
 <img src={require('/img/toolbox/geoanalysis/aggregate_points/aggregate_points_result.png').default} alt="Point Aggregation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto"}}/>
 

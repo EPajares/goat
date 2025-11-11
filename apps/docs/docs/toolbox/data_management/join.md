@@ -7,26 +7,27 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # Join & Group
 
-Append and group fields from one layer to another using a matching field on both layers.
+This tool allows you to **combine and summarize data from two layers by matching an attribute in both**. This is essential for spatial analysis, data enrichment, and creating comprehensive datasets.
+
 
 ## 1. Explanation
 
-This tool facilitates the combination of two datasets. By defining relationships, the tool aligns data from both layers. The resulting output is a new layer that contains the attributes from the *Target Layer* and a new column that summarizes a chosen attribute from the *Join Layer*. 
+This tool allows you to combine two datasets by linking their features through a common attribute (for example, an ID or name). **The result is a new layer that keeps all attributes from the Target Layer, plus an additional column that summarizes selected information from the Join Layer.**
+
+**GOAT uses an Inner Join to combine the data**. This means it matches features (rows) from the Target Layer and the Join Layer wherever they share the same value in the chosen matching field (column).
+**Only features that exist in both layers with the same value will be included in the output.** If a feature in the Target Layer doesn’t have a matching one in the Join Layer, it won’t appear in the result.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-  <img src={require('/img/toolbox/data_management/join/join.png').default} alt="Join Schema" style={{ maxHeight: "400px", maxWidth: "200px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/data_management/join/join_and_group.png').default} alt="Join Tool in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
 </div> 
 
-GOAT uses the **"Inner Join"** operation to calculate a join which combines rows from a target and a join layer based on a related column between them. It only selects records that have matching values in both tables. This means that for every row in the target layer, there must be at least one row in the source layer to realize a successful match. Any rows that do not match will not be returned as a result.
-
 ## 2. Example use cases
 
-- Summarizing population numbers from a table to a feature layer of zip-code areas (related column: zip-codes).
-- Merge and aggregate the data from a household survey with the geometries of the census tract (related column: census tract).
-- Joining the number of commuters from a table to a feature layer with the city boundaries (related column: city name). 
-
+- Add population data to zip code areas (matching on zip code).
+- Combine survey data with census tract boundaries (matching on tract ID).
+- Join commuter numbers to city boundaries (matching on city name).
 
 ## 3. How to use the tool?
 
@@ -40,24 +41,16 @@ GOAT uses the **"Inner Join"** operation to calculate a join which combines rows
   <div class="content">Under the <code>Data Management</code> menu, click on <code>Join & Group</code>.</div>
 </div>
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/data_management/join/overview.png').default} alt="Join Tool in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
-</div> 
-
-<p> </p>
-
 ### Select layers to join 
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">  Select your <code>Target layer</code> (the primary table or layer to which you want to add additional data). </div>
+  <div class="content">  Select your <code>Target layer</code>: the primary table or layer to which you want to add additional data. </div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select your <code>Join layer</code> (the secondary table or dataset that contains the records and attributes to be inserted into the Target Layer). </div>
+  <div class="content">Select your <code>Join layer</code>: the secondary table or dataset that contains the records and attributes to be inserted into the Target Layer. </div>
 </div>
 
 ### Fields to match
@@ -103,12 +96,7 @@ You can choose between several statistical operations. Some methods are only ava
 
 ### Results
   
-<div class="step">
-  <div class="step-number">10</div>
-  <div class="content">The resulting layer <b>"Join"</b> will be added to the project, as well as to the <a href="../../workspace/datasets">Datasets</a> in your workspace. This layer consists of the information of the target layer and an <b>additional column</b> showing the results from the <b>statistical operation</b>. You can see the attributes by clicking on one of the features in the map.</div>
-</div>
-
-
+The resulting layer **"Join"** will be added to your project and to the [Datasets](../../workspace/datasets) in your workspace. This layer contains all information from the target layer plus an **additional column** with the results from the **statistical operation**. You can view the attributes by clicking on any feature in the map.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 

@@ -18,7 +18,7 @@ You can also modify the **Street Network - Edges** base layer, which represents 
 Only **geographical layers** can be modified in scenarios. Tables and rasters cannot be edited. Learn more about [data types](../data/data_types).
 :::
 
-## 1. How to create and edit scenarios
+## 1. How to create and edit scenarios?
 
 <div class="step">
   <div class="step-number">1</div>
@@ -41,37 +41,26 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
 </div>
 
 
+
+
 <Tabs>
   <TabItem value="Draw" label="Draw" default className="tabItemBox">
     <div class="step">
       <div class="step-number">5</div>
       <div class="content">
         Depending on the layer type, you can draw different geographical shapes:
-      </div>
-    </div>
-    <Tabs>
-      <TabItem value="Point" label="Point" default className="tabItemBox">
-        **Click** on the map where you want to add a point.
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-          <img src={require('/img/scenarios/point_drawing-final.gif').default} alt="Drawing points" style={{ maxHeight: '500px', maxWidth: '500px', objectFit: 'cover' }}/>
-        </div>
+        - **Point**: **Click** on the map where you want to add a point. Fill in attributes if required, then click `Save`. **New features appear in blue**.
+        <p></p>
+        -  **Line**: **Click** to start drawing, continue clicking to shape the line, **double-click** to finish. Fill in attributes if required, then click `Save`. **New features appear in blue**.
+        <p></p>
+        - **Polygon**: **Click** to start drawing, continue clicking for each corner, **click the starting point** to complete.
         Fill in attributes if required, then click `Save`. **New features appear in blue**.
-      </TabItem>
-      <TabItem value="Line" label="Line" default className="tabItemBox">
-        **Click** to start drawing, continue clicking to shape the line, **double-click** to finish.
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}><img src={require('/img/scenarios/line_drawing-final.gif').default} alt="Drawing lines" style={{ maxHeight: '500px', maxWidth: '500px', objectFit: 'cover' }}/></div>
-        Fill in attributes if required, then click `Save`. **New features appear in blue**.
-      </TabItem>
-      <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
-        **Click** to start drawing, continue clicking for each corner, **click the starting point** to complete.
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
           <img src={require('/img/scenarios/Polygon_drawing-final.gif').default} alt="Drawing polygons" style={{ maxHeight: '500px', maxWidth: '500px', objectFit: 'cover' }}/>
         </div>
-        Fill in attributes if required, then click `Save`. **New features appear in blue**.
-      </TabItem>
-    </Tabs>
+      </div>
+    </div>
   </TabItem>
-
 
   <TabItem value="Modify" label="Modify" default className="tabItemBox">
     <div class="step">
@@ -98,12 +87,12 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Click `Toolbox` and select an [accessibility indicator](../toolbox/accessibility_indicators/).</div>  
+  <div class="content">Click `Toolbox` and select an `indicator`.</div>  
 </div>
   
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Choose your modified layer and select the scenario from the dropdown to analyze your changes.</div>  
+  <div class="content">Choose your `modified layer` and select the `scenario` from the dropdown to analyze your changes.</div>  
 </div>
 
 ![Layer analysis with scenarios](/img/scenarios/layer_analysis.png "Layer analysis with scenarios")

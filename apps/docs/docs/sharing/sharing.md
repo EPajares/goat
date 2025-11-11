@@ -4,15 +4,15 @@ sidebar_position: 1
 
 # Teams & Members
 
-Sharing datasets and projects allows for a more efficient workflow because granting access to other members enables them to simultaneously **edit and/or view your datasets or projects**. 
+Sharing datasets and projects allows for a more efficient workflow because **granting access to other members enables them to simultaneously edit and/or view your datasets or projects**. 
 
 ::::info
 Sharing **does not duplicate** your data, only grants access to it.
 ::::
 
-## **Managing teams and members**
+## Managing teams and members
 
-In the [Settings](../workspace/settings.md) you can find the Teams you are part of, and you can see the members and their role. Teams can represent departments within an organization and allow you to group members in a way that suits your workflow.
+In the [Settings section](../workspace/settings.md) you can find the Teams you are part of, and you can see the members and their role. Teams can represent departments within an organization and allow you to group members in a way that suits your workflow.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/sharing/sharing_teams.png').default} alt="Home Interface Overview in GOAT" style={{ maxHeight: "750px", maxWidth: "750px", objectFit: "cover"}}/>

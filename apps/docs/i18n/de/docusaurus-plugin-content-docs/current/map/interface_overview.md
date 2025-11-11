@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# Kartenoberfläche
+# Karten-Oberfläche
 
-**Das Öffnen eines Projekts bringt Sie zur Kartenoberfläche**. Hier können Sie Layer erstellen, organisieren und gestalten, räumliche Daten visualisieren und alle leistungsstarken räumlichen Analysefunktionen von GOAT nutzen.
+**Das Öffnen eines Projekts führt Sie zur Karten-Oberfläche**. Hier können Sie Layer erstellen, organisieren und gestalten, räumliche **Daten** visualisieren und alle mächtigen räumlichen Analysefähigkeiten von GOAT nutzen.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/interface/map_interface.png').default} alt="Kartenoberfläche Übersicht" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -34,16 +34,16 @@ Die Navigationsleiste auf der linken Seite der Kartenoberfläche bietet Zugriff 
 - <img src={require('/img/map/interface/layer.png').default} alt="Layer" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Layer</code>: **Hinzufügen und verwalten** Ihrer Assets in Form von Layern innerhalb Ihres GOAT-Projekts.
 - <img src={require('/img/map/interface/list.png').default} alt="Legende" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Legende</code>: **Visualisieren Sie die Legende** der Layer.
 
-### Räumliche Operationsleiste
-Die räumliche Operationssymbolleiste auf der rechten Seite der Kartenoberfläche bietet Zugriff auf verschiedene Tools zur Verwaltung und Analyse Ihrer Layer:
+### Räumliche Operationen Leiste
+Die räumlichen Operationen **Werkzeugleiste** auf der rechten Seite der Kartenoberfläche bietet Zugriff auf verschiedene **Werkzeuge** zum Verwalten und Analysieren Ihrer Layer:
 
-- <img src={require('/img/map/interface/sliders.png').default} alt="Eigenschaften" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Eigenschaften</code>: **Layer-Informationen anzeigen**, Symbologie und Sichtbarkeitseinstellungen für den ausgewählten Layer.
+- <img src={require('/img/map/interface/sliders.png').default} alt="Eigenschaften" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Eigenschaften</code>: **Layer-Informationen anzeigen**, Symbolik und Sichtbarkeitseinstellungen für den ausgewählten Layer.
 
-- <img src={require('/img/map/interface/filter.png').default} alt="Filter" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Filter</code>: **Filtern Sie Ihren Layer**. Lesen Sie mehr in [Filter](../map/filter).
+- <img src={require('/img/map/interface/filter.png').default} alt="Filter" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Filter</code>: **Ihren Layer filtern**. Lesen Sie mehr in [Filter](../map/filter).
 
-- <img src={require('/img/map/interface/palette.png').default} alt="Layer Design" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Layer Design</code>: **Gestalten Sie den Stil** Ihrer Layer. Lesen Sie mehr in [Layer-Styling](../category/layer-styling).
+- <img src={require('/img/map/interface/palette.png').default} alt="Layer-Design" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Layer-Design</code>: **Den Stil gestalten** Ihrer Layer. Lesen Sie mehr in [Layer-Styling](../category/layer-styling).
 
-- <img src={require('/img/map/interface/toolbox.png').default} alt="Toolbox" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Toolbox</code>: Lesen Sie mehr in [Toolbox](../category/toolbox).
+- <img src={require('/img/map/interface/toolbox.png').default} alt="Werkzeugkiste" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Werkzeugkiste</code>: Lesen Sie mehr in [Werkzeugkiste](../category/toolbox).
 
 - <img src={require('/img/map/interface/compass-drafting.png').default} alt="Szenarien" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Szenarien</code>: Lesen Sie mehr in [Szenarien](../Scenarios).
 

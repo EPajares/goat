@@ -229,7 +229,7 @@ For a visual explanation of how sensitivity affects the calculation, see the **[
 
 Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Gravity</i> layer will contain your color-coded heatmap. Clicking on any of the heatmap's hexagonal cells will reveal the computed accessibility value for this cell.
 
-![Heatmap Gravity-Based Calculation Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_result.png "Heatmap Gravity-Based Calculation Result in GOAT")
+![Heatmap Gravity-Based Calculation in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation.gif "Heatmap Gravity-Based Calculation Result in GOAT")
 
 
 :::tip Tip
