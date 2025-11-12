@@ -11,8 +11,8 @@ from goatlib.routing.schemas.service import RoutingServiceTarget
 
 from .motis_client import MotisServiceClient
 from .motis_converters import (
-    convert_request_to_api_params,
-    convert_response_from_motis,
+    parse_motis_response,
+    tranlsate_to_motis_request,
 )
 
 logger = logging.getLogger(__name__)
@@ -36,24 +36,23 @@ class MotisPlanApiAdapter(RoutingServiceTarget):
         """
         self.motis_client = motis_client
 
-    def route(self: Self, request: ABRoutingRequest) -> ABRoutingResponse:
+    async def route(self: Self, request: ABRoutingRequest) -> ABRoutingResponse:
         try:
-            request_data = convert_request_to_api_params(request)
-            motis_response = self.motis_client.plan(request_data)
-            routes = convert_response_from_motis(motis_response)
+            request_data = tranlsate_to_motis_request(request)
+            motis_response = await self.motis_client.plan(request_data)
+            response_data = parse_motis_response(motis_response)
 
             # TODO: investigate why MOTIS often ignores max_results parameter
             # MOMENTARY FIX:
             # Apply client-side limit since many MOTIS APIs don't respect server-side parameters
-            if request.max_results and len(routes) > request.max_results:
-                original_len = len(routes)
-                routes = routes[: request.max_results]
+            if request.max_results and len(response_data.routes) > request.max_results:
+                original_len = len(response_data.routes)
+                response_data.routes = response_data.routes[: request.max_results]
                 logger.debug(
-                    f"Applied client-side limit: reduced {original_len} routes to {len(routes)}"
+                    f"Applied client-side limit: reduced {original_len} response_data.routes to {len(response_data.routes)}"
                 )
 
-            ab_response: ABRoutingResponse = ABRoutingResponse(routes=routes)
-            return ab_response
+            return response_data
 
         except Exception as e:
             logger.error(f"Failed to execute routing request via MOTIS: {e}")

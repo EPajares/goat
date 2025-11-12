@@ -1,11 +1,16 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from pydantic import ValidationError
 
 from goatlib.routing.errors import ParsingError
-from goatlib.routing.schemas.ab_routing import ABLeg, ABRoute, ABRoutingRequest
+from goatlib.routing.schemas.ab_routing import (
+    ABLeg,
+    ABRoute,
+    ABRoutingRequest,
+    ABRoutingResponse,
+)
 from goatlib.routing.schemas.base import Location, Mode
 
 from ..distance_utils import haversine_distance
@@ -19,7 +24,7 @@ from .motis_mappings import (
 logger = logging.getLogger(__name__)
 
 
-def convert_request_to_api_params(request: ABRoutingRequest) -> Dict[str, Any]:
+def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
     """
     Converts an internal ABRoutingRequest directly into the URL query parameters
     required by the standard MOTIS v5/plan GET API.
@@ -68,11 +73,10 @@ def convert_request_to_api_params(request: ABRoutingRequest) -> Dict[str, Any]:
     else:
         api_params[params_cfg["mode"]] = defaults_cfg["mode"]
 
-    logger.debug(f"Converted request to MOTIS API params: {api_params}")
     return api_params
 
 
-def convert_response_from_motis(motis_data: Dict[str, Any]) -> List[ABRoute]:
+def parse_motis_response(motis_data: Dict[str, Any]) -> ABRoutingResponse:
     """
     Convert MOTIS API response to internal route objects.
 
@@ -84,22 +88,19 @@ def convert_response_from_motis(motis_data: Dict[str, Any]) -> List[ABRoute]:
     response_fields = MOTIS_CONFIG["response_fields"]
     itineraries = motis_data.get(response_fields["itineraries"], [])
 
-    if not itineraries:
-        return []
+    if itineraries:
+        for idx, itinerary in enumerate(itineraries):
+            try:
+                # This will raise an exception if the itinerary is malformed
+                route = _convert_itinerary_to_route(itinerary, idx)
+                routes.append(route)
+            except (KeyError, ValueError, ValidationError) as e:
+                logger.error(f"Failed to parse MOTIS itinerary #{idx}: {e}")
+                raise ParsingError(
+                    "Could not parse MOTIS itinerary due to invalid data."
+                ) from e
 
-    for idx, itinerary in enumerate(itineraries):
-        try:
-            # This will raise an exception if the itinerary is malformed
-            route = _convert_itinerary_to_route(itinerary, idx)
-            routes.append(route)
-        except (KeyError, ValueError, ValidationError) as e:
-            logger.error(f"Failed to parse MOTIS itinerary #{idx}: {e}")
-            raise ParsingError(
-                "Could not parse MOTIS itinerary due to invalid data."
-            ) from e
-
-    logger.info(f"Successfully converted {len(routes)} routes from MOTIS response")
-    return routes
+    return ABRoutingResponse(routes=routes)
 
 
 def _convert_itinerary_to_route(

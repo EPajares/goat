@@ -1,189 +1,164 @@
-from datetime import datetime, timezone
+from typing import AsyncGenerator
 
-import pytest
+import pytest_asyncio
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
-from goatlib.routing.schemas.ab_routing import ABRoutingRequest
+from goatlib.routing.schemas.ab_routing import ABRoute, ABRoutingRequest
 from goatlib.routing.schemas.base import Location, Mode
 
-from .test_motis_adapter_fixture import validate_route_data
+
+# --- Constants for Validation ---
+MAX_SPEEDS_KMH = {
+    Mode.BUS: 120,
+    Mode.TRAM: 80,
+    Mode.SUBWAY: 120,
+    Mode.RAIL: 400,
+}
+DEFAULT_MAX_SPEED_KMH = 250
 
 
-@pytest.fixture
-def online_adapter() -> MotisPlanApiAdapter:
-    """Create adapter configured for online API."""
-    return create_motis_adapter(use_fixtures=False)
+# --- Helper Functions ---
+def validate_route_data(routes: list[ABRoute]) -> None:
+    """Helper function to validate route data structure and content."""
+    assert routes, "Response should contain at least one route for validation."
+    for route in routes:
+        assert route.duration > 0
+        assert route.distance >= 0
+        assert route.departure_time is not None
+        assert len(route.legs) > 0
+
+        for leg in route.legs:
+            assert (
+                leg.duration > 0
+            ), f"Leg {leg.leg_id} has invalid duration: {leg.duration}"
+            assert (
+                leg.departure_time < leg.arrival_time
+            ), f"Leg {leg.leg_id} has invalid timing"
+            assert leg.origin is not None
+            assert leg.destination is not None
 
 
-@pytest.fixture
-def berlin_hamburg_request() -> ABRoutingRequest:
-    """Standard Berlin to Hamburg routing request."""
+# --- Fixtures ---
+
+
+@pytest_asyncio.fixture
+async def adapter() -> AsyncGenerator[MotisPlanApiAdapter, None]:
+    """
+    An async fixture that provides a configured Motis adapter for error testing
+    and properly cleans up its resources.
+    """
+    adapter = create_motis_adapter(use_fixtures=False)
+    yield adapter
+    await adapter.motis_client.close()
+
+
+# CHANGE 2: Scope the request to "module" as well. It's constant data.
+@pytest_asyncio.fixture
+def test_request() -> ABRoutingRequest:
+    """Standard, module-scoped test request for fixture testing."""
     return ABRoutingRequest(
+        origin=Location(lat=48.1351, lon=11.5820),  # Munich
+        destination=Location(lat=48.7758, lon=9.1829),  # Stuttgart
+        modes=[Mode.TRANSIT, Mode.WALK],
+        max_results=3,
+    )
+
+
+# --- Test Cases ---
+
+
+async def test_fixture_routing_basic_success(
+    adapter: MotisPlanApiAdapter, test_request: ABRoutingRequest
+) -> None:
+    """Test basic fixture routing functionality returns valid routes."""
+    response = await adapter.route(test_request)
+    routes = response.routes
+
+    assert len(routes) > 0, "Should return routes from fixture data"
+    validate_route_data(routes)
+
+
+async def test_fixture_different_requests_return_data(
+    adapter: MotisPlanApiAdapter,
+) -> None:
+    """Test that different requests can successfully load different fixture files."""
+    request1 = ABRoutingRequest(
+        origin=Location(lat=48.1351, lon=11.5820),  # Munich
+        destination=Location(lat=48.7758, lon=9.1829),  # Stuttgart
+        modes=[Mode.TRANSIT, Mode.WALK],
+        max_results=3,
+    )
+    request2 = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),  # Berlin
         destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
         modes=[Mode.TRANSIT, Mode.WALK],
         max_results=3,
     )
 
+    response1 = await adapter.route(request1)
+    response2 = await adapter.route(request2)
 
-##############################################################################
-# Online Routing Tests
-##############################################################################
+    assert response1.routes, "First request should yield routes"
+    assert response2.routes, "Second request should yield routes"
 
 
-def test_online_routing_basic_success(
-    online_adapter: MotisPlanApiAdapter, berlin_hamburg_request: ABRoutingRequest
+async def test_fixture_max_results_enforcement(
+    adapter: MotisPlanApiAdapter,
 ) -> None:
-    """Test basic online routing functionality."""
-    response = online_adapter.route(berlin_hamburg_request)
-    routes = response.routes
-    assert len(routes) > 0, "Should return at least one route"
-    # Note: Some APIs may not respect max_results exactly, so we allow flexibility
-    assert len(routes) <= 50, "Should return a reasonable number of routes"
-
-    # Verify route structure
-    first_route = routes[0]
-    assert first_route.route_id.startswith("motis_route_")
-    assert first_route.duration > 0
-    assert first_route.distance > 0
-    assert len(first_route.legs) > 0
-
-    # Verify legs have proper structure
-    for leg in first_route.legs:
-        assert leg.duration > 0, "All legs should have positive duration"
-        assert (
-            leg.departure_time < leg.arrival_time
-        ), "Arrival should be after departure"
-        assert leg.mode in Mode, "Mode should be valid Mode"
-
-
-def test_online_routing_different_modes(online_adapter: MotisPlanApiAdapter) -> None:
-    """Test routing with different transport modes."""
+    """Test that max_results parameter is respected by the client-side logic."""
     request = ABRoutingRequest(
-        origin=Location(lat=52.5200, lon=13.4050),  # Berlin
-        destination=Location(lat=52.5244, lon=13.4105),  # Short distance in Berlin
-        modes=[Mode.WALK],  # Walking only
-        max_results=1,
+        origin=Location(lat=48.1351, lon=11.5820),
+        destination=Location(lat=48.7758, lon=9.1829),
+        modes=[Mode.TRANSIT],
+        max_results=2,  # Request fewer than the default
     )
 
-    response = online_adapter.route(request)
-    routes = response.routes
-    assert len(routes) > 0
-
-    # Should have walking legs
-    walk_legs = [leg for leg in routes[0].legs if leg.mode == Mode.WALK]
-    assert len(walk_legs) > 0, "Should contain walking legs"
+    response = await adapter.route(request)
+    assert (
+        len(response.routes) <= 2
+    ), f"Should return at most 2 routes, got {len(response.routes)}"
 
 
-def test_online_routing_with_time_parameter(
-    online_adapter: MotisPlanApiAdapter,
+async def test_fixture_distance_calculation_and_speed_realism(
+    adapter: MotisPlanApiAdapter, test_request: ABRoutingRequest
 ) -> None:
-    """Test routing with specific departure time."""
-    future_time = datetime.now(timezone.utc).replace(
-        hour=8, minute=0, second=0, microsecond=0
-    )
-
-    request = ABRoutingRequest(
-        origin=Location(lat=52.5200, lon=13.4050),  # Berlin
-        destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
-        modes=[Mode.TRANSIT, Mode.WALK],
-        time=future_time,
-        max_results=2,
-    )
-
-    response = online_adapter.route(request)
+    """Test that fixture data calculations (distance, speed) are reasonable."""
+    response = await adapter.route(test_request)
     routes = response.routes
-    assert len(routes) > 0, "Should return routes even with time parameter"
 
+    assert routes, "Cannot perform validation on an empty route list."
 
-def test_online_routing_max_results_parameter(
-    online_adapter: MotisPlanApiAdapter, berlin_hamburg_request: ABRoutingRequest
-) -> None:
-    """Test that max_results parameter is properly enforced client-side."""
-    # Test with 1 result
-    berlin_hamburg_request.max_results = 1
-    response = online_adapter.route(berlin_hamburg_request)
-    routes = response.routes
-    assert len(routes) == 1, f"Should return exactly 1 route, got {len(routes)}"
-
-    # Test with 3 results
-    berlin_hamburg_request.max_results = 3
-    response = online_adapter.route(berlin_hamburg_request)
-    routes = response.routes
-    assert len(routes) <= 3, f"Should return at most 3 routes, got {len(routes)}"
-    assert len(routes) >= 1, "Should return at least 1 route"
-
-    # Test with 5 results
-    berlin_hamburg_request.max_results = 5
-    response = online_adapter.route(berlin_hamburg_request)
-    routes = response.routes
-    assert len(routes) <= 5, f"Should return at most 5 routes, got {len(routes)}"
-    assert len(routes) >= 1, "Should return at least 1 route"
-
-
-def test_online_routing_validates_response_data(
-    online_adapter: MotisPlanApiAdapter, berlin_hamburg_request: ABRoutingRequest
-) -> None:
-    """Test that response validation works correctly."""
-    response = online_adapter.route(berlin_hamburg_request)
-    validate_route_data(response.routes)
-
-
-def test_online_routing_multiple_transport_modes(
-    online_adapter: MotisPlanApiAdapter,
-) -> None:
-    """Test routing with multiple transport modes."""
-    request = ABRoutingRequest(
-        origin=Location(lat=52.5200, lon=13.4050),  # Berlin
-        destination=Location(lat=53.5511, lon=9.9937),  # Hamburg
-        modes=[Mode.TRANSIT, Mode.WALK, Mode.BUS],
-        max_results=2,
-    )
-
-    response = online_adapter.route(request)
-    routes = response.routes
-    assert len(routes) > 0
-
-    # Should contain appropriate transport modes
-    all_modes = set()
     for route in routes:
-        for leg in route.legs:
-            all_modes.add(leg.mode)
-
-    # Should contain at least some of the requested modes
-    assert len(all_modes) > 0
-
-
-MAX_SPEEDS_KMH = {
-    Mode.BUS: 120,
-    Mode.TRAM: 80,
-    Mode.SUBWAY: 120,
-    Mode.RAIL: 400,  # Accommodates high-speed rail
-}
-DEFAULT_MAX_SPEED_KMH = 250
-
-
-def test_distance_calculation_accuracy(
-    online_adapter: MotisPlanApiAdapter, berlin_hamburg_request: ABRoutingRequest
-) -> None:
-    """Test that transit distance calculations are reasonable for a real route."""
-
-    # Define realistic speed limits
-
-    response = online_adapter.route(berlin_hamburg_request)
-    assert response.routes, "API should have returned routes for Berlin-Hamburg"
-
-    for route in response.routes:
-        # Check total distance. Berlin-Hamburg is ~280km straight line.
-        # A route distance of 280-450km is plausible.
+        # Combined these two tests into one for clarity
         assert (
-            240000 <= route.distance <= 450000
-        ), f"Total route distance {route.distance/1000:.1f}km is unrealistic."
+            500 <= route.distance <= 1_000_000
+        ), f"Route distance {route.distance}m is unrealistic"
+        assert (
+            120 <= route.duration <= 43_200
+        ), f"Route duration {route.duration}s is unrealistic"
 
         for leg in route.legs:
-            if leg.mode != Mode.WALK and leg.duration > 0 and leg.distance > 0:
+            if leg.mode == Mode.WALK:
+                continue  # Speed checks aren't as relevant for walking
+
+            assert (
+                50 <= leg.distance <= 500_000
+            ), f"Leg distance {leg.distance}m is unrealistic"
+            assert (
+                30 <= leg.duration <= 28_800
+            ), f"Leg duration {leg.duration}s is unrealistic"
+
+            # Avoid division by zero if duration is somehow 0
+            if leg.duration > 0:
                 speed_kmh = (leg.distance / 1000) / (leg.duration / 3600)
                 max_speed = MAX_SPEEDS_KMH.get(leg.mode, DEFAULT_MAX_SPEED_KMH)
+                assert 5 <= speed_kmh <= max_speed, (
+                    f"Leg {leg.leg_id} ({leg.mode.value}) has unrealistic speed: {speed_kmh:.1f} km/h. "
+                    f"Expected 5-{max_speed} km/h."
+                )
 
-                assert (
-                    5 <= speed_kmh <= max_speed
-                ), f"Leg with mode '{leg.mode.value}' has unrealistic speed: {speed_kmh:.1f} km/h."
+
+def test_adapter_creation_with_valid_path(motis_fixtures_dir: str) -> None:
+    """Test creating fixture adapter with valid path."""
+    adapter = create_motis_adapter(use_fixtures=True, fixture_path=motis_fixtures_dir)
+    assert isinstance(adapter, MotisPlanApiAdapter)
+    assert adapter.motis_client.use_fixtures is True

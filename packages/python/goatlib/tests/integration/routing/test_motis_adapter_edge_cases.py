@@ -1,13 +1,23 @@
-import pytest
+from typing import AsyncGenerator
+
+import pytest_asyncio
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
 from goatlib.routing.schemas.base import Location, Mode
 
 
-@pytest.fixture
-def edge_adapter() -> MotisPlanApiAdapter:
-    """Create adapter configured for online API."""
-    return create_motis_adapter(use_fixtures=False)
+@pytest_asyncio.fixture
+async def edge_adapter() -> AsyncGenerator[MotisPlanApiAdapter, None]:
+    """
+    An async fixture that provides a configured Motis adapter and
+    properly cleans up its resources.
+    """
+    # Assume create_motis_adapter now correctly sets up the async client
+    adapter = create_motis_adapter(use_fixtures=False)
+
+    yield adapter
+    # After the test session, the async cleanup code runs
+    await adapter.motis_client.close()
 
 
 ###########################################################################
@@ -15,22 +25,26 @@ def edge_adapter() -> MotisPlanApiAdapter:
 ###########################################################################
 
 
-def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) -> None:
+async def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) -> None:
     """Test routing for very short distances."""
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
-        destination=Location(lat=52.5201, lon=13.4051),  # ~100m apart
+        destination=Location(lat=52.5201, lon=13.4051),
         modes=[Mode.WALK],
         max_results=1,
     )
 
-    response = edge_adapter.route(request)
+    response = await edge_adapter.route(request)
+
     routes = response.routes
-    # Should return walking route even for very short distances
+    # Should return empty routes for very short distances - that's expected behavior
+    assert response is not None
     assert len(routes) >= 0  # May return empty if too short
 
 
-def test_single_transport_mode_edge_case(edge_adapter: MotisPlanApiAdapter) -> None:
+async def test_single_transport_mode_edge_case(
+    edge_adapter: MotisPlanApiAdapter,
+) -> None:
     """Test routing with single transport mode at edge case coordinates."""
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
@@ -39,7 +53,7 @@ def test_single_transport_mode_edge_case(edge_adapter: MotisPlanApiAdapter) -> N
         max_results=1,
     )
 
-    response = edge_adapter.route(request)
+    response = await edge_adapter.route(request)
     routes = response.routes
     # Should handle micro-distances gracefully
     if len(routes) > 0:
@@ -50,7 +64,9 @@ def test_single_transport_mode_edge_case(edge_adapter: MotisPlanApiAdapter) -> N
         assert walk_legs_found, "Should have walking legs for micro-distances"
 
 
-def test_extreme_coordinates_boundaries(edge_adapter: MotisPlanApiAdapter) -> None:
+async def test_extreme_coordinates_boundaries(
+    edge_adapter: MotisPlanApiAdapter,
+) -> None:
     """Test with coordinates at extreme but valid boundaries."""
     request = ABRoutingRequest(
         origin=Location(lat=85.0, lon=179.0),  # Near north pole and dateline
@@ -60,12 +76,12 @@ def test_extreme_coordinates_boundaries(edge_adapter: MotisPlanApiAdapter) -> No
     )
 
     # This might not find routes (no transit coverage) but shouldn't crash
-    response = edge_adapter.route(request)
+    response = await edge_adapter.route(request)
     routes = response.routes
     assert isinstance(routes, list)  # Should return a list, even if empty
 
 
-def test_duplicate_transport_modes_handling(
+async def test_duplicate_transport_modes_handling(
     edge_adapter: MotisPlanApiAdapter,
 ) -> None:
     """Test handling of duplicate transport modes."""
@@ -77,6 +93,6 @@ def test_duplicate_transport_modes_handling(
     )
 
     # Should handle duplicates gracefully (might deduplicate internally)
-    response = edge_adapter.route(request)
+    response = await edge_adapter.route(request)
     routes = response.routes
     assert isinstance(routes, list)

@@ -2,7 +2,9 @@ import json
 import logging
 import random
 from pathlib import Path
-from typing import Any, Dict, Self
+from typing import Any, Dict, Optional, Self
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,7 @@ class MotisServiceClient:
     _fixture_path: Path | None
     _fixture_cache: Dict[Path, Any]
     _rng: random.Random
+    _http_client: httpx.AsyncClient
 
     def __init__(
         self: Self,
@@ -43,8 +46,29 @@ class MotisServiceClient:
             raise ValueError(
                 "`fixture_path` must be provided when `use_fixtures` is True."
             )
+        if not self.use_fixtures:
+            self._http_client = httpx.AsyncClient(base_url=self.base_url, timeout=30.0)
 
-    def plan(self: Self, motis_request: Dict[str, Any]) -> Dict[str, Any]:
+    async def __aenter__(self: Self) -> Self:
+        """
+        Enter the runtime context related to this object.
+        Initializes the client if needed and returns itself.
+        """
+        return self
+
+    async def __aexit__(
+        self: Self,
+        exc_type: Optional[type],
+        exc_val: Optional[Exception],
+        exc_tb: Optional[Any],
+    ) -> None:
+        """
+        Exit the runtime context and close resources.
+        This is called automatically when exiting an `async with` block.
+        """
+        await self.close()
+
+    async def plan(self: Self, motis_request: Dict[str, Any]) -> Dict[str, Any]:
         """
         Execute a routing plan request.
 
@@ -60,45 +84,41 @@ class MotisServiceClient:
         if self.use_fixtures:
             return self._load_fixture_response()
         else:
-            return self._make_plan_api_request(motis_request)
+            return await self._make_plan_api_request(motis_request)
 
-    def _make_plan_api_request(
+    async def _make_plan_api_request(
         self: Self, api_params: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Makes a real HTTP GET request to the MOTIS service."""
-        import requests
-
-        endpoint = f"{self.base_url}{self.plan_endpoint}"
-        logger.info(f"Making MOTIS plan request to {endpoint}")
+        logger.info(f"Making async MOTIS plan request to {self.plan_endpoint}")
         try:
-            response = requests.get(
-                endpoint,
+            response = await self._http_client.get(
+                self.plan_endpoint,
                 params=api_params,
-                headers={
-                    "Accept": "application/json",
-                },
-                timeout=30,  # 30 second timeout
+                headers={"Accept": "application/json"},
             )
             response.raise_for_status()
             return response.json()
 
-        except requests.exceptions.RequestException as e:
-            if isinstance(e, requests.exceptions.Timeout):
-                log_msg = f"Request to MOTIS service timed out at {endpoint}"
-            elif isinstance(e, requests.exceptions.ConnectionError):
-                log_msg = f"Failed to connect to MOTIS service at {endpoint}"
-            elif isinstance(e, requests.exceptions.HTTPError):
-                log_msg = f"MOTIS service returned an error: {e.response.status_code} {e.response.reason} for url {e.response.url}"
+        except httpx.RequestError as e:
+            if isinstance(e, httpx.TimeoutException):
+                log_msg = f"Request to MOTIS service timed out at {e.request.url}"
+            if isinstance(e, httpx.HTTPStatusError):
+                log_msg = f"MOTIS service returned error {e.response.status_code} for request to {e.request.url}"
+            if isinstance(e, httpx.ConnectionError):
+                log_msg = f"Connection error occurred while requesting MOTIS service at {e.request.url}"
             else:
                 log_msg = f"An unexpected request error occurred: {e}"
-
             logger.error(log_msg)
             raise RuntimeError("MOTIS service request failed to complete.") from e
 
         except json.JSONDecodeError as e:
-            # Catching JSONDecodeError for invalid JSON responses
             logger.error(f"Failed to parse JSON response from MOTIS service: {e}")
             raise RuntimeError("Invalid response format from MOTIS service.") from e
+
+    async def close(self: Self) -> None:
+        """Closes the underlying HTTP client."""
+        if not self.use_fixtures and hasattr(self, "_http_client"):
+            await self._http_client.aclose()
 
     def _load_fixture_response(self: Self) -> Dict[str, Any]:
         """Load a fixture response for development/testing."""
