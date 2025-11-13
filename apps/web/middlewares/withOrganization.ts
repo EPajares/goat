@@ -1,17 +1,21 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { MiddlewareFactory } from "@/middlewares/types";
-import type { InvitationPaginated } from "@/lib/validations/invitation";
-import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
 
-export const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL!).href;
+import type { InvitationPaginated } from "@/lib/validations/invitation";
+
+import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
+import type { MiddlewareFactory } from "@/middlewares/types";
 
 const protectedPaths = ["/home", "/projects", "/datasets", "/settings", "/map"];
 const publicPaths = ["/map/public"];
 
 export const withOrganization: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
+    if (!process.env.NEXTAUTH_URL) {
+      return next(request, _next);
+    }
+    const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL!).href;
     const { pathname, origin, basePath } = request.nextUrl;
 
     // Skip public paths
@@ -77,7 +81,6 @@ export const withOrganization: MiddlewareFactory = (next) => {
           );
         }
       }
-
     } catch (error) {
       console.error("Error while fetching organization", error);
     }

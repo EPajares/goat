@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+
 import type { MiddlewareFactory } from "@/middlewares/types";
 
 const protectedPaths = [
@@ -17,6 +18,9 @@ const publicPaths = ["/map/public"];
 
 export const withAuth: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
+    if (!process.env.NEXTAUTH_URL) {
+      return next(request, _next);
+    }
     const { pathname, search, origin, basePath } = request.nextUrl;
 
     // Skip public paths
