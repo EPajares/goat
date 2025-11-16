@@ -84,6 +84,7 @@ export const builderConfigSchema = z.object({
     fullscreen: z.boolean().default(true),
     toolbar: z.boolean().default(true),
     project_info: z.boolean().default(true),
+    project_info_content: z.string().default(""),
   }),
   interface: z.preprocess(
     // Convert empty arrays to `undefined` to trigger the default, todo: remove this when dashboard is completed

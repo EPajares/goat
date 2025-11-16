@@ -19,6 +19,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
 import { Container } from "@/components/builder/PanelContainer";
+import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
@@ -50,7 +51,6 @@ const PublicProjectLayout = ({
   const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
   const selectedPanel = useAppSelector((state) => state.map.selectedBuilderItem) as BuilderPanelSchema;
   const collapsedPanels = useAppSelector((state) => state.map.collapsedPanels);
-
   const builderConfig = project?.builder_config;
   const panels = useMemo(() => builderConfig?.interface ?? [], [builderConfig]);
   const PANEL_SIZE = 300;
@@ -76,6 +76,7 @@ const PublicProjectLayout = ({
     const bottomSpace = bottomPanels.reduce((total, panel) => total + getPanelSize(panel), 0);
 
     return { left: leftSpace, right: rightSpace, top: topSpace, bottom: bottomSpace };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leftPanels, rightPanels, topPanels, bottomPanels, collapsedPanels]);
 
   const panelsWithPosition: BuilderPanelSchemaWithPosition[] = useMemo(() => {
@@ -163,6 +164,7 @@ const PublicProjectLayout = ({
           };
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panels, collapsedPanels]);
 
   // Check if a panel can be added to a specific position
@@ -357,13 +359,7 @@ const PublicProjectLayout = ({
   return (
     <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
       {project && builderConfig?.settings?.toolbar && (
-        <Header
-          showHambugerMenu={false}
-          mapHeader={true}
-          project={project}
-          viewOnly
-          showInfo={builderConfig?.settings?.project_info}
-        />
+        <Header showHambugerMenu={false} mapHeader={true} project={project} viewOnly />
       )}
       <Box
         display="flex"
@@ -456,6 +452,19 @@ const PublicProjectLayout = ({
               zIndex: 2,
               transition: "all 0.3s",
             }}>
+            {project && builderConfig?.settings?.project_info && (
+              <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
+            )}
+          </Box>
+          {/* Bottom-Right Controls */}
+          <Box
+            sx={{
+              position: "absolute",
+              ...controlPositions.bottomRight,
+              m: 2,
+              zIndex: 2,
+              transition: "all 0.3s",
+            }}>
             {builderConfig?.settings.zoom_controls && (
               <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
             )}
@@ -463,25 +472,14 @@ const PublicProjectLayout = ({
               <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
             )}
             {builderConfig?.settings.find_my_location && <UserLocation tooltip={t("find_location")} />}
-          </Box>
-          {/* Bottom-Right Controls */}
-          <Box
-            sx={{
-              position: "absolute",
-              ...controlPositions.bottomRight,
-              zIndex: 2,
-              transition: "all 0.3s",
-            }}>
             {builderConfig?.settings.basemap && (
-              <Box sx={{ m: 2 }}>
-                <BasemapSelector
-                  styles={translatedBaseMaps}
-                  active={activeBasemap.value}
-                  basemapChange={async (basemap) => {
-                    await onProjectUpdate?.("basemap", basemap);
-                  }}
-                />
-              </Box>
+              <BasemapSelector
+                styles={translatedBaseMaps}
+                active={activeBasemap.value}
+                basemapChange={async (basemap) => {
+                  await onProjectUpdate?.("basemap", basemap);
+                }}
+              />
             )}
             <AttributionControl />
           </Box>

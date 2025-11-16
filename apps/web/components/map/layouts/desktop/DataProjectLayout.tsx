@@ -270,12 +270,12 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
             marginTop: `${toolbarHeight}px`,
             pt: theme.spacing(4),
           }}>
-          <Stack direction="column" sx={{ pr: 4, pointerEvents: "none" }}>
-            <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
-            <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
-          </Stack>
+          <Stack direction="column" sx={{ pr: 4, pointerEvents: "none" }} />
           <Stack direction="column">
             <Box sx={{ pr: 4 }}>
+              <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
+              <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
+
               <BasemapSelector
                 styles={translatedBaseMaps}
                 active={activeBasemap.value}

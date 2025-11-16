@@ -486,6 +486,7 @@
   "impedance_function_tooltip": "Impedance Function",
   "imperial": "Imperial",
   "info": "Info",
+  "info_placeholder": "Enter project introduction here",
   "information": "Information",
   "integer": "Integer",
   "invalid_distance": "Invalid distance value",
@@ -660,6 +661,7 @@
       "lineage": "No lineage available",
       "positional_accuracy": "No positional accuracy available"
     },
+    "title": "Metadata",
     "type": {
       "feature": "Feature",
       "raster": "Raster",

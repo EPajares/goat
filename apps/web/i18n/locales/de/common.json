@@ -486,6 +486,7 @@
   "impedance_function_tooltip": "Widerstandsfunktion",
   "imperial": "Imperial",
   "info": "Info",
+  "info_placeholder": "",
   "information": "Information",
   "integer": "Ganze Zahl",
   "invalid_distance": "Ungültige Distanz.",
@@ -660,6 +661,7 @@
       "lineage": "Keine Herkunft verfügbar",
       "positional_accuracy": "Keine Positionsgenauigkeit verfügbar"
     },
+    "title": "Metadaten",
     "type": {
       "feature": "Feature",
       "raster": "Raster",
