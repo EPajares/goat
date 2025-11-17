@@ -3,72 +3,74 @@ sidebar_position: 2
 ---
 
 # Daten
-Dieser Abschnitt enthält: **Filter** und **Zahlen**. Ziehen Sie einfach **per Drag & Drop** Widgets aus dem rechten Panel auf jedes Panel Ihres Dashboards. Passen Sie jedes Widget an, indem Sie darauf klicken, wodurch die **Widget-Einstellungen** im rechten Panel geöffnet werden.
 
-### Filter
-Dieses Widget ist ein **interaktives Element**, das es Benutzern ermöglicht, Daten auf dem konfigurierten Layer basierend auf dem ausgewählten Attributfeld zu filtern.
+Dieser Abschnitt enthält Widgets, die Ihnen helfen, mit Ihren Daten zu interagieren und sie zu analysieren: **Filter** und **Zahlen**. Ziehen Sie einfach **per Drag & Drop** Widgets aus der rechten Seitenleiste auf jedes Panel Ihres Dashboards. Passen Sie jedes Widget an, indem Sie darauf klicken, wodurch die **Widget-Einstellungen** im rechten Panel geöffnet werden.
+
+## Filter
+
+Dieses Widget ist ein **interaktives Element**, das es Benutzern ermöglicht, **Daten auf dem konfigurierten Layer basierend auf dem ausgewählten Attributfeld zu filtern**. Betrachter können dies als **Zuschneide-Werkzeug auf den Karten** verwenden.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Wählen Sie Ihren <b>Layer</b> aus. </div>
+  <div class="content">Ziehen Sie das <code>Filter</code> Widget per Drag & Drop auf ein Panel.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Wählen Sie das <b>Feld</b> aus, nach dem Sie filtern möchten. </div>
+  <div class="content">Wählen Sie Ihren <code>Layer</code> und wählen Sie das <code>Feld</code>, nach dem Sie filtern möchten. </div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie die Layout-Option: <b>Dropdown</b> oder <b>Schaltfläche</b>.</div>
+  <div class="content">Fügen Sie optional einen <code>Platzhalter</code>-Text hinzu, der vor der Anwendung des Filters erscheint.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Fügen Sie optional einen <b>Platzhalter</b>-Text hinzu, der vor der Anwendung des Filters erscheint.</div>
+  <div class="content">Aktivieren oder deaktivieren Sie <code>Kreuzfilter</code>, um dieses Widget mit anderen Daten-Widgets interagieren zu lassen. Wenn aktiviert, wird das Filtern von Daten in einem Widget automatisch alle anderen verbundenen Widgets auf Ihrem Dashboard aktualisieren.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Aktivieren oder deaktivieren Sie die Option <b>Mehrfachauswahl zulassen</b>. Die Auswahl entspricht <b>allen</b> ausgewählten Kriterien.</div>
-</div>
-
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Sie können <b>Zur Auswahl zoomen</b> aktivieren, wodurch die Kartenansicht automatisch zu den gefilterten Daten geschwenkt wird.</div>
+  <div class="content">Aktivieren oder deaktivieren Sie die Option <code>Zoomen zur Auswahl</code>, wodurch die Kartenansicht automatisch zu den gefilterten Daten geschwenkt wird.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/builder/builder_filter.gif').default} alt="recent datasets" style={{ maxHeight: "500px", maxWidth: "auto", objectFit: "cover"}}/>
 </div> 
 
-### Zahlen
+## Zahlen
 
-Das Zahlen-Widget zeigt numerische Daten basierend auf dem ausgewählten Layer und der gewählten statistischen Methode an.
+Wählen Sie aus verschiedenen statistischen Methoden, die auf einem Layer berechnet werden sollen.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Wählen Sie Ihren <b>Layer</b> aus. </div>
+  <div class="content">Wählen Sie Ihren <code>Layer</code> aus. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Wählen Sie die <b>statistische Methode</b>, die Sie anwenden möchten. Es kann <b>Anzahl, Summe, Min, Max</b> sein oder Sie fügen Ihren eigenen <b>Ausdruck</b> hinzu.  </div>
+  <div class="content">Wählen Sie die <code>statistische Methode</code>, die Sie anwenden möchten. Es kann <code>Anzahl</code>, <code>Summe</code>, <code>Min</code>, <code>Max</code> sein oder Sie fügen Ihren eigenen [<code>Ausdruck</code>](/data/expressions.md) hinzu. </div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie das <b>Feld</b> aus, auf das die Statistik angewendet werden soll. <i>Summe, Min und Max können nur auf numerische Felder angewendet werden.</i></div>
+  <div class="content">Wählen Sie das <code>Feld</code> aus, auf das die Statistik angewendet werden soll. <i>Summe, Min und Max können nur auf numerische Felder angewendet werden.</i></div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Legen Sie das <b>Zahlenformat</b> aus der Dropdown-Liste fest. Das <b>Standard-Zahlenformat</b> ist dynamisch basierend auf der Sprache der Benutzeroberfläche.</div>
+  <div class="content">Aktivieren oder deaktivieren Sie <code>Kreuzfilter</code>, um dieses Widget abhängig von allen anderen verbundenen Widgets auf Ihrem Dashboard zu aktualisieren.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Aktivieren oder deaktivieren Sie die Option <b>Mehrfachauswahl zulassen</b>. Die Auswahl entspricht <b>allen</b> ausgewählten Kriterien.</div>
+  <div class="content">Aktivieren oder deaktivieren Sie die Option <code>Filteransichtsfenster</code>, wodurch nur die Daten innerhalb der aktuellen Kartenansicht sichtbar werden.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">6</div>
+  <div class="content">Legen Sie das <code>Zahlenformat</code> aus der Dropdown-Liste fest. Das <code>Standard-Zahlenformat</code> ist dynamisch basierend auf der Sprache der Kartenoberfläche.</div>
 </div>
 
 

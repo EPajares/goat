@@ -24,9 +24,9 @@ Das folgende Beispiel zeigt eine *Eingabetabelle (Matrix-Layer)* und die resulti
 
 ## 2. Beispiel-Anwendungsfälle
 
-- Visualisierung der Pendlerströme zwischen Wohngebieten (Quellen) und Arbeitsplätzen (Zielen).
-- Bewertung der Fahrgastströme im öffentlichen Verkehr zwischen verschiedenen Stationen.
-- Analyse der Personenströme von Wohngebieten (Quellen) zu Einkaufsstandorten (Zielen).
+- **Pendlerströme**: Visualisierung der Bewegungsströme zwischen Wohngebieten (Quellen) und Arbeitsplätzen (Zielen).
+- **Öffentlicher Verkehr**: Analyse der Fahrgastströme zwischen verschiedenen ÖV-Haltestellen oder Bahnhöfen.
+- **Einzelhandel**: Untersuchung der Einkaufsströme von Wohngebieten zu Einkaufsstandorten.
 
 
 ## 3. Wie wird das Werkzeug verwendet?

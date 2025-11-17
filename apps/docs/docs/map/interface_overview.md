@@ -56,13 +56,13 @@ The spatial operations toolbar on the right side of the map interface provides a
 
 - <img src={require('/img/map/interface/magnifYING-GLASS.png').default} alt="Address and coordinates search" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Search button</code>: **Search for addresses** or coordinates to quickly navigate to a specific location on the map.
 
-- <img src={require('/img/map/interface/PLUS.png').default} alt="Zoom In" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Zoom In</code>
+- <img src={require('/img/map/interface/plus.png').default} alt="Zoom In" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Zoom In</code>
 
 - <img src={require('/img/map/interface/MINUS.png').default} alt="Zoom out" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Zoom Out</code>
 
 - <img src={require('/img/map/interface/fullscreen.png').default} alt="Fullscreen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Fullscreen</code>
 
-- <img src={require('/img/map/interface/MAP.png').default} alt="Base map" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Base map</code>: **Choose between** the available base map options.
+- <img src={require('/img/map/interface/map.png').default} alt="Base map" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Base map</code>: **Choose between** the available base map options.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/interface/map_navigation.png').default} alt="recent datasets" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>

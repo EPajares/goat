@@ -33,7 +33,7 @@ Dieses **Werkzeug** ermöglicht es Ihnen, zwei **Datensätze** zu kombinieren, i
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeugkiste</code> <img src={thematicIcon} alt="Werkzeugkiste" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">

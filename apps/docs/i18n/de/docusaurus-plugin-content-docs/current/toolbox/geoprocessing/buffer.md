@@ -88,6 +88,6 @@ Sobald diese Aufgabe abgeschlossen ist, wird der resultierende Layer namens **"P
 
 :::tip Tipp
 
-Möchten Sie Ihre Puffer stylen und schön aussehende Karten erstellen? Siehe [Styling](../../map/layer_style/style/styling.md).
+Möchten Sie Ihre Puffer stylen und schön aussehende Karten erstellen? Siehe [Styling](../../map/layer_style/styling).
 
 :::

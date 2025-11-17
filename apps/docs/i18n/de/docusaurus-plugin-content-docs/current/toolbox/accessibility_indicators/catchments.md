@@ -11,15 +11,15 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 Einzugsgebiete zeigen **wie weit Menschen innerhalb einer bestimmten Reisezeit oder Entfernung, mit einem oder mehreren Verkehrsmitteln reisen können.**
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/AhQXTjxjhZY?si=cWaLkivPtvWNAByW" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/_clsR386b9w?si=ZInxlY_TjYiEda23" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
 Basierend auf festgelegten Startpunkten, maximaler Reisezeit oder Entfernung und Verkehrsmitteln **visualisieren Einzugsgebiete das Ausmaß der Erreichbarkeit anhand realer Daten.** Dies bietet Einblicke in die Qualität, Dichte und Reichweite des Verkehrsnetzes.
 
 Das Einzugsgebiet kann mit räumlichen Datensätzen wie Bevölkerungsdaten überlagert werden, um erreichbare Einrichtungen zu bewerten und die Zugänglichkeitsabdeckung für die Bewohner zu identifizieren.
-
-![Catchment Area in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_sample.png "Catchment Area in GOAT")
   
 
 :::tip Tipp
@@ -81,7 +81,7 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">
@@ -119,7 +119,7 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
 
   <div class="step">
     <div class="step-number">5</div>
-    <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code>, <code>Reisegeschwindigkeit</code>, und <code>Anzahl der Schritte</code>.</div>
+    <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code>, <code>Reisegeschwindigkeit</code> und <code>Anzahl der Schritte</code>.</div>
   </div>
 
   <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
@@ -240,7 +240,7 @@ Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](
 </Tabs>
 
   </TabItem>
-  <TabItem value="public transport" label="ÖV" className="tabItemBox">
+  <TabItem value="public transport" label="Public Transport (PT)" className="tabItemBox">
 
 #### Öffentlicher Verkehr (ÖV)
 
@@ -276,8 +276,18 @@ Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](
 
 
   </TabItem>
+
 </Tabs>
 
+
+### Erweiterte Einstellungen
+
+  Standardmäßig werden Einzugsgebiete als Polygone berechnet. Um dies anzupassen, verwenden Sie die erweiterten Einstellungen.
+
+  <div class="step">
+    <div class="step-number">6</div>
+    <div class="content">Klicken Sie auf <code>Erweiterte Konfiguration</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Hier können Sie die <code>Einzugsgebietsform</code> auswählen. Sie können zwischen <b>Polygon</b>, <b>Netzwerk</b> und <b>Rechteckiges Gitter</b> wählen.</div>
+  </div>
 
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
@@ -308,9 +318,9 @@ Wenn Sie **Polygon-Differenz** aktivieren, wird für jeden Schritt nur das "inkr
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_network.png').default} alt="Einzugsgebiet (Network) ÖV in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
   </TabItem>
-  <TabItem value="Sechseckiges Gitter" label="Sechseckiges Gitter" className="tabItemBox">
+  <TabItem value="Rectangular Grid" label="Rectangular Grid" className="tabItemBox">
 
-#### Sechseckiges Gitter
+#### Rechteckiges Gitter
 - Es ist eine **gitterzellenbasierte Darstellung** der Einzugsgebiete.
 - Erscheint ähnlich wie eine „Heatmap“-Visualisierung, unterscheidet sich jedoch konzeptionell und rechnerisch (dies stellt das Abfließen von einem bestimmten Ursprung zu verschiedenen anderen Standorten dar, während Heatmaps den Zugang von verschiedenen Standorten zu einem bestimmten Ziel darstellen).
 
@@ -323,25 +333,25 @@ Wenn Sie **Polygon-Differenz** aktivieren, wird für jeden Schritt nur das "inkr
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Wählen Sie die <code>Art der Startpunkte</code>: <code>Klicke auf die Karte</code> oder <code>Wähle vom Layer</code>.</div>
+  <div class="content">Wählen Sie die <code>Startpunkt-Methode</code>: <code>Auf Karte auswählen</code> oder <code>Aus Layer auswählen</code>.</div>
 </div>
 
 <Tabs>
-  <TabItem value="Select on Map" label="Klicke auf die Karte" default className="tabItemBox">
+  <TabItem value="Select on Map" label="Select on Map" default className="tabItemBox">
 
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Wählen Sie <code>Klicke auf die Karte</code>. Klicken Sie auf die Karte, um Startpunkte auszuwählen. Sie können mehrere Startpunkte hinzufügen.</div>
+  <div class="content">Wählen Sie <code>Auf Karte auswählen</code>. Klicken Sie auf die Karte, um Startpunkte auszuwählen. Sie können mehrere Startpunkte hinzufügen.</div>
 </div>
 
 
   </TabItem>
-  <TabItem value="Select From Layer" label="Wähle vom Layer" className="tabItemBox">
+  <TabItem value="Select From Layer" label="Select From Layer" className="tabItemBox">
 
 
  <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Klicken Sie auf <code>Wähle vom Layer</code>. Wählen Sie den <code>Punktlayer</code>, der Ihre gewünschten Startpunkte enthält.</div>
+  <div class="content">Klicken Sie auf <code>Aus Layer auswählen</code>. Wählen Sie den <code>Punkt-Layer</code>, der Ihre gewünschten Startpunkte enthält.</div>
 </div>
 
 
@@ -366,7 +376,7 @@ Nach Abschluss der Berechnung werden die resultierenden Layer zur Karte hinzugef
 
 Klicken Sie auf ein Einzugsgebietspolygon, um Details anzuzeigen. Das **travel_cost** Attribut zeigt Reiseentfernung oder -zeit basierend auf Ihrer Berechnungseinheit: **Zeit in Minuten** oder **Entfernung in Metern**.
 
-![Catchment Area Calculation Result in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_result.png "Catchment Area Calculation Result in GOAT")
+![Catchment Area Calculation in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif "Catchment Area Calculation Result in GOAT")
 
 :::tip Tipp
 Möchten Sie Ihre Einzugsgebiete stilisieren und schöne Karten erstellen? Siehe [Styling](../../map/layer_style/styling).
@@ -374,9 +384,15 @@ Möchten Sie Ihre Einzugsgebiete stilisieren und schöne Karten erstellen? Siehe
 
 ## 4. Technische Details
 
-Einzugsgebiete sind **Isolinien**, die alle Punkte verbinden, die von einem oder mehreren Startpunkten innerhalb eines bestimmten Zeitfensters (genannt *Isochronen*) oder einer bestimmten Entfernung (genannt *Isodistanz*) erreicht werden können. Je nach gewähltem Verkehrsmittel werden die entsprechenden Verkehrsnetze für das [Verkehrsmittel](/docs/routing/walking) verwendet.
+**Einzugsgebiete sind Isolinien, die Punkte verbinden, die von Startpunkt(en) innerhalb eines Zeitintervalls (*Isochronen*) oder einer Entfernung (*Isodistanz*) erreichbar sind**. Die Berechnung verwendet die entsprechenden Verkehrsnetze für das Routing basierend auf dem gewählten Verkehrsmittel.
 
-Die Einzugsgebiete werden dynamisch im Frontend auf der Basis eines Reisezeit-/Entfernungsgitters erstellt. Daher können Einzugsgebiete schnell und für verschiedene Intervalle in Echtzeit erstellt werden.
+Einzugsgebiete werden dynamisch im Frontend aus einem Reisezeit-/Entfernungsgitter erstellt, was eine schnelle Erstellung mit verschiedenen Intervallen bei Bedarf ermöglicht.
+
+:::tip Hinweis
+
+Für weitere Einblicke in den Routing-Algorithmus besuchen Sie [Routing](../../category/routing).
+
+:::
 
 ### Wissenschaftlicher Hintergrund
 

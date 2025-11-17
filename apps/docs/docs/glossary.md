@@ -1,7 +1,3 @@
----
-sidebar_position: 100
----
-
 # GOAT Glossary
 
 This comprehensive glossary provides English to German translations for all the tools, features, and vocabulary used in the GOAT application. This resource helps users navigate between the English documentation and the German interface.
@@ -215,6 +211,9 @@ This comprehensive glossary provides English to German translations for all the 
 | **Filter** | **Filter** | Data filtering |
 | Filter Results | Filter Ergebnisse | Filtered data |
 | Clear Filter | Filter löschen | Remove filters |
+| Cross Filter | Kreuzfilter | Interactive filtering between widgets |
+| Filter Viewport | Filteransichtsfenster | Filter data within current map view |
+| Zoom to Selection | Zoomen zur Auswahl | Automatically pan map view to filtered data |
 | **Expression** | **Ausdruck** | Filter expression |
 | Logical Expression | Logischer Ausdruck | Boolean logic |
 | Spatial Expression | Räumlicher Ausdruck | Spatial filter |

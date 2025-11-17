@@ -15,7 +15,7 @@ Scenarios **let you test "what-if" situations by modifying existing layers or cr
 You can also modify the **Street Network - Edges** base layer, which represents the road network and affects routing calculations.
 
 :::info 
-Only **geographical layers** can be modified in scenarios. Tables and rasters cannot be edited. Learn more about [data types](../data/data_types).
+Only **geographical layers** can be modified in scenarios. Tables and rasters cannot be edited. You can learn more about [data types](../data/data_types).
 :::
 
 ## 1. How to create and edit scenarios?
@@ -39,9 +39,6 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
   <div class="step-number">4</div>
   <div class="content">Choose a layer in `Select layer`, then pick from `Edit tools`: **draw** <img src={require('/img/scenarios/add.png').default} alt="Draw" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, **modify** <img src={require('/img/scenarios/edit.png').default} alt="Modify" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, or **delete** <img src={require('/img/scenarios/trash-solid.png').default} alt="Delete" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> features.</div>
 </div>
-
-
-
 
 <Tabs>
   <TabItem value="Draw" label="Draw" default className="tabItemBox">
@@ -92,10 +89,10 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
   
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Choose your `modified layer` and select the `scenario` from the dropdown to analyze your changes.</div>  
+  <div class="content">After selecting all the settings, choose the `scenario` from the dropdown to analyze your changes.</div>  
 </div>
 
-![Layer analysis with scenarios](/img/scenarios/layer_analysis.png "Layer analysis with scenarios")
+![Layer analysis with scenarios](/img/scenarios/scenario_indicator.png "Layer analysis with scenarios")
 
 ## 2. Managing scenarios
 
@@ -117,4 +114,3 @@ Use `Scenarios` to modify street lines—add new roads, close existing ones, or 
 :::info
 Street Network changes only affect **[Catchment Area](../further_reading/glossary#catchment-area)** calculations. Other indicators use the original network.
 :::
-

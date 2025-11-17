@@ -8,29 +8,28 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import MathJax from 'react-mathjax';
 
 # Heatmap - Gravity
-Eine farblich gekennzeichnete Karte zur Visualisierung der Erreichbarkeit von Punkten (wie z.B. [POI](../../further_reading/glossary#points-of-interest-poi "What is a POI?")) aus der Umgebung.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/jOV5dSk64rM?si=s7PZIatUHvnLsKA0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+Der Heatmap - Gravity Indikator **erzeugt eine farbkodierte Karte zur Visualisierung der Erreichbarkeit von Punkten, wie POIs aus umliegenden Gebieten**.
+
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/yteOnb6N7hA?si=SYStNhRCpZidqY0p" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
-Die Heatmap wird als farblich gekennzeichnetes sechseckiges Raster dargestellt und berücksichtigt reale Verkehrs- und Straßennetze, um die Erreichbarkeit zu berechnen. Nach Angabe eines *Verkehrsmittels* (zu Fuß, mit dem Fahrrad usw.), eines *Gelegenheits-Layers* und eines *Reisezeitlimits* zeigt das Ergebnis ein farblich gekennzeichnetes sechseckiges Raster für alle unter diesen Bedingungen erreichbaren Gebiete an. Die Farbskala bezieht sich auf die lokale Erreichbarkeit.
+Die Heatmap Gravity zeigt ein **farbkodiertes sechseckiges Raster, das die Erreichbarkeit von Zielen (Gelegenheiten) basierend auf Reisezeit und Zielattraktivität anzeigt**. Die Erreichbarkeit wird mithilfe realer Verkehrsnetze und einer schwerkraftbasierten Formel berechnet, die widerspiegelt, wie die Bereitschaft der Menschen zu reisen mit der Entfernung abnimmt.
 
-:::info INFO
+Sie können den **Routing-Typ**, **Gelegenheits-Layer**, das **Reisezeitlimit** festlegen und **Sensitivität** und **Zielpotenzial** anpassen, um die Berechnung der Erreichbarkeit zu verfeinern.
 
-Ein `Gelegenheits-Layer` enthält [geografische Punkte](../../data/data_types "Was sind geografische Punkte?"). Wählen Sie einen oder mehrere solcher Layer mit Ihren Zielpunkten (Opportunities) als Input für die Heatmap.
+Der **Gelegenheits-Layer** enthält punktbasierte Zieldaten (wie POIs, Haltestellen, Schulen, Einrichtungen oder benutzerdefinierte Punkte). Sie können mehrere Gelegenheits-Layer auswählen, die zu einer einheitlichen Heatmap kombiniert werden.
 
-:::
+Die **Sensitivität** steuert, wie schnell die Erreichbarkeit mit zunehmender Reisezeit abnimmt, während das **Zielpotenzial** es Ihnen ermöglicht, Zielen mit höherer Kapazität oder Qualität mehr Gewicht zu verleihen (z.B. einem größeren Supermarkt oder einer Bushaltestelle mit mehr Abfahrten). Zusammen mit der gewählten **Impedanzfunktion** definieren diese Einstellungen, wie die Erreichbarkeit berechnet wird.
 
-Einzigartig an der Gravity Heatmap sind die anpassbaren Eigenschaften wie *Sensitivität*, *Widerstandsfunktion* und das *Zielpotenzialfeld*, die Ihnen eine genaue Kontrolle über die verwendete Methode und die Metadaten geben, die bei der Berechnung des Erreichbarkeitswertes für ein Gebiet berücksichtigt werden. Beeinflusst durch diese Eigenschaften kann die Erreichbarkeit eines Punktes komplexes menschliches Verhalten in der realen Welt modellieren und ist ein leistungsfähiges Maß für die Verkehrs- und Erreichbarkeitsplanung.
+Die Verwendung des **Zielpotenzials** hilft dabei, bestimmte Gelegenheiten gegenüber anderen zu priorisieren. Beispielsweise kann ein größerer aber weiter entfernter Supermarkt höher bewertet werden als ein kleinerer in der Nähe. Dies ermöglicht es, qualitative Informationen—wie Größe, Häufigkeit oder Service-Level—bei der Berechnung der Erreichbarkeit einzubeziehen, was zu einer realistischeren Heatmap führt.
 
-:::tip Profi-Tipp
+Beeinflusst von all diesen Eigenschaften kann die Erreichbarkeit eines Punktes komplexes menschliches Verhalten in der realen Welt modellieren und ist ein leistungsfähiges Maß für die Verkehrs- und Erreichbarkeitsplanung.
 
-Kurz gesagt, sind Erreichbarkeits-Heatmaps eine Visualisierung, die die *Erreichbarkeit* von verschiedenen, nicht spezifizierten Ausgangspunkten zu einem oder mehreren spezifizierten Zielen darstellt. Dies steht im Gegensatz zu Einzugsgebieten, die den *Ausgang* von einem oder mehreren bestimmten Quellen zu verschiedenen, nicht spezifizierten Zielen darstellen.
-
-:::
-
-![Gravity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_based.webp "Gravity-based Heatmap in GOAT")
+**Wichtiger Unterschied:** Anders als die *Closest-Average* Heatmap, die den Reiseaufwand misst, misst die *Gravity-basierte Heatmap* **Attraktivität** — sie zeigt, wie zugänglich und ansprechend Ziele sind, wenn sowohl Entfernung als auch Qualität berücksichtigt werden.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -69,86 +68,58 @@ Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie
 
  - Besteht die Möglichkeit, die Verfügbarkeit von Dienstleistungen wie Bike-Sharing oder Car-Sharing-Stationen zu erweitern?
 
- - Wie ist die Erreichbarkeit in verschiedenen Stadtteilen im Vergleich, wenn man die qualitativen Aspekte der Einrichtungen berücksichtigt (z. B. Häufigkeit der Bushaltestellen, Größe der Supermärkte, Kapazität der Schulen usw.)?
-
- - Wie sieht die Erreichbarkeit von Bahnhöfen des öffentlichen Verkehrs aus, wenn sich die Fahrtzeiten zu diesen Bahnhöfen nicht linear auf ihre Erreichbarkeit auswirken?
 
 
-
-## 3. Wie ist der Indikator zu verwenden?
+## 3. Wie verwendet man den Indikator?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> wählen Sie <code>Heatmap Gravity</code>.</div>
+  <div class="content">Unter dem <code>Erreichbarkeitsindikatoren</code> Menü klicken Sie auf <code>Heatmap Gravity</code>.</div>
 </div>
 
-### Verkehrsmittel
+### Routing
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie das <code>Verkehrsmittel</code> welches Sie für die Heatmap benutzen möchten.</div>
+  <div class="content">Wählen Sie den <code>Routing-Typ</code>, den Sie für die Heatmap verwenden möchten.</div>
 </div>
 
 <Tabs>
 
-<TabItem value="zu Fuß" label="zu Fuß" default className="tabItemBox">
+<TabItem value="walk" label="Zu Fuß" default className="tabItemBox">
 
 #### Zu Fuß
 
 Berücksichtigt alle zu Fuß begehbaren Wege. Für Heatmaps wird eine Gehgeschwindigkeit von 5 km/h angenommen.
 
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/zu Fuß](../../routing/walking).
-
-:::
-
 </TabItem>
   
-<TabItem value="Fahrrad" label="Fahrrad" className="tabItemBox">
+<TabItem value="cycling" label="Fahrrad" className="tabItemBox">
 
 #### Fahrrad
 
 Berücksichtigt alle mit dem Fahrrad befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit die Oberfläche, die Glätte und die Steigung der Straßen. Für Heatmaps wird eine Fahrradgeschwindigkeit von 15 km/h angenommen.
 
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/bicycle). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
-
-:::
-
 </TabItem>
 
-<TabItem value="Pedelec" label="Pedelec" className="tabItemBox">
+<TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
 #### Pedelec
 
 Berücksichtigt alle mit dem Pedelec befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit die Oberfläche und Glätte der Straßen. Für Heatmaps wird eine Pedelec-Geschwindigkeit von 23 km/h angenommen.
 
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Fahrrad](../../routing/fahrrad). Darüber hinaus können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
-
-:::
-
 </TabItem>
 
-<TabItem value="Auto" label="Auto" className="tabItemBox">
+<TabItem value="car" label="Auto" className="tabItemBox">
 
 #### Auto
 
 Berücksichtigt alle mit dem Auto befahrbaren Wege. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit Geschwindigkeitsbegrenzungen und Einbahnstraßenbeschränkungen.
-
-:::tip Tipp
-
-Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/Auto](../../routing/car).
-
-:::
 
 </TabItem>
 
@@ -158,95 +129,67 @@ Weitere Einblicke in den Routing-Algorithmus erhalten Sie unter [Verkehrsmittel/
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie die <code>Widerstandsfunktion</code> welche Sie für die Heatmap anwenden möchten.</div>
+  <div class="content">Wählen Sie die <code>Impedanzfunktion</code>, die Sie für die Heatmap verwenden möchten.</div>
 </div>
 
 <Tabs>
 
-<TabItem value="gaussian" label="Gaussfunktion" default className="tabItemBox">
+<TabItem value="gaussian" label="Gaussian" default className="tabItemBox">
 
-#### Gaussfunktion
+#### Gaussian
 
-Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Gaußschen Kurve, die durch die von Ihnen definierten Parameter `Sensitivität` und `Zielpotentialfeld` beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
-
-:::tip Pro Tipp
-
-Wie Studien gezeigt haben, ist die Beziehung zwischen Reisezeit und Erreichbarkeit oft nicht linear. Das bedeutet, dass Menschen bereit sein können, eine kurze Strecke zurückzulegen, um eine Einrichtung zu erreichen, aber mit zunehmender Entfernung nimmt ihre Bereitschaft, diese Strecke zurückzulegen, schnell ab (oft überproportional).
-
-Mit Hilfe der von Ihnen definierten *Sensitivität* ermöglicht die Gauß-Funktion eine genauere Modellierung dieses Aspekts des Verhaltens in der realen Welt.
-
-:::
-
-:::note Hinweis
-
-**Wie wählen Sie den Sensitivitätswert aus?**
-
-Die Auswahl des passendsten Sensitivitätswerts *hängt immer vom Kontext der Analyse ab*, und es gibt keine strikten Regeln.
-
-- **Niedriger β:** Ein guter Ausgangspunkt könnte sein, niedrigere Sensitivität bei **Analysen im städtischen Maßstab** zu verwenden, da dies zu einem schärferen Rückgang des Erreichbarkeitswerts bei zunehmender Reisezeit führt. In städtischen Gebieten gibt es mehr verfügbare Möglichkeiten, und *Menschen wählen wahrscheinlicher die nächstgelegene aus*.
-- **Hoher β:** Im Gegensatz dazu könnte eine höhere Sensitivität bei Analysen im **regionalen Maßstab** verwendet werden, wo die Möglichkeiten spärlicher sind und *Menschen wahrscheinlicher weiter reisen*, um sie zu erreichen.
-
-Siehe den **[Berechnung](#berechnung)**-Abschnitt für detaillierte visuelle Erklärungen zur Formel.
-
-:::
-
-
-
-
-
+Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Gaußschen Kurve, die durch die von Ihnen definierten Parameter `Sensitivität` und `Zielpotenzial` beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
 
 </TabItem>
   
-<TabItem value="linear" label="Lineare Funktion" default className="tabItemBox">
+<TabItem value="linear" label="Linear" default className="tabItemBox">
 
-#### Lineare Funktion
+#### Linear
 
-Diese Funktion stellt eine direkte Korrelation zwischen Reisezeit und Erreichbarkeit her, die durch das von Ihnen angegebene `Zielpotentialfeld` moduliert wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
+Diese Funktion stellt eine direkte Korrelation zwischen Reisezeit und Erreichbarkeit her, die durch das von Ihnen angegebene `Zielpotenzial` moduliert wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
 
-:::info Tipp 
+:::info Hinweis
 Diese Funktion befindet sich derzeit in der Entwicklung. 🧑🏻‍💻
 :::
 
 </TabItem>
 
-<TabItem value="exponential" label="Exponentialfunktion" default className="tabItemBox">
+<TabItem value="exponential" label="Exponential" default className="tabItemBox">
 
-#### Exponentialfunktion
+#### Exponential
 
-Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Exponentialkurve, die von der von Ihnen definierten `Sensitivität` und dem `Zielpotentialfeld`  beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
+Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Exponentialkurve, die von der von Ihnen definierten `Sensitivität` und dem `Zielpotenzial` beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
 
-:::info Tipp 
+:::info Hinweis
 Diese Funktion befindet sich derzeit in der Entwicklung. 🧑🏻‍💻
 :::
+
 </TabItem>
 
-<TabItem value="power" label="Powerfunktion" default className="tabItemBox">
+<TabItem value="power" label="Power" default className="tabItemBox">
 
-#### Powerfunktion
+#### Power
 
-Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Leistungskurve, die durch die von Ihnen definierte `Sensitivität` und das `Zielpotentialfeld` beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
+Diese Funktion berechnet die Erreichbarkeiten auf der Grundlage einer Leistungskurve, die durch die von Ihnen definierte `Sensitivität` und das `Zielpotenzial` beeinflusst wird. Ein ausführlicheres Verständnis finden Sie im Abschnitt [Technische Details](./gravity#4-technische-details).
 
-:::info Tipp 
+:::info Hinweis
 Diese Funktion befindet sich derzeit in der Entwicklung. 🧑🏻‍💻
 :::
+
 </TabItem>
 
 </Tabs>
 
 ### Gelegenheiten
 
-Gelegenheiten sind im Wesentlichen punktbasierte Daten (wie [POI](../../further_reading/glossary#point-of-interest-poi "Was ist ein POI?")), für die Sie eine Heatmap berechnen möchten. Dies sind die „Destinationen“ (z. B. Bahnhöfe, Schulen, andere Einrichtungen oder Ihre eigenen punktbasierten Daten), während die umliegenden Gebiete „Quellen“ sind, für die ein Erreichbarkeitswert berechnet und visualisiert wird.
-
-Zusätzlich können Sie weitere Gelegenheiten über die Schaltfläche `+ Gelegenheit hinzufügen`am unteren Rand der Leiste erstellen. Alle Gelegenheits-Layer werden kombiniert, um eine einheitliche Heatmap zu erstellen.
-
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie Ihren <code>Gelegenheitslayer</code> aus dem Dropdown-Menü aus. Dies kann ein zuvor erstellter Layer sein, der punktbasierte Daten enthält.</div>
+  <div class="content">Wählen Sie Ihren <code>Gelegenheits-Layer</code> aus dem Dropdown-Menü aus. Dies kann ein zuvor erstellter Layer sein, der punktbasierte Daten enthält.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Wählen Sie eine <code>Reisezeitbegrenzung</code> für Ihre Heatmap aus. Dies wird im Kontext Ihres zuvor ausgewählten <i>Verkehrsmittel</i> verwendet.</div>
+  <div class="content">Wählen Sie ein <code>Reisezeitlimit</code> für Ihre Heatmap aus. Dies wird im Kontext Ihres zuvor ausgewählten <i>Routing-Typs</i> verwendet.</div>
 </div>
 
 :::tip Tipp
@@ -257,63 +200,55 @@ Benötigen Sie Hilfe bei der Auswahl einer geeigneten Reisezeit für verschieden
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Falls erforderlich, wählen Sie ein <code>Zielpotenzialfeld</code> aus. Dies muss ein numerisches Feld aus Ihrem <i>Gelegenheitslayer</i> sein, das als Koeffizient von der Erreichbarkeitsfunktion verwendet wird.</div>
+  <div class="content">Falls erforderlich, wählen Sie ein <code>Zielpotenzial-Feld</code> aus. Dies muss ein numerisches Feld aus Ihrem <i>Gelegenheits-Layer</i> sein, das als Koeffizient von der Erreichbarkeitsfunktion verwendet wird.</div>
 </div>
-
-:::tip Pro-Tipp
-
-Das *Zielpotenzialfeld* ist eine nützliche Methode, um bestimmte Möglichkeiten gegenüber anderen zu bevorzugen. Wenn es zum Beispiel zwei Supermärkte gibt und einer näher liegt als der andere, würde er aufgrund seiner Nähe in der Regel eine höhere Erreichbarkeitsbewertung erhalten. Wenn der weiter entfernte Supermarkt jedoch größer ist, sollten Sie ihm eine höhere Priorität einräumen. Mit *Zielpotenzialfeld* können Sie eine zusätzliche Eigenschaft (z. B. die Größe von Supermärkten) verwenden, um Gelegenheiten ein "Potenzial" zuzuweisen und bei der Berechnung der Erreichbarkeit qualitative Informationen zu verwenden.
-
-Das folgende Beispiel zeigt, wie das Zielpotenzial die Schwerkraft-Heatmap beeinflussen kann. Sein Zielpotenzial basiert auf der Gesamtzahl der stündlichen Abfahrten des öffentlichen Verkehrs von einer Haltestelle. Es führt zu einer anderen Verteilung der Erreichbarkeit, da der Bereich um Punkte mit einem höheren Zielpotenzial in der Berechnung bevorzugt wird.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_without_destination_potential.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
-</div>
-
-*Die erste Karte wird ohne Zielpotenzial berechnet.*
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_with_destination_potential.png').default} alt="gravity-with-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
-</div>
-
-*Die zweite Karte verwendet die gleichen Einstellungen, fügt aber Zielpotenzial basierend auf der Gesamtzahl der Abfahrten hinzu. Dadurch ändern sich die Erreichbarkeitswerte jedes Hexagons und sie ergeben einen größeren Bereich, da der höchste Wert noch weiter zunimmt. Höhere Erreichbarkeitswerte sind stärker um Haltestellen mit einer größeren Abfahrtsanzahl (rote Punkte) konzentriert.* 
-
-:::
 
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Geben Sie einen Wert für die <code>Sensitivität</code> an. Dieser muss numerisch sein und wird von der Heatmap-Funktion verwendet, um zu bestimmen, wie sich die Erreichbarkeit mit zunehmender Reisezeit ändert.</div>
+  <div class="content">Geben Sie einen <code>Sensitivitäts</code>-Wert an. Dieser muss numerisch sein und wird von der Heatmap-Funktion verwendet, um zu bestimmen, wie sich die Erreichbarkeit mit zunehmender Reisezeit ändert.</div>
 </div>
+
+:::tip Tipp
+
+**Wie wählen Sie den Sensitivitätswert?**
+
+Der beste **Sensitivitäts (β)** Wert hängt von Ihrer Analyse ab — es gibt keine einzig richtige Zahl. Er definiert **wie schnell die Erreichbarkeit mit zunehmender Reisezeit abnimmt**.
+
+- **Niedriges β (städtischer Maßstab):** Verwenden Sie eine niedrigere Sensitivität für Analysen auf städtischer Ebene. Dies lässt die Erreichbarkeit schneller mit der Entfernung fallen, was zu städtischen Kontexten passt, wo viele Ziele in der Nähe sind und Menschen normalerweise das nächstgelegene wählen.
+- **Hohes β (regionaler Maßstab):** Verwenden Sie eine höhere Sensitivität für regionale oder ländliche Analysen. Dies lässt die Erreichbarkeit langsamer abnehmen, was widerspiegelt, dass Menschen bereit sind, längere Strecken zu reisen, wenn weniger Optionen verfügbar sind.
+
+Für eine visuelle Erklärung, wie die Sensitivität die Berechnung beeinflusst, siehe den **[Berechnung](#berechnung)** Abschnitt.
+
+:::
 
 <div class="step">
   <div class="step-number">9</div>
   <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung der Heatmap zu starten.</div>
 </div>
 
-:::tip Tipp
-
-Je nach Ihrer Konfiguration kann die Berechnung einige Minuten dauern. Die [Statusleiste](../../workspace/home#statusleiste) zeigt den aktuellen Fortschritt an.
-
-:::
-
 ### Ergebnisse
 
-<div class="step">
-  <div class="step-number">10</div>
-  <div class="content">Sobald die Berechnung abgeschlossen ist, wird ein Ergebnislayer zur Karte hinzugefügt. Dieser Layer namens <i>Heatmap Gravity</i> enthält Ihre farblich gekennzeichnete Heatmap.
-  <p></p>
-  Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Erreichbarkeitswert für diese Zelle angezeigt.</div>
-</div>
+Sobald die Berechnung abgeschlossen ist, wird ein Ergebnislayer zur Karte hinzugefügt. Dieser <i>Heatmap Gravity</i> Layer enthält Ihre farbkodierte Heatmap. Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Erreichbarkeitswert für diese Zelle angezeigt.
 
-
-![Ergebnis der Gravity Heatmap-Berechnung in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/heatmap_gravity_result.png "Ergebnis der Gravity Heatmap-Berechnung in GOAT")
-
+![Heatmap Gravity-basierte Berechnung in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation.gif "Heatmap Gravity-basierte Berechnung in GOAT")
 
 :::tip Tipp
 
-Möchten Sie Ihre Heatmaps bearbeiten und schöne Karten erstellen? Sie können dies unter [Layer Design](../../map/layer_style/styling).
+Möchten Sie visuell ansprechende Karten erstellen, die eine klare Geschichte erzählen? Lernen Sie, wie Sie Farben, Legenden und Styling in unserem [Styling-Bereich](../../map/layer_style/styling) anpassen.
 
 :::
+
+### Berechnungsbeispiel
+
+Das folgende Beispiel zeigt, wie Änderungen in den Gelegenheits-Einstellungen die Gravity-Heatmap beeinflussen können. Das Zielpotenzial basiert auf der Gesamtzahl der stündlichen öffentlichen Verkehrs-Abfahrten von einer Haltestelle.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation_comparison.png').default} alt="gravity-no-destination-potential" style={{ maxHeight: "500px", maxWidth: "auto"}}/>
+</div>
+
+<p></p>
+
+Die Karte im Hintergrund wird ohne Zielpotenzial berechnet. Die zweite Karte verwendete die gleichen Einstellungen, fügte aber Zielpotenzial basierend auf der Gesamtzahl der Abfahrten hinzu. Dies veränderte die Erreichbarkeitswerte jedes Hexagons und sie ergaben einen größeren Bereich, da der höchste Wert noch weiter zunahm. **Höhere Erreichbarkeitswerte sind stärker um Haltestellen mit größerer Fahrtzahl konzentriert (rote Punkte).**
 
 ## 4. Technische Details
 
@@ -407,31 +342,56 @@ Zur Klassifizierung der Erreichbarkeitsstufen, die für jede Rasterzelle berechn
 
 Es können jedoch auch verschiedene andere Klassifizierungsmethoden verwendet werden. Weitere Informationen finden Sie im Abschnitt **[Datenklassifizierungsmethoden](../../map/layer_style/attribute_based_styling#datenklassifizierungsmethoden)** auf der Seite *attributbasiertes Styling*.
 
-### Visualisierung
+### Visualisierung 
 
-Heatmaps in GOAT nutzen die **[Uber H3 auf Gitter basierende](../../further_reading/glossary#h3-grid)** Lösung für effiziente Berechnungen und leicht verständliche Visualisierungen. Hinter den Kulissen wird eine vorberechnete Reisezeitmatrix für jedes *Verkehrsmittel* mit dieser Lösung abgefragt und in Echtzeit weiterverarbeitet, um die Erreichbarkeit zu berechnen und eine endgültige Heatmap zu erstellen.
+Heatmaps in GOAT nutzen die **[Uber H3 auf Gitter basierende](../further_reading/glossary#h3-grid)** Lösung für effiziente Berechnungen und leicht verständliche Visualisierungen. Hinter den Kulissen wird eine vorberechnete Reisezeitmatrix für jeden *Routing-Typ* mit dieser Lösung abgefragt und in Echtzeit weiterverarbeitet, um die Erreichbarkeit zu berechnen und eine endgültige Heatmap zu erstellen.
 
-Die Auflösung und die Abmessungen des verwendeten sechseckigen Gitters hängen von dem gewählten *Verkehrsmittel* ab:
+Die Auflösung und die Abmessungen des verwendeten sechseckigen Gitters hängen von dem gewählten *Routing-Typ* ab:
+
+<Tabs>
+
+<TabItem value="walk" label="Zu Fuß" default className="tabItemBox">
 
 #### Zu Fuß
 - Auflösung: 10
 - Durchschnittliche Sechseckfläche: 11285.6 m²
 - Durchschnittliche Kantenlänge des Sechsecks: 65,9 m
 
+</TabItem>
+  
+<TabItem value="bicycle" label="Fahrrad" className="tabItemBox">
+
 #### Fahrrad
 - Auflösung: 9
 - Durchschnittliche Sechseckfläche: 78999.4 m²
 - Durchschnittliche Kantenlänge des Sechsecks: 174,4 m
+
+</TabItem>
+
+<TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
 #### Pedelec
 - Auflösung: 9
 - Durchschnittliche Sechseckfläche: 78999.4 m²
 - Durchschnittliche Kantenlänge des Sechsecks: 174,4 m
 
+</TabItem>
+
+<TabItem value="car" label="Auto" className="tabItemBox">
+
 #### Auto
 - Auflösung: 8
 - Durchschnittliche Sechseckfläche: 552995.7 m²
 - Durchschnittliche Kantenlänge des Sechsecks: 461,4 m
+
+</TabItem>
+
+</Tabs>
+
+:::tip Tipp
+
+Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [Routing](../../category/routing). Außerdem können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+:::
 
 
 ## 5. Referenzen

@@ -15,6 +15,12 @@ sidebar_position: 2
   <div class="content">Click <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, and open the <code>Style section</code></div>
 </div>
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="fill-color" label="Fill Color" default>
+
 <div class="step">
   <div class="step-number">2</div>
   <div class="content">On <code>Fill color</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
@@ -37,9 +43,66 @@ sidebar_position: 2
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/attribute_selection.gif').default} alt="Attribute Selection" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/attribute-based-fill-color.gif').default} alt="Fill Color Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
-</div> 
+</div>
+
+</TabItem>
+<TabItem value="stroke-color" label="Stroke Color">
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">On <code>Stroke color</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">In <code>Color based on</code>, select the **field to style by**.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
+  <div class="content">In <code>Color Scale</code>, choose your **data classification method**. See all methods in the [Data Classification](#data-classification-methods) section.</div>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/attribute-based-stroke-color.gif').default} alt="Stroke Color Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div>
+
+</TabItem>
+<TabItem value="custom-marker" label="Custom Marker">
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">On <code>Custom Marker</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">In <code>Marker based on</code>, select the **field to style by**.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">On <code>Ordinal Markers</code>, you can choose the marker you want to use for each step. You can either choose it from the Library of upload your own. </div>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/attribute-based-custom-marker.gif').default} alt="Custom Marker Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div>
+
+</TabItem>
+</Tabs> 
+
 
 ## Color Palette
 
@@ -58,6 +121,12 @@ GOAT offers four predefined palette types:
 | Qualitative | <img src={require('/img/map/styling/qualitative_palette.png').default} alt="qualitative" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Designed for distinct categories or classes.** It helps distinguish between discrete categories without implying any order or importance.|
 | Singlehue | <img src={require('/img/map/styling/singlehue_palette.png').default} alt="singlehue" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/> | **Uses different shades and tones of a single color.** It creates a harmonious look and is effective for conveying information without the distraction of multiple colors.|
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+<img src={require('/img/map/styling/attribute-based-color-palettes.gif').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+
+</div>  
+
 ## Data Classification Methods
 
 The <code>Color Scale</code> determines how data values map to colors. GOAT offers six data classification methods: **Quantile, Standard Deviation, Equal Interval, Heads and Tails, Custom Breaks, and Custom Ordinal.** All the methods default to 7 classes, but you can adjust this number as needed.
@@ -68,7 +137,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+<img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
 
 </div>  
 

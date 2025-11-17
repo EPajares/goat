@@ -56,13 +56,13 @@ Die räumlichen Operationen **Werkzeugleiste** auf der rechten Seite der Karteno
 
 - <img src={require('/img/map/interface/magnifYING-GLASS.png').default} alt="Adressen- und Koordinatensuche" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Such-Button</code>: **Suchen Sie nach Adressen** oder Koordinaten, um schnell zu einem bestimmten Ort auf der Karte zu navigieren.
 
-- <img src={require('/img/map/interface/PLUS.png').default} alt="Hineinzoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Hineinzoomen</code>
+- <img src={require('/img/map/interface/plus.png').default} alt="Hineinzoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Hineinzoomen</code>
 
 - <img src={require('/img/map/interface/MINUS.png').default} alt="Rauszoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Rauszoomen</code>
 
 - <img src={require('/img/map/interface/fullscreen.png').default} alt="Vollbild" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Vollbild</code>
 
-- <img src={require('/img/map/interface/MAP.png').default} alt="Grundkarte" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Grundkarte</code>: **Wählen Sie zwischen** den verfügbaren Grundkartenoptionen.
+- <img src={require('/img/map/interface/map.png').default} alt="Grundkarte" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Grundkarte</code>: **Wählen Sie zwischen** den verfügbaren Grundkartenoptionen.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/interface/map_navigation.png').default} alt="aktuelle Datensätze" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>

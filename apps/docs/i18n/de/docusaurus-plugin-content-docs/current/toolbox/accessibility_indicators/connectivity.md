@@ -8,16 +8,16 @@ import TabItem from '@theme/TabItem';
 import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import MathJax from 'react-mathjax';
 
-# Heatmap - Konnektivität
-Der Heatmap - Konnektivitäts-Indikator **erstellt eine farbkodierte Karte zur Visualisierung der Konnektivität von Orten innerhalb eines Interessengebiets** ([**AOI**](../../further_reading/glossary#area-of-interest-aoi "Was ist ein AOI?")).
+# Heatmap - Connectivity
+Der Heatmap - Connectivity Indikator **erstellt eine farbkodierte Karte zur Visualisierung der Konnektivität von Orten innerhalb eines Interessengebiets** ([**AOI**](../../further_reading/glossary#area-of-interest-aoi "Was ist ein AOI?")).
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/W1NDJlzR_gM?si=wR19yHToaAeZG0kY" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/PzWEIbcSf4Y?si=MB4LNSEkMmnzccuX" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
-Die Heatmap verwendet ein farbkodiertes sechseckiges Gitter, um zu zeigen, wie gut verschiedene Gebiete miteinander verbunden sind. Als Eingabeparameter werden ein **Interessengebiet** (AOI), ein **Routing-Typ** (zu Fuß, Radfahren usw.) und ein **Reisezeitlimit** benötigt. Unter Berücksichtigung der realen Verkehrs- und Straßennetze berechnet sie die Konnektivität jedes Sechsecks innerhalb der AOI.
-
-![Connectivity-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity.png "Connectivity-based Heatmap in GOAT")
+Die Heatmap verwendet ein farbkodiertes sechseckiges Gitter, um **zu zeigen, wie gut verschiedene Gebiete miteinander verbunden sind.** Als Eingabeparameter werden ein **Interessengebiet** (AOI), ein **Routing-Typ** (zu Fuß, Radfahren usw.) und ein **Reisezeitlimit** benötigt. Unter Berücksichtigung der realen Verkehrs- und Straßennetze berechnet sie die Konnektivität jedes Sechsecks innerhalb der AOI.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -53,33 +53,37 @@ Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie
  - Wie schneiden die Orte innerhalb einer AOI in Bezug auf die Konnektivität über die verschiedenen Verkehrsmittel ab?
  - Gibt es Barrieren, Lücken oder Inseln im Straßennetz, die die Konnektivität behindern?
 
-## 3. Wie ist der Indikator zu verwenden?
+## 3. Wie verwendet man den Indikator?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter dem Menü <code>Erreichbarkeitsindikatoren</code> klicken Sie auf <code>Heatmap Konnektivität</code>.</div>
+  <div class="content">Unter dem <code>Erreichbarkeitsindikatoren</code> Menü klicken Sie auf <code>Heatmap Connectivity</code>.</div>
 </div>
+
+### Routing 
 
 <div class="step">
   <div class="step-number">3</div>
   <div class="content">Wählen Sie den <code>Routing-Typ</code>, den Sie für die Heatmap verwenden möchten:</div>
 </div>
 
+### Konfiguration 
+
 <div style={{ marginLeft: '60px' }}>
 <Tabs>
 
-<TabItem value="walk" label="zu Fuß" default className="tabItemBox">
+<TabItem value="walk" label="Walk" default className="tabItemBox">
 
 **Berücksichtigt alle zu Fuß begehbaren Wege**. Für Heatmaps wird eine Gehgeschwindigkeit von 5 km/h angenommen.
 
 </TabItem>
   
-<TabItem value="cycling" label="Fahrrad" className="tabItemBox">
+<TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
 **Berücksichtigt alle mit dem Fahrrad befahrbaren Wege**. Dieser Routing-Modus berücksichtigt bei der Berechnung der Erreichbarkeit die Oberfläche, Glätte und Steigung der Straßen. Für Heatmaps wird eine Fahrradgeschwindigkeit von 15 km/h angenommen.
 
@@ -129,9 +133,11 @@ Benötigen Sie Hilfe bei der Auswahl eines geeigneten Reisezeitlimits für versc
   <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung der Heatmap zu beginnen.</div>
 </div>
 
-Nach Abschluss der Berechnung wird ein Ergebnis-Layer zur Karte hinzugefügt. Dieser Heatmap-Konnektivitäts-Layer enthält Ihre farbkodierte Heatmap. **Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Konnektivitätswert für diese Zelle angezeigt.**
+### Ergebnisse 
 
-![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_heatmap_result.gif "Connectivity-based Heatmap Result in GOAT")
+Sobald die Berechnung abgeschlossen ist, wird ein Ergebnislayer zur Karte hinzugefügt. Dieser Heatmap Connectivity Layer enthält Ihre farbkodierte Heatmap. **Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Konnektivitätswert für diese Zelle angezeigt.**
+
+![Connectivity-basierte Heatmap Ergebnis in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_calculation.gif "Connectivity-basierte Heatmap Ergebnis in GOAT")
 
 
 :::tip Tipp
@@ -170,14 +176,14 @@ Die Auflösung und Abmessungen des verwendeten sechseckigen Rasters hängen vom 
 
 <Tabs>
 
-<TabItem value="walk" label="zu Fuß" default className="tabItemBox">
+<TabItem value="walk" label="Walk" default className="tabItemBox">
 
 <li parentName="ul">{`Auflösung: 10`}</li>
 <li parentName="ul">{`Durchschnittliche Sechseckfläche: 11285.6 m²`}</li>
 <li parentName="ul">{`Durchschnittliche Sechseck-Kantenlänge: 65.9 m`}</li>
 </TabItem>
   
-<TabItem value="cycling" label="Fahrrad" className="tabItemBox">
+<TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
 <li parentName="ul">{`Auflösung: 9`}</li>
 <li parentName="ul">{`Durchschnittliche Sechseckfläche: 78999.4 m²`}</li>
@@ -191,7 +197,7 @@ Die Auflösung und Abmessungen des verwendeten sechseckigen Rasters hängen vom 
 <li parentName="ul">{`Durchschnittliche Sechseck-Kantenlänge: 174.4 m`}</li> 
 </TabItem>
 
-<TabItem value="car" label="Auto" className="tabItemBox">
+<TabItem value="car" label="Car" className="tabItemBox">
 
 <li parentName="ul">{`Auflösung: 8`}</li>
 <li parentName="ul">{`Durchschnittliche Sechseckfläche: 552995.7 m²`}</li>
@@ -201,6 +207,12 @@ Die Auflösung und Abmessungen des verwendeten sechseckigen Rasters hängen vom 
 
 </Tabs>
 </div>
+
+:::tip Tipp
+
+Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [Routing](../../category/routing). Außerdem können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+
+:::
 
 ### Visualisierung
 

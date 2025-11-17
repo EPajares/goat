@@ -5,25 +5,23 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # Abfahrten ÖPNV
 
-Dieser Indikator zeigt die **durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel** pro Stunde für jede Haltestelle des ÖVs an.
+Dieser Indikator zeigt die **durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel** pro Stunde für jede Haltestelle des öffentlichen Verkehrs an.
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/bLKcxAqSNjA?si=7YetwUdGHMRnmdHE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/2oRxWow9LBQ?si=YmElYi5cTTdkLtkF" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
-Das Werkzeug "Abfahrten ÖPNV" zeigt die *durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel pro Stunde** für ein ausgewähltes **Zeitfenster** für jede Haltestelle des öffentlichen Verkehrs auf einem Punkt-Layer an. Die Ergebnisse können entweder als Summe aller Verkehrsmittel oder durch Fokussierung auf einen bestimmtes davon (z.B. Bus, Straßenbahn, U-Bahn, Bahn) visualisiert werden.
+Die ÖPNV-Abfahrten zeigen die **durchschnittliche Anzahl der Abfahrten pro Stunde für ein ausgewähltes Zeitintervall an jeder Haltestelle des öffentlichen Verkehrs**. Sie können die Summe für alle Verkehrsmittel anzeigen oder sich auf ein bestimmtes Verkehrsmittel konzentrieren (z.B. Bus, Straßenbahn, U-Bahn, Bahn).
 
-Dieser Indikator dient als Grundlage für die [ÖV-Güteklassen](./oev_gueteklassen.md), kann aber auch eigenständig als einfache Maßnahme für das Angebot an öffentlichen Verkehrsmitteln auf **Haltestellenebene** verwendet werden. Er gibt eine Zusammenfassung der Abfahrten einer Haltestelle während eines bestimmten Zeitfensters und Tages und bietet einen wertvollen Überblick über das öffentliche Verkehrsangebot in einer Stadt. Daher wird der Indikator oft in **Schwachstellenanalysen von lokalen Verkehrsplänen** verwendet (siehe unter anderem [Richtlinie für die Nahverkehrsplanung in Bayern](https://www.demografie-leitfaden-bayern.de/index.html)).
-
-![Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/sample.png "Public Transport Trip Count")
+Dieser Indikator ist die Grundlage für die [ÖV-Güteklassen](./oev_gueteklassen.md) und ist nützlich für **Schwachstellenanalysen von lokalen Verkehrsplänen** (siehe unter anderem [Richtlinie für die Nahverkehrsplanung in Bayern](https://www.demografie-leitfaden-bayern.de/index.html)).
 
 import MapViewer from '@site/src/components/MapViewer';
 
-:::info
-Abfahrten ÖPNV ist nur in Gebieten verfügbar, in denen das Verkehrsnetz in GOAT integriert ist.
+:::info 
+Die ÖPNV-Abfahrten sind nur in Gebieten verfügbar, in denen das Verkehrsnetz in GOAT integriert ist.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <MapViewer
+    <MapViewer
       geojsonUrls={[
         "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
       ]}
@@ -35,9 +33,8 @@ Abfahrten ÖPNV ist nur in Gebieten verfügbar, in denen das Verkehrsnetz in GOA
       legendItems={[
         { label: "Abdeckung für die Berechnung der ÖPNV-Abfahrten", color: "#ffffff" }
       ]}
-  />
-
-</div>
+    />
+</div> 
 
 Falls Sie Analysen außerhalb dieses Geofences durchführen müssen, kontaktieren Sie bitte den [Support](https://plan4better.de/de/contact/ "Contact Support") und wir werden prüfen, was möglich ist.
 :::
@@ -57,55 +54,35 @@ Falls Sie Analysen außerhalb dieses Geofences durchführen müssen, kontaktiere
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> wähen Sie <code>Abfahrten ÖPNV</code>. Dies öffnet das Einstellungsmenü.</div>
+  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> wählen Sie <code>Abfahrten ÖPNV</code>, um das Einstellungsmenü zu öffnen.</div>
 </div>
-
-![Menüübersicht für den Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/overview.png "Menüübersicht für den Public Transport Trip Count")
 
 ### Berechnungszeit
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie aus, für welchen <code>Tag</code>, <code>Startzeit</code> und <code>Endzeit</code> Sie die Abfahrten ÖPNV berechnen möchten.</div>
+  <div class="content">Wählen Sie <code>Tag</code>, <code>Startzeit</code> und <code>Endzeit</code> für Ihre Analyse.</div>
 </div>
 
-### Referenzlayer
+### Referenz-Layer
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie den <code>Referenzlayer</code>, der das Gebiet enthält, für das Sie den Indikator berechnen möchten. Dies kann jeder Polygon-Feature-Layer sein.</div>
+  <div class="content">Wählen Sie den <code>Referenz-Layer</code> (Polygon-Feature-Layer) für das Gebiet aus, das Sie analysieren möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>. Dies startet die Berechnung des Abfahrten ÖPNV für das ausgewählte Gebiet und Zeitintervall.</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung zu starten.</div>
 </div>
-
-:::tip Tipp
-
-Je nach Größe des ausgewählten Gebiets kann die Berechnung einige Minuten dauern. Die [Statusleiste](../../workspace/home#status-bar) zeigt den aktuellen Fortschritt an.
-
-:::
 
 ### Ergebnisse
 
-<div class="step">
-  <div class="step-number">6</div>
-  <div class="content">Sobald der Berechnungsprozess abgeschlossen ist, wird der resultierende Layer mit dem Namen <b>"Trip Count Station"</b> zur Karte hinzugefügt.</div>
-</div>
+Nach Abschluss der Berechnung wird ein neuer Layer namens <b>"Trip Count Station"</b> zur Karte hinzugefügt.
 
-![Menüübersicht für den Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/result.png "Menüübersicht für den Public Transport Trip Count")
+Klicken Sie auf Stationen, um Details anzuzeigen, einschließlich **Stationsname**, **Gesamtanzahl der Abfahrten** und **Abfahrten pro Verkehrsmittel**.
 
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">Wenn Sie auf einen Punkt in der Karte klicken, können Sie den <b>Haltestellennamen</b>, die <b>Gesamtanzahl der Abfahrten</b> und die <b>Abfahrten pro Verkehrsmittel</b> sehen.</div>
-</div>
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/accessibility_indicators/trip_count/details.png').default} alt="Weitere Details zum Trip Count" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
-
-</div>
+![Menu Overview for Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/trip_count_calculation.gif "Menu Overview for Public Transport Trip Count")
 
 :::tip Tipp
 

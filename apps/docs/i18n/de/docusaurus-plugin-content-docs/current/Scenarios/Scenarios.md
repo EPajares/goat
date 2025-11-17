@@ -3,22 +3,20 @@ sidebar_position: 4
 slug: /Scenarios
 ---
 
-
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
- 
 # Szenarien
 
-Szenarien **ermöglichen es Ihnen, "Was-wäre-wenn"-Situationen zu testen, indem Sie bestehende Layer modifizieren oder neue Features erstellen**. Fügen Sie Punkte, Linien und Polygone hinzu, bearbeiten oder löschen Sie sie, **und führen Sie dann Erreichbarkeitsindikatoren aus, um zu analysieren, wie sich diese Änderungen auf die Erreichbarkeit auswirken—alles ohne Ihre ursprünglichen Daten zu verändern**.
+Szenarien **ermöglichen es Ihnen, "Was-wäre-wenn"-Situationen zu testen, indem Sie bestehende Layer modifizieren oder neue Features erstellen**. Fügen Sie Punkte, Linien und Polygone hinzu, bearbeiten oder löschen Sie sie, **und führen Sie dann Erreichbarkeitsindikatoren aus, um zu analysieren, wie sich diese Änderungen auf die Erreichbarkeit auswirken – alles ohne Ihre ursprünglichen Daten zu verändern**.
 
 Sie können auch den **Straßennetz - Kanten** Basis-Layer modifizieren, der das Straßennetz darstellt und die Routing-Berechnungen beeinflusst.
 
-:::info 
-Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und Raster können nicht bearbeitet werden. Erfahren Sie mehr über [Datentypen](../data/data_types).
+:::info
+Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und Raster können nicht bearbeitet werden. Mehr zu [Datentypen](../data/data_types).
 :::
 
-## 1. Wie erstellt und bearbeitet man Szenarien? 
+## 1. Wie erstellt und bearbeitet man Szenarien?
 
 <div class="step">
   <div class="step-number">1</div>
@@ -37,9 +35,8 @@ Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie einen Layer in <code>Layer auswählen</code> und wählen Sie dann aus <code>Bearbeitungswerkzeuge</code>: **zeichnen** <img src={require('/img/scenarios/add.png').default} alt="Zeichnen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, **modifizieren** <img src={require('/img/scenarios/edit.png').default} alt="Modifizieren" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, oder **löschen** <img src={require('/img/scenarios/trash-solid.png').default} alt="Löschen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> von Features.</div>
+  <div class="content">Wählen Sie einen Layer in <code>Layer auswählen</code> und wählen Sie dann aus <code>Bearbeitungswerkzeuge</code>: **Zeichnen** <img src={require('/img/scenarios/add.png').default} alt="Zeichnen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, **Modifizieren** <img src={require('/img/scenarios/edit.png').default} alt="Modifizieren" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, oder **Löschen** <img src={require('/img/scenarios/trash-solid.png').default} alt="Löschen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> von Features.</div>
 </div>
-
 
 <Tabs>
   <TabItem value="Zeichnen" label="Zeichnen" default className="tabItemBox">
@@ -48,14 +45,14 @@ Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und
       <div class="content">
         Abhängig vom Layer-Typ können Sie verschiedene geografische Formen zeichnen:
         - **Punkt**: **Klicken** Sie auf die Karte, wo Sie einen Punkt hinzufügen möchten. Füllen Sie bei Bedarf Attribute aus und klicken Sie dann auf `Speichern`. **Neue Features erscheinen in blau**.
-
+        <p></p>
         - **Linie**: **Klicken** Sie, um mit dem Zeichnen zu beginnen, klicken Sie weiter, um die Linie zu formen, **doppelklicken** Sie zum Beenden. Füllen Sie bei Bedarf Attribute aus und klicken Sie dann auf `Speichern`. **Neue Features erscheinen in blau**.
-
+        <p></p>
         - **Polygon**: **Klicken** Sie, um mit dem Zeichnen zu beginnen, klicken Sie weiter für jede Ecke, **klicken Sie auf den Startpunkt**, um zu vervollständigen.
+        Füllen Sie bei Bedarf Attribute aus und klicken Sie dann auf `Speichern`. **Neue Features erscheinen in blau**.
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
           <img src={require('/img/scenarios/Polygon_drawing-final.gif').default} alt="Polygone zeichnen" style={{ maxHeight: '500px', maxWidth: '500px', objectFit: 'cover' }}/>
         </div>
-        Füllen Sie bei Bedarf Attribute aus und klicken Sie dann auf `Speichern`. **Neue Features erscheinen in blau**.
       </div>
     </div>
   </TabItem>
@@ -79,22 +76,19 @@ Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und
       <img src={require('/img/scenarios/delete_feature.png').default} alt="Features löschen" style={{ maxHeight: '500px', maxWidth: '500px', objectFit: 'cover' }}/>
     </div>
   </TabItem>
-
 </Tabs>
-
-
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Klicken Sie auf `Werkzeugleiste` und wählen Sie einen [Erreichbarkeitsindikator](../toolbox/accessibility_indicators/).</div>  
-</div>
-  
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">Wählen Sie Ihren modifizierten Layer und wählen Sie das Szenario aus dem Dropdown-Menü, um Ihre Änderungen zu analysieren.</div>  
+  <div class="content">Klicken Sie auf <code>Werkzeugleiste</code> und wählen Sie einen [Erreichbarkeitsindikator](../toolbox/accessibility_indicators/).</div>
 </div>
 
-![Layer-Analyse mit Szenarien](/img/scenarios/layer_analysis.png "Layer-Analyse mit Szenarien")
+<div class="step">
+  <div class="step-number">7</div>
+  <div class="content">Nachdem Sie alle Einstellungen ausgewählt haben, wählen Sie das <code>Szenario</code> aus dem Dropdown-Menü, um Ihre Änderungen zu analysieren.</div>
+</div>
+
+![Layer-Analyse mit Szenarien](/img/scenarios/scenario_indicator.png "Layer-Analyse mit Szenarien")
 
 ## 2. Szenarien verwalten
 
@@ -109,7 +103,7 @@ Erstellen Sie mehrere Szenarien, um verschiedene Konfigurationen zu testen:
 
 **Straßennetz - Kanten** ist ein Basis-Layer, der das [Straßennetz](../data/data_basis#street-network-and-topography) darstellt und in allen Projekten verfügbar ist. Sie können diesen Layer nur beim Bearbeiten von Szenarien bei hohen Zoom-Stufen sehen.
 
-Verwenden Sie `Szenarien`, um Straßenlinien zu modifizieren—fügen Sie neue Straßen hinzu, schließen Sie bestehende oder ändern Sie Straßeneigenschaften.
+Verwenden Sie <code>Szenarien</code>, um Straßenlinien zu modifizieren – fügen Sie neue Straßen hinzu, schließen Sie bestehende oder ändern Sie Straßeneigenschaften.
 
 ![Straßennetz](/img/scenarios/street_network.png "Straßennetz")
 

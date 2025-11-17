@@ -16,8 +16,6 @@ The ÖV-Güteklassen indicator **classifies the quality of public transport serv
 
 The ÖV-Güteklassen indicator is decisive and can be used to highlight deficits in the public transport offer and to identify well-serviced locations as attractive areas for development.
 
-![ÖV-Güteklassen in GOAT](/img/toolbox/accessibility_indicators/gueteklassen/example.png "ÖV-Güteklassen in GOAT")
-
 import MapViewer from '@site/src/components/MapViewer';
 
 :::info 
@@ -94,10 +92,6 @@ In case you need to perform analysis beyond this geofence, feel free to contact 
 
 ### Results
 
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">As soon as the calculation process is finished, the resulting layers will be added to the map. The results consist of one layer called <b>"ÖV-Güteklassen"</b>, showing the Public Transport Quality Classes, and one layer called <b>"ÖV-Güteklassen Stations"</b> which provides all stations that were used for the calculation of this indicator. The station points that are visualized in grey have a service frequency that is too low and thus do not contribute to any public transport quality class.<p></p> If you click on an "ÖV-Güteklassen" item on the map, you will see further details such as its pt_class and pt_class_number, which indicate <a href="#calculation">the quality of public transport</a>.</div>
-</div>
 
 After calculation, two layers are added to the map:
 - **ÖV-Güteklassen**: Shows the quality class for each area.
@@ -107,7 +101,7 @@ If you click on a ÖV-Güteklassen result your will see the further details, suc
 
 If you click on any station, you can see details such as the **stop name**, **average frequency**, and **station category**. 
 
-![Calculation - Public Transport Quality Classes](/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.png "Calculation - Public Transport Quality Classes")
+![Calculation - Public Transport Quality Classes](/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif "Calculation - Public Transport Quality Classes")
 
 ## 4. Technical details
 
@@ -136,11 +130,11 @@ First, the number of departures per public transport mode (train, metro, tram, a
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_en.png').default} alt="Classification of transport stops" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_en.webp').default} alt="Classification of transport stops" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
 
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_en.png').default} alt="Determination of Public Transport Quality Classes" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_en.webp').default} alt="Determination of Public Transport Quality Classes" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
 
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_de.png').default} alt="ÖV-Güteklassen Calculation" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_en.png').default} alt="ÖV-Güteklassen Calculation" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
 </div>
 
 <div></div>
@@ -148,8 +142,6 @@ First, the number of departures per public transport mode (train, metro, tram, a
 ### Visualization
 
 The created buffers/network catchment areas are visualized around the stations in the corresponding colors to highlight the **quality class** (<span style={{color: "#199741"}}>A</span>-<span style={{color: "#E4696A"}}>F</span>).
-
-ization of the ÖV-Güteklassen")
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/visualization.png').default} alt="Visualization of the ÖV-Güteklassen" style={{ maxHeight: "400px", maxWidth: "100%", objectFit: "cover"}}/>

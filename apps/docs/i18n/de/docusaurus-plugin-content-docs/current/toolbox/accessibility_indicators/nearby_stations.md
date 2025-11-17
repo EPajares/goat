@@ -8,18 +8,17 @@ import TabItem from '@theme/TabItem';
 
 # Nahgelegene ÖV-Haltestellen 
 
-Die **Nahgelegene ÖV-Haltestellen**-Analyse wird verwendet, um öffentliche Verkehrshaltestellen zu finden, die zu Fuß oder mit dem Fahrrad innerhalb einer bestimmten Zeit erreichbar sind. Für jede Haltestelle werden Abfahrtsinformationen nach Verkehrsmittel und Route bereitgestellt.
+Der ÖV Nahegelegene Stationen Indikator wird verwendet, um **öffentliche Verkehrshaltestellen zu finden, die zu Fuß oder mit dem Fahrrad innerhalb einer bestimmten Zeit erreichbar sind.**
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/Dl4FjAAQyrY?si=LaEDuoH0cvWRmjIr" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/JHU9ty0HVVc?si=QfsJuJa9RU1ps7ue" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
-Die Nahverkehrsanalyse (Nahgelegene ÖV-Haltestellen) ist ein geeignetes Werkzeug, um **öffentliche Verkehrshaltestellen und deren Verbindungen** zu visualisieren, die zu Fuß oder mit dem Fahrrad von einem oder mehreren Ausgangspunkten erreichbar sind. Die nächstgelegenen Haltestellen, die dort verfügbaren öffentlichen Verkehrslinien, ihre Frequenz und die Reisezeit zu Fuß und mit dem Fahrrad werden als Ergebnis bereitgestellt.
+Das Tool identifiziert **öffentliche Verkehrsstationen, die von Startpunkten innerhalb bestimmter Reiseparameter erreichbar sind.** Es verwendet Startpunkte, Stationszugangsart (zu Fuß, Fahrrad oder Pedelec), Reisezeitlimit und öffentliche Verkehrsmittel als Eingaben. Mit realen Straßen- und Verkehrsnetzen **berechnet es, welche Stationen erreichbar sind und liefert detaillierte Serviceinformationen für jede.**
 
-**Die Nähe zu nahegelegenen Haltestellen** ist für verschiedene Aspekte des städtischen Lebens wesentlich und wichtig in der Stadtplanung. Die Verfügbarkeit von öffentlichen Verkehrsverbindungen verbessert die Erreichbarkeit für Bewohner, Arbeiter und Besucher erheblich.
-
-
-![Nearby Stations in GOAT](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_example.png "Nearby Stations in GOAT")
+Für jede erreichbare Station zeigt die Analyse **verfügbare Verkehrsmittel**, **Servicefrequenzen**, **Abfahrtspläne** und **Zugangszeiten**. Diese umfassende Sicht hilft bei der Bewertung der Verkehrsanbindung und unterstützt Planungsentscheidungen.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -65,7 +64,7 @@ Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, wenden S
   <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> wählen Sie <code>Nahgelegene ÖV-Haltestellen</code>.</div>
 </div>
 
-![Menu Overview for Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_overview.png "Menu Overview for Public Transport Nearby Stations")
+
 
 ### Zugang zu Stationen
 
@@ -91,7 +90,7 @@ Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, wenden S
   <div class="content">Wählen Sie aus, für welchen <code>Tag</code>, <code>Startzeit</code> und <code>Endzeit</code> Sie die öffentlichen Verkehrsanbindungen sehen möchten.</div>
 </div>
 
-![Configurations for Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_config.png "Configurations for Public Transport Nearby Stations")
+
 
 ### Startpunkte
 
@@ -127,16 +126,14 @@ Je nach Anzahl der ausgewählten Startpunkte kann die Berechnung einige Minuten 
 
 ### Ergebnisse
 
-<div class="step">
-  <div class="step-number">9</div>
-  <div class="content">Sobald der Berechnungsprozess abgeschlossen ist, werden die resultierenden Layer der Karte hinzugefügt. Die Ergebnisse bestehen aus einem Layer namens <b>"Nahegelegene Stationen"</b>, der die nahegelegenen ÖPNV-Stationen zeigt, und einem Layer namens <b>"Startpunkte - Nahegelegene Stationen"</b>, der alle Startpunkte enthält, die für die Berechnung dieses Indikators verwendet wurden.
-  <p></p>
-  Beim Klicken auf einen Punkt auf der Karte werden weitere Details wie <b>Haltestellenname</b>, <b>Zugangszeit [min]</b> und <b>gesamte Frequenz des ÖPNV-Dienstes [min]</b> sichtbar.
-</div>
-</div>
+Sobald die Berechnung abgeschlossen ist, werden die resultierenden Layer zur Karte hinzugefügt:
 
+- **"Nahegelegene Stationen"** Layer zeigt erreichbare öffentliche Verkehrshaltestellen
+- **"Startpunkte - Nahegelegene Stationen"** Layer mit Analyseausgangspunkten
 
-![Result of Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_result.png "Result of Public Transport Nearby Stations")
+Klicken Sie auf Stationen, um Details anzuzeigen, einschließlich **Haltestellenname**, **Zugangszeit** und **Servicefrequenz**.
+
+![Result of Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif "Result of Public Transport Nearby Stations")
 
 
 

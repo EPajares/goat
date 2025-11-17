@@ -66,7 +66,7 @@ Das Werkzeug "Punkte Aggregieren" kann verwendet werden, um **die Eigenschaften 
 
 
   </TabItem>
-  <TabItem value="H3 Grid" label="H3-Gitter" className="tabItemBox">
+  <TabItem value="H3 Grid" label="H3 Grid" className="tabItemBox">
 
  #### H3-Gitter
 

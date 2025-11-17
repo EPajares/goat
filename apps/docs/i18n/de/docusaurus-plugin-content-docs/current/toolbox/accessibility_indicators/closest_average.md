@@ -9,30 +9,21 @@ import MathJax from 'react-mathjax';
 
 # Heatmap - Durchschnitt Reisezeit
 
-Eine farbkodierte Karte zur Visualisierung der durchschnittlichen Reisezeit zu Punkten (wie [POI](../../further_reading/glossary#points-of-interest-poi "Was ist ein POI?")) aus umliegenden Gebieten.
+Der Heatmap - Durchschnitt Reisezeit Indikator **erstellt eine farbkodierte Karte zur Visualisierung der durchschnittlichen Reisezeit zu Punkten, wie POIs, aus umliegenden Gebieten.**
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/3oAIv8ujWZQ?si=fDGFjqM64DZqHp8k" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/-nBXd-LAqZA?si=Ijls6J_GlJB8dav4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
+Die Heatmap zeigt ein farbkodiertes sechseckiges Raster, das **die durchschnittlichen Reisezeiten zu Zielen (Gelegenheiten) anhand realer Verkehrsnetze darstellt.** Sie können den **Routing-Typ**, den **Gelegenheits-Layer**, die **Anzahl der Ziele** und das **Reisezeitlimit** spezifizieren, um die Visualisierung zu erstellen.
 
-Visualisiert als farbkodiertes sechseckiges Raster, berücksichtigt die Heatmap echte Transport- und Straßennetze, um Reisezeiten zu berechnen. Nach der Festlegung eines *Verkehrsmittels* (Zu Fuß, Fahrrad, usw.), eines *Gelegenheits-Layers* und eines *Reisezeitlimits* wird das Ergebnis ein farbkodiertes sechseckiges Raster für alle unter diesen Bedingungen zugänglichen Bereiche anzeigen. Die Farbschattierung bezieht sich auf die durchschnittliche Reisezeit.
+Der **Gelegenheits-Layer** enthält punktbasierte Zieldaten (POIs, Haltestellen, Schulen, Einrichtungen oder benutzerdefinierte Daten), für die Sie die Erreichbarkeit analysieren möchten. Sie können mehrere Gelegenheits-Layer verwenden, die zu einer einheitlichen Heatmap kombiniert werden.
 
-:::info INFO
+Die **Anzahl der Ziele** setzt die Berechnung der durchschnittlichen Reisezeit auf nur die *n* nächstgelegenen Gelegenheiten. Dies schafft eine gezieltere Erreichbarkeitsanalyse.
 
-Ein `Gelegenheits-Layer` enthält [geografische Punkt](../../data/data_types "Was sind geografische Punkte?")-Daten. Wählen Sie eine oder mehrere solcher Schichten mit Ihren Zielpunkten (Gelegenheiten) als Eingabe für die Heatmap.
-
-:::
-
-Mit der konfigurierbaren Eigenschaft *Anzahl der Ziele* können Sie die Berechnung auf die *n* nächstgelegenen Gelegenheiten beschränken. Dies ergibt eine leicht verständliche Visualisierung, die verwendet werden kann, um Unterschiede in den durchschnittlichen Reisezeiten sogar auf Stadt- oder regionaler Ebene zu identifizieren. Der berechnete Wert für jede Zelle in der Heatmap stellt die durchschnittliche Reisezeit zu den nächstgelegenen *n* Zielen dar.
-
-:::tip Pro Tipp
-
-Kurz beschrieben, sind Erreichbarkeits-Heatmaps eine Visualisierung, die den *Zugang* von verschiedenen unbestimmten Quellorten zu einem oder mehreren festgelegten Zielen darstellt. Dies steht im Gegensatz zu Einzugsgebieten, die den *Abfluss* von einem oder mehreren festgelegten Quellorten zu verschiedenen unbestimmten Zielen darstellen.
-
-:::
-
-![Closest Average-based Heatmap in GOAT](/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/closest_avg.png "Closest Average-based Heatmap in GOAT")
+**Hauptunterschied:** Heatmaps zeigen den *Zugang* von vielen Ausgangspunkten zu spezifischen Zielen, während Einzugsgebiete die *Reichweite* von spezifischen Ausgangspunkten zu vielen Zielen zeigen.
 
 import MapViewer from '@site/src/components/MapViewer'; 
 
@@ -57,42 +48,47 @@ Heatmaps sind in bestimmten Regionen verfügbar. Beim Auswählen eines `Verkehrs
 
 </div> 
 
-
 Wenn Sie Analysen außerhalb dieses Geofence durchführen möchten, kontaktieren Sie uns bitte [hier](https://plan4better.de/de/contact/ "Kontaktieren Sie uns").
 
 :::
 
-## 2. Anwendungsbeispiele
+## 2. Video-Tutorial
 
-- Haben Bewohner in bestimmten Gebieten längere durchschnittliche Reisezeiten zu Einrichtungen als andere?
-- Gibt es einen signifikanten Unterschied in den durchschnittlichen Reisezeiten zu Einrichtungen zwischen verschiedenen Vierteln?
-- Wie variieren die durchschnittlichen Reisezeiten zu Einrichtungen je nach Verkehrsmittel?
-- Wie variieren die durchschnittlichen Reisezeiten zu verschiedenen Arten von Einrichtungen?
-- Gibt es Gebiete mit hohen durchschnittlichen Reisezeiten zu Einrichtungen, die von einer verbesserten Verkehrsinfrastruktur profitieren könnten?
-- Wenn Standards verlangen, dass eine Mindestanzahl von Einrichtungen innerhalb einer bestimmten Reisezeit zugänglich sein muss, welche Gebiete erfüllen diese Standards?
+<div style={{width:'100%',height:'0px',position:'relative',paddingBottom:'56.250%'}}>
+  <iframe src="https://streamable.com/e/3ajz1b?autoplay=1&nocontrols=1" frameborder="0" width="674" height="378" allowfullscreen allow="autoplay" style={{width:'100%',height:'100%',position:'absolute',left:'0px',top:'0px',overflow:'hidden'}}></iframe>
+</div>
 
-## 3. Wie verwendet man den Indikator?
+## 3. Anwendungsbeispiele
+
+- **Gleichmäßige Verteilung der Erreichbarkeit**: Haben Bewohner in bestimmten Gebieten längere durchschnittliche Reisezeiten zu Einrichtungen als andere?
+- **Nachbarschaftliche Unterschiede**: Gibt es einen signifikanten Unterschied in den durchschnittlichen Reisezeiten zu Einrichtungen zwischen verschiedenen Vierteln?
+- **Verkehrsmittelbewertung**: Wie variieren die durchschnittlichen Reisezeiten zu Einrichtungen je nach Verkehrsmittel?
+- **Einrichtungsarten-Vergleich**: Wie variieren die durchschnittlichen Reisezeiten zu verschiedenen Arten von Einrichtungen?
+- **Infrastruktur-Optimierung**: Gibt es Gebiete mit hohen durchschnittlichen Reisezeiten zu Einrichtungen, die von einer verbesserten Verkehrsinfrastruktur profitieren könnten?
+- **Standards-Compliance**: Wenn Standards verlangen, dass eine Mindestanzahl von Einrichtungen innerhalb einer bestimmten Reisezeit zugänglich sein muss, welche Gebiete erfüllen diese Standards?
+
+## 4. Wie verwendet man den Indikator?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> klicken Sie auf<code>Heatmap Durchschnitt Reisezeit</code>.</div>
+  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> klicken Sie auf <code>Heatmap Durchschnitt Reisezeit</code>.</div>
 </div>
 
 ### Verkehrsmittel
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie ein<code>Verkehrsmittel</code> welches Sie für die Heatmap anwenden möchten.</div>
+  <div class="content">Wählen Sie ein <code>Verkehrsmittel</code> welches Sie für die Heatmap anwenden möchten.</div>
 </div>
 
 <Tabs>
 
-<TabItem value="zu Fuß" label="zu Fuß" default className="tabItemBox">
+<TabItem value="zu Fuß" label="Zu Fuß" default className="tabItemBox">
 
 ##### Zu Fuß
 
@@ -108,13 +104,13 @@ Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [Verkehrsmittel/
   
 <TabItem value="Fahrrad" label="Fahrrad" className="tabItemBox">
 
-#### Fahrrad
+##### Fahrrad
 
 Berücksichtigt alle Wege, die mit dem Fahrrad zugänglich sind. Dieser Routing-Modus berücksichtigt die Oberfläche, Glätte und Steigung der Straßen bei der Berechnung der Erreichbarkeit. Für Heatmaps wird eine Fahrradgeschwindigkeit von 15 km/h angenommen.
 
 :::tip Tipp
 
-Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [RVerkehrsmittel/Fahrrad](../../routing/bicycle). Außerdem können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
+Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [Verkehrsmittel/Fahrrad](../../routing/bicycle). Außerdem können Sie diese [Publikation](https://doi.org/10.1016/j.jtrangeo.2021.103080) lesen.
 
 :::
 
@@ -122,7 +118,7 @@ Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [RVerkehrsmittel
 
 <TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-#### Pedelec
+##### Pedelec
 
 Berücksichtigt alle Wege, die mit dem Pedelec zugänglich sind. Dieser Routing-Modus berücksichtigt die Oberfläche und Glätte der Straßen bei der Berechnung der Erreichbarkeit. Für Heatmaps wird eine Pedelec-Geschwindigkeit von 23 km/h angenommen.
 
@@ -132,12 +128,11 @@ Für weitere Einblicke in den Routing-Algorithmus, besuchen Sie [Verkehrsmittel/
 
 :::
 
-
 </TabItem>
 
 <TabItem value="Auto" label="Auto" className="tabItemBox">
 
-#### Auto
+##### Auto
 
 Berücksichtigt alle Wege, die mit dem Auto zugänglich sind. Dieser Routing-Modus berücksichtigt Geschwindigkeitsbegrenzungen und Einbahnstraßenbeschränkungen bei der Berechnung der Erreichbarkeit.
 
@@ -186,7 +181,7 @@ Da der Parameter *Anzahl der Ziele* einmal pro Gelegenheits-Layer angegeben wird
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code> um die Berechnung der Heatmap zu beginnen</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung der Heatmap zu beginnen.</div>
 </div>
 
 :::tip Tipp
@@ -198,14 +193,15 @@ Je nach Konfiguration kann die Berechnung einige Minuten dauern. Die [Statusleis
 ### Ergebnisse
 
 <div class="step">
-  <div class="step-number">10</div>
-  <div class="content">Sobald die Berechnung abgeschlossen ist, wird ein Ergebnislayer zur Karte hinzugefügt. Dieser Layer mit dem Namen <i>Heatmap Closest Average</i> wird Ihre farblich gekennzeichnete Heatmap enthalten.
+  <div class="step-number">8</div>
+  <div class="content">Sobald die Berechnung abgeschlossen ist, wird ein Ergebnislayer zur Karte hinzugefügt. Dieser Layer mit dem Namen <i>Heatmap Durchschnitt Reisezeit</i> wird Ihre farblich gekennzeichnete Heatmap enthalten.
   <p></p>
   Durch Klicken auf eine der sechseckigen Zellen der Heatmap wird der berechnete Durchschnittswert der Reisezeit für diese Zelle angezeigt.</div>
 </div>
 
-
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/clst-avg-calculation.gif').default} alt="Options" style={{ maxHeight: "800px", maxWidth: "800px"}}/>
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/clst-avg-calculation.gif').default} alt="Heatmap Durchschnitt Reisezeit Berechnung" style={{width: "auto", height: "400px", objectFit: "cover"}}/>
+</div>
 
 :::tip Tipp
 
@@ -213,7 +209,7 @@ Möchten Sie Ihre Heatmaps gestalten und ansprechende Karten erstellen? Infos hi
 
 :::
 
-## 4. Technische Details
+## 5. Technische Details
 
 ### Berechnung
 

@@ -15,6 +15,12 @@ sidebar_position: 2
   <div class="content">Klicken Sie auf <code>Layer-Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling-Symbol" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code> und öffnen Sie den <code>Stil-Bereich</code></div>
 </div>
 
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="fill-color" label="Füllfarbe" default>
+
 <div class="step">
   <div class="step-number">2</div>
   <div class="content">Bei <code>Füllfarbe</code> klicken Sie auf <code>Optionen <img src={require('/img/map/styling/options_icon.png').default} alt="Optionen-Symbol" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> und weitere Einstellungen erscheinen </div>
@@ -37,9 +43,65 @@ sidebar_position: 2
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/attribute_selection.gif').default} alt="Attribut-Auswahl" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/attribute-based-fill-color.gif').default} alt="Füllfarbe Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
-</div> 
+</div>
+
+</TabItem>
+<TabItem value="stroke-color" label="Strichfarbe">
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Bei <code>Strichfarbe</code> klicken Sie auf <code>Optionen <img src={require('/img/map/styling/options_icon.png').default} alt="Optionen-Symbol" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> und weitere Einstellungen erscheinen </div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">In <code>Farbe basierend auf</code> wählen Sie das **Feld zum Stylen aus**.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Jetzt können Sie zu <code>Palette</code> gehen und eine **Farbpalette** wählen oder die Standardpalette behalten. Erfahren Sie mehr im Abschnitt [Farbpalette](#farbpalette) unten.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
+  <div class="content">In <code>Farbskala</code> wählen Sie Ihre **Datenklassifizierungsmethode**. Alle Methoden finden Sie im Abschnitt [Datenklassifizierung](#datenklassifizierungsmethoden).</div>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/attribute-based-stroke-color.gif').default} alt="Strichfarbe Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div>
+
+</TabItem>
+<TabItem value="custom-marker" label="Benutzerdefinierte Marker">
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Bei <code>Benutzerdefinierte Marker</code> klicken Sie auf <code>Optionen <img src={require('/img/map/styling/options_icon.png').default} alt="Optionen-Symbol" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> und weitere Einstellungen erscheinen </div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">In <code>Marker basierend auf</code> wählen Sie das **Feld zum Stylen aus**.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">Bei <code>Ordinale Marker</code> können Sie den Marker wählen, den Sie für jeden Schritt verwenden möchten. Sie können ihn entweder aus der Bibliothek wählen oder Ihren eigenen hochladen. </div>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+  <img src={require('/img/map/styling/attribute-based-custom-marker.gif').default} alt="Benutzerdefinierte Marker Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+
+</div>
+
+</TabItem>
+</Tabs> 
 
 ## Farbpalette
 

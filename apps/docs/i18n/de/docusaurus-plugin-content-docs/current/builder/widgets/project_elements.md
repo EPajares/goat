@@ -5,7 +5,7 @@ sidebar_position: 4
 
 # Projektelemente
 
-Dieser Abschnitt umfasst verschiedene Widgets, die zusätzliche Elemente bieten, um Ihr Dashboard abzurunden: **Text**, **Trennelement** und **Bild**. Ziehen Sie einfach **per Drag & Drop** Widgets aus dem rechten Panel auf jedes Panel Ihres Dashboards. Passen Sie jedes Widget an, indem Sie darauf klicken, wodurch die **Widget-Einstellungen** im rechten Panel geöffnet werden.
+Dieser Abschnitt bietet zusätzliche Widgets, um Ihr Dashboard abzurunden: **Text**, **Trennelement** und **Bild**. Ziehen Sie einfach **per Drag & Drop** Widgets aus der rechten Seitenleiste auf jedes Panel Ihres Dashboards. Passen Sie jedes Widget an, indem Sie darauf klicken, wodurch die **Widget-Einstellungen** im rechten Panel geöffnet werden.
 
 ### Text
 

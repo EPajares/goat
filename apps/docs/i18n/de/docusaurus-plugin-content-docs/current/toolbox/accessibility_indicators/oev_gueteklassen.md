@@ -5,16 +5,15 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # ÖV-Güteklassen
 
+Der ÖV-Güteklassen Indikator **klassifiziert die Qualität der öffentlichen Verkehrsdienste in einem bestimmten Gebiet** und hilft Planern und Interessengruppen dabei, gut versorgte und unterversorgte Standorte schnell zu identifizieren.
 
-Die ÖV-Güteklassen zeigen die **Attraktivität von öffentlichen Verkehrsmitteln** in einem ausgewählten Gebiet.
-
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/iWwGyGOUokQ?si=YVvq0o0NRi6724m7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/7YMhKkg2mtU?si=enegyhjWdH7ymn15" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 ## 1. Erklärung
 
-ÖV-Güteklassen, auch bekannt als **Qualitätsklassen öffentlicher Verkehrsmittel**, sind ein Klassifizierungssystem zur Bewertung und Kategorisierung der **Qualität** von öffentlichen Verkehrsmitteln in einem bestimmten Gebiet. Das Konzept wird verwendet, um öffentliche Verkehrsdienste zu planen und zu bewerten, damit sie bestimmten Standards entsprechen und die Bedürfnisse der Bevölkerung erfüllen. Die **Güteklassen** reichen dabei von **<span style={{color: "#199741"}}>A</span>** (sehr gutes Angebot) bis **<span style={{color: "#E4696A"}}>F</span>** (sehr schlechtes Angebot).
+ÖV-Güteklassen (Qualitätsklassen öffentlicher Verkehrsmittel) bieten eine standardisierte Methode zur **Bewertung und Visualisierung der Attraktivität öffentlicher Verkehrsdienste**. Die Klassen reichen von **A** (sehr gut) bis **F** (sehr schlecht) und basieren auf der Servicefrequenz, dem Stationstyp und der räumlichen Abdeckung.
 
-![ÖV-Güteklassen in GOAT](/img/toolbox/accessibility_indicators/gueteklassen/example.png "ÖV-Güteklassen in GOAT")
+Der ÖV-Güteklassen-Indikator ist entscheidend und kann verwendet werden, um Defizite im öffentlichen Verkehrsangebot hervorzuheben und gut versorgte Standorte als attraktive Entwicklungsgebiete zu identifizieren.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -46,39 +45,37 @@ Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, kontakti
 - Wie viele Menschen sind unterversorgt mit öffentlichen Verkehrsmitteln? Wo besteht Bedarf an weiteren Angeboten?
 - Wie unterscheidet sich die Qualität der öffentlichen Verkehrsmittel zu verschiedenen Zeiten der Woche und des Tages?
 
-## 3. Verwendung des Indikators
+## 3. Wie wird der Indikator verwendet?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Gehen Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Werkzeugleiste</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Klicken Sie im Menü <code>Erreichbarkeitsindikatoren</code> auf <code>ÖV-Güteklassen</code>. Dadurch wird das Einstellungsmenü geöffnet.</div>
+  <div class="content">Unter <code>Erreichbarkeitsindikatoren</code> wählen Sie <code>ÖV-Güteklassen</code>, um das Einstellungsmenü zu öffnen.</div>
 </div>
-
-![Menüübersicht für ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/overview_new.png "Menüübersicht für ÖV-Güteklassen")
 
 ### Berechnungszeit
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Definieren Sie den <code>Tag</code>, die <code>Startzeit</code> und die <code>Endzeit</code>, für die Sie die Analyse durchführen möchten.</div>
+  <div class="content">Setzen Sie <code>Tag</code>, <code>Startzeit</code> und <code>Endzeit</code> für Ihre Analyse.</div>
 </div>
 
-### Referenzlayer
+### Referenz-Layer
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie den <code>Referenzlayer</code> aus, für den Sie den Indikator berechnen möchten. Dies kann jeder Polygon-Feature-Layer sein.</div>
+  <div class="content">Wählen Sie den <code>Referenz-Layer</code> (Polygon-Feature-Layer) für das Gebiet aus, das Sie analysieren möchten.</div>
 </div>
 
 ### Einstellungen
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie den <code>Einzugsgebietstyp</code> aus, für den Sie den Indikator berechnen möchten. Dieser kann auf einem <code>Puffer</code> oder auf dem <code>Netzwerk</code> basieren. </div>
+  <div class="content">Wählen Sie den <code>Einzugsgebietstyp</code>: <b>Puffer</b> oder <b>Netzwerk</b>.</div>
 </div>
 
 :::info
@@ -87,29 +84,22 @@ Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, kontakti
 
 :::
 
-![Auswahl des Referenzgebiets](/img/toolbox/accessibility_indicators/gueteklassen/reference_area_new.png "Auswahl des Referenzgebiets")
-
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>. Dies startet die Berechnung der ÖV-Güteklassen für das ausgewählte Gebiet.</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Berechnung zu starten.</div>
 </div>
-
-:::tip Tipp
-Je nach Größe des ausgewählten Gebiets kann die Berechnung einige Minuten dauern. Die [Statusleiste](../../workspace/home#status-bar) zeigt den aktuellen Fortschritt an.
-:::
 
 ### Ergebnisse
 
-<div class="step">
-  <div class="step-number">7</div>
-  <div class="content">Sobald der Berechnungsprozess abgeschlossen ist, werden die resultierenden Layer zur Karte hinzugefügt. Die Ergebnisse bestehen aus einem Layer namens <b>"ÖV-Güteklassen"</b>, die die ÖV-Güteklassen zeigt, und einer Layer namens <b>"ÖV-Güteklassen Stationen"</b>, die alle Stationen enthält, die für die Berechnung dieses Indikators verwendet wurden. Die in Grau dargestellten Stationen haben eine zu geringe Servicefrequenz und tragen daher nicht zu einer ÖV-Güteklasse bei.
-  <p></p>
-  Wenn Sie auf ein "ÖV-Güteklassen"-Symbol auf der Karte klicken, sehen Sie weitere Details wie dessen pt_class und pt_class_number, die die <a href="#calculation">Qualität des öffentlichen Verkehrs</a> angeben.</div>
-</div>
+Nach der Berechnung werden zwei Layer zur Karte hinzugefügt:
+- **ÖV-Güteklassen**: Zeigt die Qualitätsklasse für jedes Gebiet.
+- **ÖV-Güteklassen Stationen**: Zeigt alle Stationen, die in der Berechnung verwendet wurden (graue Punkte = zu niedrige Frequenz, tragen zu keiner ÖV-Qualitätsklasse bei).
 
-![Ergebnis - ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/result.png "Ergebnis - ÖV-Güteklassen")
-![Ergebnis - ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/results_isochrone.png "Ergebnis - ÖV-Güteklassen")
+Wenn Sie auf ein ÖV-Güteklassen-Ergebnis klicken, sehen Sie weitere Details wie **ÖV-Klasse** und **ÖV-Klassennummer**. Beide zeigen dieselbe Qualität des öffentlichen Verkehrs in diesem Gebiet an (siehe [Berechnung](#berechnung) für weitere Details).
 
+Wenn Sie auf eine beliebige Station klicken, können Sie Details wie den **Haltestellennamen**, die **durchschnittliche Frequenz** und die **Stationskategorie** sehen.
+
+![Berechnung - ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif "Berechnung - ÖV-Güteklassen")
 
 ## 4. Technische Details
 
@@ -121,36 +111,43 @@ Die Institutionalisierung des Indikators im deutschsprachigen Raum sowie die nac
 
 ### Berechnung
 
-In der Schweizer Version des Indikators wird die Berechnung der Güteklassen üblicherweise für Abfahrten an Werktagen zwischen 6 Uhr und 20 Uhr durchgeführt. Für die Nutzung in GOAT wurde der **Berechnungszeitraum** flexibler gestaltet, sodass der Indikator **für jeden Wochentag und jede Tageszeit** berechnet werden kann. Zudem wurde der Indikator an die Bedingungen in Deutschland angepasst.
+In der Schweizer Version des Indikators wird die Berechnung der Güteklassen üblicherweise für Abfahrten an Werktagen zwischen 6 Uhr und 20 Uhr durchgeführt. Für die Nutzung in GOAT wurde der **Berechnungszeitraum** flexibler gestaltet, sodass der Indikator **für jeden Wochentag und jede Tageszeit** berechnet werden kann.
 
-Die Berechnungen basieren auf **GTFS-Daten** (siehe [Eingebaute Datensätze](../../data/data_basis)). Zunächst wird die Anzahl der Abfahrten pro Verkehrsmittel (Zug, U-Bahn, Straßenbahn und Bus) für jede Station dynamisch berechnet. Die Summe der Abfahrten wird durch zwei geteilt, um die Frequenz zu berechnen und die Hin- und Rückrichtungen zu eliminieren. Im nächsten Schritt wird die **durchschnittliche Frequenz** für das ausgewählte Zeitfenster berechnet. Das höherwertige Angebot wird als **Art der Haltestelle** ausgewählt, falls mehrere Verkehrsmittel die Haltestelle bedienen. Zum Beispiel ist bei Bussen und Zügen der Zug der höherwertige Service. Mithilfe der unten stehenden Tabelle sowie der Art der Haltestelle und der Frequenz kann nun die Haltestellenkategorie bestimmt werden.
+Die Berechnungen werden basierend auf **GTFS-Daten** durchgeführt (siehe [Eingebaute Datensätze](../../data/data_basis)):
+Zunächst wird die Anzahl der Abfahrten pro öffentlichem Verkehrsmittel (Zug, U-Bahn, Straßenbahn und Bus) für jede Station dynamisch berechnet. Die Summe der Abfahrten wird durch zwei geteilt, um die Frequenz zu berechnen und die Hin- und Rückrichtungen zu eliminieren. Im nächsten Schritt wird die **durchschnittliche Frequenz** für das ausgewählte Zeitintervall berechnet. Das höherwertige Verkehrsmittel wird als **Stationstyp** ausgewählt, falls mehrere Verkehrsmittel die Station bedienen. Zum Beispiel ist bei Bus und Zug der Zug das höherwertige Verkehrsmittel. Mit Hilfe der unten stehenden Tabelle sowie dem Stationstyp und der Frequenz kann nun die Stationskategorie bestimmt werden.
 
-![Klassifikation der Verkehrshaltestellen](/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_de.webp "Klassifikation der Verkehrshaltestellen")
+### Berechnungsschritte
 
-Anschließend werden **Puffer** oder **Netzwerk-Einzugsgebiete** der angegebenen Größe für die entsprechenden Haltestellenkategorien berechnet. Dadurch entstehen mehrere Puffer/Isochronen, die zusammengeführt werden. Bei überlappenden Puffern/Isochronen wird die höherwertige Klasse verwendet.
-
-![Bestimmung der ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_de.webp "Bestimmung der ÖV-Güteklassen")
-
-<div></div>
+1. **Abfahrten pro Station**: Berechnung der Anzahl der Abfahrten pro Verkehrsmittel (Zug, U-Bahn, Straßenbahn, Bus) für jede Station mit **GTFS-Daten** (siehe [Eingebaute Datensätze](../../data/data_basis)).
+2. **Frequenz**: Die Summe der Abfahrten wird durch zwei geteilt, um die Hin- und Rückrichtungen zu eliminieren.
+3. **Stationstyp**: Für jede Station wird das höchstrangige Verkehrsmittel bestimmt (z.B. wenn sowohl Bus als auch Zug verfügbar sind, wird die Station als Bahnstation klassifiziert).
+4. **Kategorienzuweisung**: Verwendung des Stationstyps und der Frequenz zur Bestimmung der Kategorie (siehe Tabelle unten).
+5. **Einzugsgebiete**: Erstellung von Pufferzonen oder Netzwerk-Isochronen für jede Stationskategorie.
+6. **Zusammenführung der Gebiete**: Überlappende Gebiete werden zusammengeführt, wobei die höhere Qualitätsklasse Vorrang hat.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_de.png').default} alt="ÖV-Güteklassen calculation figure" style={{ maxHeight: "600px", maxWidth: "600px", alignItems:'center'}}/>
-</div> 
+  
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_de.webp').default} alt="Klassifikation der Verkehrshaltestellen" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_de.webp').default} alt="Bestimmung der ÖV-Güteklassen" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_de.png').default} alt="ÖV-Güteklassen Berechnung" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+</div>
 
 <div></div>
-
-*Übersichtsabbildung zur Veranschaulichung der Berechnung der ÖV-Güteklassen*
 
 ### Visualisierung
 
 Die erstellten Puffer/Netzwerk-Einzugsgebiete werden um die Haltestellen in den entsprechenden Farben visualisiert, um die **Güteklasse** (<span style={{color: "#199741"}}>A</span>-<span style={{color: "#E4696A"}}>F</span>) hervorzuheben.
 
-![Visualisierung der ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/visualization.png "Visualisierung der ÖV-Güteklassen")
-![Visualisierung der ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/visualization_network.png "Visualisierung der ÖV-Güteklassen")
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/visualization.png').default} alt="Visualisierung der ÖV-Güteklassen" style={{ maxHeight: "400px", maxWidth: "100%", objectFit: "cover"}}/>
+</div>
 
 ## 5. Weitere Lektüre
 
 Beispielprojekte, in denen ÖV-Güteklassen verwendet wurden:
+
 - [Deutschlandweite Bewertung der ÖV-Erschließung mittels ÖV-Güteklassen Whitepaper](https://www.plan4better.de/de/whitepapers/ov-erschliessung)
 - [Erreichbarkeitsanalysen für die Projekte "Mobilitätsgarantie" und "ÖPNV-Atlas"](https://www.plan4better.de/de/references/accessibility-analyses-for-the-mobility-guarantee-and-public-transport-atlas-projects)
 - [Berechnung der ÖV-Güteklassen in Österreich](https://www.plan4better.de/de/references/guteklassen-osterreich)
