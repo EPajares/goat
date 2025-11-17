@@ -43,7 +43,7 @@ BEGIN
 		SELECT st.stop_id, b.integer_attr1, st.h3_3
 		FROM basic.stops st, %s b
 		WHERE ST_Intersects(st.geom, b.geom)
-		AND (st.location_type IS NULL OR st.location_type = ''0'')',
+		AND (st.location_type IS NULL OR st.location_type = ''0'' OR st.location_type = '''')',
 		temp_table_stops, table_area
 	);
 
