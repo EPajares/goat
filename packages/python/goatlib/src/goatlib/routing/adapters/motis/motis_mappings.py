@@ -37,6 +37,7 @@ class MotisMode(StrEnum):
 
 
 # MOTIS_CONFIG for a standard MOTIS v5/plan API
+# "internal" : "motis_param"
 MOTIS_CONFIG = {
     # =====================================================================
     # Request Parameters (for the GET API)
@@ -46,8 +47,9 @@ MOTIS_CONFIG = {
         "destination": "toPlace",  # e.g., "53.5511,9.9937"
         "time": "time",  # ISO 8601 string, e.g., "2025-11-05T17:22:00Z"
         "mode": "mode",  # Comma-separated string, e.g., "TRANSIT,WALK"
-        "num_itineraries": "numItineraries",  # Integer for number of results
-        "arrive_by": "arriveBy",  # Boolean
+        "num_itineraries": "numItineraries",  # Integer for number of results to compute at least
+        "max_results": "maxItineraries",  # Max number of itineraries to return
+        "time_is_arrival": "arriveBy",  # Boolean
         "detailed_transters": "detailedTransfers",  # Boolean for detailed transfer info
     },
     # =====================================================================
@@ -78,12 +80,14 @@ MOTIS_CONFIG = {
         "name": "name",  # Name of the station or place
     },
     # =====================================================================
-    # Default Values for API Requests (sensible defaults)
+    # Default Values for API Requests (internal key : default value)
     # =====================================================================
     "defaults": {
-        "num_itineraries": 3,
-        "arrive_by": False,
-        "mode": "TRANSIT,WALK",
+        "num_itineraries": 5,
+        "max_results": 5,
+        "time_is_arrival": False,
+        "mode": "TRANSIT",
+        "detailed_transters": False,
     },
     "endpoints": {
         "plan": "/api/v5/plan",

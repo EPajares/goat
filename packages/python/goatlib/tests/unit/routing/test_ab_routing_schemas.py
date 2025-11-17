@@ -65,7 +65,7 @@ def test_ab_request_creation_with_defaults(
         modes=[Mode.TRANSIT],
     )
 
-    assert req.max_results == 3
+    assert req.max_results == 5  # Default value
 
 
 @pytest.mark.parametrize(

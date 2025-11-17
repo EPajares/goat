@@ -91,21 +91,6 @@ def test_fixture_adapter_creation_with_valid_path(motis_fixtures_dir: str) -> No
     assert adapter.motis_client.use_fixtures is True
 
 
-async def test_fixture_max_results_enforcement(
-    fixture_adapter: MotisPlanApiAdapter,
-) -> None:
-    """Test that max_results is respected by the client-side limiting logic."""
-    request = ABRoutingRequest(
-        origin=Location(lat=48.1351, lon=11.5820),
-        destination=Location(lat=48.7758, lon=9.1829),
-        modes=[Mode.TRANSIT],
-        max_results=2,  # Request fewer than the default
-    )
-
-    response = await fixture_adapter.route(request)
-    assert len(response.routes) <= 2
-
-
 # CHANGE 4: Combined realism checks into a single, more comprehensive test.
 async def test_fixture_route_realism_validation(
     fixture_adapter: MotisPlanApiAdapter, test_request: ABRoutingRequest

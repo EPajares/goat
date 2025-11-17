@@ -33,12 +33,15 @@ def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
     params_cfg = MOTIS_CONFIG["request_params"]
     defaults_cfg = MOTIS_CONFIG["defaults"]
 
-    # 1. Start with the required parameters
+    # 1. Start with the required MOTIS parameters
     api_params = {
         params_cfg["origin"]: f"{request.origin.lat},{request.origin.lon}",
         params_cfg[
             "destination"
         ]: f"{request.destination.lat},{request.destination.lon}",
+        params_cfg["detailed_transters"]: (
+            request.detailed_transfers or defaults_cfg["detailed_transters"]
+        ),
     }
 
     # 2. Add optional parameters from the request, falling back to defaults
@@ -47,16 +50,14 @@ def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
     if request.time:
         api_params[params_cfg["time"]] = request.time.isoformat()
 
-    # Handle number of itineraries (with default)
-    api_params[params_cfg["num_itineraries"]] = (
-        request.max_results or defaults_cfg["num_itineraries"]
-    )
+    # Handle internal default parameters
+    api_params[params_cfg["num_itineraries"]] = defaults_cfg["num_itineraries"]
+    api_params[params_cfg["max_results"]] = defaults_cfg["max_results"]
 
-    api_params[params_cfg["detailed_transters"]] = request.detailed_transfers
-
-    # TODO: add the field to the ABRoutingRequest schema?
     # Handle arriveBy (with default)
-    # api_params[params_cfg["arrive_by"]] = request.arrive_by or defaults_cfg["arrive_by"]
+    api_params[params_cfg["time_is_arrival"]] = (
+        request.time_is_arrival or defaults_cfg["time_is_arrival"]
+    )
 
     # 3. Handle transport modes with mapping and default
 

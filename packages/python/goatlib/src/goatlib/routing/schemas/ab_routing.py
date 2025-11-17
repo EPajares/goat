@@ -3,13 +3,14 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Self
 
+from pydantic import BaseModel, Field, computed_field, model_validator
+
 from goatlib.routing.schemas.base import (
     Location,
     Mode,
     Route,
     RoutingProvider,
 )
-from pydantic import BaseModel, Field, computed_field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +81,10 @@ class ABRoutingRequest(BaseModel):
     time_is_arrival: bool = Field(
         default=False, description="Whether the provided time is an arrival time"
     )
-    # TODO use it properly
     detailed_transfers: bool = Field(
         default=False, description="Whether to include detailed transfer information"
     )
-    max_results: int | None = Field(default=3, ge=1, le=10)
+    max_results: int | None = Field(default=5, ge=1, le=10)
     max_transfers: int | None = Field(None, ge=0, le=10)
     max_walking_distance: int | None = Field(None, ge=0, le=5000)
 

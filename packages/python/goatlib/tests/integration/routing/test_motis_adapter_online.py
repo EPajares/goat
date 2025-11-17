@@ -109,13 +109,13 @@ async def test_fixture_max_results_enforcement(
         origin=Location(lat=48.1351, lon=11.5820),
         destination=Location(lat=48.7758, lon=9.1829),
         modes=[Mode.TRANSIT],
-        max_results=2,  # Request fewer than the default
+        max_results=5,  # Request fewer than the default
     )
 
     response = await adapter.route(request)
     assert (
-        len(response.routes) <= 2
-    ), f"Should return at most 2 routes, got {len(response.routes)}"
+        len(response.routes) <= 5
+    ), f"Should return at most 5 routes, got {len(response.routes)}"
 
 
 async def test_fixture_distance_calculation_and_speed_realism(

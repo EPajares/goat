@@ -3,11 +3,11 @@ from pathlib import Path
 from typing import Self
 
 from goatlib.routing.errors import RoutingError
+from goatlib.routing.interfaces.routing_service import RoutingService
 from goatlib.routing.schemas.ab_routing import (
     ABRoutingRequest,
     ABRoutingResponse,
 )
-from goatlib.routing.schemas.service import RoutingServiceTarget
 
 from .motis_client import MotisServiceClient
 from .motis_converters import (
@@ -18,7 +18,7 @@ from .motis_converters import (
 logger = logging.getLogger(__name__)
 
 
-class MotisPlanApiAdapter(RoutingServiceTarget):
+class MotisPlanApiAdapter(RoutingService):
     """
     Adapter that makes the MOTIS service interface compatible with our
     standardized routing interface.
@@ -41,16 +41,6 @@ class MotisPlanApiAdapter(RoutingServiceTarget):
             request_data = tranlsate_to_motis_request(request)
             motis_response = await self.motis_client.plan(request_data)
             response_data = parse_motis_response(motis_response)
-
-            # TODO: investigate why MOTIS often ignores max_results parameter
-            # MOMENTARY FIX:
-            # Apply client-side limit since many MOTIS APIs don't respect server-side parameters
-            if request.max_results and len(response_data.routes) > request.max_results:
-                original_len = len(response_data.routes)
-                response_data.routes = response_data.routes[: request.max_results]
-                logger.debug(
-                    f"Applied client-side limit: reduced {original_len} response_data.routes to {len(response_data.routes)}"
-                )
 
             return response_data
 
