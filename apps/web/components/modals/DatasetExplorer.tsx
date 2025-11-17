@@ -13,9 +13,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useLayers } from "@/lib/api/layers";
 import { addProjectLayers, useProject, useProjectLayers } from "@/lib/api/projects";

@@ -50,7 +50,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 
-COPY --from=ghcr.io/astral-sh/uv:0.5.4 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /bin/uv
 
 # NODE
 ENV NVM_DIR=/usr/local/nvm

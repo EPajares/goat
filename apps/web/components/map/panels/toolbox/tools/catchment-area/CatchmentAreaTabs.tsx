@@ -1,9 +1,8 @@
 import { TabContext, TabList, TabPanel } from "@mui/lab";
 import { Box, Tab, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 interface TabPanelProps {
   value: string;

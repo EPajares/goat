@@ -14,11 +14,10 @@ import {
   useTheme,
 } from "@mui/material";
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useCatalogLayers } from "@/lib/api/layers";
 import { addProjectLayers, useProject } from "@/lib/api/projects";

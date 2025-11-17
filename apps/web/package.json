@@ -26,6 +26,7 @@
     "@emotion/core": "^11.0.0",
     "@emotion/react": "11.11.4",
     "@emotion/styled": "11.11.0",
+    "@geomatico/maplibre-cog-protocol": "^0.8.0",
     "@hookform/resolvers": "^3.9.0",
     "@loaders.gl/core": "^4.0.3",
     "@loaders.gl/gis": "^4.0.3",

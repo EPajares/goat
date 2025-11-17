@@ -163,6 +163,8 @@
   "click_to_start_drawing_line": "Click to start drawing the line feature",
   "click_to_start_drawing_polygon": "Click to start drawing the polygon feature",
   "close": "Close",
+  "collapse": "Collapse",
+  "collapsible_panel": "Collapsible panel",
   "color": "Color",
   "color_based_on": "Color based on",
   "color_based_on_desc": "Apply a color based on a field value",
@@ -347,6 +349,7 @@
   "everything_in_professional_plus": "Everything in Professional, plus: ",
   "everything_in_starter_plus": "Everything in Starter, plus:",
   "exit_fullscreen": "Exit Fullscreen",
+  "expand": "Expand",
   "expired": "Expired",
   "explore": "Explore",
   "exponential": "Exponential",
@@ -483,6 +486,7 @@
   "impedance_function_tooltip": "Impedance Function",
   "imperial": "Imperial",
   "info": "Info",
+  "info_placeholder": "Enter project introduction here",
   "information": "Information",
   "integer": "Integer",
   "invalid_distance": "Invalid distance value",
@@ -657,6 +661,7 @@
       "lineage": "No lineage available",
       "positional_accuracy": "No positional accuracy available"
     },
+    "title": "Metadata",
     "type": {
       "feature": "Feature",
       "raster": "Raster",

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from 'react-i18next'
 
 import { useProject, useProjectLayers } from "@/lib/api/projects";
 import { SYSTEM_LAYERS_IDS } from "@/lib/constants";

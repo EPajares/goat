@@ -1,8 +1,7 @@
 import { Box, Divider, Stack, Tab, Tabs, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import React, { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { removeTemporaryFilter, setSelectedBuilderItem } from "@/lib/store/map/slice";
 import type { BuilderPanelSchema, BuilderWidgetSchema, Project } from "@/lib/validations/project";

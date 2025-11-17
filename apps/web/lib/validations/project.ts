@@ -44,6 +44,7 @@ export const builderPanelConfigSchema = z.object({
   options: z
     .object({
       style: z.enum(["default", "rounded", "floated"]).optional().default("default"),
+      collapsible: z.boolean().optional().default(false),
     })
     .optional()
     .default({}),
@@ -83,6 +84,7 @@ export const builderConfigSchema = z.object({
     fullscreen: z.boolean().default(true),
     toolbar: z.boolean().default(true),
     project_info: z.boolean().default(true),
+    project_info_content: z.string().default(""),
   }),
   interface: z.preprocess(
     // Convert empty arrays to `undefined` to trigger the default, todo: remove this when dashboard is completed

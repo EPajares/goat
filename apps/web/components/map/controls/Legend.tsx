@@ -1,10 +1,9 @@
 import { Divider, IconButton, Paper, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { formatNumber, rgbToHex } from "@/lib/utils/helpers";
 import { zoomToLayer } from "@/lib/utils/map/navigate";
@@ -449,7 +448,7 @@ export function Legend(props: LegendProps) {
                     variant="body2"
                     fontWeight="bold"
                     style={{ wordBreak: "break-all" }}
-                    color={layer.properties.visibility ? "inherit" : theme.palette.text.disabled}>
+                    color={layer.properties?.visibility ? "inherit" : theme.palette.text.disabled}>
                     {layer.name}
                   </Typography>
                 </Stack>
@@ -486,12 +485,12 @@ export function Legend(props: LegendProps) {
                 </Typography>
               </Tooltip>
             )}
-            {layer.properties.legend?.caption && (
+            {layer.properties?.legend?.caption && (
               <Typography variant="caption" fontWeight="bold" sx={{ pt: 1 }}>
                 {layer.properties.legend.caption}
               </Typography>
             )}
-            {layer.properties.visibility && (
+            {layer.properties?.visibility && (
               <Stack sx={{ py: 1 }}>
                 {layer.type === "feature" && (
                   <>

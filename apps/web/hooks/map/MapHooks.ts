@@ -3,7 +3,7 @@ import { useCallback, useMemo } from "react";
 import type { Basemap } from "@/types/map/common";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from 'react-i18next'
 import { setActiveBasemap as setActiveBasemapAction } from "@/lib/store/map/slice";
 
 export const useBasemap = (project) => {

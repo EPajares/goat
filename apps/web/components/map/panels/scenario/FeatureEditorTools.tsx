@@ -1,14 +1,13 @@
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { Stack, ToggleButton, ToggleButtonGroup, Tooltip, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { MapGeoJSONFeature, MapLayerMouseEvent } from "react-map-gl/maplibre";
 import { useMap } from "react-map-gl/maplibre";
 import { toast } from "react-toastify";
 import type { Id as ToastId, TypeOptions } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useDraw } from "@/lib/providers/DrawProvider";
 import { setIsMapGetInfoActive, setPopupEditor } from "@/lib/store/map/slice";

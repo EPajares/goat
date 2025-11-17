@@ -12,12 +12,11 @@ import {
   useTheme,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch } from "react-redux";
 import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { updateProjectLayer } from "@/lib/api/projects";
 import { setActiveRightPanel } from "@/lib/store/map/slice";

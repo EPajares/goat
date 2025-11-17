@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from 'react-i18next'
 
 import { useProjectLayers, useProjectScenarios } from "@/lib/api/projects";
 import { statisticOperationEnum } from "@/lib/validations/common";

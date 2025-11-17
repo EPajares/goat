@@ -22,12 +22,11 @@ import {
   useTheme,
 } from "@mui/material";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { ICON_NAME } from "@p4b/ui/components/Icon";
 import { Icon } from "@p4b/ui/components/Icon";
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 import { type DatasetMetadataValue } from "@/lib/validations/layer";
 

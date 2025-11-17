@@ -1,12 +1,11 @@
 import { Box, Divider, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { getLayerClassBreaks, getLayerUniqueValues, updateDataset, useDataset } from "@/lib/api/layers";
 import { updateProjectLayer } from "@/lib/api/projects";

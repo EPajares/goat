@@ -1,8 +1,7 @@
 import { Box, Grid, Skeleton } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { Project } from "@/lib/validations/project";
 

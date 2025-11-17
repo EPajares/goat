@@ -1,11 +1,10 @@
 import { Box, Divider, Stack, Switch, Typography, useTheme } from "@mui/material";
 import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import {
   computeActiveMobilityCatchmentArea,

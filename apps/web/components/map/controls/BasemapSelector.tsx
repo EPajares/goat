@@ -1,11 +1,10 @@
 import { Box, IconButton, Paper, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import Fab from "@mui/material/Fab";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { ArrowPopper } from "@/components/ArrowPoper";
 import { ListTile } from "@/components/common/ListTile";
@@ -115,6 +114,8 @@ export function BasemapSelector(props: BasemapSelectorProps) {
           }}>
           <ArrowPopper
             placement="top-end"
+            disablePortal={false}
+            popperStyle={{ zIndex: theme.zIndex.modal }}
             content={
               <Box sx={{ width: 360, pointerEvents: "all" }}>
                 <BaseMapSelectorList

@@ -1,8 +1,7 @@
 import { Paper, Stack, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { ColorScaleSelectorProps } from "@/types/map/color";
 

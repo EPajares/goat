@@ -1,8 +1,7 @@
 import { Box, Grid, Skeleton } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { Layer } from "@/lib/validations/layer";
 import type { Project } from "@/lib/validations/project";

@@ -14,10 +14,9 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
-
-import { useTranslation } from "@/i18n/client";
 
 import { LAYERS_API_BASE_URL, updateDataset } from "@/lib/api/layers";
 import { PROJECTS_API_BASE_URL, updateProject } from "@/lib/api/projects";

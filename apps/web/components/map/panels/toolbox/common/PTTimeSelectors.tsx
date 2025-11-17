@@ -1,9 +1,8 @@
 import { Stack } from "@mui/material";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import TimePicker from "@p4b/ui/components/TimePicker";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { SelectorItem } from "@/types/map/common";
 

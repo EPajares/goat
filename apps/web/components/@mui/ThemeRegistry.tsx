@@ -2,10 +2,9 @@
 
 import type { PaletteMode } from "@mui/material";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 import ThemeProvider from "@p4b/ui/theme/ThemeProvider";
-
-import { useTranslation } from "@/i18n/client";
 
 import NextAppDirEmotionCacheProvider from "./EmotionCache";
 

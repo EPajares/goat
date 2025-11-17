@@ -1,8 +1,7 @@
 import chroma from "chroma-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Cell, Label, Pie, PieChart, ResponsiveContainer } from "recharts";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useProjectLayerAggregationStats } from "@/lib/api/projects";
 import { formatNumber } from "@/lib/utils/format-number";

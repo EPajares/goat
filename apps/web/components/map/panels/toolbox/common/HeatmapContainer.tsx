@@ -1,12 +1,11 @@
 import { Box, Typography, useTheme } from "@mui/material";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import type { ZodObject } from "zod";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useJobs } from "@/lib/api/jobs";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";

@@ -11,10 +11,9 @@ import {
 } from "@mui/material";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { NavItem } from "@/types/common/navigation";
 

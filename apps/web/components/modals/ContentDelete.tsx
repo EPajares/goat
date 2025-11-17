@@ -7,11 +7,10 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { Trans } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
-
-import { useTranslation } from "@/i18n/client";
 
 import { LAYERS_API_BASE_URL, deleteLayer } from "@/lib/api/layers";
 import { PROJECTS_API_BASE_URL, deleteProject } from "@/lib/api/projects";

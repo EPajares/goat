@@ -31,11 +31,10 @@ import WMTSCapabilities from "ol/format/WMTSCapabilities";
 import { useCallback, useMemo, useState } from "react";
 import React from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useFolders } from "@/lib/api/folders";
 import { useJobs } from "@/lib/api/jobs";

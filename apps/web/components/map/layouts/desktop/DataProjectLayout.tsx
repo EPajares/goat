@@ -1,9 +1,8 @@
 import { Box, Collapse, Stack, useTheme } from "@mui/material";
 import React, { useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
 import { setActiveLeftPanel, setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
@@ -271,12 +270,12 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
             marginTop: `${toolbarHeight}px`,
             pt: theme.spacing(4),
           }}>
-          <Stack direction="column" sx={{ pr: 4, pointerEvents: "none" }}>
-            <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
-            <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
-          </Stack>
+          <Stack direction="column" sx={{ pr: 4, pointerEvents: "none" }} />
           <Stack direction="column">
             <Box sx={{ pr: 4 }}>
+              <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
+              <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
+
               <BasemapSelector
                 styles={translatedBaseMaps}
                 active={activeBasemap.value}

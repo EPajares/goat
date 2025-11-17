@@ -12,10 +12,9 @@ import {
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { type LayerType, layerTypesArray } from "@/lib/validations/layer";
 

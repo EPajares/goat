@@ -21,8 +21,7 @@ import { MenuItem, Select, Stack, Switch, Tooltip, Typography } from "@mui/mater
 // eslint-disable-next-line you-dont-need-lodash-underscore/uniq
 import uniq from "lodash.uniq";
 import { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { COLOR_RANGES } from "@/lib/constants/color";
 import { numberSort } from "@/lib/utils/helpers";

@@ -1,10 +1,9 @@
 import { Box, Divider, IconButton, Link, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Popup } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { MapPopoverInfoProps } from "@/types/map/popover";
 

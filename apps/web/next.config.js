@@ -15,6 +15,10 @@ const nextConfig = {
   images: {
     domains: ["assets.plan4better.de", "source.unsplash.com"],
   },
+  webpack: (config) => {
+    config.module.exprContextCritical = false; // Todo: Added to suppress warnings from cog-protocol (Find a better solution)
+    return config;
+  },
 };
 
 const sentryConfig = {

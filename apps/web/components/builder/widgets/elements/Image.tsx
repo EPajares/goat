@@ -1,10 +1,9 @@
 import { Box, CircularProgress, Fab, Stack, Tooltip } from "@mui/material";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { uploadAsset } from "@/lib/api/assets";
 import { ASSETS_MAX_FILE_SIZE_MB, assetTypeEnum } from "@/lib/validations/assets";

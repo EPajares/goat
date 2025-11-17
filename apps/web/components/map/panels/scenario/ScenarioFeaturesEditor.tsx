@@ -14,13 +14,12 @@ import {
 } from "@mui/material";
 import bbox from "@turf/bbox";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 import { toast } from "react-toastify";
 import { ZodError } from "zod";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { getDataset, useDataset } from "@/lib/api/layers";
 import {

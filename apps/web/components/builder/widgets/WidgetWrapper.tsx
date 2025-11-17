@@ -3,10 +3,9 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Box, IconButton, Tooltip, alpha, useTheme } from "@mui/material";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { setSelectedBuilderItem } from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema, ProjectLayer } from "@/lib/validations/project";

@@ -10,10 +10,9 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useFolders } from "@/lib/api/folders";
 import { LAYERS_API_BASE_URL, updateDataset } from "@/lib/api/layers";

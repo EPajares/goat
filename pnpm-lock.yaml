@@ -126,13 +126,13 @@ importers:
     dependencies:
       '@p4b/keycloak-theme':
         specifier: workspace:*
-        version: link:../../packages/keycloak-theme
+        version: link:../../packages/js/keycloak-theme
       '@p4b/types':
         specifier: workspace:*
-        version: link:../../packages/types
+        version: link:../../packages/js/types
       '@p4b/ui':
         specifier: workspace:*
-        version: link:../../packages/ui
+        version: link:../../packages/js/ui
       next:
         specifier: v13.4.12
         version: 13.4.12(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -145,7 +145,7 @@ importers:
     devDependencies:
       '@p4b/tsconfig':
         specifier: workspace:*
-        version: link:../../packages/tsconfig
+        version: link:../../packages/js/tsconfig
       '@storybook/addon-a11y':
         specifier: ^7.4.0
         version: 7.6.20
@@ -199,7 +199,7 @@ importers:
         version: 18.2.7
       eslint-config-p4b:
         specifier: workspace:*
-        version: link:../../packages/eslint-config-p4b
+        version: link:../../packages/js/eslint-config-p4b
       eslint-plugin-storybook:
         specifier: ^0.6.12
         version: 0.6.15(eslint@8.57.0)(typescript@5.5.4)
@@ -239,6 +239,9 @@ importers:
       '@emotion/styled':
         specifier: 11.11.0
         version: 11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1)
+      '@geomatico/maplibre-cog-protocol':
+        specifier: ^0.8.0
+        version: 0.8.0(maplibre-gl@4.5.2)
       '@hookform/resolvers':
         specifier: ^3.9.0
         version: 3.9.0(react-hook-form@7.52.2(react@18.3.1))
@@ -277,10 +280,10 @@ importers:
         version: 6.0.0-alpha.3(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@mui/material@5.15.12(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(@mui/system@5.16.7(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@emotion/styled@11.11.0(@emotion/react@11.11.4(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react@18.3.1))(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@p4b/types':
         specifier: workspace:*
-        version: link:../../packages/types
+        version: link:../../packages/js/types
       '@p4b/ui':
         specifier: workspace:*
-        version: link:../../packages/ui
+        version: link:../../packages/js/ui
       '@reduxjs/toolkit':
         specifier: ^1.9.5
         version: 1.9.7(react-redux@8.1.3(@types/react-dom@18.2.7)(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1))(react@18.3.1)
@@ -479,10 +482,10 @@ importers:
         version: 13.5.6
       '@p4b/prettier-config':
         specifier: workspace:*
-        version: link:../../packages/prettier-config
+        version: link:../../packages/js/prettier-config
       '@p4b/tsconfig':
         specifier: workspace:*
-        version: link:../../packages/tsconfig
+        version: link:../../packages/js/tsconfig
       '@playwright/test':
         specifier: ^1.33.0
         version: 1.46.1
@@ -509,12 +512,12 @@ importers:
         version: 7.2.1
       eslint-config-p4b:
         specifier: workspace:*
-        version: link:../../packages/eslint-config-p4b
+        version: link:../../packages/js/eslint-config-p4b
       size-limit:
         specifier: ^8.2.6
         version: 8.2.6
 
-  packages/eslint-config-p4b:
+  packages/js/eslint-config-p4b:
     devDependencies:
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.7.3
@@ -547,7 +550,7 @@ importers:
         specifier: ^6.12.0
         version: 6.14.0
 
-  packages/keycloak-theme:
+  packages/js/keycloak-theme:
     dependencies:
       '@emotion/react':
         specifier: ^11.11.0
@@ -632,7 +635,7 @@ importers:
         specifier: ^3.0.0
         version: 3.0.3(@types/react-dom@18.2.7)(@types/react@18.2.18)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
-  packages/prettier-config:
+  packages/js/prettier-config:
     devDependencies:
       '@trivago/prettier-plugin-sort-imports':
         specifier: ^4.3.0
@@ -641,7 +644,7 @@ importers:
         specifier: ^3.3.3
         version: 3.3.3
 
-  packages/tsconfig:
+  packages/js/tsconfig:
     devDependencies:
       '@types/node':
         specifier: 20.4.6
@@ -653,7 +656,7 @@ importers:
         specifier: 18.2.7
         version: 18.2.7
 
-  packages/types:
+  packages/js/types:
     dependencies:
       zod:
         specifier: ^3.23.8
@@ -663,7 +666,7 @@ importers:
         specifier: workspace:*
         version: link:../tsconfig
 
-  packages/ui:
+  packages/js/ui:
     dependencies:
       '@emotion/react':
         specifier: ^11.11.0
@@ -2542,6 +2545,11 @@ packages:
       '@fortawesome/fontawesome-svg-core': ~1 || ~6
       react: '>=16.3'
 
+  '@geomatico/maplibre-cog-protocol@0.8.0':
+    resolution: {integrity: sha512-q5Pg7pOp/fRB/UrAUEZ4AEF/B68XwvxMg0YRk0z+UwwHfOKQThkY7u91Kusx2AwIme6QOURFK6Fvw39ooj68RQ==}
+    peerDependencies:
+      maplibre-gl: ^4.5.0 || ^5.0.0
+
   '@hapi/hoek@9.3.0':
     resolution: {integrity: sha512-/c6rf4UJlmHlC9b5BaNvzAcFv7HZ2QHaV0D4/HNlBdvFnvQq8RI4kYdhyPCl7Xj+oWvTWQ8ujhqS53LIgAe6KQ==}
 
@@ -2777,6 +2785,10 @@ packages:
 
   '@mapbox/point-geometry@0.1.0':
     resolution: {integrity: sha512-6j56HdLTwWGO0fJPlrZtdU/B13q8Uwmo18Ck2GnGgN9PCFyKTZ3UbXeEdRFh18i9XQ92eH2VdtpJHpBD3aripQ==}
+
+  '@mapbox/sphericalmercator@1.2.0':
+    resolution: {integrity: sha512-ZTOuuwGuMOJN+HEmG/68bSEw15HHaMWmQ5gdTsWdWsjDe56K1kGvLOK6bOSC8gWgIvEO0w6un/2Gvv1q5hJSkQ==}
+    hasBin: true
 
   '@mapbox/tiny-sdf@1.2.5':
     resolution: {integrity: sha512-cD8A/zJlm6fdJOk6DqPUV8mcpyJkRz2x2R+/fYcWDYG3oWbG7/L7Yl/WqQ1VZCjnL9OTIMAn6c+BC5Eru4sQEw==}
@@ -11611,6 +11623,10 @@ packages:
     resolution: {integrity: sha512-AAFUA5O1d83pIHEhJwWCq/RQcRukCkn/NSm2QsTEMle5f2hP0ChI2+3Xb051PZCkLryI/Ir1MVKviT2FIloaTQ==}
     engines: {node: '>=12'}
 
+  quick-lru@7.3.0:
+    resolution: {integrity: sha512-k9lSsjl36EJdK7I06v7APZCbyGT2vMTsYSRX1Q2nbYmnkBqgUhRkAuzH08Ciotteu/PLJmIF2+tti7o3C/ts2g==}
+    engines: {node: '>=18'}
+
   quickselect@2.0.0:
     resolution: {integrity: sha512-RKJ22hX8mHe3Y6wH/N3wCM6BWtjaxIyyUIkpHOvfFnxdI4yD4tBXEBKSbriGujF6jnSVkJrffuo6vxACiSSxIw==}
 
@@ -17226,6 +17242,14 @@ snapshots:
       prop-types: 15.8.1
       react: 18.3.1
 
+  '@geomatico/maplibre-cog-protocol@0.8.0(maplibre-gl@4.5.2)':
+    dependencies:
+      '@mapbox/sphericalmercator': 1.2.0
+      d3-scale: 4.0.2
+      geotiff: 2.1.3
+      maplibre-gl: 4.5.2
+      quick-lru: 7.3.0
+
   '@hapi/hoek@9.3.0': {}
 
   '@hapi/topo@5.1.0':
@@ -17619,6 +17643,8 @@ snapshots:
   '@mapbox/mapbox-gl-supported@3.0.0': {}
 
   '@mapbox/point-geometry@0.1.0': {}
+
+  '@mapbox/sphericalmercator@1.2.0': {}
 
   '@mapbox/tiny-sdf@1.2.5': {}
 
@@ -25218,7 +25244,7 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 4.3.1
       domutils: 2.8.0
-      entities: 2.1.0
+      entities: 2.2.0
 
   htmlparser2@9.1.0:
     dependencies:
@@ -26183,7 +26209,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 20.5.1
+      '@types/node': 20.4.6
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -28881,6 +28907,8 @@ snapshots:
   quick-lru@4.0.1: {}
 
   quick-lru@6.1.2: {}
+
+  quick-lru@7.3.0: {}
 
   quickselect@2.0.0: {}
 

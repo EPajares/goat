@@ -30,12 +30,8 @@ class Settings(BaseSettings):
     BASE_STREET_NETWORK: UUID = UUID("903ecdca-b717-48db-bbce-0219e41439cf")
 
     JOB_TIMEOUT_DEFAULT: int = 120
-    ASYNC_CLIENT_DEFAULT_TIMEOUT: float = (
-        10.0  # Default timeout for async http client
-    )
-    ASYNC_CLIENT_READ_TIMEOUT: float = (
-        30.0  # Read timeout for async http client
-    )
+    ASYNC_CLIENT_DEFAULT_TIMEOUT: float = 10.0  # Default timeout for async http client
+    ASYNC_CLIENT_READ_TIMEOUT: float = 30.0  # Read timeout for async http client
     CRUD_NUM_RETRIES: int = 30  # Number of times to retry calling an endpoint
     CRUD_RETRY_INTERVAL: int = 3  # Number of seconds to wait between retries
 
@@ -52,27 +48,35 @@ class Settings(BaseSettings):
 
     @field_validator("POSTGRES_DATABASE_URI", mode="after")
     @classmethod
-    def postgres_database_uri_(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> str:
+    def postgres_database_uri_(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> str:
         if value:
             return value
-        return f'postgresql://{info.data.get("POSTGRES_USER")}:{info.data.get("POSTGRES_PASSWORD")}@' \
-            f'{info.data.get("POSTGRES_SERVER")}:{info.data.get("POSTGRES_PORT")}/{info.data.get("POSTGRES_DB")}'
+        return (
+            f"postgresql://{info.data.get('POSTGRES_USER')}:{info.data.get('POSTGRES_PASSWORD')}@"
+            f"{info.data.get('POSTGRES_SERVER')}:{info.data.get('POSTGRES_PORT')}/{info.data.get('POSTGRES_DB')}"
+        )
 
     ASYNC_SQLALCHEMY_DATABASE_URI: str | None = None
 
     @field_validator("ASYNC_SQLALCHEMY_DATABASE_URI", mode="after")
     @classmethod
-    def assemble_async_db_connection(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> str:
+    def assemble_async_db_connection(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> str:
         if value:
             return value
-        return str(AsyncPostgresDsn.build(
-            scheme="postgresql+psycopg",
-            username=info.data.get("POSTGRES_USER"),
-            password=info.data.get("POSTGRES_PASSWORD"),
-            host=info.data.get("POSTGRES_SERVER"),
-            port=info.data.get("POSTGRES_PORT"),
-            path=f"{info.data.get('POSTGRES_DB') or ''}",
-        ))
+        return str(
+            AsyncPostgresDsn.build(
+                scheme="postgresql+psycopg",
+                username=info.data.get("POSTGRES_USER"),
+                password=info.data.get("POSTGRES_PASSWORD"),
+                host=info.data.get("POSTGRES_SERVER"),
+                port=info.data.get("POSTGRES_PORT"),
+                path=f"{info.data.get('POSTGRES_DB') or ''}",
+            )
+        )
 
     # R5 config
     R5_WORKER_VERSION: str = "v7.0"
@@ -81,7 +85,9 @@ class Settings(BaseSettings):
 
     @field_validator("R5_AUTHORIZATION", mode="after")
     @classmethod
-    def r5_authorization(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> Any:
+    def r5_authorization(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> Any:
         if value:
             return f"Basic {value}"
         return None
@@ -97,16 +103,20 @@ class Settings(BaseSettings):
 
     @field_validator("GOAT_ROUTING_URL", mode="after")
     @classmethod
-    def goat_routing_url(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> str:
+    def goat_routing_url(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> str:
         if value:
             return value
-        return f'{info.data.get("GOAT_ROUTING_HOST")}:{info.data.get("GOAT_ROUTING_PORT")}/api/v2/routing'
+        return f"{info.data.get('GOAT_ROUTING_HOST')}:{info.data.get('GOAT_ROUTING_PORT')}/api/v2/routing"
 
     GOAT_ROUTING_AUTHORIZATION: Optional[str] = None
 
     @field_validator("GOAT_ROUTING_AUTHORIZATION", mode="after")
     @classmethod
-    def goat_routing_authorization(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> Optional[str]:
+    def goat_routing_authorization(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> Optional[str]:
         if value:
             return f"Basic {value}"
         return None
@@ -131,7 +141,9 @@ class Settings(BaseSettings):
 
     @field_validator("S3_CLIENT", mode="after")
     @classmethod
-    def assemble_s3_client(cls: type["Settings"], value: Optional[Any], info: ValidationInfo) -> Any:
+    def assemble_s3_client(
+        cls: type["Settings"], value: Optional[Any], info: ValidationInfo
+    ) -> Any:
         if value is not None:
             return value
         return boto3.client(
@@ -140,7 +152,6 @@ class Settings(BaseSettings):
             aws_secret_access_key=info.data.get("AWS_SECRET_ACCESS_KEY"),
             region_name=info.data.get("AWS_REGION"),
         )
-
 
     DEFAULT_PROJECT_THUMBNAIL: Optional[str] = (
         "https://assets.plan4better.de/img/goat_new_project_artwork.png"
@@ -158,7 +169,9 @@ class Settings(BaseSettings):
 
     @field_validator("THUMBNAIL_DIR_LAYER", mode="after")
     @classmethod
-    def set_thumbnail_dir_layer(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> Optional[str]:
+    def set_thumbnail_dir_layer(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> Optional[str]:
         environment = info.data.get("ENVIRONMENT", "dev")
         if value is None:
             return f"img/users/{environment}/thumbnails/layer"
@@ -168,7 +181,9 @@ class Settings(BaseSettings):
 
     @field_validator("THUMBNAIL_DIR_PROJECT", mode="after")
     @classmethod
-    def set_thumbnail_dir_project(cls: type["Settings"], value: Optional[str], info: ValidationInfo) -> Optional[str]:
+    def set_thumbnail_dir_project(
+        cls: type["Settings"], value: Optional[str], info: ValidationInfo
+    ) -> Optional[str]:
         environment = info.data.get("ENVIRONMENT", "dev")
         if value is None:
             return f"img/users/{environment}/thumbnails/project"
@@ -177,12 +192,13 @@ class Settings(BaseSettings):
     MARKER_DIR: Optional[str] = "icons/maki"
     MARKER_PREFIX: Optional[str] = "goat-marker-"
 
-
     S3_ACCESS_KEY_ID: Optional[str] = None
     S3_SECRET_ACCESS_KEY: Optional[str] = "your-secret"
-    S3_REGION: Optional[str] = "eu-central-1"     # or "fsn1" for Hetzner
-    S3_ENDPOINT_URL: Optional[str] = None  # e.g. for Hetzner "https://s3.fsn1.de", ! or None for AWS
-    S3_PROVIDER: Optional[str] = "aws"  # or "hetzner"
+    S3_REGION: Optional[str] = "eu-central-1"  # or "fsn1" for Hetzner
+    S3_ENDPOINT_URL: Optional[str] = (
+        None  # e.g. for Hetzner "https://s3.fsn1.de", ! or None for AWS
+    )
+    S3_PROVIDER: Optional[str] = "aws"  # or "hetzner" or "minio"
     S3_FORCE_PATH_STYLE: bool = False  # needed for MinIO
     S3_BUCKET_PATH: Optional[str] = ""  # will be set depending on ENVIRONMENT
     S3_BUCKET_NAME: Optional[str] = "goat"

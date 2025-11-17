@@ -1,13 +1,15 @@
-import { Divider, Stack, Typography } from "@mui/material";
+import { Divider, Stack, TextField, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import type { Project } from "@/lib/validations/project";
 
 interface ProjectMetadataProps {
   project: Project;
+  onChange?: (key: string, value: unknown, refresh?: boolean) => void;
 }
 
 export const ProjectMetadataView: React.FC<ProjectMetadataProps> = ({ project }) => {
@@ -61,6 +63,28 @@ export const ProjectMetadataView: React.FC<ProjectMetadataProps> = ({ project })
           {project.description}
         </ReactMarkdown>
       </Stack>
+    </Stack>
+  );
+};
+
+export const ProjectMetadataEdit: React.FC<ProjectMetadataProps> = ({ project, onChange }) => {
+  const { t } = useTranslation("common");
+  return (
+    <Stack spacing={4}>
+      <TextField
+        fullWidth
+        label={t("name")}
+        defaultValue={project.name}
+        onChange={(e) => onChange && onChange("name", e.target.value)}
+      />
+      <TextField
+        fullWidth
+        multiline
+        rows={6}
+        label={t("description")}
+        defaultValue={project.description}
+        onChange={(e) => onChange && onChange("description", e.target.value)}
+      />
     </Stack>
   );
 };

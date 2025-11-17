@@ -1,8 +1,7 @@
 import { Box, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { useEffect, useRef, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import type { SingleColorSelectorProps } from "@/types/map/color";
 

@@ -3,10 +3,9 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { Checkbox, FormControlLabel, Stack, Tooltip, Typography } from "@mui/material";
 import { useParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { formatNumber } from "@/lib/utils/format-number";
 import { hasNestedSchemaPath } from "@/lib/utils/zod";

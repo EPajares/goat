@@ -163,6 +163,8 @@
   "click_to_start_drawing_line": "Klicken Sie, um mit dem Zeichnen des Linienfeatures zu beginnen",
   "click_to_start_drawing_polygon": "Klicken Sie, um mit dem Zeichnen des Polygon-Features zu beginnen",
   "close": "Schließen",
+  "collapse": "Einklappen",
+  "collapsible_panel": "Zusammenklappbares Panel",
   "color": "Farbe",
   "color_based_on": "Farbe basierend auf",
   "color_based_on_desc": "Eine Farbe basierend auf einem Feld anwenden",
@@ -347,6 +349,7 @@
   "everything_in_professional_plus": "Alles in Professional, plus:",
   "everything_in_starter_plus": "Alles im Starter, plus:",
   "exit_fullscreen": "Beenden Sie den Vollbildmodus",
+  "expand": "Expandieren",
   "expired": "Abgelaufen",
   "explore": "Erkunden",
   "exponential": "Exponentiell",
@@ -483,6 +486,7 @@
   "impedance_function_tooltip": "Widerstandsfunktion",
   "imperial": "Imperial",
   "info": "Info",
+  "info_placeholder": "Projektbeschreibung hier eingeben",
   "information": "Information",
   "integer": "Ganze Zahl",
   "invalid_distance": "Ungültige Distanz.",
@@ -657,6 +661,7 @@
       "lineage": "Keine Herkunft verfügbar",
       "positional_accuracy": "Keine Positionsgenauigkeit verfügbar"
     },
+    "title": "Metadaten",
     "type": {
       "feature": "Feature",
       "raster": "Raster",

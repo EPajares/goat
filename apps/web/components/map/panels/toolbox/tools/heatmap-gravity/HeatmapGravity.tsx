@@ -1,7 +1,6 @@
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 import { computeHeatmapGravity } from "@/lib/api/tools";
 import type { LayerFieldType } from "@/lib/validations/layer";

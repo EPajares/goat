@@ -16,9 +16,8 @@ import {
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
-
-import { useTranslation } from "@/i18n/client";
 
 import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useFolders } from "@/lib/api/folders";

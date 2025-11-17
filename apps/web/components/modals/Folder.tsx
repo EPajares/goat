@@ -9,11 +9,10 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Trans } from "react-i18next";
 import { toast } from "react-toastify";
 import { mutate } from "swr";
-
-import { useTranslation } from "@/i18n/client";
 
 import { FOLDERS_API_BASE_URL, createFolder, deleteFolder, updateFolder } from "@/lib/api/folders";
 

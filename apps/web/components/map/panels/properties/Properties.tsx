@@ -1,7 +1,8 @@
 import { Divider, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
+import { useTranslation } from "react-i18next";
 
-import { useDateFnsLocale, useTranslation } from "@/i18n/client";
+import { useDateFnsLocale } from "@/i18n/utils";
 
 import { setActiveRightPanel } from "@/lib/store/map/slice";
 import type { ProjectLayer } from "@/lib/validations/project";

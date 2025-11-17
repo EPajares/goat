@@ -1,8 +1,7 @@
 import { Box, CardMedia, Grid, Paper, Stack, Typography, useTheme } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import type { Layer } from "@/lib/validations/layer";
 import { datasetMetadataAggregated } from "@/lib/validations/layer";

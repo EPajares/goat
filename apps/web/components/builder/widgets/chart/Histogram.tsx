@@ -1,11 +1,10 @@
 import { Stack, Typography, useTheme } from "@mui/material";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Trans } from "react-i18next";
 import type { TooltipProps } from "recharts";
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useProjectLayerHistogramStats } from "@/lib/api/projects";
 import { formatNumber } from "@/lib/utils/format-number";

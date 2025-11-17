@@ -1,8 +1,7 @@
 import { LoadingButton } from "@mui/lab";
 import { Button, Stack, Typography } from "@mui/material";
 import React from "react";
-
-import { useTranslation } from "@/i18n/client";
+import { useTranslation } from "react-i18next";
 
 interface ToolboxActionButtonsProps {
   resetFunction: () => void;

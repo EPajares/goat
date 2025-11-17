@@ -1,11 +1,10 @@
 import { Box, Button, Divider, IconButton, Stack, Typography, useTheme } from "@mui/material";
 import { useParams } from "next/navigation";
 import { type Dispatch, type SetStateAction, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from "@/i18n/client";
 
 import { generateSeries } from "@/lib/utils/helpers";
 import type { LayerFieldType } from "@/lib/validations/layer";

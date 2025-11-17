@@ -13,10 +13,9 @@ import {
   useTheme,
 } from "@mui/material";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Loading } from "@p4b/ui/components/Loading";
-
-import { useTranslation } from "@/i18n/client";
 
 import { useDatasetValueSelectorMethods } from "@/hooks/map/DatasetHooks";
 

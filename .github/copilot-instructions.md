@@ -18,12 +18,15 @@ Please follow these guidelines when contributing:
   - `storybook/`: A separate React/NextJS/TypeScript application for Storybook, used for UI component development and testing.
   - `web/`: The main frontend application built with React/NextJS/TypeScript
 - `packages/`: Contains shared libraries and components used across the applications. It can contain both frontend and backend libraries.
-  - `eslint-config-p4b/`: Shared ESLint configuration for the project.
-  - `keycloak-theme/`: A shared Keycloak theme for consistent branding across authentication interfaces.
-  - `prettier-config/`: Shared Prettier configuration for the project.
-  - `tsconfig/`: Shared TypeScript configuration for the project.
-  - `types/`: Shared TypeScript types used across the project.
-  - `ui/`: Shared UI components and libraries used across the frontend applications.
+  - `js/`: Contains shared JavaScript/TypeScript libraries and components used across the frontend applications.
+    - `eslint-config-p4b/`: Shared ESLint configuration for the project.
+    - `keycloak-theme/`: A shared Keycloak theme for consistent branding across authentication interfaces.
+    - `prettier-config/`: Shared Prettier configuration for the project.
+    - `tsconfig/`: Shared TypeScript configuration for the project.
+    - `types/`: Shared TypeScript types used across the project.
+    - `ui/`: Shared UI components and libraries used across the frontend applications.
+  - `python`: Contains shared Python libraries and components used across the backend applications.
+    - `goatlib/`: A shared Python library with analytics and utility functions. 
 - `scripts/`: Contains various scripts for development, testing, and deployment tasks.
 
 ## Key Guidelines
