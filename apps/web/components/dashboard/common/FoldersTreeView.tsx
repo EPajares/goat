@@ -17,6 +17,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 import { useFolders } from "@/lib/api/folders";
 import { useTeams } from "@/lib/api/teams";
 import { useOrganization } from "@/lib/api/users";
+import { ACCOUNTS_DISABLED } from "@/lib/constants";
 import type { GetDatasetSchema } from "@/lib/validations/layer";
 import type { GetProjectsQueryParams } from "@/lib/validations/project";
 
@@ -66,7 +67,6 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
   const { organization } = useOrganization();
   const { teams: teamsData } = useTeams();
   const { t } = useTranslation("common");
-
   const [editModal, setEditModal] = useState<EditModal>();
   const { folders } = useFolders({});
   const homeFolder = useMemo(() => {
@@ -117,7 +117,7 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
   }, [teamsData]);
 
   const theme = useTheme();
-  const hideTeamsAndOrgs = !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL;
+  const hideTeamsAndOrgs = ACCOUNTS_DISABLED;
   const folderTypes = hideTeamsAndOrgs ? ["folder"] : ["folder", "team", "organization"];
 
   const folderTypeTitles = hideTeamsAndOrgs

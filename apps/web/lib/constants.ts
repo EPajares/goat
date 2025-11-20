@@ -4,6 +4,7 @@ export const GEOAPI_BASE_URL = process.env.NEXT_PUBLIC_GEOAPI_URL;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 export const AUTH_DISABLED = process.env.NEXT_PUBLIC_AUTH_DISABLED;
+export const ACCOUNTS_DISABLED = !Boolean(process.env.NEXT_PUBLIC_ACCOUNTS_API_URL);
 export const DOCS_URL = `${APP_URL}/docs`;
 export const DOCS_VERSION = "2.0";
 export const CONTACT_US_URL = "https://plan4better.de/contact";

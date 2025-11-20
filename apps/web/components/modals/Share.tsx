@@ -42,6 +42,7 @@ import {
 import { shareLayer, shareProject } from "@/lib/api/share";
 import { useTeams } from "@/lib/api/teams";
 import { useOrganization } from "@/lib/api/users";
+import { ACCOUNTS_DISABLED } from "@/lib/constants";
 import { type Layer, layerShareRoleEnum } from "@/lib/validations/layer";
 import { type Project, projectShareRoleEnum } from "@/lib/validations/project";
 
@@ -317,7 +318,7 @@ const ShareModal: React.FC<ShareProps> = ({ open, onClose, type, content }) => {
 
   const tabItems = useMemo(() => {
     // If the env variable is NOT set → ONLY show "Public"
-    if (!process.env.NEXT_PUBLIC_ACCOUNTS_API_URL) {
+    if (ACCOUNTS_DISABLED) {
       return [{ label: t("public"), value: "public" }];
     }
 

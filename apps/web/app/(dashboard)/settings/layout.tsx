@@ -22,6 +22,8 @@ import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
+import { ACCOUNTS_DISABLED } from "@/lib/constants";
+
 import { useAuthZ } from "@/hooks/auth/AuthZ";
 
 interface SettingsLayoutProps {
@@ -36,7 +38,7 @@ const SettingsLayout = (props: SettingsLayoutProps) => {
   const { isOrgAdmin, isLoading: isUserProfileLoading } = useAuthZ();
   const navigation = useMemo(() => {
     // If ACCOUNTS API URL IS NOT set → only show "Account"
-    if (!process.env.NEXT_PUBLIC_ACCOUNTS_API_URL) {
+    if (ACCOUNTS_DISABLED) {
       return [
         {
           link: "/settings/account",
