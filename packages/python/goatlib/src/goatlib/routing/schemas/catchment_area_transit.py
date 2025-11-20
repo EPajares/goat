@@ -1,56 +1,18 @@
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Self
 from uuid import UUID
 
-from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from goatlib.routing.schemas.base import (
+    CatchmentAreaStartingPoints,
+)
 
 """Transit-specific routing mode schemas."""
 
 
-class BaseStartingPoints(BaseModel):
-    """Base model for starting points."""
-
-    latitude: List[float] | None = Field(
-        None,
-        title="Latitude",
-        description="The latitude of the starting points.",
-    )
-    longitude: List[float] | None = Field(
-        None,
-        title="Longitude",
-        description="The longitude of the starting points.",
-    )
-
-
-class BaseTravelTimeCost(BaseModel):
-    """Base travel time cost schema."""
-
-    max_traveltime: int = Field(
-        ...,
-        title="Max Travel Time",
-        description="The maximum travel time in minutes.",
-        ge=1,
-        le=90,
-    )
-    steps: int = Field(
-        ...,
-        title="Steps",
-        description="The number of steps.",
-    )
-
-    @field_validator("steps", mode="before")
-    @classmethod
-    def valid_num_steps(cls: type["BaseTravelTimeCost"], v: int) -> int:
-        """Ensure the number of steps doesn't exceed the maximum traveltime."""
-        if v > 90:
-            raise ValueError(
-                "The number of steps must not exceed the maximum traveltime."
-            )
-        return v
-
-
 class TransitMode(str, Enum):
-    """Transit mode options for isochrone calculation."""
+    """Transit mode options for CatchmentArea calculation."""
 
     bus = "bus"
     tram = "tram"
@@ -63,82 +25,131 @@ class TransitMode(str, Enum):
 
 
 class AccessEgressMode(str, Enum):
-    """Access mode to reach transit stops."""
+    """Access and egress modes for transit routing."""
 
     walk = "walk"
     bicycle = "bicycle"
 
 
-"""Transit isochrone starting points - extends catchment area with transit constraints."""
+"""Transit CatchmentArea starting points"""
 
 
-class TransitIsochroneStartingPoints(BaseStartingPoints):
-    """Transit isochrone starting points with single-point constraint."""
+class TransitCatchmentAreaStartingPoints(CatchmentAreaStartingPoints):
+    """Transit CatchmentArea starting points with single-point constraint."""
 
     @model_validator(mode="after")
     def validate_transit_constraints(
-        self: "TransitIsochroneStartingPoints",
-    ) -> "TransitIsochroneStartingPoints":
-        """Ensure single starting point for transit isochrones."""
+        self: "TransitCatchmentAreaStartingPoints",
+    ) -> "TransitCatchmentAreaStartingPoints":
+        """Ensure single starting point for transit CatchmentAreas."""
         if self.latitude and len(self.latitude) > 1:
-            raise ValueError("Transit isochrones support only single starting point.")
+            raise ValueError(
+                "Transit CatchmentAreas support only single starting point."
+            )
         return self
 
 
-"""Travel time configuration - extends catchment area with isochrone-specific cutoffs."""
+"""Travel time configuration """
 
 
-class TransitIsochroneTravelTimeCost(BaseTravelTimeCost):
-    """Travel time configuration for transit isochrones with cutoffs instead of steps."""
+class TransitCatchmentAreaTravelTimeCost(BaseModel):
+    """Travel time configuration for transit CatchmentAreas with cutoffs instead of steps."""
+
+    max_traveltime: int = Field(
+        ...,
+        title="Max Travel Time",
+        description="The maximum travel time in minutes.",
+        ge=1,
+        le=90,
+    )
 
     cutoffs: List[int] = Field(
         ...,
         title="Time Cutoffs",
-        description="List of travel time cutoffs in minutes for isochrone bands.",
+        description="List of travel time cutoffs in minutes for CatchmentArea bands.",
         min_length=1,
     )
 
-    @field_validator("cutoffs", mode="after")
-    @classmethod
-    def validate_cutoffs(
-        cls: type["TransitIsochroneTravelTimeCost"],
-        cutoffs: List[int],
-        info: ValidationInfo,
-    ) -> List[int]:
+    @model_validator(mode="after")
+    def validate_cutoffs_against_max_time(self) -> Self:
         """Validate that cutoffs are within max_traveltime and sorted."""
-        if "max_traveltime" in info.data:
-            max_time = info.data["max_traveltime"]
-            for cutoff in cutoffs:
-                if cutoff > max_time:
-                    raise ValueError(
-                        f"Cutoff {cutoff} exceeds maximum travel time {max_time}."
-                    )
+        max_time = self.max_traveltime
+        for cutoff in self.cutoffs:
+            if cutoff > max_time:
+                raise ValueError(
+                    f"Cutoff {cutoff} exceeds maximum travel time {max_time}."
+                )
 
-        # Ensure cutoffs are positive and sorted
-        if not all(c > 0 for c in cutoffs):
+        if not all(c > 0 for c in self.cutoffs):
             raise ValueError("All cutoffs must be positive.")
 
-        if cutoffs != sorted(cutoffs):
-            raise ValueError("Cutoffs must be in ascending order.")
+        # Check for uniqueness
+        if len(self.cutoffs) != len(set(self.cutoffs)) or self.cutoffs != sorted(
+            self.cutoffs
+        ):
+            raise ValueError("Cutoffs must be unique and in ascending order.")
 
-        return cutoffs
+        return self
+
+
+class _ActiveMobilitySettings(BaseModel):
+    """Base configuration for an active mobility leg of a journey."""
+
+    max_time: int
+    speed: float
+
+
+class WalkSettings(_ActiveMobilitySettings):
+    """Configuration for walking legs of the journey."""
+
+    max_time: int = Field(15, title="Maximum Walk Time (minutes)", ge=1, le=30)
+
+    speed: float = Field(
+        5.0,
+        title="Walking Speed (km/h)",
+        description="Average walking speed in kilometers per hour.",
+        ge=1.0,
+        le=10.0,
+    )
+
+
+class BikeSettings(_ActiveMobilitySettings):
+    """Configuration for biking legs of the journey."""
+
+    max_time: int = Field(20, title="Maximum Bike Time (minutes)", ge=1, le=45)
+
+    speed: float = Field(
+        15.0,
+        title="Biking Speed (km/h)",
+        description="Average biking speed in kilometers per hour.",
+        ge=5.0,
+        le=30.0,
+    )
+
+
+class TransitRoutingSettings(BaseModel):
+    """Advanced tuning parameters for the transit routing algorithm."""
+
+    max_transfers: int = Field(4, title="Maximum Transfers", ge=0, le=10)
+    walk_settings: WalkSettings = Field(default_factory=WalkSettings)
+    bike_settings: BikeSettings = Field(default_factory=BikeSettings)
 
 
 """Main request schema."""
 
 
-class TransitIsochroneRequest(BaseModel):
-    """Request model for transit isochrone calculation."""
+class TransitCatchmentAreaRequest(BaseModel):
+    """Request model for transit CatchmentArea calculation."""
 
-    starting_points: TransitIsochroneStartingPoints = Field(
+    starting_points: TransitCatchmentAreaStartingPoints = Field(
         ...,
         title="Starting Points",
-        description="Starting points for isochrone calculation.",
+        description="Starting points for CatchmentArea calculation.",
     )
     transit_modes: List[TransitMode] = Field(
         ...,
         title="Transit Modes",
-        description="List of transit modes to include in the isochrone calculation.",
+        description="List of transit modes to include in the CatchmentArea calculation.",
         min_length=1,
     )
     access_mode: AccessEgressMode = Field(
@@ -151,124 +162,64 @@ class TransitIsochroneRequest(BaseModel):
         title="Egress Mode",
         description="Mode of transportation from transit stops to destination.",
     )
-    travel_cost: TransitIsochroneTravelTimeCost = Field(
+    travel_cost: TransitCatchmentAreaTravelTimeCost = Field(
         ...,
         title="Travel Cost Configuration",
         description="Travel time and cutoff configuration.",
     )
-    # UPDATE
     network_id: Optional[UUID] = Field(
         default=None,
         title="Network ID",
-        description="",
+        description="Optional ID of the transit network to use for routing calculations.",
     )
 
-    # Transit-specific configuration
-    max_walk_time: int = Field(
-        default=15,
-        title="Maximum Walk Time",
-        description="Maximum walking time to/from transit stops in minutes.",
-        ge=1,
-        le=30,
-    )
-    max_bike_time: int = Field(
-        default=20,
-        title="Maximum Bike Time",
-        description="Maximum biking time to/from transit stops in minutes.",
-        ge=1,
-        le=45,
-    )
-    max_transfers: int = Field(
-        default=4,
-        title="Maximum Transfers",
-        description="Maximum number of transit transfers allowed.",
-        ge=0,
-        le=10,
-    )
-    walk_speed: float = Field(
-        default=1.39,  # m/s, ~5 km/h
-        title="Walking Speed",
-        description="Walking speed in meters per second.",
-        ge=0.5,
-        le=3.0,
-    )
-    bike_speed: float = Field(
-        default=4.17,  # m/s, ~15 km/h
-        title="Biking Speed",
-        description="Biking speed in meters per second.",
-        ge=1.0,
-        le=8.0,
+    routing_settings: TransitRoutingSettings = Field(
+        default_factory=TransitRoutingSettings,
+        title="Routing Settings",
+        description="Advanced routing settings.",
     )
 
 
 """Response schemas."""
 
 
-# TODO: remove the class and make it a validator
-class IsochroneGeometry(BaseModel):
-    """GeoJSON geometry for isochrone polygon."""
-
-    type: str = Field(
-        default="Polygon",
-        title="Geometry Type",
-        description="GeoJSON geometry type.",
-    )
-    coordinates: List[List[List[float]]] = Field(
-        ...,
-        title="Coordinates",
-        description="Polygon coordinates in GeoJSON format.",
-    )
-
-
-class IsochroneProperties(BaseModel):
-    """Properties of an isochrone polygon."""
+class CatchmentAreaPolygon(BaseModel):
+    """A single catchment area polygon with its properties."""
 
     travel_time: int = Field(
         ...,
         title="Travel Time",
-        description="Maximum travel time for this isochrone in minutes.",
+        description="Maximum travel time for this catchment area in minutes.",
     )
-    area_km2: Optional[float] = Field(
-        default=None,
-        title="Area",
-        description="Area of the isochrone polygon in square kilometers.",
-        ge=0.0,
-    )
-
-
-class IsochroneFeature(BaseModel):
-    """GeoJSON feature representing an isochrone polygon."""
-
-    type: str = Field(
-        default="Feature",
-        title="Feature Type",
-        description="GeoJSON feature type.",
-    )
-    geometry: IsochroneGeometry = Field(
+    geometry: Dict[str, Any] = Field(
         ...,
-        title="Geometry",
-        description="Isochrone polygon geometry.",
+        title="Polygon Geometry",
+        description="Polygon geometry data (coordinates, type, etc.)",
     )
-    properties: IsochroneProperties = Field(
+
+    @field_validator("geometry")
+    @classmethod
+    def validate_geometry(cls, v: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate basic polygon geometry structure."""
+        if not isinstance(v, dict):
+            raise ValueError("Geometry must be a dictionary.")
+
+        required_fields = ["type", "coordinates"]
+        for field in required_fields:
+            if field not in v:
+                raise ValueError(f"Geometry must have a '{field}' field.")
+
+        return v
+
+
+class TransitCatchmentAreaResponse(BaseModel):
+    """Response model for transit catchment area calculation."""
+
+    polygons: List[CatchmentAreaPolygon] = Field(
         ...,
-        title="Properties",
-        description="Isochrone properties and metadata.",
+        title="Catchment Area Polygons",
+        description="List of catchment area polygons with travel times.",
     )
-
-
-class TransitIsochroneResponse(BaseModel):
-    """Response model for transit isochrone calculation."""
-
-    type: str = Field(
-        default="FeatureCollection",
-        title="Collection Type",
-        description="GeoJSON FeatureCollection type.",
-    )
-    # features: List[IsochroneFeature] = Field(
-    #     ...,
-    #     title="Isochrone Features",
-    #     description="List of isochrone polygon features.",
-    # )
     metadata: Dict[str, Any] = Field(
         default_factory=dict,
         title="Metadata",
@@ -281,46 +232,39 @@ class TransitIsochroneResponse(BaseModel):
     )
 
 
-# response format?
-# grid / network / polygon
-## POLYGON
-
-
 """Example requests."""
 
 
-request_examples_transit_isochrone = {
-    "basic_transit_isochrone": {
-        "summary": "Basic transit isochrone with multiple modes",
+rrequest_examples_transit_catchment_area = {
+    "basic_transit_catchment_area": {
+        "summary": "...",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["bus", "tram", "subway"],
-            "access_mode": "walk",
-            "egress_mode": "walk",
             "travel_cost": {"max_traveltime": 60, "cutoffs": [15, 30, 45, 60]},
         },
     },
-    "bike_access_isochrone": {
-        "summary": "Transit isochrone with bicycle access",
+    "bike_access_CatchmentArea": {
+        "summary": "...",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["rail", "subway"],
             "access_mode": "bicycle",
-            "egress_mode": "walk",
             "travel_cost": {"max_traveltime": 45, "cutoffs": [15, 30, 45]},
-            "max_bike_time": 25,
+            "routing_settings": {"bike_settings": {"max_time": 25}},
         },
     },
-    "custom_speeds_isochrone": {
-        "summary": "Transit isochrone with custom walking and biking speeds",
+    "custom_speeds_CatchmentArea": {
+        "summary": "...",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["bus", "tram"],
-            "access_mode": "walk",
             "egress_mode": "bicycle",
             "travel_cost": {"max_traveltime": 50, "cutoffs": [10, 20, 30, 40, 50]},
-            "walk_speed": 1.2,
-            "bike_speed": 5.0,
+            "routing_settings": {
+                "walk_settings": {"speed": 1.2},
+                "bike_settings": {"speed": 5.0},
+            },
         },
     },
 }

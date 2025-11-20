@@ -3,6 +3,7 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
+from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,15 @@ class RoutingProvider(StrEnum):
 
     MOTIS = "motis"
     OTP = "otp"
+    R5 = "r5"
+
+
+class CatchmentAreaType(StrEnum):
+    """Catchment area type schema."""
+
+    polygon = "polygon"
+    network = "network"
+    rectangular_grid = "rectangular_grid"
 
 
 class Mode(StrEnum):
@@ -50,3 +60,18 @@ class Route(BaseModel):
     distance: float = Field(..., description="Distance in meters", ge=0)
     duration: float = Field(..., description="Duration in seconds", ge=0)
     departure_time: datetime = Field(..., description="Departure time")
+
+
+class CatchmentAreaStartingPoints(BaseModel):
+    """Base model for catchment area attributes."""
+
+    latitude: List[float] | None = Field(
+        None,
+        title="Latitude",
+        description="The latitude of the catchment area center.",
+    )
+    longitude: List[float] | None = Field(
+        None,
+        title="Longitude",
+        description="The longitude of the catchment area center.",
+    )
