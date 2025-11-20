@@ -123,16 +123,16 @@
       }
     },
     {
-      "name": "Heatmap Matrix Preparation",
+      "name": "Python: Current File",
       "type": "debugpy",
       "request": "launch",
-      "program": "src/routing/preparation/heatmap_matrix.py",
-      "cwd": "${workspaceFolder}/apps/routing",
-      "justMyCode": false,
+      "program": "${file}",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
       "jinja": true,
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "uv-sync",
-    },
+    }
   ],
   "compounds": [
     {

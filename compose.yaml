@@ -11,6 +11,7 @@ x-env-base: &env-base
 
 x-env-core: &env-core
   <<: *env-base
+  AUTH: ${AUTH}
   POSTGRES_DB: goat
   REGION_MAPPING_PT_TABLE: basic.region_mapping_pt_04022025
 
@@ -145,17 +146,37 @@ services:
     <<: *service-core
     container_name: goat-core-migrate
     restart: "no"
-    command: bash -c "cd apps/core/src/core && scripts/prestart.sh"
+    command: bash -c "cd apps/core && src/core/scripts/prestart.sh"
 
   core:
     <<: *service-core
     container_name: goat-core
     restart: always
     ports:
-      - 8001:8000
+      - 8000:8000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/healthz"]
       interval: 120s
       timeout: 60s
       retries: 3
       start_period: 20s
+
+  web:
+    image: ghcr.io/plan4better/goat/web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: goat-web
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GEOAPI_URL: ${NEXT_PUBLIC_GEOAPI_URL}
+      NEXT_PUBLIC_DOCS_URL: ${NEXT_PUBLIC_DOCS_URL}
+      NEXT_PUBLIC_MAP_TOKEN: ${NEXT_PUBLIC_MAP_TOKEN}
+      NEXT_PUBLIC_APP_ENVIRONMENT: ${NEXT_PUBLIC_APP_ENVIRONMENT}
+    depends_on:
+      core:
+        condition: service_healthy

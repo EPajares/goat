@@ -120,6 +120,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS create_user_data_tables_trigger ON accounts.user;
+
 CREATE TRIGGER create_user_data_tables_trigger
 AFTER INSERT ON accounts.user
 FOR EACH ROW

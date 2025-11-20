@@ -3,127 +3,124 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Any, Dict, List, Set
 
-from psycopg2.errors import UndefinedFunction
-from sqlalchemy import Connection, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-class FunctionManager:
+class AsyncFunctionManager:
     def __init__(
         self,
-        engine: Connection,
+        session: AsyncSession,
         path: str,
         schema: str,
         schema_mapping: Dict[str, Any] | None = None,
     ) -> None:
-        self.engine = engine
+        self.session = session
         self.path = path
         self.schema = schema
-        if schema_mapping:
-            self.schema_mapping = schema_mapping
-        else:
-            self.schema_mapping = {schema: schema}
+        self.schema_mapping = schema_mapping or {schema: schema}
 
+    # ----------------------------------------------------------
+    # Dependency resolution utilities
+    # ----------------------------------------------------------
     def find_unapplied_dependencies(
         self, function_content: str, function_list: List[Any]
     ) -> Set[str]:
-        dependencies = set()
-        for function in function_list:
-            if "." + function.name in function_content:
-                dependencies.add(function.name)
-        return dependencies
+        return {
+            function.name
+            for function in function_list
+            if f".{function.name}" in function_content
+        }
 
     def get_name_from_path(self, path: Path) -> str:
-        """
-        to get name of function from path (file name)
-        """
-        basename = os.path.basename(path)
-        return os.path.splitext(basename)[0]
+        return os.path.splitext(os.path.basename(path))[0]
 
-    def get_function_list_from_files(self, path_list: List[Path]) -> List[Any]:
-        function = namedtuple("function", ["path", "name", "dependencies"])
-        function_list = []
-        for path in path_list:
-            function_name = self.get_name_from_path(path)
-            function_list.append(function(path, function_name, set()))
-        return function_list
+    def get_function_list_from_files(self, paths: List[Path]) -> List[Any]:
+        fn = namedtuple("fn", ["path", "name", "dependencies"])
+        return [fn(path, self.get_name_from_path(path), set()) for path in paths]
 
     def sorted_path_by_dependency(self, path_list: List[Path]) -> List[Path]:
-        """
-        The first function is not depended to any others.
-        But the last one maybe depended.
-        """
-        new_path_list = []
+        ordered: List[Path] = []
         function_list = self.get_function_list_from_files(path_list)
+
         while function_list:
             function = function_list.pop(0)
-            function_content = Path(function.path).read_text()
-            dependencies = self.find_unapplied_dependencies(
-                function_content, function_list
-            )
-            if dependencies:
-                # found dependencies, add to the end of functions again.
-                # update dependencies
+            content = Path(function.path).read_text()
+            deps = self.find_unapplied_dependencies(content, function_list)
+
+            if deps:
                 function.dependencies.clear()
-                function.dependencies.update(dependencies)
+                function.dependencies.update(deps)
                 function_list.append(function)
             else:
-                new_path_list.append(Path(function.path))
+                ordered.append(Path(function.path))
 
-        return new_path_list
+        return ordered
 
+    # ----------------------------------------------------------
+    # Load SQL functions from files
+    # ----------------------------------------------------------
     def sql_function_entities(self) -> List[str]:
-        sql_function_entities = []
-        # Find all with the exception the ones in legacy
-        function_paths = Path(str(Path().resolve()) + self.path).rglob("*.sql")
-        function_paths_list: List[Path] = [
-            p for p in function_paths if "legacy" not in str(p)
-        ]
-        for p in self.sorted_path_by_dependency(function_paths_list):
+        sql_entities = []
+
+        root = Path(__file__).resolve().parent / self.path
+        paths = [p for p in root.rglob("*.sql") if "legacy" not in str(p)]
+
+        for p in self.sorted_path_by_dependency(paths):
             sql_text = p.read_text()
-            # Ensure that the function does not start with a comment
+
             if sql_text.startswith("/*") or sql_text.startswith("--"):
                 raise ValueError(
-                    f"Function {self.get_name_from_path(p)} has a comment at the beginning. Please remove it."
+                    f"Function {self.get_name_from_path(p)} may not begin with a comment."
                 )
 
-            # If schema mapping is provided, replace the schema in the function
-            if self.schema_mapping:
-                for key in self.schema_mapping.keys():
-                    sql_text = sql_text.replace(
-                        f"{key}.", f"{self.schema_mapping[key]}."
-                    )
+            for key, val in self.schema_mapping.items():
+                sql_text = sql_text.replace(f"{key}.", f"{val}.")
 
-            sql_function_entities.append(sql_text)
-        return sql_function_entities
+            sql_entities.append(sql_text)
 
-    def drop_functions(self) -> None:
-        # Drop all functions in the schema
-        stmt_list_functions = text(
-            f"SELECT proname FROM pg_proc WHERE pronamespace = '{self.schema_mapping[self.schema]}'::regnamespace"
+        return sql_entities
+
+    # ----------------------------------------------------------
+    # Async DROP / ADD
+    # ----------------------------------------------------------
+    async def drop_functions(self) -> None:
+        stmt = text(
+            f"SELECT proname FROM pg_proc "
+            f"WHERE pronamespace = '{self.schema_mapping[self.schema]}'::regnamespace"
         )
-        functions = self.engine.execute(stmt_list_functions).fetchall()
-        functions = [f[0] for f in functions]
-        for function in functions:
-            # Skip trigger functions as they should be dropped by drop_triggers()
-            if "trigger" in function:
-                continue
-            print(f"Dropping {function}()")
-            statement = f"DROP FUNCTION IF EXISTS {self.schema_mapping[self.schema]}.{function} CASCADE;"
+
+        result = await self.session.execute(stmt)
+        functions = [row[0] for row in result.fetchall()]
+
+        for fn in functions:
+            if "trigger" in fn:
+                continue  # Skip trigger functions
+
+            drop_stmt = text(
+                f"DROP FUNCTION IF EXISTS {self.schema_mapping[self.schema]}.{fn} CASCADE;"
+            )
+
             try:
-                self.engine.execute(text(statement))
-            except UndefinedFunction as e:
-                print(e)
+                await self.session.execute(drop_stmt)
+            except Exception as e:
+                print(f"Error dropping {fn}: {e}")
+
         print(f"{len(functions)} functions dropped!")
 
-    def add_functions(self) -> None:
-        sql_function_entities_ = self.sql_function_entities()
-        for function in sql_function_entities_:
-            self.engine.execute(text(function))
-            print("Adding Function.")
-        print(f"{len(sql_function_entities_)} functions added!")
+    async def add_functions(self) -> None:
+        sql_functions = self.sql_function_entities()
 
-    def update_functions(self) -> None:
-        # It will drop all functions and add them again
-        self.drop_functions()
+        for function_sql in sql_functions:
+            try:
+                await self.session.execute(text(function_sql))
+                print("Adding function...")
+            except Exception as e:
+                print(f"Error adding function: {e}")
+
+        print(f"{len(sql_functions)} functions added!")
+
+    async def update_functions(self) -> None:
+        await self.drop_functions()
         print("##################################################")
-        self.add_functions()
+        await self.add_functions()
