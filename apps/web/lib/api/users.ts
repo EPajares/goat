@@ -15,14 +15,14 @@ export const USERS_API_BASE_URL = ACCOUNTS_ENABLED ? new URL("api/v1/users", ACC
 const nowIso = new Date().toISOString();
 
 const STUB_USER: User = {
-  id: "local-user",
+  id: "744e4fd1-685c-495c-8b02-efebce875359",
   email: "local@plan4better.de",
   avatar: "",
   firstname: "Local",
   lastname: "User",
   newsletter_subscribe: false,
-  roles: [],
-  organization_id: "local-org",
+  roles: ["organization-owner"],
+  organization_id: "f1ea3991-2b72-497d-a49f-8842d3d2ac8a",
   created_at: nowIso,
   updated_at: nowIso,
   enabled: true,
@@ -30,7 +30,7 @@ const STUB_USER: User = {
 };
 
 const STUB_ORGANIZATION: Organization = {
-  id: "local-org",
+  id: "f1ea3991-2b72-497d-a49f-8842d3d2ac8a",
   name: "Local Organization",
   type: "OSS",
   size: "1",

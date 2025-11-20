@@ -27,6 +27,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS delete_user_data_tables_trigger ON accounts.user;
 
 CREATE TRIGGER delete_user_data_tables_trigger
 BEFORE DELETE ON accounts.user

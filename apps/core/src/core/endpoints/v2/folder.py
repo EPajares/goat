@@ -54,7 +54,7 @@ async def create_folder(
         )
     ).scalar()
 
-    if not folder_cnt:
+    if folder_cnt is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch folder count",
