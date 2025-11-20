@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { useOrganization, useUserProfile } from "@/lib/api/users";
+import { AUTH_DISABLED } from "@/lib/constants";
 
 import { ArrowPopper } from "@/components/ArrowPoper";
 
@@ -75,32 +76,36 @@ export default function UserInfoMenu() {
                   </>
                 )}
               </Stack>
-              <Divider />
-              <ListItemButton
-                onClick={() => signOut({ callbackUrl: process.env.NEXT_PUBLIC_APP_URL })}
-                sx={{
-                  color: theme.palette.error.main,
-                }}>
-                <ListItemIcon
-                  sx={{
-                    minWidth: 35,
-                    color: "inherit",
-                  }}>
-                  <Icon
-                    iconName={ICON_NAME.SIGNOUT}
-                    fontSize="small"
-                    fontWeight="light"
-                    htmlColor="inherit"
-                  />
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Typography variant="body2" color="inherit" fontWeight="bold">
-                      {t("logout")}
-                    </Typography>
-                  }
-                />
-              </ListItemButton>
+              {!AUTH_DISABLED && (
+                <>
+                  <Divider />
+                  <ListItemButton
+                    onClick={() => signOut({ callbackUrl: process.env.NEXT_PUBLIC_APP_URL })}
+                    sx={{
+                      color: theme.palette.error.main,
+                    }}>
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 35,
+                        color: "inherit",
+                      }}>
+                      <Icon
+                        iconName={ICON_NAME.SIGNOUT}
+                        fontSize="small"
+                        fontWeight="light"
+                        htmlColor="inherit"
+                      />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" color="inherit" fontWeight="bold">
+                          {t("logout")}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                </>
+              )}
             </Stack>
           </Paper>
         }
