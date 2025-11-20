@@ -117,9 +117,12 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
   }, [teamsData]);
 
   const theme = useTheme();
+  const hideTeamsAndOrgs = !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL;
+  const folderTypes = hideTeamsAndOrgs ? ["folder"] : ["folder", "team", "organization"];
 
-  const folderTypes = ["folder", "team", "organization"];
-  const folderTypeTitles = [t("my_content"), t("teams"), t("organizations")];
+  const folderTypeTitles = hideTeamsAndOrgs
+    ? [t("my_content")]
+    : [t("my_content"), t("teams"), t("organizations")];
 
   const moreMenuItems: PopperMenuItem[] = [
     {
@@ -195,7 +198,7 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
       )}
 
       <List sx={{ width: "100%", maxWidth: 360 }} component="nav" aria-labelledby="content-tree-view">
-        {[folders ?? [], teams ?? [], organizations ?? []]
+        {(hideTeamsAndOrgs ? [folders ?? []] : [folders ?? [], teams ?? [], organizations ?? []])
           .map((folder, typeIndex) => {
             // Filter out "My Content" section if hideMyContent is true
             if (hideMyContent && folderTypes[typeIndex] === "folder") {

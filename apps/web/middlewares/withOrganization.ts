@@ -13,7 +13,7 @@ const publicPaths = ["/map/public"];
 export const withOrganization: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
     if (
-      process.env.AUTH_DISABLED ||
+      process.env.NEXT_PUBLIC_AUTH_DISABLED ||
       !process.env.NEXTAUTH_URL ||
       !process.env.NEXTAUTH_SECRET ||
       !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL

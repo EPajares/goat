@@ -316,14 +316,20 @@ const ShareModal: React.FC<ShareProps> = ({ open, onClose, type, content }) => {
   };
 
   const tabItems = useMemo(() => {
+    // If the env variable is NOT set → ONLY show "Public"
+    if (!process.env.NEXT_PUBLIC_ACCOUNTS_API_URL) {
+      return [{ label: t("public"), value: "public" }];
+    }
+
+    // Otherwise → show the normal tabs
     const items = [
       { label: t("organization"), value: "organization" },
       { label: t("teams"), value: "teams" },
-      { label: t("public"), value: "public" },
     ];
 
-    if (type === "layer") {
-      return items.filter((item) => item.value !== "public");
+    // Public only for projects
+    if (type === "project") {
+      items.push({ label: t("public"), value: "public" });
     }
 
     return items;

@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
-
-import { useTranslation } from 'react-i18next'
 
 import type { Layer } from "@/lib/validations/layer";
 import type { Project } from "@/lib/validations/project";
@@ -10,7 +9,6 @@ import type { Project } from "@/lib/validations/project";
 import { ContentActions } from "@/types/common";
 
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
-
 
 export const useContentMoreMenu = () => {
   const { t } = useTranslation("common");
@@ -30,23 +28,28 @@ export const useContentMoreMenu = () => {
         },
         ...(layerItem?.type === "feature" || layerItem?.type === "table"
           ? [
-            {
-              id: ContentActions.DOWNLOAD,
-              label: t("download"),
-              icon: ICON_NAME.DOWNLOAD,
-            },
-            {
-              id: ContentActions.UPDATE,
-              label: t("update"),
-              icon: ICON_NAME.REFRESH
-            },
-          ]
+              {
+                id: ContentActions.DOWNLOAD,
+                label: t("download"),
+                icon: ICON_NAME.DOWNLOAD,
+              },
+              {
+                id: ContentActions.UPDATE,
+                label: t("update"),
+                icon: ICON_NAME.REFRESH,
+              },
+            ]
           : []),
-        {
-          id: ContentActions.SHARE,
-          label: t("share"),
-          icon: ICON_NAME.SHARE,
-        },
+        // Include SHARE only if NEXT_PUBLIC_ACCOUNTS_API_URL is set
+        ...(process.env.NEXT_PUBLIC_ACCOUNTS_API_URL
+          ? [
+              {
+                id: ContentActions.SHARE,
+                label: t("share"),
+                icon: ICON_NAME.SHARE,
+              },
+            ]
+          : []),
         {
           id: ContentActions.DELETE,
           label: t("delete"),
@@ -56,6 +59,7 @@ export const useContentMoreMenu = () => {
       ];
       return layerMoreMenuOptions;
     }
+
     if (contentType === "project") {
       const projectMoreMenuOptions: PopperMenuItem[] = [
         {
@@ -116,31 +120,34 @@ export const useFileUpload = () => {
     return [".gpkg", ".geojson", ".zip", ".kml", ".csv", ".xlsx"];
   }, []);
 
-  const handleChange = useCallback((file: File) => {
-    setFileUploadError(undefined);
-    setFileValue(undefined);
-    if (file && file.name) {
-      const isAcceptedType = acceptedFileTypes.some((type) => file.name.endsWith(type));
-      if (!isAcceptedType) {
-        setFileUploadError("Invalid file type. Please select a file of type");
-        return;
-      }
+  const handleChange = useCallback(
+    (file: File) => {
+      setFileUploadError(undefined);
+      setFileValue(undefined);
+      if (file && file.name) {
+        const isAcceptedType = acceptedFileTypes.some((type) => file.name.endsWith(type));
+        if (!isAcceptedType) {
+          setFileUploadError("Invalid file type. Please select a file of type");
+          return;
+        }
 
-      // Autodetect dataset type
-      const isFeatureLayer =
-        file.name.endsWith(".gpkg") ||
-        file.name.endsWith(".geojson") ||
-        file.name.endsWith(".shp") ||
-        file.name.endsWith(".kml");
-      const isTable = file.name.endsWith(".csv") || file.name.endsWith(".xlsx");
-      if (isFeatureLayer) {
-        setDatasetType("feature_layer");
-      } else if (isTable) {
-        setDatasetType("table");
+        // Autodetect dataset type
+        const isFeatureLayer =
+          file.name.endsWith(".gpkg") ||
+          file.name.endsWith(".geojson") ||
+          file.name.endsWith(".shp") ||
+          file.name.endsWith(".kml");
+        const isTable = file.name.endsWith(".csv") || file.name.endsWith(".xlsx");
+        if (isFeatureLayer) {
+          setDatasetType("feature_layer");
+        } else if (isTable) {
+          setDatasetType("table");
+        }
+        setFileValue(file);
       }
-      setFileValue(file);
-    }
-  }, [acceptedFileTypes]);
+    },
+    [acceptedFileTypes]
+  );
 
   return {
     acceptedFileTypes,
