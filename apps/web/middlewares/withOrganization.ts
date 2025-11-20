@@ -12,10 +12,17 @@ const publicPaths = ["/map/public"];
 
 export const withOrganization: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
-    if (!process.env.NEXTAUTH_URL) {
+    if (
+      process.env.AUTH_DISABLED ||
+      !process.env.NEXTAUTH_URL ||
+      !process.env.NEXTAUTH_SECRET ||
+      !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL
+    ) {
       return next(request, _next);
     }
-    const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL!).href;
+
+    const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL).href;
+
     const { pathname, origin, basePath } = request.nextUrl;
 
     // Skip public paths
@@ -34,6 +41,7 @@ export const withOrganization: MiddlewareFactory = (next) => {
 
     try {
       let _token = token;
+
       // Refresh expired token
       if (Date.now() >= token.expires_at * 1000) {
         _token = await refreshAccessToken(token);

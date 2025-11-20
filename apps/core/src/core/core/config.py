@@ -198,6 +198,9 @@ class Settings(BaseSettings):
     S3_ENDPOINT_URL: Optional[str] = (
         None  # e.g. for Hetzner "https://s3.fsn1.de", ! or None for AWS
     )
+    S3_PUBLIC_ENDPOINT_URL: Optional[str] = (
+        None  # e.g. for Hetzner "https://s3.plan4better.de"
+    )
     S3_PROVIDER: Optional[str] = "aws"  # or "hetzner" or "minio"
     S3_FORCE_PATH_STYLE: bool = False  # needed for MinIO
     S3_BUCKET_PATH: Optional[str] = ""  # will be set depending on ENVIRONMENT

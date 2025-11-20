@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class S3Service:
     def __init__(self) -> None:
         """
-        Initialize an S3 client that can talk to either AWS S3 
+        Initialize an S3 client that can talk to either AWS S3
         or an S3-compatible provider like Hetzner.
         """
         extra_kwargs = {}
@@ -43,11 +43,15 @@ class S3Service:
         )
 
     def generate_presigned_post(
-        self, bucket_name: str, s3_key: str, content_type: str, max_size: int, expires_in: int = 300
+        self,
+        bucket_name: str,
+        s3_key: str,
+        content_type: str,
+        max_size: int,
+        expires_in: int = 300,
     ) -> Dict[str, str]:
-        """Generate a presigned POST policy for uploading."""
         try:
-            return self.s3_client.generate_presigned_post(
+            result = self.s3_client.generate_presigned_post(
                 Bucket=bucket_name,
                 Key=s3_key,
                 Fields={"Content-Type": content_type},
@@ -57,6 +61,15 @@ class S3Service:
                 ],
                 ExpiresIn=expires_in,
             )
+
+            # Replace internal URL (minio:9000) with public one (localhost:9000)
+            if settings.S3_PUBLIC_ENDPOINT_URL:
+                result["url"] = result["url"].replace(
+                    settings.S3_ENDPOINT_URL, settings.S3_PUBLIC_ENDPOINT_URL
+                )
+
+            return result
+
         except ClientError as e:
             logger.error(f"S3 presigned POST failed: {e}")
             raise HTTPException(
@@ -74,7 +87,10 @@ class S3Service:
         """Upload a file server-side (API → S3)."""
         try:
             self.s3_client.upload_fileobj(
-                file_content, bucket_name, s3_key, ExtraArgs={"ContentType": content_type}
+                file_content,
+                bucket_name,
+                s3_key,
+                ExtraArgs={"ContentType": content_type},
             )
             return f"s3://{bucket_name}/{s3_key}"
         except ClientError as e:

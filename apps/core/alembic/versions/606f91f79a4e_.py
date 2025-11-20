@@ -24,6 +24,7 @@ def upgrade():
     op.execute("CREATE SCHEMA IF NOT EXISTS accounts;")
     op.execute("CREATE SCHEMA IF NOT EXISTS basic;")
     op.execute("CREATE SCHEMA IF NOT EXISTS user_data;")
+    op.execute("CREATE SCHEMA IF NOT EXISTS temporal;")
     op.execute("CREATE EXTENSION IF NOT EXISTS postgis;")
     op.execute("CREATE EXTENSION IF NOT EXISTS postgis_raster;")
     op.execute("CREATE EXTENSION IF NOT EXISTS h3;")
