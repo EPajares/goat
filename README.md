@@ -27,11 +27,11 @@ Intelligent software for modern web mapping and integrated planning
 <p align="center">
   <picture>
     <!-- Dark theme -->
-    <source srcset="https://assets.plan4better.de/img/goat_screenshot_dark.png" media="(prefers-color-scheme: dark)">
+    <source srcset="https://assets.plan4better.de/img/goat_screenshot_dark.webp" media="(prefers-color-scheme: dark)">
     <!-- Light theme -->
-    <source srcset="https://assets.plan4better.de/img/goat_screenshot_light.png" media="(prefers-color-scheme: light)">
+    <source srcset="https://assets.plan4better.de/img/goat_screenshot_light.webp" media="(prefers-color-scheme: light)">
     <!-- Fallback -->
-    <img src="https://assets.plan4better.de/img/goat_screenshot.png" alt="GOAT Screenshot" width="1527">
+    <img src="https://assets.plan4better.de/img/goat_screenshot_light.webp" alt="GOAT Screenshot" width="1527">
   </picture>
 </p>
 
