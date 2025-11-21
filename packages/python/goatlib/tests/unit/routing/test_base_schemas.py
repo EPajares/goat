@@ -35,10 +35,10 @@ def test_location_valid() -> None:
 
 def test_transport_mode_enum() -> None:
     """Test that Mode enum has expected values."""
-    assert Mode.WALK == "WALK"
-    assert Mode.BUS == "BUS"
-    assert Mode.CAR == "CAR"
-    assert Mode.TRANSIT == "TRANSIT"
+    assert Mode.WALK == "walk"
+    assert Mode.BUS == "bus"
+    assert Mode.CAR == "car"
+    assert Mode.TRANSIT == "transit"
 
 
 # add a test for route schema

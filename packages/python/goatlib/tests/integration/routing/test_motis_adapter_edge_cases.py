@@ -1,31 +1,11 @@
-from typing import AsyncGenerator
-
-import pytest_asyncio
-from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
+from goatlib.routing.adapters.motis import MotisPlanApiAdapter
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
 from goatlib.routing.schemas.base import Location, Mode
 
 
-@pytest_asyncio.fixture
-async def edge_adapter() -> AsyncGenerator[MotisPlanApiAdapter, None]:
-    """
-    An async fixture that provides a configured Motis adapter and
-    properly cleans up its resources.
-    """
-    # Assume create_motis_adapter now correctly sets up the async client
-    adapter = create_motis_adapter(use_fixtures=False)
-
-    yield adapter
-    # After the test session, the async cleanup code runs
-    await adapter.motis_client.close()
-
-
-###########################################################################
-# Edge Case Tests
-###########################################################################
-
-
-async def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) -> None:
+async def test_very_short_distance_routing(
+    motis_adapter_online: MotisPlanApiAdapter,
+) -> None:
     """Test routing for very short distances."""
     request = ABRoutingRequest(
         origin=Location(lat=52.5200, lon=13.4050),
@@ -34,7 +14,7 @@ async def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) ->
         max_results=1,
     )
 
-    response = await edge_adapter.route(request)
+    response = await motis_adapter_online.route(request)
 
     routes = response.routes
     # Should return empty routes for very short distances - that's expected behavior
@@ -43,7 +23,7 @@ async def test_very_short_distance_routing(edge_adapter: MotisPlanApiAdapter) ->
 
 
 async def test_single_transport_mode_edge_case(
-    edge_adapter: MotisPlanApiAdapter,
+    motis_adapter_online: MotisPlanApiAdapter,
 ) -> None:
     """Test routing with single transport mode at edge case coordinates."""
     request = ABRoutingRequest(
@@ -53,7 +33,7 @@ async def test_single_transport_mode_edge_case(
         max_results=1,
     )
 
-    response = await edge_adapter.route(request)
+    response = await motis_adapter_online.route(request)
     routes = response.routes
     # Should handle micro-distances gracefully
     if len(routes) > 0:
@@ -65,7 +45,7 @@ async def test_single_transport_mode_edge_case(
 
 
 async def test_extreme_coordinates_boundaries(
-    edge_adapter: MotisPlanApiAdapter,
+    motis_adapter_online: MotisPlanApiAdapter,
 ) -> None:
     """Test with coordinates at extreme but valid boundaries."""
     request = ABRoutingRequest(
@@ -76,13 +56,13 @@ async def test_extreme_coordinates_boundaries(
     )
 
     # This might not find routes (no transit coverage) but shouldn't crash
-    response = await edge_adapter.route(request)
+    response = await motis_adapter_online.route(request)
     routes = response.routes
     assert isinstance(routes, list)  # Should return a list, even if empty
 
 
 async def test_duplicate_transport_modes_handling(
-    edge_adapter: MotisPlanApiAdapter,
+    motis_adapter_online: MotisPlanApiAdapter,
 ) -> None:
     """Test handling of duplicate transport modes."""
     request = ABRoutingRequest(
@@ -93,6 +73,6 @@ async def test_duplicate_transport_modes_handling(
     )
 
     # Should handle duplicates gracefully (might deduplicate internally)
-    response = await edge_adapter.route(request)
+    response = await motis_adapter_online.route(request)
     routes = response.routes
     assert isinstance(routes, list)

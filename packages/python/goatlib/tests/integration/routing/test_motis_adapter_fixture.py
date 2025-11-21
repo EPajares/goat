@@ -1,19 +1,13 @@
-from typing import AsyncGenerator
-
 import pytest
-import pytest_asyncio
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
+from goatlib.routing.errors import RoutingError
 from goatlib.routing.schemas.ab_routing import ABRoute, ABRoutingRequest
-from goatlib.routing.schemas.base import Location, Mode
-
-# --- Constants for Validation ---
-MAX_SPEEDS_KMH = {
-    Mode.BUS: 120,
-    Mode.TRAM: 80,
-    Mode.SUBWAY: 120,
-    Mode.RAIL: 400,
-}
-DEFAULT_MAX_SPEED_KMH = 250
+from goatlib.routing.schemas.base import (
+    DEFAULT_MAX_SPEED_KMH,
+    MAX_SPEEDS_KMH,
+    Location,
+    Mode,
+)
 
 
 # --- Helper Functions ---
@@ -41,21 +35,6 @@ def validate_route_data(routes: list[ABRoute]) -> None:
 # --- Fixtures ---
 
 
-# CHANGE 1: Use pytest_asyncio.fixture with function scope for async compatibility.
-# The adapter is just reading local files, but needs to match event loop scope.
-@pytest_asyncio.fixture
-async def fixture_adapter(
-    motis_fixtures_dir: str,
-) -> AsyncGenerator[MotisPlanApiAdapter, None]:
-    """Module-scoped adapter configured for fixture data, with proper cleanup."""
-    adapter = create_motis_adapter(use_fixtures=True, fixture_path=motis_fixtures_dir)
-    yield adapter
-    # Even if the fixture client doesn't need it, this is robust future-proofing.
-    if hasattr(adapter.motis_client, "close"):
-        await adapter.motis_client.close()
-
-
-# CHANGE 2: Scope the request to "function" to match async fixture scope.
 @pytest.fixture
 def test_request() -> ABRoutingRequest:
     """Standard, module-scoped test request for fixture testing."""
@@ -69,21 +48,18 @@ def test_request() -> ABRoutingRequest:
 
 # --- Test Cases ---
 
-# CHANGE 3: All tests calling `adapter.route` are now `async` and use `await`.
-
 
 async def test_fixture_routing_basic_success(
-    fixture_adapter: MotisPlanApiAdapter, test_request: ABRoutingRequest
+    motis_adapter_fixture: MotisPlanApiAdapter, test_request: ABRoutingRequest
 ) -> None:
     """Test basic fixture routing functionality returns valid routes."""
-    response = await fixture_adapter.route(test_request)
+    response = await motis_adapter_fixture.route(test_request)
     routes = response.routes
 
     assert routes, "Should return routes from fixture data"
     validate_route_data(routes)
 
 
-# This test is synchronous and tests a factory function; it remains unchanged.
 def test_fixture_adapter_creation_with_valid_path(motis_fixtures_dir: str) -> None:
     """Test creating fixture adapter with valid path."""
     adapter = create_motis_adapter(use_fixtures=True, fixture_path=motis_fixtures_dir)
@@ -93,10 +69,10 @@ def test_fixture_adapter_creation_with_valid_path(motis_fixtures_dir: str) -> No
 
 # CHANGE 4: Combined realism checks into a single, more comprehensive test.
 async def test_fixture_route_realism_validation(
-    fixture_adapter: MotisPlanApiAdapter, test_request: ABRoutingRequest
+    motis_adapter_fixture: MotisPlanApiAdapter, test_request: ABRoutingRequest
 ) -> None:
     """Test that fixture data calculations (distance, speed) are reasonable."""
-    response = await fixture_adapter.route(test_request)
+    response = await motis_adapter_fixture.route(test_request)
     routes = response.routes
     assert routes, "Cannot perform validation on an empty route list."
 
@@ -119,3 +95,52 @@ async def test_fixture_route_realism_validation(
                 assert (
                     5 <= speed_kmh <= max_speed
                 ), f"Leg {leg.leg_id} ({leg.mode.value}) has unrealistic speed: {speed_kmh:.1f} km/h."
+
+
+# --- Error Handling Tests ---
+
+
+async def test_empty_fixture_directory(tmp_path: pytest.TempPathFactory) -> None:
+    """Test handling of empty fixture directories."""
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+
+    adapter = create_motis_adapter(use_fixtures=True, fixture_path=empty_dir)
+    request = ABRoutingRequest(
+        origin=Location(lat=48.1, lon=11.5),
+        destination=Location(lat=48.2, lon=11.6),
+        modes=[Mode.WALK],
+        max_results=1,
+    )
+
+    try:
+        with pytest.raises(RoutingError):
+            await adapter.route(request)
+    finally:
+        # For fixture-based adapters, close might not be needed, but let's be safe
+        if hasattr(adapter.motis_client, "close"):
+            await adapter.motis_client.close()
+
+
+async def test_corrupted_fixture_file_handling(
+    tmp_path: pytest.TempPathFactory,
+) -> None:
+    """Test handling of corrupted fixture files."""
+    # Create a corrupted JSON file
+    corrupted_file = tmp_path / "test_motis_routes_corrupted.json"
+    corrupted_file.write_text("{ invalid json content")
+
+    adapter = create_motis_adapter(use_fixtures=True, fixture_path=tmp_path)
+    request = ABRoutingRequest(
+        origin=Location(lat=48.1, lon=11.5),
+        destination=Location(lat=48.2, lon=11.6),
+        modes=[Mode.WALK],
+        max_results=1,
+    )
+
+    try:
+        with pytest.raises(RoutingError):
+            await adapter.route(request)
+    finally:
+        if hasattr(adapter.motis_client, "close"):
+            await adapter.motis_client.close()

@@ -28,7 +28,6 @@ class ABLeg(BaseModel):
     distance: float | None = Field(
         None, description="Distance of the leg in meters", ge=0
     )
-    # TODO add legGeometry? (EncodedPolyline)
 
     def get_or_create_id(self: Self) -> str:
         """Get existing ID or create new one if needed."""

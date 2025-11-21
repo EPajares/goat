@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Any, List
+from typing import List
 
 from goatlib.routing.schemas.base import Mode
 
@@ -36,64 +36,7 @@ class MotisMode(StrEnum):
     OTHER = "OTHER"
 
 
-# MOTIS_CONFIG for a standard MOTIS v5/plan API
-# "internal" : "motis_param"
-MOTIS_CONFIG = {
-    # =====================================================================
-    # Request Parameters (for the GET API)
-    # =====================================================================
-    "request_params": {
-        "origin": "fromPlace",  # e.g., "52.52,13.405"
-        "destination": "toPlace",  # e.g., "53.5511,9.9937"
-        "time": "time",  # ISO 8601 string, e.g., "2025-11-05T17:22:00Z"
-        "mode": "mode",  # Comma-separated string, e.g., "TRANSIT,WALK"
-        "num_itineraries": "numItineraries",  # Integer for number of results to compute at least
-        "max_results": "maxItineraries",  # Max number of itineraries to return
-        "time_is_arrival": "arriveBy",  # Boolean
-        "detailed_transters": "detailedTransfers",  # Boolean for detailed transfer info
-    },
-    # =====================================================================
-    # Response Structure Mappings (what we expect to receive)
-    # =====================================================================
-    "response_fields": {
-        "itineraries": "itineraries",  # The primary list of journey objects
-    },
-    "itinerary_fields": {
-        "duration": "duration",  # Total duration in seconds
-        "start_time": "startTime",  # ISO 8601 string
-        "end_time": "endTime",  # ISO 8601 string
-        "legs": "legs",  # The list of leg objects
-    },
-    "leg_fields": {
-        "mode": "mode",  # String like "WALK", "RAIL", "BUS"
-        "duration": "duration",  # Duration of the leg in seconds
-        "distance": "distance",  # "For non-transit legs the distance traveled while traversing this leg in meters"
-        "start_time": "startTime",  # ISO 8601 string
-        "end_time": "endTime",  # ISO 8601 string
-        "from": "from",  # The origin location object for this leg
-        "to": "to",  # The destination location object for this leg
-        # "geometry": "legGeometry",  # The nested object containing the polyline
-    },
-    "location_fields": {
-        "lat": "lat",  # Latitude coordinate
-        "lon": "lon",  # Longitude coordinate
-        "name": "name",  # Name of the station or place
-    },
-    # =====================================================================
-    # Default Values for API Requests (internal key : default value)
-    # =====================================================================
-    "defaults": {
-        "num_itineraries": 5,
-        "max_results": 5,
-        "time_is_arrival": False,
-        "mode": "TRANSIT",
-        "detailed_transters": False,
-    },
-    "endpoints": {
-        "plan": "/api/v5/plan",
-        "one_to_all": "/api/v1/one-to-all",
-    },
-}  # Mode mappings between MOTIS and internal representations
+# Mode mappings between MOTIS and internal representations
 MOTIS_TO_INTERNAL_MODE_MAP = {
     # Active mobility
     MotisMode.WALK: Mode.WALK,
@@ -140,32 +83,24 @@ INTERNAL_TO_MOTIS_MODE_MAP = {
 }
 
 
-# Utility functions for working with MOTIS_CONFIG
-def get_motis_param(internal_key: str) -> str:
-    """Get the MOTIS parameter name for an internal key."""
-    return MOTIS_CONFIG["request_params"].get(internal_key, internal_key)
+def internal_modes_to_motis_string(modes: List[Mode]) -> str:
+    """
+    Converts a list of internal `Mode` enums to the final comma-separated
+    string required by the MOTIS API, intelligently handling the TRANSIT category.
 
+    Example:
+      [Mode.TRANSIT, Mode.WALK] -> "TRANSIT,WALK" (because MOTIS understands "TRANSIT")
+      [Mode.SUBWAY, Mode.BUS, Mode.WALK] -> "SUBWAY,BUS,WALK"
+    """
+    motis_modes = [INTERNAL_TO_MOTIS_MODE_MAP.get(m) for m in modes]
 
-def get_motis_field(section: str, internal_key: str) -> str:
-    """Get the MOTIS field name for an internal key in a specific section."""
-    section_config = MOTIS_CONFIG.get(section, {})
-    return section_config.get(internal_key, internal_key)
+    # Filter out any modes that couldn't be mapped
+    valid_motis_modes = [m for m in motis_modes if m is not None]
 
+    # The MOTIS API itself understands the "TRANSIT" meta-mode. If the user
+    # selected our internal `Mode.TRANSIT`, we should pass "TRANSIT" directly
+    # to MOTIS rather than expanding it. MOTIS will do the expansion.
+    # The only time we need to expand is if our internal logic needs to know
+    # the specific modes. The API call does not.
 
-def get_motis_default(key: str) -> Any:
-    """Get a default value for a MOTIS parameter."""
-    return MOTIS_CONFIG["defaults"].get(key)
-
-
-def get_alternative_params(param_type: str) -> List[str]:
-    """Get alternative parameter names for compatibility with different MOTIS implementations."""
-    return MOTIS_CONFIG["alternative_params"].get(param_type, [])
-
-
-def build_motis_url(base_url: str, endpoint: str = "plan") -> str:
-    """Build a complete MOTIS API URL."""
-    if base_url.endswith("/"):
-        base_url = base_url.rstrip("/")
-
-    endpoint_path = MOTIS_CONFIG["endpoints"].get(endpoint, f"/api/v5/{endpoint}")
-    return f"{base_url}{endpoint_path}"
+    return ",".join(sorted([m.value for m in valid_motis_modes]))

@@ -1,26 +1,10 @@
-from typing import AsyncGenerator
 from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.errors import RoutingError
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest
 from goatlib.routing.schemas.base import Location, Mode
-
-
-@pytest_asyncio.fixture
-async def adapter() -> AsyncGenerator[MotisPlanApiAdapter, None]:
-    """
-    An async fixture that provides a configured Motis adapter for error testing
-    and properly cleans up its resources.
-    """
-    adapter = create_motis_adapter(use_fixtures=False)
-    yield adapter
-    await adapter.motis_client.close()
-
-
-###########################################################################
 
 
 async def test_invalid_api_url_handling() -> None:
@@ -44,7 +28,7 @@ async def test_invalid_api_url_handling() -> None:
         await adapter.motis_client.close()
 
 
-async def test_api_timeout_handling(adapter: MotisPlanApiAdapter) -> None:
+async def test_api_timeout_handling(motis_adapter_online: MotisPlanApiAdapter) -> None:
     """Test handling of API timeouts."""
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Simulate timeout
@@ -58,10 +42,12 @@ async def test_api_timeout_handling(adapter: MotisPlanApiAdapter) -> None:
         )
 
         with pytest.raises(RoutingError):
-            await adapter.route(request)
+            await motis_adapter_online.route(request)
 
 
-async def test_malformed_api_response_handling(adapter: MotisPlanApiAdapter) -> None:
+async def test_malformed_api_response_handling(
+    motis_adapter_online: MotisPlanApiAdapter,
+) -> None:
     """Test handling of malformed API responses."""
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Simulate malformed response
@@ -78,11 +64,13 @@ async def test_malformed_api_response_handling(adapter: MotisPlanApiAdapter) -> 
             max_results=1,
         )
 
-        response = await adapter.route(request)
+        response = await motis_adapter_online.route(request)
         assert response.routes == []
 
 
-async def test_http_error_status_handling(adapter: MotisPlanApiAdapter) -> None:
+async def test_http_error_status_handling(
+    motis_adapter_online: MotisPlanApiAdapter,
+) -> None:
     """Test handling of HTTP error status codes."""
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Simulate HTTP 500 error
@@ -101,10 +89,12 @@ async def test_http_error_status_handling(adapter: MotisPlanApiAdapter) -> None:
         )
 
         with pytest.raises(RoutingError):
-            await adapter.route(request)
+            await motis_adapter_online.route(request)
 
 
-async def test_invalid_json_response_handling(adapter: MotisPlanApiAdapter) -> None:
+async def test_invalid_json_response_handling(
+    motis_adapter_online: MotisPlanApiAdapter,
+) -> None:
     """Test handling of invalid JSON responses."""
     with patch("httpx.AsyncClient.get", new_callable=AsyncMock) as mock_get:
         # Simulate invalid JSON
@@ -125,50 +115,4 @@ async def test_invalid_json_response_handling(adapter: MotisPlanApiAdapter) -> N
         )
 
         with pytest.raises(RoutingError):
-            await adapter.route(request)
-
-
-async def test_empty_fixture_directory(tmp_path: str) -> None:
-    """Test handling of empty fixture directories."""
-    empty_dir = tmp_path / "empty"
-    empty_dir.mkdir()
-
-    adapter = create_motis_adapter(use_fixtures=True, fixture_path=empty_dir)
-    request = ABRoutingRequest(
-        origin=Location(lat=48.1, lon=11.5),
-        destination=Location(lat=48.2, lon=11.6),
-        modes=[Mode.WALK],
-        max_results=1,
-    )
-
-    try:
-        with pytest.raises(RoutingError):
-            await adapter.route(request)
-    finally:
-        # For fixture-based adapters, close might not be needed, but let's be safe
-        if hasattr(adapter.motis_client, "close"):
-            await adapter.motis_client.close()
-
-
-async def test_corrupted_fixture_file_handling(
-    tmp_path: pytest.TempPathFactory,
-) -> None:
-    """Test handling of corrupted fixture files."""
-    # Create a corrupted JSON file
-    corrupted_file = tmp_path / "test_motis_routes_corrupted.json"
-    corrupted_file.write_text("{ invalid json content")
-
-    adapter = create_motis_adapter(use_fixtures=True, fixture_path=tmp_path)
-    request = ABRoutingRequest(
-        origin=Location(lat=48.1, lon=11.5),
-        destination=Location(lat=48.2, lon=11.6),
-        modes=[Mode.WALK],
-        max_results=1,
-    )
-
-    try:
-        with pytest.raises(RoutingError):
-            await adapter.route(request)
-    finally:
-        if hasattr(adapter.motis_client, "close"):
-            await adapter.motis_client.close()
+            await motis_adapter_online.route(request)

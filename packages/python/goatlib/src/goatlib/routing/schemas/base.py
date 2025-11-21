@@ -24,26 +24,66 @@ class CatchmentAreaType(StrEnum):
     rectangular_grid = "rectangular_grid"
 
 
+class CatchmentAreaRoutingModeActiveMobility(StrEnum):
+    """Routing active mobility type schema."""
+
+    walking = "walking"
+    wheelchair = "wheelchair"
+    bicycle = "bicycle"
+    pedelec = "pedelec"
+
+
+class CatchmentAreaRoutingTypeCar(StrEnum):
+    """Routing car type schema."""
+
+    car = "car"
+
+
+class CatchmentAreaRoutingModePT(StrEnum):
+    """Routing public transport mode schema."""
+
+    bus = "bus"
+    tram = "tram"
+    rail = "rail"
+    subway = "subway"
+    ferry = "ferry"
+    cable_car = "cable_car"
+    gondola = "gondola"
+    funicular = "funicular"
+
+
 class Mode(StrEnum):
     # Active mobility
-    WALK = "WALK"
-    BIKE = "BIKE"
+    WALK = "walk"
+    BIKE = "bicycle"
 
     # Public transport
-    TRAM = "TRAM"
-    SUBWAY = "SUBWAY"
-    RAIL = "RAIL"
-    BUS = "BUS"
-    FERRY = "FERRY"
-    CABLE_CAR = "CABLE_CAR"
-    FUNICULAR = "FUNICULAR"
+    TRAM = "tram"
+    SUBWAY = "subway"
+    RAIL = "rail"
+    BUS = "bus"
+    FERRY = "ferry"
+    CABLE_CAR = "cable_car"
+    GONDOLA = "gondola"
+    FUNICULAR = "funicular"
 
     # Private transport
-    CAR = "CAR"
+    CAR = "car"
 
+    # TODO decide if keep it and define which public transportation modes are included
     # Meta-modes
-    TRANSIT = "TRANSIT"  # Any public transport mode
-    OTHER = "OTHER"  # Fallback for unknown modes
+    TRANSIT = "transit"  # Any public transport mode
+    OTHER = "other"  # Fallback for unknown modes
+
+
+# --- Constants for Validation ---
+MAX_SPEEDS_KMH = {
+    Mode.BUS: 120,
+    Mode.TRAM: 80,
+    Mode.SUBWAY: 120,
+    Mode.RAIL: 400,
+}
+DEFAULT_MAX_SPEED_KMH = 250
 
 
 class Location(BaseModel):

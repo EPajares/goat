@@ -16,10 +16,10 @@ from goatlib.routing.schemas.base import Location, Mode
 from ..distance_utils import haversine_distance
 from .motis_mappings import (
     INTERNAL_TO_MOTIS_MODE_MAP,
-    MOTIS_CONFIG,
     MOTIS_TO_INTERNAL_MODE_MAP,
     MotisMode,
 )
+from .motis_settings import motis_settings
 
 logger = logging.getLogger(__name__)
 
@@ -29,18 +29,18 @@ def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
     Converts an internal ABRoutingRequest directly into the URL query parameters
     required by the standard MOTIS v5/plan GET API.
     """
-    # Pull the relevant sections from the main config for readability
-    params_cfg = MOTIS_CONFIG["request_params"]
-    defaults_cfg = MOTIS_CONFIG["defaults"]
+    # Pull the relevant sections from the settings for readability
+    params = motis_settings.request_params
+    defaults = motis_settings.defaults
 
     # 1. Start with the required MOTIS parameters
     api_params = {
-        params_cfg["origin"]: f"{request.origin.lat},{request.origin.lon}",
-        params_cfg[
-            "destination"
-        ]: f"{request.destination.lat},{request.destination.lon}",
-        params_cfg["detailed_transters"]: (
-            request.detailed_transfers or defaults_cfg["detailed_transters"]
+        params.origin: f"{request.origin.lat},{request.origin.lon}",
+        params.destination: f"{request.destination.lat},{request.destination.lon}",
+        params.detailed_transfers: (
+            request.detailed_transfers
+            if request.detailed_transfers is not None
+            else defaults.detailed_transfers
         ),
     }
 
@@ -48,15 +48,16 @@ def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
 
     # Handle time (optional)
     if request.time:
-        api_params[params_cfg["time"]] = request.time.isoformat()
+        api_params[params.time] = request.time.isoformat()
 
     # Handle internal default parameters
-    api_params[params_cfg["num_itineraries"]] = defaults_cfg["num_itineraries"]
-    api_params[params_cfg["max_results"]] = defaults_cfg["max_results"]
+    api_params[params.num_itineraries] = defaults.num_itineraries
 
     # Handle arriveBy (with default)
-    api_params[params_cfg["time_is_arrival"]] = (
-        request.time_is_arrival or defaults_cfg["time_is_arrival"]
+    api_params[params.time_is_arrival] = (
+        request.time_is_arrival
+        if request.time_is_arrival is not None
+        else defaults.time_is_arrival
     )
 
     # 3. Handle transport modes with mapping and default
@@ -68,11 +69,13 @@ def tranlsate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
         if m in INTERNAL_TO_MOTIS_MODE_MAP
     ]
 
-    # Use the mapped modes if any exist, otherwise use the default string
+    # Use the mapped modes if any exist, otherwise use the default
     if motis_modes:
-        api_params[params_cfg["mode"]] = ",".join(motis_modes)
+        api_params[params.transit_modes] = ",".join(motis_modes)
     else:
-        api_params[params_cfg["mode"]] = defaults_cfg["mode"]
+        # Use default transit modes
+        default_modes = [mode.value for mode in defaults.transit_modes]
+        api_params[params.transit_modes] = ",".join(default_modes)
 
     return api_params
 
@@ -86,8 +89,8 @@ def parse_motis_response(motis_data: Dict[str, Any]) -> ABRoutingResponse:
     """
     routes = []
 
-    response_fields = MOTIS_CONFIG["response_fields"]
-    itineraries = motis_data.get(response_fields["itineraries"], [])
+    # MOTIS response has "itineraries" at the top level
+    itineraries = motis_data.get("itineraries", [])
 
     if itineraries:
         for idx, itinerary in enumerate(itineraries):
@@ -111,10 +114,9 @@ def _convert_itinerary_to_route(
     Convert a MOTIS itinerary to an ABRoute, calculating a simple,
     heuristic total distance.
     """
-    itinerary_fields = MOTIS_CONFIG["itinerary_fields"]
+    itinerary_fields = motis_settings.itinerary_fields
 
-    route_duration = itinerary[itinerary_fields["duration"]]
-    original_legs_data = itinerary[itinerary_fields["legs"]]
+    original_legs_data = itinerary[itinerary_fields.legs]
 
     if not original_legs_data:
         raise ParsingError(f"Itinerary {itinerary_idx} has no legs.")
@@ -127,11 +129,9 @@ def _convert_itinerary_to_route(
     for leg in parsed_legs:
         distance += leg.distance
 
-    # TODO: improve distance calculation using polylines?
-
     return ABRoute(
         route_id=f"motis_route_{itinerary_idx}",
-        duration=route_duration,
+        duration=itinerary[itinerary_fields.duration],
         distance=distance,
         departure_time=parsed_legs[0].departure_time,
         legs=parsed_legs,
@@ -145,20 +145,20 @@ def _convert_leg_to_ab_leg(
     STRICTLY converts a MOTIS leg to an ABLeg object, but
     DOES NOT calculate or trust the distance field.
     """
-    leg_fields = MOTIS_CONFIG["leg_fields"]
+    leg_fields = motis_settings.leg_fields
 
     mode = _extract_transport_mode(leg)
     origin, destination = _extract_locations(leg)
     departure_time, arrival_time = _extract_timing(leg)
 
-    distance = leg.get(leg_fields["distance"], 0.0)
+    distance = leg.get(leg_fields.distance, 0.0)
     if distance <= 0:
         # in case of public transport leg, calculate distance from lat/lon with haversine
         distance = haversine_distance(
             origin.lat, origin.lon, destination.lat, destination.lon
         )
 
-    duration = leg[leg_fields["duration"]]
+    duration = leg[leg_fields.duration]
     if duration <= 0:
         # in case of public transport leg, calculate duration from departure and arrival times
         time_difference: timedelta = arrival_time - departure_time
@@ -178,8 +178,8 @@ def _convert_leg_to_ab_leg(
 
 def _extract_transport_mode(leg: Dict[str, Any]) -> Mode:
     """Extract and convert transport mode from MOTIS leg."""
-    leg_fields = MOTIS_CONFIG["leg_fields"]
-    mode_str = leg[leg_fields["mode"]]
+    leg_fields = motis_settings.leg_fields
+    mode_str = leg[leg_fields.mode]
 
     if mode_str in MOTIS_TO_INTERNAL_MODE_MAP:
         return MOTIS_TO_INTERNAL_MODE_MAP[mode_str]
@@ -194,20 +194,20 @@ def _extract_transport_mode(leg: Dict[str, Any]) -> Mode:
 
 def _extract_locations(leg: Dict[str, Any]) -> tuple[Location, Location]:
     """Extract origin and destination locations from MOTIS leg."""
-    leg_fields = MOTIS_CONFIG["leg_fields"]
-    location_fields = MOTIS_CONFIG["location_fields"]
+    leg_fields = motis_settings.leg_fields
+    location_fields = motis_settings.location_fields
 
-    from_data = leg[leg_fields["from"]]
-    to_data = leg[leg_fields["to"]]
+    from_data = leg[leg_fields.from_loc]
+    to_data = leg[leg_fields.to_loc]
 
     origin = Location(
-        lat=from_data[location_fields["lat"]],
-        lon=from_data[location_fields["lon"]],
+        lat=from_data[location_fields.lat],
+        lon=from_data[location_fields.lon],
     )
 
     destination = Location(
-        lat=to_data[location_fields["lat"]],
-        lon=to_data[location_fields["lon"]],
+        lat=to_data[location_fields.lat],
+        lon=to_data[location_fields.lon],
     )
 
     return origin, destination
@@ -215,9 +215,9 @@ def _extract_locations(leg: Dict[str, Any]) -> tuple[Location, Location]:
 
 def _extract_timing(leg: Dict[str, Any]) -> tuple[datetime, datetime]:
     """Extract departure and arrival times from MOTIS leg."""
-    leg_fields = MOTIS_CONFIG["leg_fields"]
-    start_time_str = leg[leg_fields["start_time"]]
-    end_time_str = leg[leg_fields["end_time"]]
+    leg_fields = motis_settings.leg_fields
+    start_time_str = leg[leg_fields.start_time]
+    end_time_str = leg[leg_fields.end_time]
 
     # Convert ISO string timestamps to datetime objects
     departure_time = (
