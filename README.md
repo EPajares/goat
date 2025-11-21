@@ -22,7 +22,7 @@ Intelligent software for modern web mapping and integrated planning
 
 <br/>
 
-## ✨ About GOAT
+## About GOAT
 
 <img width="1527" alt="goat-sneak" src="https://assets.plan4better.de/img/goat_screenshot.png">
 
@@ -42,7 +42,7 @@ For more information check out:
 
 <br/>
 
-## 👨‍💻 Built on Open Source
+## Built on Open Source
 
 GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
 
@@ -80,7 +80,7 @@ GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
 <br/>
 
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker
 
@@ -213,6 +213,42 @@ Only use this if you’re modifying the GOAT source code.
 | `NEXTAUTH_URL` | URL for Auth.js backend |
 | `NEXTAUTH_SECRET` | Secret key for Auth.js sessions |
 
+
+## License
+
+GOAT is a commercial open‑source project. The core platform is licensed under the
+[GNU General Public License v3.0 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.en.html),
+which allows anyone to use, modify, and distribute the software under the terms of the GPL.
+
+Some components, such as the Accounts API and features related to user management,
+teams, or organizations, are not open source and are provided under a commercial
+license. These components are not required for running the core platform but are
+available for organizations that need advanced functionality, hosted deployments,
+or enterprise‑level capabilities.
+
+This structure makes GOAT accessible for individuals, research institutions,
+and public administrations, while ensuring long‑term sustainability through
+optional commercial services.
+
+
+|                                   | GPLv3 | Commercial |
+| --------------------------------- | ----- | ---------- |
+| Self‑host the core platform       | ✅    | ✅         |
+| Use for commercial purposes       | ✅    | ✅         |
+| Clone privately                   | ✅    | ✅         |
+| Fork publicly                     | ✅    | ✅         |
+| Modify and redistribute           | ✅    | ❌ (closed parts excluded) |
+| Official support                  | ❌    | ✅         |
+| Derivative work kept private      | ❌    | ✅ (for commercial components only) |
+| Accounts API                      | ❌    | ✅         |
+| Users / Profiles API              | ❌    | ✅         |
+| Teams / Organizations API         | ❌    | ✅         |
+| Authentication integrations       | ❌    | ✅         |
+| Hosted SaaS version               | ❌    | ✅         |
+
+
+## Contributing
+We welcome contributions of all kinds, bug reports, documentation improvements, new features, and feedback that helps strengthen the platform. Please see our [contributing guide](/CONTRIBUTING.md).
 
 
 ## 📚 Scientific Publications
