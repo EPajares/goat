@@ -79,6 +79,142 @@ GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
 
 <br/>
 
+
+## 🚀 Deployment
+
+### Docker
+
+**Official support:** We provide a maintained `docker-compose.yml` for running the full GOAT stack in a production‑like environment.
+
+**Important:** While we provide Docker resources, **self‑hosted deployments are community‑supported**. We do not offer official support for managing your infrastructure.
+
+The images for each GOAT service are published on GitHub Container Registry.
+
+
+### Requirements
+
+Make sure the following are installed on your server or local machine:
+
+- Docker  
+- Docker Compose (plugin syntax: `docker compose`)  
+- At least 8 GB RAM recommended
+
+### Running GOAT with Docker Compose (recommended for most users)
+
+The default `docker-compose.yml` provisions:
+
+- PostgreSQL with PostGIS  
+- Keycloak  
+- MinIO (S3 compatible storage)  
+- GOAT Core (FastAPI backend)  
+- GOAT GeoAPI (FastAPI backend for geodata)  
+- GOAT Web (Next.js frontend)
+
+#### 1. Clone the repository
+
+```
+git clone https://github.com/plan4better/goat.git
+cd goat
+```
+
+#### 2. Create your configuration file
+
+Copy `.env`:
+
+```
+cp .env.example .env
+```
+
+Update all required environment variables (see “Environment Variables” section below).
+
+#### 3. Pre‑pull all GOAT images (recommended)
+
+This ensures you always run the latest published versions and avoids building anything locally.
+
+```
+docker compose pull
+```
+
+#### 4. Start the GOAT stack
+
+```
+docker compose up -d
+```
+
+Since images were pulled beforehand, **no build steps will run** — everything starts immediately.
+
+#### 5. Access GOAT
+
+- Web UI: [http://localhost:3000](http://localhost:3000)
+- Core API: [http://localhost:8000/api](http://localhost:8000/api)
+- GeoAPI: [http://localhost:8100](http://localhost:8100)
+- MinIO Console: [http://localhost:9001](http://localhost:9001)
+- Keycloak Admin: [http://localhost:8080](http://localhost:8080)
+
+### Updating GOAT
+
+To update an existing installation:
+
+```
+docker compose down
+docker compose pull
+docker compose up -d
+```
+
+This will:
+
+1. Stop your stack  
+2. Fetch the latest published images  
+3. Restart without rebuilding  
+
+
+
+### Build Images Locally
+
+If you are developing the GOAT codebase or making changes to `apps/core`, `apps/geoapi`, or `apps/web`, you may need to build images manually.
+
+Run:
+
+```
+docker compose up -d --build
+```
+
+Only use this if you’re modifying the GOAT source code.
+
+### Required Environment Variables
+
+| Variable | Description |
+|---------|-------------|
+| `POSTGRES_USER` | Username for PostgreSQL authentication |
+| `POSTGRES_PASSWORD` | Password for PostgreSQL authentication |
+| `POSTGRES_SERVER` | Hostname of the Postgres service (usually `db`) |
+| `S3_PROVIDER` | Storage provider (e.g., `minio`) |
+| `S3_ACCESS_KEY_ID` | Access key for S3 / MinIO |
+| `S3_SECRET_ACCESS_KEY` | Secret key for S3 / MinIO |
+| `S3_ENDPOINT_URL` | Internal S3 endpoint (`http://minio:9000`) |
+| `S3_BUCKET_NAME` | Name of the S3 bucket to create/use |
+| `S3_REGION_NAME` | Region (may remain empty for MinIO) |
+| `S3_PUBLIC_ENDPOINT_URL` | Public URL for accessing S3 objects |
+| `KEYCLOAK_ADMIN` | Keycloak admin username |
+| `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin password |
+| `AUTH` | Backend auth flag (True/False) |
+| `NEXT_PUBLIC_APP_URL` | Public URL of the Web UI |
+| `NEXT_PUBLIC_API_URL` | Public URL of the Core API |
+| `NEXT_PUBLIC_GEOAPI_URL` | Public URL of the GeoAPI |
+| `NEXT_PUBLIC_ACCOUNTS_API_URL` | Public URL of Accounts API (optional) |
+| `NEXT_PUBLIC_DOCS_URL` | URL for documentation |
+| `NEXT_PUBLIC_MAP_TOKEN` | MapLibre/Mapbox token |
+| `NEXT_PUBLIC_KEYCLOAK_ISSUER` | Keycloak OpenID issuer URL |
+| `NEXT_PUBLIC_KEYCLOAK_CLIENT_ID` | Keycloak client ID |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak client secret |
+| `NEXT_PUBLIC_SENTRY_DSN` | Sentry DSN (optional) |
+| `NEXT_PUBLIC_AUTH_DISABLED` | Enable/disable auth in frontend |
+| `NEXT_PUBLIC_ACCOUNTS_DISABLED` | Enable/disable accounts features |
+| `NEXTAUTH_URL` | URL for Auth.js backend |
+| `NEXTAUTH_SECRET` | Secret key for Auth.js sessions |
+
+
+
 ## 📚 Scientific Publications
 
 If you are interested in scientific publications related to GOAT check out the following:
