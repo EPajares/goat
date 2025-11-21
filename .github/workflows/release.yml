@@ -41,6 +41,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/web/Dockerfile
+      platforms: linux/amd64,linux/arm64
       image-names: |
         ghcr.io/${{ github.repository }}/web
 
@@ -63,7 +64,7 @@ jobs:
   release-docker-geoapi:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.geoapi == 'true' ||
-        startsWith(github.ref, 'refs/tags/v')
+      startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/reusable-docker-build.yml
     permissions:
       contents: read
@@ -122,6 +123,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/storybook/Dockerfile
+      platforms: linux/amd64,linux/arm64
       image-names: |
         ghcr.io/${{ github.repository }}/storybook
 
@@ -138,6 +140,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/docs/Dockerfile
+      platforms: linux/amd64,linux/arm64
       image-names: |
         ghcr.io/${{ github.repository }}/docs
 
