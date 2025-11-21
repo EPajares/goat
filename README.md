@@ -24,7 +24,17 @@ Intelligent software for modern web mapping and integrated planning
 
 ## ✨ About GOAT
 
-<img width="1527" alt="goat-sneak" src="https://assets.plan4better.de/img/goat_screenshot.png">
+<p align="center">
+  <picture>
+    <!-- Dark theme -->
+    <source srcset="https://assets.plan4better.de/img/goat_screenshot_dark.png" media="(prefers-color-scheme: dark)">
+    <!-- Light theme -->
+    <source srcset="https://assets.plan4better.de/img/goat_screenshot_light.png" media="(prefers-color-scheme: light)">
+    <!-- Fallback -->
+    <img src="https://assets.plan4better.de/img/goat_screenshot.png" alt="GOAT Screenshot" width="1527">
+  </picture>
+</p>
+
 
 <br/>
 
