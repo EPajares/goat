@@ -229,8 +229,7 @@ license. These components are not required for running the core platform but are
 available for organizations that need advanced functionality, hosted deployments,
 or enterprise‑level capabilities.
 
-This structure makes GOAT accessible for individuals, research institutions,
-and public administrations, while ensuring long‑term sustainability through
+This structure makes GOAT accessible for everyone, while providing extended functionalities through
 optional commercial services.
 
 
@@ -243,8 +242,6 @@ optional commercial services.
 | Modify and redistribute           | ✅    | ❌ (closed parts excluded) |
 | Official support                  | ❌    | ✅         |
 | Derivative work kept private      | ❌    | ✅ (for commercial components only) |
-| Accounts API                      | ❌    | ✅         |
-| Users / Profiles API              | ❌    | ✅         |
 | Teams / Organizations API         | ❌    | ✅         |
 | Authentication integrations       | ❌    | ✅         |
 | Hosted SaaS version               | ❌    | ✅         |
