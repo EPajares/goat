@@ -215,6 +215,12 @@ Only use this if you’re modifying the GOAT source code.
 
 
 
+
+## Contributing
+
+Please see our [contributing guide](/CONTRIBUTING.md).
+
+
 ## 📚 Scientific Publications
 
 If you are interested in scientific publications related to GOAT check out the following:
