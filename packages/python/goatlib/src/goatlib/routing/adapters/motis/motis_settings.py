@@ -215,6 +215,99 @@ class Endpoints(BaseSettings):
     debug_transfers: str = "/api/debug/transfers"  # Debug transfers
 
 
+class OneToAllParams(BaseSettings):
+    """Maps internal keys to MOTIS one-to-all API request parameter names."""
+
+    # Core location and travel constraints
+    origin: str = "one"  # Origin point for one-to-all calculation
+    max_travel_time: str = "maxTravelTime"  # In minutes
+    time: str = "time"  # Time in ISO date-time format
+    arrive_by: str = "arriveBy"  # true = all to one, false = one to all
+
+    # Transport mode configuration
+    transit_modes: str = "transitModes"  # Comma-separated transit modes
+    pre_transit_modes: str = (
+        "preTransitModes"  # How to reach transit (WALK, BIKE, etc.)
+    )
+    post_transit_modes: str = (
+        "postTransitModes"  # How to leave transit (WALK, BIKE, etc.)
+    )
+
+    # Advanced routing parameters
+    max_transfers: str = "maxTransfers"
+    min_transfer_time: str = "minTransferTime"  # Minimum transfer time in minutes
+    additional_transfer_time: str = (
+        "additionalTransferTime"  # Additional transfer time in minutes
+    )
+    transfer_time_factor: str = (
+        "transferTimeFactor"  # Factor to multiply transfer times
+    )
+
+    # Performance and quality settings
+    max_matching_distance: str = (
+        "maxMatchingDistance"  # Maximum matching distance in meters
+    )
+    use_routed_transfers: str = "useRoutedTransfers"  # Whether to use routed transfers
+    pedestrian_profile: str = "pedestrianProfile"  # FOOT or WHEELCHAIR
+    pedestrian_speed: str = "pedestrianSpeed"  # Average pedestrian speed
+    cycling_speed: str = "cyclingSpeed"  # Average cycling speed
+    elevation_costs: str = "elevationCosts"  # NONE, LOW, HIGH
+
+    # Transit requirements
+    require_bike_transport: str = "requireBikeTransport"  # Require bike carriage
+    require_car_transport: str = "requireCarTransport"  # Require car carriage
+
+    # Time constraints for street legs
+    max_pre_transit_time: str = (
+        "maxPreTransitTime"  # Max time to reach transit (seconds)
+    )
+    max_post_transit_time: str = "maxPostTransitTime"  # Max time from transit (seconds)
+
+
+class OneToAllFields(BaseSettings):
+    """Expected fields in MOTIS one-to-all API response."""
+
+    # Top-level response structure
+    one: str = "one"  # Origin location information
+    all: str = "all"  # Array of reachable locations
+    statistics: str = "statistics"  # Performance/calculation stats
+
+    # Fields within each reachable location
+    place: str = "place"  # Place/location object
+    lat: str = "lat"
+    lon: str = "lon"
+    travel_time: str = "duration"  # Travel time to this location (minutes)
+    name: str = "name"  # Stop/location name
+    stop_id: str = "stopId"  # Stop ID
+    arrival: str = "arrival"  # Arrival time
+    vertex_type: str = "vertexType"  # Type of vertex (TRANSIT, etc.)
+
+    # Optional route information
+    importance: str = "importance"  # Stop importance score
+    level: str = "level"  # Level/floor information
+
+
+class OneToAllDefaults(BaseSettings):
+    """Default values for one-to-all API requests based on official MOTIS documentation."""
+
+    max_travel_time: int = 90  # 90 minutes default max travel time
+    arrive_by: bool = False  # false = one to all, true = all to one
+    min_transfer_time: int = 0  # 0 minutes minimum transfer time
+    additional_transfer_time: int = 0  # 0 minutes additional transfer time
+    transfer_time_factor: float = 1.0  # 1.0 factor for transfer times
+    max_matching_distance: float = 25.0  # 25 meters maximum matching distance
+    use_routed_transfers: bool = False  # false = use basic transfers
+    pedestrian_profile: str = "FOOT"  # FOOT accessibility profile
+    elevation_costs: str = "NONE"  # NONE elevation costs
+    require_bike_transport: bool = False  # false = no bike transport requirement
+    require_car_transport: bool = False  # false = no car transport requirement
+    max_pre_transit_time: int = 900  # 15 minutes (900 seconds) to reach transit
+    max_post_transit_time: int = 900  # 15 minutes (900 seconds) from transit
+    transit_modes: list = ["TRANSIT"]  # Default all transit modes
+    pre_transit_modes: list = ["WALK"]  # Default walking to transit
+    post_transit_modes: list = ["WALK"]  # Default walking from transit
+
+
 # =====================================================================
 # THE MAIN SETTINGS OBJECT
 # =====================================================================
@@ -233,6 +326,11 @@ class MotisSettings(BaseSettings):
     location_fields: LocationFields = Field(default_factory=LocationFields)
     defaults: Defaults = Field(default_factory=Defaults)
     endpoints: Endpoints = Field(default_factory=Endpoints)
+
+    # One-to-all specific configurations
+    one_to_all_params: OneToAllParams = Field(default_factory=OneToAllParams)
+    one_to_all_fields: OneToAllFields = Field(default_factory=OneToAllFields)
+    one_to_all_defaults: OneToAllDefaults = Field(default_factory=OneToAllDefaults)
 
 
 # --- Create a single, importable instance of the settings ---

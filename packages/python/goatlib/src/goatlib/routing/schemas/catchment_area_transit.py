@@ -237,15 +237,15 @@ class TransitCatchmentAreaResponse(BaseModel):
 
 rrequest_examples_transit_catchment_area = {
     "basic_transit_catchment_area": {
-        "summary": "...",
+        "summary": "basic transit catchment area request",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["bus", "tram", "subway"],
             "travel_cost": {"max_traveltime": 60, "cutoffs": [15, 30, 45, 60]},
         },
     },
-    "bike_access_CatchmentArea": {
-        "summary": "...",
+    "bike_access_catchment_area": {
+        "summary": "bike access catchment area request",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["rail", "subway"],
@@ -254,8 +254,8 @@ rrequest_examples_transit_catchment_area = {
             "routing_settings": {"bike_settings": {"max_time": 25}},
         },
     },
-    "custom_speeds_CatchmentArea": {
-        "summary": "...",
+    "custom_speeds_catchment_area": {
+        "summary": "custom speeds catchment area request",
         "value": {
             "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
             "transit_modes": ["bus", "tram"],

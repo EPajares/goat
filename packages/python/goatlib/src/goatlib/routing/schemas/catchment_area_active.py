@@ -1,4 +1,3 @@
-from enum import Enum
 from typing import Any, Optional, Self
 from uuid import UUID
 
@@ -6,24 +5,11 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from routing.core.config import settings
 
 from goatlib.routing.schemas.base import (
+    CatchmentAreaRoutingTypeActiveMobility,
+    CatchmentAreaRoutingTypeCar,
     CatchmentAreaStartingPoints,
     CatchmentAreaType,
 )
-
-
-class CatchmentAreaRoutingTypeActiveMobility(str, Enum):
-    """Routing active mobility type schema."""
-
-    walking = "walking"
-    bicycle = "bicycle"
-    pedelec = "pedelec"
-    wheelchair = "wheelchair"
-
-
-class CatchmentAreaRoutingTypeCar(str, Enum):
-    """Routing car type schema."""
-
-    car = "car"
 
 
 class _BaseTravelTimeCost(BaseModel):

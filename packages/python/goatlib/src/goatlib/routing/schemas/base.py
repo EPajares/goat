@@ -24,7 +24,7 @@ class CatchmentAreaType(StrEnum):
     rectangular_grid = "rectangular_grid"
 
 
-class CatchmentAreaRoutingModeActiveMobility(StrEnum):
+class CatchmentAreaRoutingTypeActiveMobility(StrEnum):
     """Routing active mobility type schema."""
 
     walking = "walking"

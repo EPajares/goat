@@ -8,11 +8,17 @@ from goatlib.routing.schemas.ab_routing import (
     ABRoutingRequest,
     ABRoutingResponse,
 )
+from goatlib.routing.schemas.catchment_area_transit import (
+    TransitCatchmentAreaRequest,
+    TransitCatchmentAreaResponse,
+)
 
 from .motis_client import MotisServiceClient
 from .motis_converters import (
+    parse_motis_one_to_all_response,
     parse_motis_response,
-    tranlsate_to_motis_request,
+    translate_to_motis_request,
+    translate_to_motis_one_to_all_request,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +44,7 @@ class MotisPlanApiAdapter(RoutingService):
 
     async def route(self: Self, request: ABRoutingRequest) -> ABRoutingResponse:
         try:
-            request_data = tranlsate_to_motis_request(request)
+            request_data = translate_to_motis_request(request)
             motis_response = await self.motis_client.plan(request_data)
             response_data = parse_motis_response(motis_response)
 
@@ -47,6 +53,41 @@ class MotisPlanApiAdapter(RoutingService):
         except Exception as e:
             logger.error(f"Failed to execute routing request via MOTIS: {e}")
             raise RoutingError("Failed to process routing request via MOTIS") from e
+
+    async def get_transit_catchment_area(
+        self: Self, request: TransitCatchmentAreaRequest
+    ) -> TransitCatchmentAreaResponse:
+        """
+        Execute a transit catchment area request using MOTIS one-to-all API.
+
+        Args:
+            request: Transit catchment area request
+
+        Returns:
+            TransitCatchmentAreaResponse with isochrone polygons
+
+        Raises:
+            RoutingError: If the MOTIS service fails or returns invalid data
+        """
+        try:
+            # Convert our request to MOTIS one-to-all parameters
+            request_data = translate_to_motis_one_to_all_request(request)
+
+            # Call MOTIS one-to-all API
+            motis_response = await self.motis_client.one_to_all(request_data)
+
+            # Parse response and convert to our format
+            response_data = parse_motis_one_to_all_response(motis_response, request)
+
+            return response_data
+
+        except Exception as e:
+            logger.error(
+                f"Failed to execute transit catchment area request via MOTIS: {e}"
+            )
+            raise RoutingError(
+                "Failed to process transit catchment area request via MOTIS"
+            ) from e
 
 
 def create_motis_adapter(
