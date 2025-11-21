@@ -22,7 +22,7 @@ Intelligent software for modern web mapping and integrated planning
 
 <br/>
 
-## About GOAT
+## ✨ About GOAT
 
 <img width="1527" alt="goat-sneak" src="https://assets.plan4better.de/img/goat_screenshot.png">
 
@@ -80,9 +80,12 @@ GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
 <br/>
 
 
-## Deployment
+## 🚀 Getting started
 
-### Docker
+### ☁️ Cloud Version
+GOAT is also available as a fully hosted cloud service.  If you prefer not to manage your own infrastructure, you can get started instantly with our trial version and choose from one of our available subscription tiers. Get started at [goat.plan4better.de](https://goat.plan4better.de).
+
+### 🐳 Self-hosting (Docker)
 
 **Official support:** We provide a maintained `docker-compose.yml` for running the full GOAT stack in a production‑like environment.
 
@@ -91,7 +94,7 @@ GOAT is a **monorepo** project leveraging a modern, full-stack architecture.
 The images for each GOAT service are published on GitHub Container Registry.
 
 
-### Requirements
+#### Requirements
 
 Make sure the following are installed on your server or local machine:
 
@@ -99,7 +102,7 @@ Make sure the following are installed on your server or local machine:
 - Docker Compose (plugin syntax: `docker compose`)  
 - At least 8 GB RAM recommended
 
-### Running GOAT with Docker Compose (recommended for most users)
+#### Running GOAT with Docker Compose (recommended for most users)
 
 The default `docker-compose.yml` provisions:
 
@@ -151,7 +154,7 @@ Since images were pulled beforehand, **no build steps will run** — everything 
 - MinIO Console: [http://localhost:9001](http://localhost:9001)
 - Keycloak Admin: [http://localhost:8080](http://localhost:8080)
 
-### Updating GOAT
+#### Updating GOAT
 
 To update an existing installation:
 
@@ -169,7 +172,7 @@ This will:
 
 
 
-### Build Images Locally
+#### Build Images Locally
 
 If you are developing the GOAT codebase or making changes to `apps/core`, `apps/geoapi`, or `apps/web`, you may need to build images manually.
 
@@ -181,7 +184,7 @@ docker compose up -d --build
 
 Only use this if you’re modifying the GOAT source code.
 
-### Required Environment Variables
+#### Required Environment Variables
 
 | Variable | Description |
 |---------|-------------|
@@ -214,7 +217,7 @@ Only use this if you’re modifying the GOAT source code.
 | `NEXTAUTH_SECRET` | Secret key for Auth.js sessions |
 
 
-## License
+## 👩‍⚖️ License
 
 GOAT is a commercial open‑source project. The core platform is licensed under the
 [GNU General Public License v3.0 (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.en.html),
@@ -247,7 +250,7 @@ optional commercial services.
 | Hosted SaaS version               | ❌    | ✅         |
 
 
-## Contributing
+## ✍️ Contributing
 We welcome contributions of all kinds, bug reports, documentation improvements, new features, and feedback that helps strengthen the platform. Please see our [contributing guide](/CONTRIBUTING.md).
 
 
