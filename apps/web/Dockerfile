@@ -41,6 +41,7 @@ ARG NEXT_PUBLIC_ACCOUNTS_DISABLED=APP_NEXT_PUBLIC_ACCOUNTS_DISABLED
 
 RUN pnpm dlx turbo run build --filter=web
 
+
 FROM base AS runner
 RUN apk add bash
 
