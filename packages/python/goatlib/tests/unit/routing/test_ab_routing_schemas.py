@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
 
 import pytest
@@ -32,7 +32,7 @@ def valid_leg_data(valid_location_data: Dict[str, float]) -> Dict[str, Any]:
         "origin": valid_location_data,
         "destination": {"lat": 48.8606, "lon": 2.3376},
         "departure_time": now,
-        "arrival_time": now.replace(second=now.second + 5),
+        "arrival_time": now + timedelta(seconds=5),
         "duration": 300,
         "distance": 500,
     }

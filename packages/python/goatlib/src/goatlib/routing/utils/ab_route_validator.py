@@ -1,15 +1,10 @@
 import logging
 from typing import Dict, List, Optional, Tuple
 
-from goatlib.routing.schemas.ab_routing_enhanced import EnhancedABLeg, EnhancedABRoute
+from goatlib.routing.schemas.ab_routing import ABLeg, ABRoute
 from goatlib.routing.schemas.base import Location, Mode
 
 logger = logging.getLogger(__name__)
-
-"""
-Plausibility validation for MOTIS routing responses.
-This module provides comprehensive validation to ensure MOTIS responses make sense.
-"""
 
 
 class PlausibilityIssue:
@@ -62,7 +57,7 @@ class RouteValidator:
         self.max_walking_distance = 5000  # 5km max walking distance
         self.max_total_duration = 8 * 3600  # 8 hours max total trip
 
-    def validate_route(self, route: EnhancedABRoute) -> List[PlausibilityIssue]:
+    def validate_route(self, route: ABRoute) -> List[PlausibilityIssue]:
         """Validate a complete route and return list of issues."""
         issues = []
 
@@ -84,9 +79,7 @@ class RouteValidator:
 
         return issues
 
-    def _validate_route_duration(
-        self, route: EnhancedABRoute
-    ) -> List[PlausibilityIssue]:
+    def _validate_route_duration(self, route: ABRoute) -> List[PlausibilityIssue]:
         """Validate total route duration."""
         issues = []
 
@@ -98,21 +91,45 @@ class RouteValidator:
                 )
             )
 
-        # Check if total duration matches sum of legs
+        # Check if total duration matches sum of legs, accounting for waiting/transfer times
         leg_duration_sum = sum(leg.duration for leg in route.legs)
-        if abs(route.duration - leg_duration_sum) > 60:  # 1 minute tolerance
+
+        # Calculate expected waiting/transfer time between legs
+        total_waiting_time = 0
+        for i in range(len(route.legs) - 1):
+            current_leg = route.legs[i]
+            next_leg = route.legs[i + 1]
+            waiting = (
+                next_leg.departure_time - current_leg.arrival_time
+            ).total_seconds()
+            if waiting > 0:
+                total_waiting_time += waiting
+
+        # Expected total time = legs + waiting time
+        expected_total = leg_duration_sum + total_waiting_time
+        expected_diff = abs(route.duration - expected_total)
+
+        # Use a larger tolerance for routes with transfers
+        transfer_count = sum(
+            1
+            for i in range(len(route.legs) - 1)
+            if self._is_transit_mode(route.legs[i].mode)
+            and self._is_transit_mode(route.legs[i + 1].mode)
+        )
+
+        tolerance = 60 + (transfer_count * 120)  # Base 1 min + 2 min per transfer
+
+        if expected_diff > tolerance:
             issues.append(
                 PlausibilityIssue(
-                    "warning",
-                    f"Route duration ({route.duration:.0f}s) doesn't match sum of legs ({leg_duration_sum:.0f}s)",
+                    "info",  # Reduced to info since MOTIS may have different calculation
+                    f"Route duration ({route.duration:.0f}s) doesn't match legs + waiting ({expected_total:.0f}s)",
                 )
             )
 
         return issues
 
-    def _validate_route_connectivity(
-        self, route: EnhancedABRoute
-    ) -> List[PlausibilityIssue]:
+    def _validate_route_connectivity(self, route: ABRoute) -> List[PlausibilityIssue]:
         """Validate that legs connect properly."""
         issues = []
 
@@ -137,44 +154,65 @@ class RouteValidator:
                 next_leg.departure_time - current_leg.arrival_time
             ).total_seconds()
 
-            if time_gap < 0:
+            # Allow small overlaps for realistic transit scenarios
+            # Walking to transit can have small overlap as you board before walking "officially ends"
+            max_acceptable_overlap = 120  # 2 minutes tolerance
+
+            if time_gap < -max_acceptable_overlap:
                 issues.append(
                     PlausibilityIssue(
                         "error",
-                        f"Time overlap: next leg starts {-time_gap:.0f}s before previous ends",
+                        f"Large time overlap: next leg starts {-time_gap:.0f}s before previous ends",
                         i,
                     )
                 )
-            elif (
-                time_gap > self.max_transfer_time
-                and current_leg.is_transit
-                and next_leg.is_transit
-            ):
-                issues.append(
-                    PlausibilityIssue(
-                        "warning",
-                        f"Very long transfer time: {time_gap/60:.1f} minutes",
-                        i,
+            elif -max_acceptable_overlap <= time_gap < 0:
+                # Small overlap is acceptable, especially for walking to transit
+                if not (
+                    current_leg.mode == Mode.WALK
+                    and self._is_transit_mode(next_leg.mode)
+                ):
+                    issues.append(
+                        PlausibilityIssue(
+                            "warning",
+                            f"Small time overlap: next leg starts {-time_gap:.0f}s before previous ends",
+                            i,
+                        )
                     )
-                )
+            elif time_gap > self.max_transfer_time:
+                # Check if both legs are transit
+                if self._is_transit_mode(current_leg.mode) and self._is_transit_mode(
+                    next_leg.mode
+                ):
+                    issues.append(
+                        PlausibilityIssue(
+                            "warning",
+                            f"Very long transfer time: {time_gap/60:.1f} minutes",
+                            i,
+                        )
+                    )
 
         return issues
 
-    def _validate_walking_distance(
-        self, route: EnhancedABRoute
-    ) -> List[PlausibilityIssue]:
+    def _validate_walking_distance(self, route: ABRoute) -> List[PlausibilityIssue]:
         """Validate total walking distance."""
         issues = []
 
-        if route.walking_distance > self.max_walking_distance:
-            km = route.walking_distance / 1000
+        total_walking = sum(
+            leg.distance or 0
+            for leg in route.legs
+            if leg.mode == Mode.WALK and leg.distance
+        )
+
+        if total_walking > self.max_walking_distance:
+            km = total_walking / 1000
             issues.append(
                 PlausibilityIssue("warning", f"Very long walking distance: {km:.1f}km")
             )
 
         return issues
 
-    def _validate_leg(self, leg: EnhancedABLeg, index: int) -> List[PlausibilityIssue]:
+    def _validate_leg(self, leg: ABLeg, index: int) -> List[PlausibilityIssue]:
         """Validate individual leg plausibility."""
         issues = []
 
@@ -184,9 +222,9 @@ class RouteValidator:
                 PlausibilityIssue("error", f"Invalid duration: {leg.duration}s", index)
             )
 
-        # Speed validation
+        # Speed validation - only for legs where distance is reliable
         if leg.distance and leg.duration > 0:
-            speed = leg.speed_kmh
+            speed = self._calculate_speed_kmh(leg)
 
             max_speed = self.max_speeds.get(leg.mode, 200.0)
             min_speed = self.min_speeds.get(leg.mode, 0.1)
@@ -200,9 +238,12 @@ class RouteValidator:
                     )
                 )
 
+            # Only check minimum speed for walking/cycling where distance is more reliable
             if (
-                speed < min_speed and leg.distance > 100
-            ):  # Only check for meaningful distances
+                not self._is_transit_mode(leg.mode)
+                and speed < min_speed
+                and leg.distance > 100
+            ):
                 issues.append(
                     PlausibilityIssue(
                         "warning",
@@ -211,55 +252,56 @@ class RouteValidator:
                     )
                 )
 
-        # Transit-specific validations
-        if leg.is_transit:
-            issues.extend(self._validate_transit_leg(leg, index))
-
-        return issues
-
-    def _validate_transit_leg(
-        self, leg: EnhancedABLeg, index: int
-    ) -> List[PlausibilityIssue]:
-        """Validate transit-specific aspects of a leg."""
-        issues = []
-
-        # Check for transit info
-        if not leg.transit_info:
-            issues.append(
-                PlausibilityIssue(
-                    "warning", "Transit leg missing line information", index
-                )
-            )
-        else:
-            # Validate transit info completeness
-            if (
-                not leg.transit_info.route_short_name
-                and not leg.transit_info.route_long_name
-            ):
-                issues.append(
-                    PlausibilityIssue("info", "Transit leg missing route name", index)
-                )
-
-            if not leg.transit_info.agency_name:
+        # Distance validation - simplified approach to avoid MOTIS calculation issues
+        if leg.distance and leg.distance > 0:
+            # Only flag obviously problematic distances
+            if leg.distance > 100000:  # More than 100km for a single leg
                 issues.append(
                     PlausibilityIssue(
-                        "info", "Transit leg missing agency information", index
+                        "warning",
+                        f"Extremely long leg distance: {leg.distance/1000:.1f}km",
+                        index,
                     )
                 )
 
-        # Check stop information
-        if not leg.origin_stop or not leg.destination_stop:
-            issues.append(
-                PlausibilityIssue("info", "Transit leg missing stop information", index)
-            )
+            # For walking legs, we can still do some basic validation since MOTIS provides actual distance
+            if leg.mode == Mode.WALK:
+                straight_line = self._calculate_distance(leg.origin, leg.destination)
+                if straight_line > 0:
+                    ratio = leg.distance / straight_line
+                    if (
+                        ratio > 10
+                    ):  # More than 10x straight line for walking is suspicious
+                        issues.append(
+                            PlausibilityIssue(
+                                "warning",
+                                f"Walking distance seems excessive: {ratio:.1f}x straight line distance",
+                                index,
+                            )
+                        )
+                    elif (
+                        ratio < 0.8
+                    ):  # Walking shorter than straight line is impossible
+                        issues.append(
+                            PlausibilityIssue(
+                                "error",
+                                f"Walking distance shorter than straight line: {ratio:.1f}x",
+                                index,
+                            )
+                        )
 
         return issues
 
-    def _validate_transfers(self, route: EnhancedABRoute) -> List[PlausibilityIssue]:
+    def _validate_transfers(self, route: ABRoute) -> List[PlausibilityIssue]:
         """Validate transfer patterns and times."""
         issues = []
 
-        transit_legs = [i for i, leg in enumerate(route.legs) if leg.is_transit]
+        # Find transit legs
+        transit_legs = [
+            (i, leg)
+            for i, leg in enumerate(route.legs)
+            if self._is_transit_mode(leg.mode)
+        ]
 
         # Check transfer count
         if len(transit_legs) > 5:
@@ -269,13 +311,10 @@ class RouteValidator:
                 )
             )
 
-        # Check transfer times
+        # Check transfer times between consecutive transit legs
         for i in range(len(transit_legs) - 1):
-            current_idx = transit_legs[i]
-            next_idx = transit_legs[i + 1]
-
-            current_leg = route.legs[current_idx]
-            next_leg = route.legs[next_idx]
+            current_idx, current_leg = transit_legs[i]
+            next_idx, next_leg = transit_legs[i + 1]
 
             # Calculate transfer time (including any walking legs in between)
             transfer_start = current_leg.arrival_time
@@ -290,8 +329,26 @@ class RouteValidator:
                         current_idx,
                     )
                 )
+            elif transfer_time > self.max_transfer_time:
+                issues.append(
+                    PlausibilityIssue(
+                        "warning",
+                        f"Very long transfer: {transfer_time/60:.1f} minutes",
+                        current_idx,
+                    )
+                )
 
         return issues
+
+    def _is_transit_mode(self, mode: Mode) -> bool:
+        """Check if mode is public transit."""
+        return mode in [Mode.TRANSIT, Mode.BUS, Mode.TRAM, Mode.RAIL, Mode.SUBWAY]
+
+    def _calculate_speed_kmh(self, leg: ABLeg) -> float:
+        """Calculate average speed in km/h for a leg."""
+        if leg.duration <= 0 or not leg.distance:
+            return 0.0
+        return (leg.distance / 1000) / (leg.duration / 3600)
 
     def _calculate_distance(self, loc1: Location, loc2: Location) -> float:
         """Calculate distance between two locations in meters (Haversine)."""
@@ -314,7 +371,7 @@ class RouteValidator:
         return r * c
 
     def validate_and_score(
-        self, route: EnhancedABRoute
+        self, route: ABRoute
     ) -> Tuple[List[PlausibilityIssue], float]:
         """Validate route and return a plausibility score (0-100, higher is better)."""
         issues = self.validate_route(route)
@@ -376,8 +433,32 @@ class ValidationReport:
             },
         }
 
+    def print_summary(self) -> None:
+        """Print a human-readable summary."""
+        summary = self.get_summary()
 
-def validate_route_response(routes: List[EnhancedABRoute]) -> ValidationReport:
+        print("\n" + "=" * 50)
+        print("ROUTE VALIDATION SUMMARY")
+        print("=" * 50)
+        print(f"Routes validated: {summary['routes_validated']}")
+        print(f"Total issues found: {summary['total_issues']}")
+        print(f"Average quality score: {summary['average_score']:.1f}/100")
+        print()
+
+        print("Issues by severity:")
+        for severity, count in summary["issues_by_severity"].items():
+            print(f"  {severity.title()}: {count}")
+        print()
+
+        if summary["most_common_issues"]:
+            print("Most common issues:")
+            for issue, count in summary["most_common_issues"]:
+                print(f"  {issue}: {count} routes")
+
+        print("=" * 50 + "\n")
+
+
+def validate_route_response(routes: List[ABRoute]) -> ValidationReport:
     """Validate a list of routes and return comprehensive report."""
     validator = RouteValidator()
     report = ValidationReport()
@@ -394,3 +475,19 @@ def validate_route_response(routes: List[EnhancedABRoute]) -> ValidationReport:
                 logger.warning(f"Route validation: {issue}")
 
     return report
+
+
+def validate_single_route(
+    route: ABRoute, verbose: bool = True
+) -> Tuple[List[PlausibilityIssue], float]:
+    """Validate a single route and optionally print results."""
+    validator = RouteValidator()
+    issues, score = validator.validate_and_score(route)
+
+    if verbose and issues:
+        print(f"\nRoute Validation (Score: {score:.1f}/100)")
+        print("-" * 30)
+        for issue in issues:
+            print(f"  {issue}")
+
+    return issues, score

@@ -1,15 +1,10 @@
-"""
-Benchmark tests for MOTIS one-to-all (catchment area) functionality.
-Measures timing, memory usage, and network bandwidth for performance analysis.
-"""
-
 import asyncio
 import json
 import time
 import tracemalloc
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 import psutil
 import pytest
@@ -207,10 +202,10 @@ async def test_motis_one_to_all_performance_benchmark():
         filepath = save_benchmark_results(metrics, "motis_one_to_all_performance")
 
         # === PRINT SUMMARY ===
-        print(f"\n🚀 MOTIS One-to-All Performance Benchmark Results:")
-        print(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("\n🚀 MOTIS One-to-All Performance Benchmark Results:")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-        print(f"\n⏱️  Timing Breakdown:")
+        print("\n⏱️  Timing Breakdown:")
         print(
             f"   Pre-request:     {metrics.timings.get('pre_request_duration', 0):.3f}s"
         )
@@ -222,13 +217,13 @@ async def test_motis_one_to_all_performance_benchmark():
             f"   Total:           {sum(v for k, v in metrics.timings.items() if k.endswith('_duration')):.3f}s"
         )
 
-        print(f"\n💾 Memory Usage:")
+        print("\n💾 Memory Usage:")
         for phase, mem in metrics.memory_usage.items():
             print(
                 f"   {phase:15}: Current {mem['current_mb']:.1f}MB, Peak {mem['peak_mb']:.1f}MB, Process RSS {mem['process_rss_mb']:.1f}MB"
             )
 
-        print(f"\n🌐 Network Stats:")
+        print("\n🌐 Network Stats:")
         net = metrics.network_stats
         print(f"   Bytes sent:      {net.get('bytes_sent', 0):,}")
         print(f"   Bytes received:  {net.get('bytes_received', 0):,}")
@@ -236,7 +231,7 @@ async def test_motis_one_to_all_performance_benchmark():
             f"   Total bandwidth: {(net.get('bytes_sent', 0) + net.get('bytes_received', 0)) / 1024:.1f} KB"
         )
 
-        print(f"\n📊 Response Stats:")
+        print("\n📊 Response Stats:")
         stats = metrics.response_stats
         print(f"   Polygons:        {stats['polygon_count']}")
         print(f"   Total coords:    {stats['total_coordinates']:,}")

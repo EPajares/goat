@@ -4,7 +4,7 @@ import time
 import tracemalloc
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 import psutil
 import pytest
@@ -101,7 +101,7 @@ class ABRoutingPerformanceMetrics:
         self: "ABRoutingPerformanceMetrics", response: ABRoutingResponse
     ) -> None:
         """Record comprehensive plausibility validation statistics."""
-        from goatlib.routing.validation.route_plausibility import (
+        from goatlib.routing.utils.ab_route_validator import (
             validate_route_response,
         )
 

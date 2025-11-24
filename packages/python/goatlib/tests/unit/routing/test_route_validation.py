@@ -1,21 +1,11 @@
-"""
-Test plausibility validation with real AB routing data.
-"""
-
-import asyncio
-import logging
 from datetime import datetime, timezone
 
-from goatlib.routing.validation.route_plausibility import (
-    validate_single_route,
+from goatlib.routing.schemas.ab_routing import ABLeg, ABRoute
+from goatlib.routing.schemas.base import Location, Mode
+from goatlib.routing.utils.ab_route_validator import (
     validate_route_response,
+    validate_single_route,
 )
-from goatlib.routing.schemas.ab_routing import ABLeg, ABRoute, ABRoutingRequest
-from goatlib.routing.schemas.base import Mode, Location
-
-# Set up logging to see validation messages
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def create_sample_route() -> ABRoute:
@@ -98,44 +88,58 @@ def create_problematic_route() -> ABRoute:
     return route
 
 
-async def test_plausibility_validation():
-    """Test the plausibility validation system."""
-    print("=" * 60)
-    print("TESTING AB ROUTING PLAUSIBILITY VALIDATION")
-    print("=" * 60)
-
-    # Test 1: Good route
-    print("\n1. Testing GOOD route:")
+def test_good_route_validation() -> None:
+    """Test validation of a well-formed route."""
     good_route = create_sample_route()
-    issues, score = validate_single_route(good_route, verbose=True)
+    issues, score = validate_single_route(good_route, verbose=False)
 
-    if not issues:
-        print(f"✅ Good route passed validation with score {score:.1f}/100")
-    else:
-        print(f"⚠️ Good route has {len(issues)} issues (score: {score:.1f}/100)")
+    # A good route should have no major issues and high score
+    assert len(issues) == 0, f"Good route should have no issues, got {len(issues)}"
+    assert score >= 90, f"Good route should have high score, got {score}"
 
-    # Test 2: Problematic route
-    print("\n2. Testing PROBLEMATIC route:")
+
+def test_problematic_route_validation() -> None:
+    """Test validation catches problematic routes."""
     bad_route = create_problematic_route()
-    issues, score = validate_single_route(bad_route, verbose=True)
+    issues, score = validate_single_route(bad_route, verbose=False)
 
-    if issues:
-        print(
-            f"✅ Problematic route correctly identified {len(issues)} issues (score: {score:.1f}/100)"
-        )
-    else:
-        print("❌ Problematic route was not caught!")
+    # A bad route should have issues and low score
+    assert len(issues) > 0, "Problematic route should have validation issues"
+    assert score < 70, f"Problematic route should have low score, got {score}"
 
-    # Test 3: Bulk validation
-    print("\n3. Testing BULK validation:")
+    # Check that we catch the specific speed issue
+    speed_issues = [issue for issue in issues if "speed" in issue.message.lower()]
+    assert len(speed_issues) > 0, "Should catch speed-related issues"
+
+
+def test_bulk_route_validation() -> None:
+    """Test bulk validation of multiple routes."""
+    good_route = create_sample_route()
+    bad_route = create_problematic_route()
     routes = [good_route, bad_route, create_sample_route()]
+
     report = validate_route_response(routes)
-    report.print_summary()
 
-    print("\n" + "=" * 60)
-    print("PLAUSIBILITY VALIDATION TESTS COMPLETE")
-    print("=" * 60)
+    assert (
+        report.routes_validated == 3
+    ), f"Expected 3 routes, got {report.routes_validated}"
+    assert report.total_issues > 0, "Should find issues in problematic route"
+
+    avg_score = sum(report.scores) / len(report.scores) if report.scores else 0
+    assert avg_score < 100, "Average score should be less than perfect with bad route"
 
 
-if __name__ == "__main__":
-    asyncio.run(test_plausibility_validation())
+def test_route_leg_consistency() -> None:
+    """Test that route validation checks leg consistency."""
+    route = create_sample_route()
+
+    # Ensure the route has consistent timing across legs
+    assert route.legs[0].arrival_time <= route.legs[1].departure_time
+    assert route.legs[1].arrival_time <= route.legs[2].departure_time
+
+    # Validate the route
+    issues, score = validate_single_route(route, verbose=False)
+    timing_issues = [issue for issue in issues if "time" in issue.message.lower()]
+
+    # Should not have timing issues with our well-formed route
+    assert len(timing_issues) == 0, "Well-formed route should not have timing issues"

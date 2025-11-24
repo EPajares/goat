@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 
 from pydantic import ValidationError
 
+from goatlib.analysis.schemas.vector import BufferParams
 from goatlib.routing.errors import ParsingError
 from goatlib.routing.schemas.ab_routing import (
     ABLeg,
@@ -372,23 +373,40 @@ def parse_motis_one_to_all_response(
         cutoffs = request.travel_cost.cutoffs
         polygons = []
 
+        # Note: Minimal validation approach adopted here
+        # - Input validation happens at Pydantic schema level
+        # - Only critical coordinate bounds checking retained for geometry calculation safety
         for cutoff in cutoffs:
             # Find all locations reachable within this cutoff (in minutes)
             reachable_within_cutoff = []
 
             for loc in reachable_locations:
-                # Get travel duration in seconds from MOTIS, convert to minutes
-                duration_seconds = loc.get(fields.travel_time, 0)
-                duration_minutes = duration_seconds / 60.0
+                # Get travel duration in minutes from MOTIS
+                duration_minutes = loc.get(fields.travel_time, 0)
 
                 if duration_minutes <= cutoff:
                     # Extract place information
                     place = loc.get(fields.place, {})
                     if place:
+                        lat = place.get(fields.lat)
+                        lon = place.get(fields.lon)
+
+                        # Minimal coordinate validation - only check existence and bounds
+                        if (
+                            lat is None
+                            or lon is None
+                            or not (-90 <= lat <= 90)
+                            or not (-180 <= lon <= 180)
+                        ):
+                            logger.warning(
+                                f"Invalid coordinates in MOTIS location: lat={lat}, lon={lon}"
+                            )
+                            continue
+
                         reachable_within_cutoff.append(
                             {
-                                "lat": place.get(fields.lat, 0),
-                                "lon": place.get(fields.lon, 0),
+                                "lat": lat,
+                                "lon": lon,
                                 "duration_minutes": duration_minutes,
                                 "name": place.get(fields.name, "Unknown"),
                                 "stop_id": place.get(fields.stop_id, ""),
@@ -409,6 +427,14 @@ def parse_motis_one_to_all_response(
             metadata={
                 "total_locations": len(reachable_locations),
                 "source": "motis_one_to_all",
+                "request_max_travel_time": request.travel_cost.max_traveltime,
+                "cutoffs_requested": request.travel_cost.cutoffs,
+                "polygons_generated": len(polygons),
+                "locations_with_valid_coordinates": sum(
+                    len(polygon.geometry.get("coordinates", [[]])[0])
+                    for polygon in polygons
+                    if polygon.geometry.get("coordinates")
+                ),
             },
         )
 
@@ -466,3 +492,111 @@ def _create_polygon_from_points(
     ]
 
     return {"type": "Polygon", "coordinates": bbox_coordinates}
+
+
+def create_bus_station_buffers(
+    reachable_locations: List[Dict[str, Any]],
+    buffer_distances: List[float] = [200, 400, 600],
+    dissolve: bool = True,
+    output_path: str = "/tmp/bus_station_buffers.geojson",
+) -> BufferParams:
+    """
+    Create BufferParams for buffering bus stations from MOTIS one-to-all response.
+
+    Args:
+        reachable_locations: List of reachable location data from MOTIS
+        buffer_distances: List of buffer distances in meters (default: 200m, 400m, 600m)
+        dissolve: Whether to dissolve overlapping buffers (default: True)
+        output_path: Output path for buffered geometries
+
+    Returns:
+        BufferParams configured for bus station buffering
+
+    Example:
+        >>> # After getting MOTIS one-to-all response
+        >>> reachable_locations = motis_response.get("all", [])
+        >>>
+        >>> # Create buffer configuration
+        >>> buffer_config = create_bus_station_buffers(
+        ...     reachable_locations=reachable_locations,
+        ...     buffer_distances=[300, 500, 800],  # 300m, 500m, 800m buffers
+        ...     dissolve=True,
+        ...     output_path="/output/munich_bus_station_buffers.geojson"
+        ... )
+        >>>
+        >>> # Use with your spatial analysis library
+        >>> # buffer_results = your_gis_processor.process(buffer_config)
+    """
+    from goatlib.analysis.schemas.vector import BufferParams
+
+    # Create temporary input file path for bus station points
+    input_path = "/tmp/bus_stations_points.geojson"
+
+    # Log information about the stations
+    logger.info(f"Creating buffers for {len(reachable_locations)} bus stations")
+    logger.info(f"Buffer distances: {buffer_distances} meters")
+    logger.info(f"Dissolve overlapping buffers: {dissolve}")
+
+    # Create BufferParams with the provided configuration
+    buffer_params = BufferParams(
+        input_path=input_path,
+        output_path=output_path,
+        distances=buffer_distances,
+        units="meters",
+        dissolve=dissolve,
+        num_triangles=16,  # Smoother buffers for transit stations
+        cap_style="CAP_ROUND",  # Round caps for stations
+        join_style="JOIN_ROUND",  # Round joins for smoother appearance
+        output_crs="EPSG:4326",  # WGS84 for compatibility
+        output_name="bus_station_buffers",
+    )
+
+    return buffer_params
+
+
+def extract_bus_stations_for_buffering(
+    motis_data: Dict[str, Any], min_frequency: int = 1
+) -> List[Dict[str, Any]]:
+    """
+    Extract bus station information from MOTIS one-to-all response for buffer analysis.
+
+    Args:
+        motis_data: Raw MOTIS one-to-all response
+        min_frequency: Minimum frequency threshold for station inclusion
+
+    Returns:
+        List of bus station data suitable for buffering
+    """
+    fields = motis_settings.one_to_all_fields
+    stations = []
+
+    reachable_locations = motis_data.get(fields.all, [])
+
+    for loc in reachable_locations:
+        place = loc.get(fields.place, {})
+        if place:
+            lat = place.get(fields.lat)
+            lon = place.get(fields.lon)
+            station_name = place.get(fields.name, "Unknown Station")
+            duration = loc.get(fields.travel_time, 0)
+
+            # Basic coordinate validation
+            if (
+                lat is not None
+                and lon is not None
+                and -90 <= lat <= 90
+                and -180 <= lon <= 180
+            ):
+                stations.append(
+                    {
+                        "name": station_name,
+                        "lat": lat,
+                        "lon": lon,
+                        "duration_minutes": duration,
+                        "stop_id": place.get(fields.stop_id, ""),
+                        "coordinates": [lon, lat],  # GeoJSON format
+                    }
+                )
+
+    logger.info(f"Extracted {len(stations)} valid bus stations for buffering")
+    return stations

@@ -17,8 +17,8 @@ from .motis_client import MotisServiceClient
 from .motis_converters import (
     parse_motis_one_to_all_response,
     parse_motis_response,
-    translate_to_motis_request,
     translate_to_motis_one_to_all_request,
+    translate_to_motis_request,
 )
 
 logger = logging.getLogger(__name__)

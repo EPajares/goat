@@ -1,8 +1,3 @@
-"""
-Integration tests for MOTIS adapter one-to-all (catchment area) functionality.
-Tests the complete end-to-end flow for transit catchment area requests.
-"""
-
 import pytest
 from goatlib.routing.schemas.catchment_area_transit import (
     AccessEgressMode,
