@@ -7,7 +7,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 Der ÖV-Güteklassen Indikator **klassifiziert die Qualität der öffentlichen Verkehrsdienste in einem bestimmten Gebiet** und hilft Planern und Interessengruppen dabei, gut versorgte und unterversorgte Standorte schnell zu identifizieren.
 
-<iframe width="674" height="378" src="https://www.youtube.com/embed/7YMhKkg2mtU?si=enegyhjWdH7ymn15" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/hX0Lau9-slg?si=jBL2tJB2QLp83qAZ&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
@@ -99,7 +101,7 @@ Wenn Sie auf ein ÖV-Güteklassen-Ergebnis klicken, sehen Sie weitere Details wi
 
 Wenn Sie auf eine beliebige Station klicken, können Sie Details wie den **Haltestellennamen**, die **durchschnittliche Frequenz** und die **Stationskategorie** sehen.
 
-![Berechnung - ÖV-Güteklassen](/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif "Berechnung - ÖV-Güteklassen")
+<img src={require('/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif').default} alt="Berechnung - ÖV-Güteklassen" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
 
 ## 4. Technische Details
 
@@ -127,11 +129,12 @@ Zunächst wird die Anzahl der Abfahrten pro öffentlichem Verkehrsmittel (Zug, U
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_de.webp').default} alt="Klassifikation der Verkehrshaltestellen" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', gap: '20px', flexWrap: 'wrap', marginBottom: '20px' }}>
+    <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_de.webp').default} alt="Klassifikation der Verkehrshaltestellen" style={{ maxHeight: "auto", maxWidth: "45%", objectFit: "cover"}}/>
+    <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_de.webp').default} alt="Bestimmung der ÖV-Güteklassen" style={{ maxHeight: "auto", maxWidth: "45%", objectFit: "cover"}}/>
+  </div>
 
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_de.webp').default} alt="Bestimmung der ÖV-Güteklassen" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
-
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_de.png').default} alt="ÖV-Güteklassen Berechnung" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_de.png').default} alt="ÖV-Güteklassen Berechnung" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>
 </div>
 
 <div></div>

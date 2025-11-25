@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 The PT Nearby Stations indicator is used to **find public transport stops accessible by walking or cycling within a given time.** 
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
-<iframe width="674" height="378" src="https://www.youtube.com/embed/JHU9ty0HVVc?si=QfsJuJa9RU1ps7ue" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/JHU9ty0HVVc?si=VTsQyLUdKxRcxA_B&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
 
 ## 1. Explanation
@@ -69,7 +69,7 @@ In case you need to perform analysis beyond this geofence, feel free to contact 
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Choose the <code>Station Access</code> mode for reaching the stations: **Walk**, **Bicycle**, or **Pedelec**.</div>
+  <div class="content">Choose the <code>Station Access</code> mode for reaching the stations: <strong>Walk</strong>, <strong>Bicycle</strong>, or <strong>Pedelec</strong>.</div>
 </div>
 
 <div class="step">
@@ -124,7 +124,12 @@ Once calculation finishes, the resulting layers are added to the map:
 
 Click on stations to view details including **stop name**, **access time**, and **service frequency**.
 
-![Result of Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif "Result of Public Transport Nearby Stations")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif').default} alt="Calculation - Public Transport Nearby Stations" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
+
+<p></p>
+
 
 
 :::tip Tip

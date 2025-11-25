@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Projects
 
-The **Projects** page is your central hub for creating, managing, and sharing projects in GOAT. Here you can organize all your work with a clear overview of your projects, categorized into **Personal Projects**, **Team Projects**, and **Organization-wide Projects**. Here you can:
+The Projects page is your **central hub for creating, managing, and sharing projects in GOAT.** Here you can organize all your work with a clear overview of your projects, categorized into Personal Projects, Team Projects, and Organization-wide Projects. Here you can:
 
 - **Organize projects** into custom folders for better structure
 - **Filter and sort** projects by name, creation date, or last update
@@ -13,7 +13,7 @@ The **Projects** page is your central hub for creating, managing, and sharing pr
 - **Delete projects** when no longer needed
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/workspace/projects/projects_general.png').default} alt="Projects Page in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/workspace/projects/projects_general.png').default} alt="Projects Page in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div> 
 
 
@@ -50,13 +50,13 @@ Follow these simple steps to create a new project:
 
 ## Managing Projects
 
-Access additional project options by clicking the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to any project. This allows you to:
+Access additional project options by clicking the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to any project. You have the following options:
 
-- **View and edit metadata** - Update project titles, descriptions, and other details
-- **Move to different folders** - Reorganize your project structure
-- **Share with others** - Collaborate by sharing projects with team members or your organization
-- **Delete projects** - Remove projects you no longer need
+- <code> Edit metadata </code> - Access and edit project metadata
+- <code>Move to folder</code> - Reorganize your project location
+- <code>Share</code> - Collaborate by sharing projects with team members or your organization
+- <code>Delete</code> - Remove projects you no longer need
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/workspace/projects/options.gif').default} alt="Project management options" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/workspace/projects/options.png').default} alt="Project management options" style={{ maxHeight: "auto", maxWidth: "60%"}}/>
 </div>

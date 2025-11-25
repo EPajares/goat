@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Project Elements
 
-This section of widgets offer extra elements to make your dashboard rounded: **Text**, **Divider**, and **Image**. Simply **drag and drop** widgets from the right sidebar to any panel on your dashboard. Customize each widget by clicking on it, which opens the **widget settings** in the right panel.
+This section of widgets offer **extra elements to make your dashboard rounded**: **Text**, **Divider**, and **Image**. 
 
 ## Text
 

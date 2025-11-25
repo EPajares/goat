@@ -17,11 +17,14 @@ import TabItem from '@theme/TabItem';
 
 GOAT uses zoom levels from **0 (world view) to 22 (street-level detail)**:
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
 | Zoom Level | Typical use case |
 |------------|------------------|
 | **0-8** | Global to regional context |
 | **9-14** | City to neighborhood analysis |
 | **15-22** | Street-level details |
+</div>
 
 :::info Default settings
 All layers are visible across zoom levels 1-22 unless configured otherwise.
@@ -36,7 +39,7 @@ All layers are visible across zoom levels 1-22 unless configured otherwise.
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Set your **range** by dragging the handles on the scale or manually entering values.</div>
+  <div class="content">Set your range by <strong>dragging the handles on the scale or manually entering values.</strong></div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>

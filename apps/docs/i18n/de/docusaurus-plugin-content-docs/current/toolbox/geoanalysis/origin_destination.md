@@ -18,15 +18,15 @@ Das Quelle-Ziel-Werkzeug erstellt **gerade Linien, die Startpunkte (Quellen) mit
 Das folgende Beispiel zeigt eine *Eingabetabelle (Matrix-Layer)* und die resultierenden *Quelle-Ziel-Linien* basierend auf den *Postleitzahlengebieten (Geometrie-Layer)*.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/toolbox/geoanalysis/origin_destination/od_example.png').default} alt="Quelle-Ziel Werkzeug in GOAT" style={{ maxHeight: "700px", maxWidth: "700px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/origin_destination/od_example.png').default} alt="Quelle-Ziel Werkzeug in GOAT" style={{ maxHeight: "auto", maxWidth: "500px", objectFit: "cover"}}/>
 </div> 
 
 
 ## 2. Beispiel-Anwendungsfälle
 
-- **Pendlerströme**: Visualisierung der Bewegungsströme zwischen Wohngebieten (Quellen) und Arbeitsplätzen (Zielen).
-- **Öffentlicher Verkehr**: Analyse der Fahrgastströme zwischen verschiedenen ÖV-Haltestellen oder Bahnhöfen.
-- **Einzelhandel**: Untersuchung der Einkaufsströme von Wohngebieten zu Einkaufsstandorten.
+- Visualisierung der Bewegungsströme zwischen Wohngebieten (Quellen) und Arbeitsplätzen (Zielen).
+- Analyse der Fahrgastströme zwischen verschiedenen ÖV-Haltestellen oder Bahnhöfen.
+- Untersuchung der Einkaufsströme von Wohngebieten zu Einkaufsstandorten.
 
 
 ## 3. Wie wird das Werkzeug verwendet?
@@ -45,7 +45,7 @@ Das folgende Beispiel zeigt eine *Eingabetabelle (Matrix-Layer)* und die resulti
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie Ihren <code>Geometrie-Layer</code>. Dies sollte ein Feature-Layer sein, der die Geometrien der Quellen und Ziele enthält und ein Attribut, das als Identifikator verwendet werden kann, um die QZ-Verbindungen mit den Geometrien zu verknüpfen.</div>
+  <div class="content">Wählen Sie Ihren <code>Geometrie-Layer</code>. Dies sollte ein <b>Feature-Layer sein, der die Geometrien der Quellen und Ziele enthält und ein Attribut, das als Identifikator verwendet werden kann</b>, um die QZ-Verbindungen mit den Geometrien zu verknüpfen.</div>
 </div>
 
 <div class="step">
@@ -57,17 +57,17 @@ Das folgende Beispiel zeigt eine *Eingabetabelle (Matrix-Layer)* und die resulti
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie die <code>Matrix-Tabelle</code>. Dies ist die Tabelle mit der Quelle-Ziel-Matrix und dem <code>Quell-Feld</code>.</div>
+  <div class="content">Wählen Sie die <code>Matrix-Tabelle</code>. Dies ist die <b>Tabelle mit der Quelle-Ziel-Matrix und dem Quell-Feld</b>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Wählen Sie Ihr <code>Ziel-Feld</code>. Dies ist das Feld, das die Ziele in der Quelle-Ziel-Matrix enthält.</div>
+  <div class="content">Wählen Sie Ihr <code>Ziel-Feld</code>. Dies ist <b>das Feld, das die Ziele in der Quelle-Ziel-Matrix enthält.</b></div>
 </div>
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Wählen Sie Ihr <code>Gewichtungs-Feld</code>. Dies ist das Feld, das die Gewichtungen in der Quelle-Ziel-Matrix enthält.</div>
+  <div class="content">Wählen Sie Ihr <code>Gewichtungs-Feld</code>. Dies ist das <b>Feld, das die Gewichtungen in der Quelle-Ziel-Matrix enthält</b>.</div>
 </div>
 
 <div class="step">
@@ -87,7 +87,7 @@ Sobald der Berechnungsprozess abgeschlossen ist, werden die resultierenden Layer
 
 Wenn Sie auf ein "Q-Z Relation"-Element auf der Karte klicken, können Sie die Attributdetails anzeigen, wie die **Quelle**, das **Ziel** und die **Gewichtung** dieser Relation.
 
-<img src={require('/img/toolbox/geoanalysis/origin_destination/result.png').default} alt="Quelle-Ziel Ergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+<img src={require('/img/toolbox/geoanalysis/origin_destination/result.png').default} alt="Quelle-Ziel Ergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 
 :::tip Tipp
 Möchten Sie Ihren Ergebnis-Layer stylen und schön aussehende Karten erstellen? Siehe [Styling](../../map/layer_style/styling).

@@ -9,7 +9,9 @@ import TabItem from '@theme/TabItem';
 
 The Aggregate Points tool **performs statistical analysis of points, e.g. count, sum, min, or max, and aggregates the information on polygons.**
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 <iframe width="674" height="378" src="https://www.youtube.com/embed/_ybPf_fuMLA?si=mX1-uugIA5LiCKss" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
@@ -17,7 +19,7 @@ The Aggregate Points tool can be used to **analyze the characteristics of points
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/toolbox/geoanalysis/aggregate_points/point_aggregation.png').default} alt="Point Aggregation" style={{ maxHeight: "600px", maxWidth: "600px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/aggregate_points/point_aggregation.png').default} alt="Point Aggregation" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 
 </div> 
 
@@ -44,7 +46,7 @@ The Aggregate Points tool can be used to **analyze the characteristics of points
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Select your <code> Source Layer</code>, which contains the data you like to aggregate.</div>
+  <div class="content">Select your <code> Source Layer</code>, which contains <strong>the data you like to aggregate</strong>.</div>
 </div>
 
 ### Summary Areas
@@ -57,8 +59,6 @@ The Aggregate Points tool can be used to **analyze the characteristics of points
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
 
- #### Polygon
-
 <div class="step">
   <div class="step-number">5</div>
   <div class="content">Select the <code>Area Layer</code> which contains the polygons on which you like to aggregate your point data.</div>
@@ -68,11 +68,9 @@ The Aggregate Points tool can be used to **analyze the characteristics of points
   </TabItem>
   <TabItem value="H3 Grid" label="H3 Grid" className="tabItemBox">
 
- #### H3 Grid
-
  <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>H3 Grid Resolution</code>. You can choose resolutions between <b>3</b> (average edge length of 69km) and <b>10</b> (average edge length of 70m).</div>
+  <div class="content">Select the <code>H3 Grid Resolution</code>. You can choose resolutions between 3 (average edge length of 69km) and 10 (average edge length of 70m).</div>
 </div>
 
 :::tip NOTE
@@ -114,6 +112,7 @@ As soon as the calculation process is finished, the resulting layer **"Aggregati
 
 <img src={require('/img/toolbox/geoanalysis/aggregate_points/aggregate_points_result.png').default} alt="Point Aggregation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto"}}/>
 
+<p></p>
 
 :::tip Tip
 Want to style your result layer and create nice-looking maps? See [Styling](../../map/layer_style/styling).

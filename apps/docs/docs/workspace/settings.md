@@ -4,7 +4,7 @@ sidebar_position: 6
 
 # Settings
 
-On the **Settings** page, you can view and modify your preferences and settings related to your **account, teams, organization, and subscriptions**. 
+On the Settings page, **you can view and modify your preferences and settings** related to your account, teams, organization, and subscriptions. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/settings/settings.png').default} alt="GOAT - Profile Settings" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -33,11 +33,11 @@ If you wish to **delete your account**, you can also do this in this section. Pl
 
 ## Teams Settings
 
-Simply clicking on a team, the **Teams Settings** will open. Here you can:
-- Create a New team by clicking on the <code>+ New Team</code> button
+Simply clicking on a team, the Teams Settings will open. Here you can:
+- Create a new team by clicking on the <code>+ New Team</code> button
 - Enter an already created teams:
-  - In the <code>Profile</code> tab, if you are the **owner of the team**, you can **rename** it, **modify the description** or **upload a logo or picture**. If you are a **member of the team** you can only view the team information.
-  - In the <code>Members</code> tab, if you are the **owner of the team**, you can **add** or **delete members**. If you are a **member of the team** you can only view the members list.
+  - In the <code>Profile</code> tab, if you are the **owner of the team, you can rename it, modify the description or upload a logo or picture**. If you are a **member of the team you can only view the team information**.
+  - In the <code>Members</code> tab, if you are the **owner of the team, you can add or delete members**. If you are a **member of the team you can only view the members list**.
 
 :::info
 
@@ -50,10 +50,10 @@ If you scroll down to the Danger zone on the Profile Tab, you also find an optio
 
 ## Organization Settings
 
-Under the **Organization Settings**, you can adjust the profile of your organization and manage the organization members:
+Under the Organization Settings, **you can adjust the profile of your organization and manage the organization members**:
 
-- In the <code>Profile</code> tab, you can change your **organization's name** and upload a **logo or picture**. 
-- In the <code>Members</code> tab, you can view the **members list** of your organization. By clicking on three dots <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> you can **manage their roles** and personal information. Furthermore, you can **invite new members** to join your organization by email.
+- In the <code>Profile</code> tab, you can **change your organization's name and upload a logo or picture**. 
+- In the <code>Members</code> tab, you can **view the members list of your organization**. By clicking on the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>more options</code> button you can **manage their roles and personal information**. Furthermore, you can **invite new members** to join your organization by email.
 
 :::info
 
@@ -69,7 +69,7 @@ If you scroll down to the Danger zone, you also find an option to **delete your 
 
 ## Subscriptions
 
-In the **Subscriptions** menu, you can view and change the **details of your subscription**. This allows you to stay informed about your subscription status and make any necessary adjustments to better suit your requirements. 
+In the Subscriptions menu, you can **view and change the details of your subscription**. This allows you to stay informed about your subscription status and make any necessary adjustments to better suit your requirements. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/settings/subscription_settings.png').default} alt="Subscription Details" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>

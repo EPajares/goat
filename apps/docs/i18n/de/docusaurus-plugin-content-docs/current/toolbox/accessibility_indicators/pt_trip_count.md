@@ -7,7 +7,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 Dieser Indikator zeigt die **durchschnittliche Anzahl der Abfahrten öffentlicher Verkehrsmittel** pro Stunde für jede Haltestelle des öffentlichen Verkehrs an.
 
-<iframe width="674" height="378" src="https://www.youtube.com/embed/2oRxWow9LBQ?si=YmElYi5cTTdkLtkF" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe  width="674" height="378" src="https://www.youtube.com/embed/psnuUksG7W4?si=dhLw5Gp0ThYHFd5l&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
@@ -82,7 +84,7 @@ Nach Abschluss der Berechnung wird ein neuer Layer namens <b>"Trip Count Station
 
 Klicken Sie auf Stationen, um Details anzuzeigen, einschließlich **Stationsname**, **Gesamtanzahl der Abfahrten** und **Abfahrten pro Verkehrsmittel**.
 
-![Menu Overview for Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/trip_count_calculation.gif "Menu Overview for Public Transport Trip Count")
+<img src={require('/img/toolbox/accessibility_indicators/trip_count/trip_count_calculation.gif').default} alt="Menu Overview for Public Transport Trip Count" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
 
 :::tip Tipp
 

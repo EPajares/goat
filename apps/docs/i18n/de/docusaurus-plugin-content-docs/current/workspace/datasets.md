@@ -176,7 +176,7 @@ Greifen Sie auf umfassende **Datensatz**-Verwaltungsoptionen über das <img src=
 - **Löschen** - **Datensätze** entfernen, die Sie nicht mehr benötigen
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/workspace/datasets/managing_datasets.gif').default} alt="Datensatz-Verwaltungsoptionen" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/workspace/datasets/managing_datasets.png').default} alt="Datensatz-Verwaltungsoptionen" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 </div>
 
 #### Datensatz-Metadaten und Vorschau

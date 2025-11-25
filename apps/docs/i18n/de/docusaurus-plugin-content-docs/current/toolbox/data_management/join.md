@@ -7,14 +7,14 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # Verknüpfen & Gruppieren
 
-Dieses **Werkzeug** ermöglicht es Ihnen, **Daten aus zwei Layern zu kombinieren und zusammenzufassen, indem ein Attribut in beiden abgeglichen wird**. Dies ist wesentlich für räumliche Analysen, Datenanreicherung und die Erstellung umfassender **Datensätze**.
+Dieses Werkzeug ermöglicht es Ihnen, **Daten aus zwei Layern zu kombinieren und zusammenzufassen, indem ein Attribut in beiden abgeglichen wird**. Dies ist wesentlich für räumliche Analysen, Datenanreicherung und die Erstellung umfassender Datensätze.
 
 
 ## 1. Erklärung
 
-Dieses **Werkzeug** ermöglicht es Ihnen, zwei **Datensätze** zu kombinieren, indem ihre Features durch ein gemeinsames Attribut (zum Beispiel eine ID oder einen Namen) verknüpft werden. **Das Ergebnis ist ein neuer Layer, der alle Attribute vom Ziel-Layer behält, plus einer zusätzlichen Spalte, die ausgewählte Informationen vom Verknüpfungs-Layer zusammenfasst.**
+Dieses Werkzeug ermöglicht es Ihnen, zwei Datensätze zu kombinieren, indem ihre Features durch ein gemeinsames Attribut (zum Beispiel eine ID oder einen Namen) verknüpft werden. **Das Ergebnis ist ein neuer Layer, der alle Attribute vom Ziel-Layer behält, plus einer zusätzlichen Spalte, die ausgewählte Informationen vom Verknüpfungs-Layer zusammenfasst.**
 
-**GOAT verwendet einen Inner Join, um die **Daten** zu kombinieren**. Das bedeutet, es gleicht Features (Zeilen) vom Ziel-Layer und dem Verknüpfungs-Layer ab, wo sie denselben Wert im gewählten Abgleichsfeld (Spalte) teilen.
+**GOAT verwendet einen Inner Join, um die Daten zu kombinieren**. Das bedeutet, es gleicht Features (Zeilen) vom Ziel-Layer und dem Verknüpfungs-Layer ab, wo sie denselben Wert im gewählten Abgleichsfeld (Spalte) teilen.
 **Nur Features, die in beiden Layern mit demselben Wert existieren, werden in die Ausgabe eingeschlossen.** Wenn ein Feature im Ziel-Layer kein passendes im Verknüpfungs-Layer hat, erscheint es nicht im Ergebnis.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -25,8 +25,8 @@ Dieses **Werkzeug** ermöglicht es Ihnen, zwei **Datensätze** zu kombinieren, i
 
 ## 2. Beispiel-Anwendungsfälle
 
-- Bevölkerungs**daten** zu Postleitzahl-Gebieten hinzufügen (Abgleich über Postleitzahl).
-- Umfrage**daten** mit Zensus-Bezirksgrenzen kombinieren (Abgleich über Bezirks-ID).
+- Bevölkerungsdaten zu Postleitzahl-Gebieten hinzufügen (Abgleich über Postleitzahl).
+- Umfragedaten mit Zensus-Bezirksgrenzen kombinieren (Abgleich über Bezirks-ID).
 - Pendlerzahlen mit Stadtgrenzen verknüpfen (Abgleich über Stadtname).
 
 ## 3. Wie verwendet man das Werkzeug?
@@ -45,19 +45,19 @@ Dieses **Werkzeug** ermöglicht es Ihnen, zwei **Datensätze** zu kombinieren, i
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">  Wählen Sie Ihren <code>Ziel-Layer</code>: die primäre Tabelle oder Layer, zu dem Sie zusätzliche **Daten** hinzufügen möchten. </div>
+  <div class="content">  Wählen Sie Ihren <code>Ziel-Layer</code>: die primäre Tabelle oder Layer, <b>zu dem Sie zusätzliche Daten hinzufügen möchten.</b> </div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie Ihren <code>Verknüpfungs-Layer</code>: die sekundäre Tabelle oder **Datensatz**, der die Datensätze und Attribute enthält, die in den Ziel-Layer eingefügt werden sollen. </div>
+  <div class="content">Wählen Sie Ihren <code>Verknüpfungs-Layer</code>: die sekundäre Tabelle oder Datensatz, <b>der die Datensätze und Attribute enthält, die in den Ziel-Layer eingefügt werden sollen.</b> </div>
 </div>
 
 ### Felder zum Abgleichen
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie das <code>Zielfeld</code> des Ziel-Layers, das Sie für den Abgleich der Datensätze beider Layer verwenden möchten.</div>
+  <div class="content">Wählen Sie das <code>Zielfeld</code> des Ziel-Layers, das Sie <b>für den Abgleich der Datensätze beider Layer verwenden möchten.</b></div>
 </div>
 
 <div class="step">
@@ -72,7 +72,7 @@ Dieses **Werkzeug** ermöglicht es Ihnen, zwei **Datensätze** zu kombinieren, i
   <div class="content"> Wählen Sie die <code>Statistikmethode</code>, die verwendet werden soll, um das Attribut zu verknüpfen. </div>
 </div>
 
-Sie können zwischen verschiedenen statistischen Operationen wählen. Einige Methoden sind nur für spezifische Datentypen verfügbar. Die folgende Liste bietet eine Übersicht über die verfügbaren Methoden:
+**Sie können zwischen verschiedenen statistischen Operationen wählen**. Einige Methoden sind nur für spezifische Datentypen verfügbar. Die folgende Liste bietet eine Übersicht über die verfügbaren Methoden:
 
 | Methode | Datentypen | Beschreibung |
 | -------|------| ------------|
@@ -96,13 +96,15 @@ Sie können zwischen verschiedenen statistischen Operationen wählen. Einige Met
 
 ### Ergebnisse
   
-Der resultierende Layer **"Verknüpfung"** wird zu Ihrem **Projekt** und zu den [Datensätzen](../../workspace/datasets) in Ihrem **Workspace** hinzugefügt. Dieser Layer enthält alle Informationen vom Ziel-Layer plus einer **zusätzlichen Spalte** mit den Ergebnissen aus der **statistischen Operation**. Sie können die Attribute anzeigen, indem Sie auf ein beliebiges Feature in der Karte klicken.
+Der resultierende Layer **"Verknüpfung"** wird zu Ihrem Projekt und zu den [Datensätzen](../../workspace/datasets) in Ihrem Workspace hinzugefügt. Dieser Layer enthält alle Informationen vom Ziel-Layer plus einer **zusätzlichen Spalte** mit den Ergebnissen aus der **statistischen Operation**. Sie können die Attribute anzeigen, indem Sie auf ein beliebiges Feature in der Karte klicken.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
   <img src={require('/img/toolbox/data_management/join/result.png').default} alt="Verknüpfungsergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
 </div> 
+
+<p></p>
 
 
 :::tip Tipp

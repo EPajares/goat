@@ -21,11 +21,11 @@ Sharing **does not duplicate** your data, only grants access to it.
 
 <div class="step">
    <div class="step-number">2</div>
-   <div class="content">View the list of Teams you are part of. Teams can represent departments or groups within your organization.</div>
+   <div class="content">Click on a <code>Team</code> and <b>view the list of Teams</b> you are part of. Teams can represent departments or groups within your organization.</div>
 </div>
 <div class="step">
    <div class="step-number">3</div>
-   <div class="content">Click on a <code>Team</code> and then on the <code>Members</code> tab to see the members and their roles.</div>
+   <div class="content">Then click on the <code>Members</code> tab to <b>see the members and their roles</b>.</div>
 </div>
 
 <div class="step">
@@ -33,7 +33,7 @@ Sharing **does not duplicate** your data, only grants access to it.
    <div class="content">If you are the <b>Owner</b> of the Organization, you can:
       <ul>
          <li>Click <code>+ New Member</code> to add a new member.</li>
-         <li>Click the <code>More options</code> menu <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '18px', maxWidth: '18px', verticalAlign: 'middle'}}/> next to a member to see more options: <code>Delete</code> to remove a member</li>
+         <li>Click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '18px', maxWidth: '18px', verticalAlign: 'middle'}}/> menu and then on <code>Delete</code> to remove a member</li>
       </ul>
    </div>
 </div>
@@ -53,15 +53,15 @@ When you share a dataset/project with a Team/Organization, all members will have
 
 <div class="step">
    <div class="step-number">1</div>
-   <div class="content">Click the <code>More options</code> menu <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> on your dataset or project.</div>
+   <div class="content">Click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> menu on your dataset or project.</div>
 </div>
 <div class="step">
    <div class="step-number">2</div>
-   <div class="content">Select <b>Share</b> and choose to share with an Organization or Team.</div>
+   <div class="content">Select <code>Share</code> and choose to share with an Organization or Team.</div>
 </div>
 <div class="step">
    <div class="step-number">3</div>
-   <div class="content">Grant all members <b>viewer</b> or <b>editor</b> access as needed.</div>
+   <div class="content">Grant all members <code>viewer</code> or <code>editor</code> access as needed.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -72,16 +72,16 @@ When you share a dataset/project with a Team/Organization, all members will have
 
 <div class="step">
    <div class="step-number">4</div>
-   <div class="content">If you want to withdraw access, click the <code>More options</code> menu <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> on your dataset or project and select <code>no access</code>.</div>
+   <div class="content">If you want to withdraw access, click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> menu on your dataset or project and select <code>no access</code>.</div>
 </div>
 
 ### Accessing Shared Items
 
 You can find shared items in your workspace:
 
-- Projects shared with you: <code>Workspace</code> → <code>Projects</code> → <code>Teams</code> / <code>Organizations</code>
+- **Projects shared with you**: <code>Workspace</code> → <code>Projects</code> → <code>Teams</code> / <code>Organizations</code>
   
-- Datasets shared with you: <code>Workspace</code> → <code>Datasets</code> → <code>Teams</code> / <code>Organizations</code>
+- **Datasets shared with you**: <code>Workspace</code> → <code>Datasets</code> → <code>Teams</code> / <code>Organizations</code>
 
 
 ## Roles
@@ -89,14 +89,13 @@ You can find shared items in your workspace:
 See the table below to learn what each user can do within an Organization/Team and in a shared Dataset/Project:
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/sharing/sharing_roles_table.png').default} alt="Roles Table in GOAT" style={{ maxHeight: "Auto", maxWidth: "Auto", objectFit: "cover"}}/>
+  <img src={require('/img/sharing/sharing_roles_table.png').default} alt="Roles Table in GOAT" style={{ maxHeight: "Auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div>
 <p> </p>
 
 :::info Important
 
 Deleting a dataset from a shared project **that you own** will cause it to be *deleted for other users as well*.
-
 **As an editor** if you delete a dataset or (layer from the) project, the *owner will still have it in their personal dataset*.
 
 :::

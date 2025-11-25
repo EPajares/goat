@@ -13,6 +13,7 @@ import TabItem from '@theme/TabItem';
   <img src={require('/img/map/styling/popup.png').default} alt="Popup zeigt Feature-Informationen an" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
 
+
 ## Wie man Popups konfiguriert
 
 <div class="step">
@@ -22,17 +23,17 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Wählen Sie Ihre <code>Anzeigen</code> Option: **Bei Klick** um Popup mit ausgewählten Feldern beim Klicken auf Features zu zeigen, oder **Niemals** für kein Popup</div>
+  <div class="content">Wählen Sie Ihre <code>Anzeigen</code> Option: <code>Bei Klick</code> um Popup mit ausgewählten Feldern beim Klicken auf Features zu zeigen, oder <code>Niemals</code> für kein Popup</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Klicken Sie auf <code>+ Inhalt hinzufügen</code> und wählen Sie die **Attributfelder** aus, die Sie im Popup anzeigen möchten (Sie können mehrere Felder auswählen)</div>
+  <div class="content">Klicken Sie auf <code>+ Inhalt hinzufügen</code> und wählen Sie die <strong>Attributfelder</strong> aus, die Sie im Popup anzeigen möchten (Sie können mehrere Felder auswählen)</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Sie können **die Felder umbenennen** und sie **anordnen**, wie Sie möchten</div>
+  <div class="content">Sie können die Felder <strong>umbenennen</strong> und sie <strong>anordnen</strong>, wie Sie möchten</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -42,13 +43,14 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>Speichern</code> um **Ihre Änderungen anzuwenden**</div>
+  <div class="content">Klicken Sie auf <code>Speichern</code>, um <strong>Ihre Änderungen anzuwenden</strong></div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
   <div class="content">Sie können jetzt auf jedes Feature in Ihrem Layer klicken, um das angepasste Popup zu sehen und zu überprüfen, dass Ihre umbenannten Attribute korrekt erscheinen</div>
 </div>
+
 
 ## Bewährte Praktiken
 

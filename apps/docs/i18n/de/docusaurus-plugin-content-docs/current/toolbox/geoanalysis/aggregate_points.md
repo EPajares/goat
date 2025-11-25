@@ -9,7 +9,9 @@ import TabItem from '@theme/TabItem';
 
 Das Werkzeug "Punkte Aggregieren" **führt statistische Analysen von Punkten durch, z.B. Anzahl, Summe, Minimum oder Maximum, und aggregiert die Informationen auf Polygonen.**
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 <iframe width="674" height="378" src="https://www.youtube.com/embed/_ybPf_fuMLA?si=mX1-uugIA5LiCKss" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
@@ -17,7 +19,7 @@ Das Werkzeug "Punkte Aggregieren" kann verwendet werden, um **die Eigenschaften 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/toolbox/geoanalysis/aggregate_points/point_aggregation.png').default} alt="Punkt-Aggregation" style={{ maxHeight: "600px", maxWidth: "600px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/aggregate_points/point_aggregation.png').default} alt="Punkt-Aggregation" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 
 </div> 
 
@@ -44,35 +46,30 @@ Das Werkzeug "Punkte Aggregieren" kann verwendet werden, um **die Eigenschaften 
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie Ihren <code>Quell-Layer</code>, der die Daten enthält, die Sie aggregieren möchten.</div>
+  <div class="content">Wählen Sie Ihren <code>Quell-Layer</code>, <b>der die Daten enthält, die Sie aggregieren möchten.</b></div>
 </div>
 
 ### Zusammenfassungsbereiche
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie den <code>Bereichstyp</code>, auf dem Sie den Quell-Layer aggregieren möchten. Sie können zwischen <b>Polygon</b> oder <b>H3-Gitter</b> wählen.</div>
+  <div class="content">Wählen Sie, auf welchem <code>Bereichstyp</code> Sie den Quell-Layer aggregieren möchten. Sie können zwischen <b>Polygon</b> oder <b>H3-Gitter</b> wählen.</div>
 </div>
 
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
-
- #### Polygon
 
 <div class="step">
   <div class="step-number">5</div>
   <div class="content">Wählen Sie den <code>Bereichs-Layer</code>, der die Polygone enthält, auf denen Sie Ihre Punktdaten aggregieren möchten.</div>
 </div>
 
-
   </TabItem>
   <TabItem value="H3 Grid" label="H3 Grid" className="tabItemBox">
 
- #### H3-Gitter
-
  <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie die <code>H3-Gitter-Auflösung</code>. Sie können Auflösungen zwischen <b>3</b> (durchschnittliche Kantenlänge von 69km) und <b>10</b> (durchschnittliche Kantenlänge von 70m) wählen.</div>
+  <div class="content">Wählen Sie die <code>H3-Gitter-Auflösung</code>. Sie können Auflösungen zwischen 3 (durchschnittliche Kantenlänge von 69km) und 10 (durchschnittliche Kantenlänge von 70m) wählen.</div>
 </div>
 
 :::tip HINWEIS

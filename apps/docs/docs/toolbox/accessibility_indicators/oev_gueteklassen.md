@@ -7,8 +7,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 The ÖV-Güteklassen indicator **classifies the quality of public transport services in a given area**, helping planners and stakeholders quickly identify well-served and underserved locations.
 
-
-<iframe width="674" height="378" src="https://www.youtube.com/embed/7YMhKkg2mtU?si=enegyhjWdH7ymn15" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/7YMhKkg2mtU?si=Wy1-ZjKGeJWt-K-I&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
@@ -97,11 +98,13 @@ After calculation, two layers are added to the map:
 - **ÖV-Güteklassen**: Shows the quality class for each area.
 - **ÖV-Güteklassen Stations**: Shows all stations used in the calculation (grey points = too low frequency, don't contribute to any PT Quality Class).
 
-If you click on a ÖV-Güteklassen result your will see the further details, such as **Public Transport Class** and **Public Transport Class Number**. Both represent the quality of public transport in that area (see [calculation](#calculation) for more details).
+If you click on a ÖV-Güteklassen result **your will see the further details, such as Public Transport Class and Public Transport Class Number**. Both represent the quality of public transport in that area (see [calculation](#calculation) for more details).
 
-If you click on any station, you can see details such as the **stop name**, **average frequency**, and **station category**. 
+If you click on any station, **you can see details such as the stop name, average frequency, and station category**. 
 
-![Calculation - Public Transport Quality Classes](/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif "Calculation - Public Transport Quality Classes")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/gueteklassen/gueteklassen_calculation.gif').default} alt="Calculation - Public Transport Quality Classes" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
 ## 4. Technical details
 
@@ -130,11 +133,15 @@ First, the number of departures per public transport mode (train, metro, tram, a
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_en.webp').default} alt="Classification of transport stops" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/classification_stations_en.webp').default} alt="Classification of transport stops" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_en.webp').default} alt="Determination of Public Transport Quality Classes" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <p></p>
 
-  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_en.png').default} alt="ÖV-Güteklassen Calculation" style={{ maxHeight: "600px", maxWidth: "100%", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/determination_oev_gueteklasse_en.webp').default} alt="Determination of Public Transport Quality Classes" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
+ 
+  <p></p>
+
+  <img src={require('/img/toolbox/accessibility_indicators/gueteklassen/oev_figure_en.png').default} alt="ÖV-Güteklassen Calculation" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>
 </div>
 
 <div></div>

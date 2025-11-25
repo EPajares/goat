@@ -10,9 +10,7 @@ import TabItem from '@theme/TabItem';
 **Filter limits data visibility on your map** using logical expressions (e.g., supermarkets with specific names) or spatial expressions (e.g., points within a bounding box). **The filter allows you to focus on relevant information without altering original data.** It works with **point layers** and **polygon layers** containing `number` and `string` data types. 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/map/filter/filter_clicking.gif').default} alt="Filter tool in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
+  <img src={require('/img/map/filter/filter_clicking.gif').default} alt="Filter tool in GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div> 
 
 ## How to use the filter
@@ -21,22 +19,22 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select the layer to filter and click on the <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> icon on the **tools bar** on the right.</div>
+  <div class="content">Select the layer to filter and click on the <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> icon on the <b>tools bar</b> on the right.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">The <code>Active Layer</code> selector **shows the currently selected layer** for filtering.</div>
+  <div class="content">The <code>Active Layer</code> selector <strong>shows the currently selected layer</strong> for filtering.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Click <code>+ Add Expression</code> to **add a new filter expression**.</div>
+  <div class="content">Click <code>+ Add Expression</code> to <strong>add a new filter expression</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Choose <code>Logical Expression</code> or <code>Spatial Expression</code> to **define your filter type**.</div>
+  <div class="content">Choose <code>Logical Expression</code> or <code>Spatial Expression</code> to <strong>define your filter type</strong>.</div>
 </div>
 
 <Tabs>
@@ -44,13 +42,15 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Field</code> (attribute) to **filter by**.</div>
+  <div class="content">Select the <code>Field</code> (attribute) to <strong>filter by</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Choose the <code>Operator</code>. Available options **vary by data type**: number and string.</div>
+  <div class="content">Choose the <code>Operator</code>. Available options vary by data type: number and string.</div>
 </div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
 | Expressions for `number` | Expressions for `string` |
 | -------|----|
@@ -65,6 +65,8 @@ import TabItem from '@theme/TabItem';
 | is between | is empty string |
 |  | is not empty string |
 
+</div>
+
 
 :::tip Hint
 For the expressions **"includes"** and **"excludes"**, multiple values can be selected.
@@ -72,25 +74,25 @@ For the expressions **"includes"** and **"excludes"**, multiple values can be se
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Set your filter criteria. The map **updates automatically** and shows a filter icon on the filtered layer.</div>
+  <div class="content">Set your filter criteria. The map updates automatically and shows a filter icon on the filtered layer.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/map/filter/filter_atlayer.webp').default} alt="Filter Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/filter/filter_atlayer.webp').default} alt="Filter Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div> 
 </TabItem>
 
 <TabItem value="Spatial expression" label="Spatial expression" default className="tabItemBox">
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>intersection method</code> for **spatial boundary**.</div>
+  <div class="content">Select the <code>intersection method</code> for spatial boundary.</div>
 </div>
 
 <Tabs>
   <TabItem value="Map extent" label="Map extent" default className="tabItemBox">
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Layer **automatically crops** to current map extent. To change the filter, **zoom in/out** and refresh the map extent.</div>
+  <div class="content">Layer <strong>automatically crops to current map extent</strong>. To change the filter, zoom in/out and refresh the map extent.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -118,23 +120,23 @@ This feature is currently under development. 🧑🏻‍💻
 **Combine multiple filters** by repeating steps 3-7 for each expression. In <code>Filter results</code>, choose **Match all filters** (AND) or **Match at least one filter** (OR) to **control how filters interact**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/map/filter/filter-results.png').default} alt="Logic Operators" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
+  <img src={require('/img/map/filter/filter-results.png').default} alt="Logic Operators" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>
 </div>
-  
+
 ### Delete Expressions and Filters
 
-- **Remove single expressions**: Click on the <code>more options</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> menu next to the expression, then click <code>Delete</code> to **remove the expression**.
+**Remove single expressions**: Click on the <code>more options</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> menu next to the expression, then click <code>Delete</code> to **remove the expression**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/map/filter/filter_delete.png').default} alt="Delete" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
+  <img src={require('/img/map/filter/filter_delete.png').default} alt="Delete" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>
 </div>
 
 <p></p>
-- **Remove whole filter**: Click <code>Clear Filter</code> at the bottom of the Filter menu to **remove all filters**.
+
+**Remove whole filter**: Click <code>Clear Filter</code> at the bottom of the Filter menu to **remove all filters**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-  <img src={require('/img/map/filter/filter_clear.png').default} alt="Clear Filters" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
-
+  <img src={require('/img/map/filter/filter_clear.png').default} alt="Clear Filters" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>
 </div>
 

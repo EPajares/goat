@@ -22,17 +22,17 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Choose your <code>Show</code> option: **On click** to show popup with selected fields when clicking features, or **Never** for no popup</div>
+  <div class="content">Choose your <code>Show</code> option: <code>On click</code> to show popup with selected fields when clicking features, or <code>Never</code> for no popup</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Click on <code>+ Add content</code> and select the **attribute fields** you want to display in the popup (you can choose multiple fields)</div>
+  <div class="content">Click on <code>+ Add content</code> and select the <strong>attribute fields</strong> you want to display in the popup (you can choose multiple fields)</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">You can **rename the fields** and **arrange** them as you want</div>
+  <div class="content">You can <strong>rename the fields and arrange them as</strong>  you want</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -42,12 +42,12 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Click on <code>Save</code> to **apply your changes**</div>
+  <div class="content">Click on <code>Save</code> to <strong>apply your changes</strong></div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">You can now click on any feature in your layer to view the customized popup and verify that your renamed attributes appear correctly</div>
+  <div class="content">You can now click on any feature in your layer <strong>to view the customized popup and verify</strong> that your renamed attributes appear correctly</div>
 </div>
 
 ## Best practices

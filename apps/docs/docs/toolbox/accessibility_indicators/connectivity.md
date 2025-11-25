@@ -118,7 +118,7 @@ Need help choosing a suitable travel time limit for various common amenities? Th
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Reference Layer</code> (layer containing your AOI) **for which you would like to calculate the heatmap**. This can be any polygon feature layer.</div>
+  <div class="content">Select the <code>Reference Layer</code> (layer containing your AOI) <strong>for which you would like to calculate the heatmap</strong>. This can be any polygon feature layer.</div>
 </div>
 
 
@@ -131,8 +131,10 @@ Need help choosing a suitable travel time limit for various common amenities? Th
 
 Once the calculation is complete, a result layer will be added to the map. This Heatmap Connectivity layer will contain your color-coded heatmap. **Clicking on any of the heatmap's hexagonal cells will reveal the computed connectivity value for this cell.**
 
-![Connectivity-based Heatmap Result in GOAT](/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_calculation.gif "Connectivity-based Heatmap Result in GOAT")
-
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/connectivity_based/connectivity_calculation.gif').default} alt="Connectivity Heatmap Calculation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
+<p></p>
 
 :::tip Tip
 

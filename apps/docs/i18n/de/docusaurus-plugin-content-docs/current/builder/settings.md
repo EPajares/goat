@@ -3,6 +3,7 @@ sidebar_position: 3
 ---
 
 
+
 # Einstellungen
 
 Im Einstellungs-Bereich können Sie **verschiedene allgemeine Funktionalitäten des Dashboards aktivieren oder deaktivieren**. Wenn Sie eine Funktionalität deaktivieren, ist sie im Betrachter-Modus nicht verfügbar.
@@ -13,20 +14,20 @@ Im Einstellungs-Bereich können Sie **verschiedene allgemeine Funktionalitäten 
 
 ## Werkzeuge
 
-- **Standortsuche**: Geben Sie einen Standort oder Koordinaten ein, und die Karte zoomt zum angegebenen Bereich.
-- **Meinen Standort finden**: Zentriert die Karte auf den Standort des Benutzers. Sie müssen *den Standortzugriff in Ihrem Browser erlauben, um diese Funktionalität zu nutzen*.
-- **Maßstabsleiste**: Wird sofort aktualisiert, um die *realen Entfernungen bei Ihrem aktuellen Zoom-Level* anzuzeigen.
+- <code>Standortsuche</code>: <b>Geben Sie einen Standort oder Koordinaten ein</b>, und die Karte zoomt zum angegebenen Bereich.
+- <code>Meinen Standort finden</code>: <b>Zentriert die Karte auf den Standort des Benutzers</b>. Sie müssen *den Standortzugriff in Ihrem Browser erlauben, um diese Funktionalität zu nutzen*.
+- <code>Maßstabsleiste</code>: <b>Wird sofort aktualisiert, um die realen Entfernungen bei Ihrem aktuellen Zoom-Level anzuzeigen</b>.
 
 ## Bedienelemente
 
-- **Zoom-Steuerung**: Schaltflächen zum Hinein- und Herauszoomen.
-- **Grundkarten-Umschalter**: Wählen Sie die gewünschte Grundkarte aus der Liste der verfügbaren Optionen.
+- <code>Zoom-Steuerung</code>: <b>Schaltflächen zum Hinein- und Herauszoomen</b>.
+- <code>Grundkarten-Umschalter</code>: <b>Wählen Sie die gewünschte Grundkarte</b> aus der Liste der verfügbaren Optionen.
 
 ## Ansicht
 
-- **Vollbildmodus**: Vollbild-Modus aktivieren und verlassen.
-- **Werkzeugleiste**: Über das GOAT-Logo sind die Menüs *Anmelden*, *Problem melden* und *Datenschutzerklärung* verfügbar. Daneben finden Sie den *Projektnamen*, den *Zuletzt gespeichert*-Zeitstempel und die *Projektinfo*.
-- **Projektinfo**: Enthält den *Namen* und die *Beschreibung* des Projekts, die aus den Metadaten des Projekts bezogen werden.
+- <code>Vollbildmodus</code>: <b>Vollbild-Modus aktivieren und verlassen</b>.
+- <code>Werkzeugleiste</code>: Über das GOAT-Logo sind die Menüs <b>Anmelden, Problem melden und Datenschutzerklärung</b> verfügbar. Daneben finden Sie den <b>Projektnamen, den Zuletzt gespeichert-Zeitstempel und die Projektinfo</b>.
+- <code>Projektinfo</code>: Enthält den <b>Namen</b> und die <b>Beschreibung</b> des Projekts, die aus den Metadaten des Projekts bezogen werden.
 
 
 ::::note

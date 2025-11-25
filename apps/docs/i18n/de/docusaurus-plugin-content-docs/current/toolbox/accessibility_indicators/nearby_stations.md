@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 Der ÖV Nahegelegene Stationen Indikator wird verwendet, um **öffentliche Verkehrshaltestellen zu finden, die zu Fuß oder mit dem Fahrrad innerhalb einer bestimmten Zeit erreichbar sind.**
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
-<iframe width="674" height="378" src="https://www.youtube.com/embed/JHU9ty0HVVc?si=QfsJuJa9RU1ps7ue" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/ksLVUU2zMTU?si=4cvwdFIL188ZuwCB&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
 
 ## 1. Erklärung
@@ -133,7 +133,7 @@ Sobald die Berechnung abgeschlossen ist, werden die resultierenden Layer zur Kar
 
 Klicken Sie auf Stationen, um Details anzuzeigen, einschließlich **Haltestellenname**, **Zugangszeit** und **Servicefrequenz**.
 
-![Result of Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif "Result of Public Transport Nearby Stations")
+<img src={require('/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif').default} alt="Result of Public Transport Nearby Stations" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
 
 
 

@@ -18,7 +18,7 @@ The Aggregate Polygons tool can be used to **analyze the characteristics of poly
 The example below shows the geometry of the *Source Layer* remains unchanged, while its attributes are enriched by aggregating information from the *Area of Aggregation*.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/toolbox/geoanalysis/aggregate_polygons/polygon_aggregation.png').default} alt="Polygon Aggregation" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/aggregate_polygons/polygon_aggregation.png').default} alt="Polygon Aggregation" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 </div> 
 
 
@@ -57,8 +57,6 @@ The example below shows the geometry of the *Source Layer* remains unchanged, wh
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
 
- #### Polygon
-
 <div class="step">
   <div class="step-number">5</div>
   <div class="content">Select the <code>Area Layer</code> which contains the polygons on which you like to aggregate your point data.</div>
@@ -68,11 +66,9 @@ The example below shows the geometry of the *Source Layer* remains unchanged, wh
   </TabItem>
   <TabItem value="H3 Grid" label="H3 Grid" className="tabItemBox">
 
- #### H3 Grid
-
  <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>H3 Grid Resolution</code>. You can choose resolutions between <b>3</b> (average edge length of 69km) and <b>10</b> (average edge length of 70m).</div>
+  <div class="content">Select the <code>H3 Grid Resolution</code>. You can choose resolutions between 3 (average edge length of 69km) and 10 (average edge length of 70m).</div>
 </div>
 
 :::tip NOTE
@@ -105,7 +101,7 @@ Available **Statistics Methods** are listed in the following. The available meth
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">If you want, you can enable the <code>Weighted by Intersection Area</code> by clicking on the <code>options button</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Therewith, aggregated values are weighted by the share of the intersection area between the <i>Source Layer</i> and the <i>Aggregation Layer</i>.</div>
+  <div class="content">If you want, you can enable the <code>Weighted by Intersection Area</code> by clicking on the <code>options button</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Therewith, <b>aggregated values are weighted by the share of the intersection area between the <i>Source Layer</i> and the <i>Aggregation Layer</i></b>.</div>
 </div>
 
 <div class="step">
@@ -117,6 +113,8 @@ Available **Statistics Methods** are listed in the following. The available meth
 As soon as the calculation process is finished, the resulting layer <b>Aggregation Polygon</b> will be added to the map. The result layer will consist of the information of the source layer and an <b>additional column</b> showing the results from the <b>statistical operation</b>. You can see the table by clicking on the polygon on the map.
 
 <img src={require('/img/toolbox/geoanalysis/aggregate_polygons/aggregate_polygons_result.png').default} alt="Polygon Aggregation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto"}}/>
+
+<p></p>
 
 :::tip Tip
 Want to style your result layer and create nice-looking maps? See [Styling](../../map/layer_style/styling).

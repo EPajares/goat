@@ -85,7 +85,7 @@ Sie finden geteilte Elemente in Ihrem Workspace:
 Siehe die Tabelle unten, um zu erfahren, was jeder Benutzer innerhalb einer Organisation/eines Teams und in einem geteilten Datensatz/Projekt tun kann:
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/sharing/sharing_roles_table.png').default} alt="Rollen-Tabelle in GOAT" style={{ maxHeight: "Auto", maxWidth: "Auto", objectFit: "cover"}}/>
+  <img src={require('/img/sharing/sharing_roles_table.png').default} alt="Rollen-Tabelle in GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div>
 <p> </p>
 

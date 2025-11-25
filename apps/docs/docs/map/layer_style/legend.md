@@ -18,12 +18,12 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Toggle the <code>Show</code> checkbox to **enable or disable the legend display**</div>
+  <div class="content">Toggle the <code>Show</code> checkbox to <strong>enable or disable the legend display</strong></div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">You can add a <code>Caption</code> field **explaining the layer's content**. The caption will appear below the layer name in the legend list</div>
+  <div class="content">You can add a <code>Caption</code> field <strong>explaining the layer's content</strong>. The caption will appear below the layer name in the legend list</div>
 </div>
 
 <p></p>

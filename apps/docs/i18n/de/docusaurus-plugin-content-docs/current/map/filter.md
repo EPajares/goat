@@ -7,9 +7,8 @@ import TabItem from '@theme/TabItem';
 
 # Filter
 
-**Filter begrenzt die Datensichtbarkeit auf Ihrer Karte** durch logische Ausdrücke (z.B. Supermärkte mit bestimmten Namen) oder räumliche Ausdrücke (z.B. Punkte innerhalb eines Begrenzungsrahmens). Das <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> Tool **zeigt nur ausgewählte Elemente** aus größeren Datensätzen basierend auf spezifischen Kriterien an und ermöglicht es, sich auf relevante Informationen zu konzentrieren, ohne die ursprünglichen Daten zu verändern.
 
-Funktioniert mit **Punkt-Layern** und **Polygon-Layern**, die `Zahlen` und `String`-Datentypen enthalten. **Filter verändert die ursprünglichen Daten nicht** - setzen Sie den Filter zurück, um alle ursprünglichen Layer-Daten wiederherzustellen.
+**Filter begrenzt die Datensichtbarkeit auf Ihrer Karte** durch logische Ausdrücke (z.B. Supermärkte mit bestimmten Namen) oder räumliche Ausdrücke (z.B. Punkte innerhalb eines Begrenzungsrahmens). **Das Filter-Tool ermöglicht es Ihnen, sich auf relevante Informationen zu konzentrieren, ohne die ursprünglichen Daten zu verändern.** Es funktioniert mit **Punkt-Layern** und **Polygon-Layern**, die `Zahlen` und `String`-Datentypen enthalten.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
@@ -17,28 +16,29 @@ Funktioniert mit **Punkt-Layern** und **Polygon-Layern**, die `Zahlen` und `Stri
 
 </div> 
 
+
 ## Wie benutzt man den Filter?
 
 ### Einzelausdruck-Filterung
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Wählen Sie den zu filternden Layer aus und klicken Sie auf das <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> Symbol in der **Werkzeugleiste** rechts.</div>
+  <div class="content">Wählen Sie den zu filternden Layer aus und klicken Sie auf das <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> Symbol in der <b>Werkzeugleiste</b> rechts.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Der <code>Aktive Layer</code>-Selektor **zeigt den aktuell ausgewählten Layer** für die Filterung an.</div>
+  <div class="content">Der <code>Aktive Layer</code>-Selektor <strong>zeigt den aktuell ausgewählten Layer</strong> für die Filterung an.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Klicken Sie auf <code>+ Ausdruck hinzufügen</code>, um **einen neuen Filterausdruck hinzuzufügen**.</div>
+  <div class="content">Klicken Sie auf <code>+ Ausdruck hinzufügen</code>, um <strong>einen neuen Filterausdruck hinzuzufügen</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie <code>Logischer Ausdruck</code> oder <code>Räumlicher Ausdruck</code>, um **Ihren Filtertyp zu definieren**.</div>
+  <div class="content">Wählen Sie <code>Logischer Ausdruck</code> oder <code>Räumlicher Ausdruck</code>, um <strong>Ihren Filtertyp zu definieren</strong>.</div>
 </div>
 
 <Tabs>
@@ -46,13 +46,15 @@ Funktioniert mit **Punkt-Layern** und **Polygon-Layern**, die `Zahlen` und `Stri
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie das <code>Feld</code> (Attribut) zum **Filtern aus**.</div>
+  <div class="content">Wählen Sie das <code>Feld</code> (Attribut), um <strong>zu filtern</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Wählen Sie den <code>Operator</code>. Verfügbare Optionen **variieren je nach Datentyp**: Zahl und String.</div>
+  <div class="content">Wählen Sie den <code>Operator</code>. Verfügbare Optionen variieren je nach Datentyp: Zahl und String.</div>
 </div>
+
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 
 | Ausdrücke für `Zahl` | Ausdrücke für `String` |
 | -------|----|
@@ -67,6 +69,7 @@ Funktioniert mit **Punkt-Layern** und **Polygon-Layern**, die `Zahlen` und `Stri
 | liegt zwischen | ist leerer String |
 |  | ist kein leerer String |
 
+</div>
 
 :::tip Hinweis
 Für die Ausdrücke **"enthält"** und **"schließt aus"** können mehrere Werte ausgewählt werden.
@@ -74,7 +77,7 @@ Für die Ausdrücke **"enthält"** und **"schließt aus"** können mehrere Werte
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Legen Sie Ihre Filterkriterien fest. Die Karte **wird automatisch aktualisiert** und zeigt ein Filtersymbol auf dem gefilterten Layer an.</div>
+  <div class="content">Legen Sie Ihre Filterkriterien fest. Die Karte wird <strong>automatisch aktualisiert</strong> und zeigt ein Filtersymbol auf dem gefilterten Layer an.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -85,14 +88,14 @@ Für die Ausdrücke **"enthält"** und **"schließt aus"** können mehrere Werte
 <TabItem value="Spatial expression" label="Räumlicher Ausdruck" default className="tabItemBox">
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie die <code>Schnittmethode</code> für die **räumliche Begrenzung**.</div>
+  <div class="content">Wählen Sie die <code>Schnittmethode</code> für die <strong>räumliche Begrenzung</strong>.</div>
 </div>
 
 <Tabs>
   <TabItem value="Map extent" label="Kartenausdehnung" default className="tabItemBox">
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Layer wird **automatisch auf die aktuelle Kartenausdehnung zugeschnitten**. Um den Filter zu ändern, **zoomen Sie hinein/heraus** und aktualisieren Sie die Kartenausdehnung.</div>
+  <div class="content">Layer wird <strong>automatisch auf die aktuelle Kartenausdehnung zugeschnitten</strong>. Um den Filter zu ändern, <strong>zoomen Sie hinein/heraus</strong> und aktualisieren Sie die Kartenausdehnung.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -117,7 +120,7 @@ Diese Funktion wird derzeit entwickelt. 🧑🏻‍💻
 
 ### Mehrfachausdruck-Filterung
 
-**Kombinieren Sie mehrere Filter**, indem Sie die Schritte 3-7 für jeden Ausdruck wiederholen. In <code>Filter Ergebnisse</code> wählen Sie <code>Alle Filter erfüllen</code> (UND) oder <code>Mindestens einen Filter erfüllen</code> (ODER), um **zu steuern, wie Filter interagieren**.
+<strong>Kombinieren Sie mehrere Filter</strong>, indem Sie die Schritte 3-7 für jeden Ausdruck wiederholen. In <code>Filter Ergebnisse</code> wählen Sie <code>Alle Filter erfüllen</code> (UND) oder <code>Mindestens einen Filter erfüllen</code> (ODER), um <strong>zu steuern, wie Filter interagieren</strong>.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/filter/filter-results.png').default} alt="Logic Operators" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
@@ -125,14 +128,14 @@ Diese Funktion wird derzeit entwickelt. 🧑🏻‍💻
   
 ### Ausdrücke und Filter löschen
 
-- **Einzelne Ausdrücke entfernen**: Klicken Sie auf das <code>Weitere Optionen</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> Menü neben dem Ausdruck, dann klicken Sie auf <code>Löschen</code>, um **den Ausdruck zu entfernen**.
+<strong>Einzelne Ausdrücke entfernen</strong>: Klicken Sie auf das <code>Weitere Optionen</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> Menü neben dem Ausdruck, dann klicken Sie auf <code>Löschen</code>, um <strong>den Ausdruck zu entfernen</strong>.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/filter/filter_delete.png').default} alt="Delete" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
 </div>
 
 <p></p>
-- **Gesamten Filter entfernen**: Klicken Sie auf <code>Filter löschen</code> am unteren Rand des Filtermenüs, um **alle Filter zu entfernen**.
+<strong>Gesamten Filter entfernen</strong>: Klicken Sie auf <code>Filter löschen</code> am unteren Rand des Filtermenüs, um <strong>alle Filter zu entfernen</strong>.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 

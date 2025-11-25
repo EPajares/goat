@@ -18,7 +18,7 @@ Das Werkzeug "Polygone Aggregieren" kann verwendet werden, um **die Eigenschafte
 Das folgende Beispiel zeigt, dass die Geometrie des *Quell-Layers* unverändert bleibt, während seine Attribute durch die Aggregation von Informationen aus dem *Aggregationsbereich* angereichert werden.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/toolbox/geoanalysis/aggregate_polygons/polygon_aggregation.png').default} alt="Polygon-Aggregation" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/aggregate_polygons/polygon_aggregation.png').default} alt="Polygon-Aggregation" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 </div> 
 
 

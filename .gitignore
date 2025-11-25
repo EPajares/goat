@@ -91,6 +91,18 @@ apps/storybook/dist/
 # Local IDE config
 .vscode/
 
+# Standalone documentation server (exclude from version control)
+/Users/camilanarbaitzsarsur/goat-docs-standalone/
+
+# Temporary documentation files
+apps/docs/package 2.json
+apps/docs/package-workspace.json
+apps/docs/package.json.backup
+
+# Sync scripts for documentation development
+sync-docs.sh
+**/sync-docs.sh
+
 
 
 

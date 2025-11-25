@@ -11,7 +11,7 @@ import MathJax from 'react-mathjax';
 The Heatmap - Gravity indicator **produces a color-coded map to visualize the accessibility of points, such as POIs from surrounding areas**.
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
-<iframe width="674" height="378" src="https://www.youtube.com/embed/yteOnb6N7hA?si=SYStNhRCpZidqY0p" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/yteOnb6N7hA?si=bj1l5gLCCDHsOhRc&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
 
 ## 1. Explanation
@@ -20,13 +20,13 @@ The heatmap Gravity displays a **color-coded hexagonal grid showing the accessib
 
 You can specify the **routing type**, **opportunity layer**, **travel time limit**, and adjust **sensitivity** and **destination potential** to fine-tune how accessibility is calculated.
 
-The **Opportunity layer** contains point-based destination data (such as POIs, transit stops, schools, amenities, or custom points). You can select multiple opportunity layers, which will be combined into a single unified heatmap.
+- The **Opportunity layer contains point-based destination data** (such as POIs, transit stops, schools, amenities, or custom points). You can select multiple opportunity layers, which will be combined into a single unified heatmap.
 
-The **Sensitivity** controls how quickly accessibility decreases with increasing travel time, while the **Destination potential** lets you give more weight to destinations with higher capacity or quality (e.g., a larger supermarket or a bus stop with more departures). Together with the chosen **Impedance function**, these settings define how accessibility is calculated.
+- The **Sensitivity controls how quickly accessibility decreases with increasing travel time**, while the **Destination potential lets you give more weight to destinations with higher capacity or quality** (e.g., a larger supermarket or a bus stop with more departures). Together with the chosen **Impedance function, these settings define how accessibility is calculated**.
 
-Using **Destination potential** helps prioritize certain opportunities over others. For example, a larger but farther supermarket can be valued more than a smaller nearby one. This allows you to include qualitative information—such as size, frequency, or service level—when computing accessibility, resulting in a more realistic heatmap.
+- Using **Destination potential helps prioritize certain opportunities over others**. For example, a larger but farther supermarket can be valued more than a smaller nearby one. This allows you to include qualitative information—such as size, frequency, or service level—when computing accessibility, resulting in a more realistic heatmap.
 
-Influenced by all these properties, the accessibility of a point can model complex real-world human behavior and is a powerful measure for transport and accessibility planning.
+Influenced by all these properties, **the accessibility of a point can model complex real-world human behavior** and is a powerful measure for transport and accessibility planning.
 
 **Key difference:** Unlike the *Closest-Average* heatmap, which measures travel effort, the *Gravity-based Heatmap* measures **attractiveness** — showing how accessible and appealing destinations are when both distance and quality are considered.
 
@@ -90,33 +90,25 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
 <TabItem value="walk" label="Walk" default className="tabItemBox">
 
-#### Walk
-
-Considers all paths accessible by foot. For heatmaps, a walking speed of 5 km/h is assumed.
+**Considers all paths accessible by foot**. For heatmaps, a walking speed of 5 km/h is assumed.
 
 </TabItem>
   
 <TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
-#### Bicycle
-
-Considers all paths accessible by bicycle. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
+**Considers all paths accessible by bicycle**. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
 
 </TabItem>
 
 <TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-#### Pedelec
-
-Considers all paths accessible by pedelec. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
+**Considers all paths accessible by pedelec**. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
 
 </TabItem>
 
 <TabItem value="car" label="Car" className="tabItemBox">
 
-#### Car
-
-Considers all paths accessible by car. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
+**Considers all paths accessible by car**. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
 
 </TabItem>
 
@@ -133,15 +125,11 @@ Considers all paths accessible by car. This routing mode takes into account spee
 
 <TabItem value="gaussian" label="Gaussian" default className="tabItemBox">
 
-#### Gaussian
-
 This function calculates accessibilities based on a Gaussian curve, which is influenced by the `sensitivity` and `destination_potential` you define. For a more in-depth understanding, refer to the [Technical details](./gravity#4-technical-details) section.
 
 </TabItem>
   
 <TabItem value="linear" label="Linear" default className="tabItemBox">
-
-#### Linear
 
 This function maintains a direct correlation between travel time and accessibility, which is modulated by the `destination_potential` you specify. For a more in-depth understanding, refer to the [Technical details](./gravity#4-technical-details) section.
 
@@ -153,8 +141,6 @@ This feature is currently under development. 🧑🏻‍💻
 
 <TabItem value="exponential" label="Exponential" default className="tabItemBox">
 
-#### Exponential
-
 This function calculates accessibilities based on an exponential curve, which is influenced by the `sensitivity` and `destination_potential` you define. For a more in-depth understanding, refer to the [Technical details](./gravity#4-technical-details) section.
 
 :::info Note
@@ -164,8 +150,6 @@ This feature is currently under development. 🧑🏻‍💻
 </TabItem>
 
 <TabItem value="power" label="Power" default className="tabItemBox">
-
-#### Power
 
 This function calculates accessibilities based on a power curve, which is influenced by the `sensitivity` and `destination_potential` you define. For a more in-depth understanding, refer to the [Technical details](./gravity#4-technical-details) section.
 
@@ -229,8 +213,11 @@ For a visual explanation of how sensitivity affects the calculation, see the **[
 
 Once the calculation is complete, a result layer will be added to the map. This <i>Heatmap Gravity</i> layer will contain your color-coded heatmap. Clicking on any of the heatmap's hexagonal cells will reveal the computed accessibility value for this cell.
 
-![Heatmap Gravity-Based Calculation in GOAT](/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation.gif "Heatmap Gravity-Based Calculation Result in GOAT")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_calculation.gif').default} alt="Heatmap Gravity-Based Calculation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
+<p></p>
 
 :::tip Tip
 
@@ -342,8 +329,9 @@ import ImpedanceFunction from '@site/src/components/ImpedanceFunction';
 In order to classify the accessibility levels that were computed for each grid cell (for color-coded visualization), a classification based on **8 quantile group is used by default**. That means, each color covers 12,5 % of the grid cells. The area outside of the computed layer has no access within the defined travel time.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_default_classification.png').default} alt="gravity-default-classification" style={{ maxHeight: "250px", maxWidth: "auto"}}/>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/gravity_based/gravity_default_classification.png').default} alt="gravity-default-classification" style={{ maxHeight: "auto", maxWidth: "40%"}}/>
 </div>
+<p></p>
 
 However, various other classification methods may be used instead. Read more in the **[Data Classification Methods](../../map/layer_style/attribute_based_styling#data-classification-methods)** section of the *Attribute-based Styling* page.
 
@@ -357,7 +345,6 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
 
 <TabItem value="walk" label="Walk" default className="tabItemBox">
 
-#### Walk
 - Resolution: 10
 - Average hexagon area: 11285.6 m²
 - Average hexagon edge length: 65.9 m
@@ -366,7 +353,6 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
   
 <TabItem value="bicycle" label="Bicycle" className="tabItemBox">
 
-#### Bicycle
 - Resolution: 9
 - Average hexagon area: 78999.4 m²
 - Average hexagon edge length: 174.4 m
@@ -375,7 +361,6 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
 
 <TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-#### Pedelec
 - Resolution: 9
 - Average hexagon area: 78999.4 m²
 - Average hexagon edge length: 174.4 m
@@ -384,7 +369,6 @@ The resolution and dimensions of the hexagonal grid used depend on the selected 
 
 <TabItem value="car" label="Car" className="tabItemBox">
 
-#### Car
 - Resolution: 8
 - Average hexagon area: 552995.7 m²
 - Average hexagon edge length: 461.4 m

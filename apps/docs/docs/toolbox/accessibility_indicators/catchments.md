@@ -30,33 +30,37 @@ When selecting a <code>Routing type</code>, GOAT displays a map overlay showing 
 For <code>Walk</code>, <code>Bicycle</code>, <code>Pedelec</code>, and <code>Car</code>: over 30 European countries are supported.
 For <code>Public Transport</code>: Germany is supported.
 
-<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
-  <MapViewer
-      geojsonUrls={[
-        "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
-      ]}
-      styleOptions={{
-        fillColor: "#808080",
-        outlineColor: "#808080",
-        fillOpacity: 0.8
-      }}
-      legendItems={[
-        { label: "Coverage for Walk, Bicycle, Pedelec & Car", color: "#ffffff" }
-      ]}
-  />
-  <MapViewer
-      geojsonUrls={[
-        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
-      ]}
-      styleOptions={{
-        fillColor: "#808080",
-        outlineColor: "#808080",
-        fillOpacity: 0.8
-      }}
-      legendItems={[
-        { label: "Coverage for Public Transport", color: "#ffffff" }
-      ]}
-  />
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "nowrap", maxWidth: '100%', padding: '0 20px' }}>
+  <div style={{ flex: '1', maxWidth: 'none', minWidth: '0' }}>
+    <MapViewer
+        geojsonUrls={[
+          "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
+        ]}
+        styleOptions={{
+          fillColor: "#808080",
+          outlineColor: "#808080",
+          fillOpacity: 0.8
+        }}
+        legendItems={[
+          { label: "Coverage for Walk, Bicycle, Pedelec & Car", color: "#ffffff" }
+        ]}
+    />
+  </div>
+  <div style={{ flex: '1', maxWidth: 'none', minWidth: '0' }}>
+    <MapViewer
+        geojsonUrls={[
+          "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+        ]}
+        styleOptions={{
+          fillColor: "#808080",
+          outlineColor: "#808080",
+          fillOpacity: 0.8
+        }}
+        legendItems={[
+          { label: "Coverage for Public Transport", color: "#ffffff" }
+        ]}
+    />
+  </div>
 </div>
 
 <br />
@@ -95,19 +99,17 @@ If you need analyses beyond these regions, feel free to [contact us](https://pla
 ### Configuration
 
 <Tabs>
-  <TabItem value="walk" label="Walk" default className="tabItemBox">
+<TabItem value="walk" label="Walk" default className="tabItemBox">
 
-  #### Walk
-
-  Considers all paths accessible by foot.
+**Considers all paths accessible by foot.**
 
   <div class="step">
     <div class="step-number">4</div>
-    <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
+    <div class="content">Choose whether to calculate the catchment area <strong>based on time or distance</strong>.</div>
   </div>
 
   <Tabs>
-    <TabItem value="time" label="Time" default className="tabItemBox">
+  <TabItem value="time" label="Time" default className="tabItemBox">
 
   #### Time
 
@@ -118,12 +120,12 @@ If you need analyses beyond these regions, feel free to [contact us](https://pla
 
   <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
-  :::tip Hint
+:::tip Hint
 
-  For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
+For suitable travel time limits by amenity type, see the [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) from the City of Chemnitz.
 
-  :::
-    </TabItem>
+:::
+  </TabItem>
   
   <TabItem value="distance" label="Distance" default className="tabItemBox">
 
@@ -137,33 +139,29 @@ If you need analyses beyond these regions, feel free to [contact us](https://pla
   <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
   
   </TabItem>
-
   </Tabs>
 </TabItem>
-  
-  <TabItem value="cycling" label="Bicycle/Pedelec" className="tabItemBox">
 
-    
-#### Bicycle/Pedelec
+<TabItem value="cycling" label="Bicycle/Pedelec" className="tabItemBox">
 
-Considers all bicycle-accessible paths. This routing mode accounts for surface, smoothness, and slope while computing accessibility. For Pedelec, slopes have lower impedance than standard bicycles.
+**Considers all bicycle-accessible paths.** This routing mode accounts for surface, smoothness, and slope while computing accessibility. For Pedelec, slopes have lower impedance than standard bicycles.
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
+  <div class="content">Choose whether to calculate the catchment area <strong>based on time or distance</strong>.</div>
 </div>
 
-<Tabs>
+  <Tabs>
   <TabItem value="time" label="Time" default className="tabItemBox">
 
-#### Time
+  #### Time
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Set the configurations for <code>Travel time limit</code>, <code>Travel speed</code>, and <code> Number of breaks</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Set the configurations for <code>Travel time limit</code>, <code>Travel speed</code>, and <code> Number of breaks</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
 :::tip Hint
 
@@ -175,44 +173,41 @@ For suitable travel time limits by amenity type, see the [Location Tool](https:/
   
   <TabItem value="distance" label="Distance" default className="tabItemBox">
 
-#### Distance
+  #### Distance
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Set the configurations for <code>Travel distance</code> and <code> Number of breaks</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Set the configurations for <code>Travel distance</code> and <code> Number of breaks</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
   </TabItem>
 
-</Tabs>
-
+  </Tabs>
 
   </TabItem>
 
   <TabItem value="car" label="Car" className="tabItemBox">
 
-#### Car
+ **Considers all car-accessible paths.** This routing mode accounts for speed limits and one-way restrictions while computing accessibility.
 
-Considers all car-accessible paths. This routing mode accounts for speed limits and one-way restrictions while computing accessibility.
+  <div class="step">
+    <div class="step-number">4</div>
+    <div class="content">Choose whether to calculate the catchment area <strong> based on time or distance</strong>.</div>
+  </div>
 
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">Choose whether to calculate the catchment area based on **time** or **distance**.</div>
-</div>
-
-<Tabs>
+  <Tabs>
   <TabItem value="time" label="Time" default className="tabItemBox">
 
-#### Time
+  #### Time
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Set the configurations for <code>Travel time limit</code> and <code> Number of breaks</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Set the configurations for <code>Travel time limit</code> and <code> Number of breaks</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="travel-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="travel-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
 :::tip Hint
 
@@ -238,13 +233,11 @@ For suitable travel time limits by amenity type, see the [Location Tool](https:/
   </TabItem>
   <TabItem value="public transport" label="Public Transport (PT)" className="tabItemBox">
 
-#### Public Transport (PT)
-
-Considers all locations accessible by public transport, including inter-modal transfers and station access.
+**Considers all locations accessible by public transport, including inter-modal transfers and station access.**
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select the <code>Public transport modes</code> to analyze: **Bus**, **Tram**, **Rail**, **Subway**, **Ferry**, **Cable Car**, **Gondola**, and/or **Funicular**.</div>
+  <div class="content">Select the <code>Public transport modes</code> to analyze: Bus, Tram, Rail, Subway, Ferry, Cable Car, Gondola, and/or Funicular.</div>
 </div>
 
 <div>
@@ -263,6 +256,7 @@ Considers all locations accessible by public transport, including inter-modal tr
 </div>
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_config.png').default} alt="Public Transport Configurations" style={{ maxHeight: "400px", maxWidth: "400px"}}/>
+
 
 :::tip Hint
 
@@ -288,7 +282,6 @@ For suitable travel time limits by amenity type, see the [Location Tool](https:/
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
 
- #### Polygon
 - It is a **geometric representation** of the catchments.
 - **Easy-to-understand** visualization
 - **One polygon per step**
@@ -300,7 +293,6 @@ You can choose <code>Polygon Difference</code> **enabled** which creates an "inc
   </TabItem>
   <TabItem value="Network" label="Network" className="tabItemBox">
 
- #### Network
 - It is a **street-level representation** of the catchments.
 - Enables **easy correlation to actual streets** and their accessibility within the catchment area.
 - **Fine-grained detail** compared to the other catchment types.
@@ -310,7 +302,6 @@ You can choose <code>Polygon Difference</code> **enabled** which creates an "inc
   </TabItem>
   <TabItem value="Rectangular Grid" label="Rectangular Grid" className="tabItemBox">
 
-#### Rectangular Grid
 - It is a **grid cell-based** representation of the catchments.
 - Appears **similar to a “heatmap” visualization**, however, differs conceptually & computationally (this represents egress from a specified origin to various other locations while heatmaps represent access from various locations to a specified destination).
 
@@ -366,11 +357,9 @@ Once calculation finishes, the resulting layers are added to the map. The **"Cat
 
 Click on a catchment polygon to view details. The **travel_cost** attribute shows travel distance or time based on your calculation unit: **time in minutes** or **distance in meters**.
 
-![Catchment Area Calculation in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif "Catchment Area Calculation Result in GOAT")
-
-:::tip Tip
-Want to style your catchment areas? See [Styling](../../map/layer_style/styling).
-:::
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif').default} alt="Catchment Area Calculation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
 ## 4. Technical details
 

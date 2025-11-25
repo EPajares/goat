@@ -17,7 +17,7 @@ sidebar_position: 1
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Choose the styling category you want to **modify**: [Fill color](#fill-color), [Stroke color](#stroke-color), [Stroke width](#stroke-width), [Custom Marker](#custom-markers) and [Point settings](#point-settings) (if point data).</div>
+  <div class="content">Choose the styling category you want to modify: <code>Fill color</code>, <code>Stroke color</code>, <code>Stroke width</code>, <code>Custom Marker</code> and <code>Point settings</code> (if point data).</div>
 </div>
 
 ### Fill color
@@ -27,14 +27,14 @@ Fill color defines the interior appearance of point and polygon features.
   <div class="step-number">3</div>
   <div class="content">
     <p>
-     On <code>Color</code> use the **Color picker to select your color** or the **Preset colors to choose from the predefined color palette**.
+     On <code>Color</code> use the <strong>Color picker to select your color</strong> or the <strong>Preset colors to choose from the predefined color palette</strong>.
     </p>
   </div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content"> Use the <code>opacity slider</code> or enter a value between **0** (transparent) and **1** (opaque) to **control transparency**</div>
+  <div class="content"> Use the <code>opacity slider</code> or enter a value between 0 (transparent) and 1 (opaque) to <strong>control transparency</strong>.</div>
 </div>
 
 ### Stroke color
@@ -42,14 +42,14 @@ Stroke color applies to the outlines and edges of map features. It helps disting
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">  On <code>Color</code> use the **Color picker** or the **Preset colors** to **customize stroke appearance**.</div>
+  <div class="content">  On <code>Color</code> use the <strong>Color picker</strong> or the <strong>Preset colors</strong> to <strong>customize stroke appearance</strong>.</div>
 </div>
 
 ### Stroke width
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">  On <code>Stroke width</code> move the slider to **adjust the thickness** of lines and feature outlines.</div>
+  <div class="content">  On <code>Stroke width</code> move the slider to <strong>adjust the thickness</strong> of lines and feature outlines.</div>
 </div>
 
 ### Custom markers
@@ -57,22 +57,22 @@ For point layers, you can use custom markers instead of basic shapes.
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">In the styling menu, turn on the <code>Custom Marker</code> toggle to **enable custom markers**</div>
+  <div class="content">In the styling menu, turn on the <code>Custom Marker</code> toggle to <strong>enable custom markers</strong></div>
 </div>
 
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content"> Click on <code>Select Marker</code> and **browse the icon library** or **upload your own marker** by clicking on the <code>Custom</code> tab and uploading your file (JPEG, PNG, or SVG format).</div>
+  <div class="content"> Click on <code>Select Marker</code> and <strong>browse the icon library</strong> or <strong>upload your own marker</strong> by clicking on the <code>Custom</code> tab and uploading your file (JPEG, PNG, or SVG format).</div>
 </div>
 
 <div class="step">
   <div class="step-number">9</div>
-  <div class="content">Name your icon (this name will be used for searching). You can later click on <code>Manage icons</code> to **rename or delete uploaded icons**</div>
+  <div class="content">Name your icon (this name will be used for searching). You can later click on <code>Manage icons</code> to <strong>rename or delete uploaded icons</strong></div>
 </div>
 
 <div class="step">
   <div class="step-number">10</div>
-  <div class="content">On <code>Size</code> adjust the **marker size** using the slider</div>
+  <div class="content">On <code>Size</code> adjust the <strong>marker size</strong> using the slider</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
@@ -89,7 +89,7 @@ You can only edit the color of icons from the library, not uploaded custom icons
 <div class="step">
   <div class="step-number">11</div>
   <div class="content">
-  Under <code>Point settings</code>, on <code>Size</code> **adjust the radius** using the slider or enter precise values in the text box for exact control.
+  Under <code>Point settings</code>, on <code>Size</code> <strong>adjust the radius</strong> using the slider or enter precise values in the text box for exact control.
   </div>
 </div>
 
@@ -108,8 +108,8 @@ When you have created a style you like, you can save it as the default for futur
 
   <p>Choose your action:</p>
     <ul>
-      <li><code>Save as default</code> - **Apply current styles to future uses** of this dataset</li>
-      <li><code>Reset</code> - **Return to original default styles**</li>
+      <li><code>Save as default</code> - <strong>Apply current styles to future uses</strong> of this dataset</li>
+      <li><code>Reset</code> - <strong>Return to original default styles</strong></li>
     </ul>
   </div>
 </div>
@@ -119,6 +119,7 @@ When you have created a style you like, you can save it as the default for futur
 </div>
 
 <p></p>
+
 :::tip Smart styling
 Explore [attribute-based styling](../layer_style/attribute_based_styling) for advanced visualization options based on your data values.
 :::

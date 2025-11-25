@@ -5,13 +5,11 @@ sidebar_position: 1
 
 # Builder Interface
 
-**Switching to Builder mode opens the Builder Interface, where you can design dashboards by arranging panels and widgets, and customize your workspace layout.**
+Switching to Builder mode opens the Builder Interface, where **you can design dashboards by arranging panels and widgets, and customize your workspace layout.**
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/builder/builder_interface.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
-
----
 
 ## Panels
 
@@ -19,26 +17,27 @@ Panels are the main areas where you organize your widgets. You can add, arrange,
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">You can click on the <code> + </code> button, to add a new panel to any side of the map.</div>
+  <div class="content">You can click on the <code>+</code> button, <b>to add a new panel </b> to any side of the map.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Click the <code> panel </code> to open settings and edit its appearance.</div>
+  <div class="content">Click the <code>panel</code> to <b>open settings</b> and edit its appearance.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">You can also click the <code> arrow </code> on the side of a panel to expand it to full height/width.<</div>
+  <div class="content">You can also click the <code>arrow</code> on the side of a panel to expand it to full height/width.</div>
 </div>
 
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/new_panel.gif').default} alt="Panel options and appearance" style={{ maxHeight: "auto", maxWidth: "400px", objectFit: "cover"}}/>
+  <img src={require('/img/builder/new_panel.gif').default} alt="Panel options and appearance" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div>
 
+<p></p>
 
-You can set the panel style as:
+You can set the **panel style** as:
 - <code>Default</code>: widgets fill the panel with a continuous background
 - <code>Rounded</code>: widgets have rounded corners and space at the border
 - <code>Floating</code>: widgets are separate with rounded corners
@@ -56,30 +55,32 @@ To delete a panel, click <code>Delete</code> at the bottom of the settings.
 
 ## Widgets
 
-Widgets are the building blocks of your dashboard. They let you display data, statistics, charts, and project elements—like text or images. Each widget is highly customizable: you can adjust its content, appearance, and behavior to fit your needs, whether you want to highlight key numbers, visualize trends, or add context with text and graphics.
+**Widgets are the building blocks of your dashboard**. They let you display data, statistics, charts, and project elements—like text or images. Each widget is highly customizable: you can adjust its content, appearance, and behavior to fit your needs, whether you want to highlight key numbers, visualize trends, or add context with text and graphics.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/builder/widgets.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
 
+<p></p>
+
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Simply drag and drop <code>widgets</code> from the right sidebar to any panel on your dashboard.</div>
+  <div class="content">Simply <b>drag and drop</b> <code>widgets</code> from the right sidebar to any panel on your dashboard.</div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Click on the <code>widget</code> to customize its settings.</div>
+  <div class="content">Click on the <code>widget</code> to <b>customize its settings</b>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">To rearrange the widget you can click on it and drag it from the <code>dotted icon</code>.</div>
+  <div class="content"><b>To rearrange the widget </b> you can click on it and drag it from the <code>dotted icon</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">You can click on the <code>delete icon</code> to remove the widget from your dashboard.</div>
+  <div class="content">You can click on the <code>delete icon</code> to <b>remove the widget</b> from your dashboard.</div>
 </div>
 
 <div class="step">
@@ -96,10 +97,9 @@ For more details, see [Widgets](builder/widgets/).
 
 ## Settings
 
-In the settings you can enable or disable <b>Tools</b>, <b>Controls</b> and <b>View options</b> for your dashboard.
+In the settings you can enable or disable <b>Tools</b>, <b>Controls</b> and <b>View options</b> for your dashboard. See [Settings](builder/settings.md) for more details.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/builder/interface_settings.png').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
 
-See [Settings](builder/settings.md) for more details.

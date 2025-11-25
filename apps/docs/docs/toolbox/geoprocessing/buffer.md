@@ -12,7 +12,9 @@ import TabItem from '@theme/TabItem';
 
 This tool allows you to **create zones around points, lines, or polygons with a specified distance**.
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 <iframe width="674" height="378" src="https://www.youtube.com/embed/Yboi3CwOLPM?si=FuSPRmK6zTB-GVJ1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
@@ -54,7 +56,7 @@ A buffer is a tool used to **delineate the catchment area around a specific poin
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Define via the <code>Buffer Distance</code>: how many meters from your points, lines, or shapes the buffer should extend.</div>
+  <div class="content">Define via the <code>Buffer Distance</code>: <b>how many meters from your points, lines, or shapes the buffer should extend</b>.</div>
 </div>
 
 <div class="step">
@@ -64,27 +66,31 @@ A buffer is a tool used to **delineate the catchment area around a specific poin
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">If you keep the <code>Polygon Union</code> disabled, GOAT will generate single buffers around each input geometry. If you enable it, GOAT will create a **geometric union** of all steps of the buffer polygons. In this case, the buffer with the biggest extent also includes all buffer areas of the smaller extent. This approach is useful if you want to see the total area covered by all your buffer steps combined.</div>
+  <div class="content">Configure the <code>Polygon Union</code> setting:
+    <ul>
+      <li><b>Disabled</b>: GOAT will generate single buffers around each input geometry</li>
+      <li><b>Enabled</b>: GOAT will create a <b>geometric union of all steps of the buffer polygons</b>. The buffer with the biggest extent also includes all buffer areas of the smaller extent. This approach is useful if you want to see the total area covered by all your buffer steps combined.</li>
+    </ul>
+  </div>
 </div>
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">If you enabled Polygon Union, you can enable the `Polygon Difference`. GOAT will create a **geometric difference** of the buffers. It subtracts one polygon from another, resulting in polygon shapes where the **buffers do not overlap**.</div>
+  <div class="content">If you <b>enabled Polygon Union</b>, you can enable the <code>Polygon Difference</code>. GOAT will create a <b>geometric difference of the buffers</b>. It subtracts one polygon from another, resulting in polygon shapes where the <b>buffers do not overlap</b>.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/geoprocessing/buffer/polygon_union_difference.png').default} alt="Polygon Union+ Polygon Difference Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
+  <img src={require('/img/toolbox/geoprocessing/buffer/polygon_union_difference.png').default} alt="Polygon Union+ Polygon Difference Result in GOAT" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 </div> 
+
+<p></p>
+
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Click on <code>Run</code>. This starts the calculation of the buffer.</div>
+  <div class="content">Click on <code>Run</code>. This starts the calculation of the buffer. As soon as this task is accomplished, the resulting layer called <b>"Buffer"</b> will be added to your map.</div>
 </div>
 
-### Results
-
-As soon as this task is accomplished, the resulting layer called **"Buffer"** will be added to your map.
+<p></p>
 
 :::tip Tip
 

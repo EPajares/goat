@@ -13,22 +13,21 @@ In the Settings section, **you can enable or disable various general functionali
 
 ## Tools
 
-- **Location search**: Type in a location or coordinates, and the map will zoom to the specified area.
-- **Find my location**: Centers the map to the user's location. Users need to *allow location access in your browser to use this functionality*.
-- **Scalebar**: Updates immediately to show the *real-life distances at your current zoom*.
+- <code>Location search</code>: <b>Type in a location or coordinates</b>, and the map will zoom to the specified area.
+- <code>Find my location</code>: <b>Centers the map to the user's location</b>. Users need to *allow location access in your browser to use this functionality*.
+- <code>Scalebar</code>: Updates immediately to show the <b>real-life distances at your current zoom</b>.
 
 ## Controls
 
-- **Zoom controls**: Zoom in and out.
-- **Basemap switcher**: Choose the desired basemap from the list of available options.
+- <code>Zoom controls</code>: <b>Zoom in and out</b>.
+- <code>Basemap switcher</code>: <b>Choose the desired basemap</b> from the list of available options.
 
 ## View
 
-- **Fullscreen**: Entering and exiting fullscreen mode.
-- **Toolbar**: Through the GOAT logo the *Login*, *Report an issue* and *Privacy policy* menu is avaliable. Next to this you can find the *Project's name*, *Last saved* timestamp and the *Project info*.
-- **Project info**: Contains the *name* and the *description* of the project, which is pulled from the metadata of the project.
-
-
+- <code>Fullscreen</code>: <b>Entering and exiting fullscreen mode</b>.
+- <code>Toolbar</code>: Through the GOAT logo the <b>Login, Report an issue and Privacy policy</b> menu is avaliable. Next to this you can find the <b>Project's name, Last saved timestamp and the Project info</b>.
+- <code>Project info</code>: Contains the <b>name and the description</b> of the project, which is pulled from the metadata of the project.
+  
 ::::note
 
 With `Reset` you can change back the settings to the `default` ones.

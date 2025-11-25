@@ -4,9 +4,9 @@ sidebar_position: 4
 
 # Expressions
 
-This page helps you to understand how to use the expressions in the [Dashboard builder](/builder/widgets.md). You can enter expressions in the **Numbers, Categories,** and **Pie chart widgets.** We're listing and describing the expressions that you could use in GOAT.
+This page helps you to understand how **to use the expressions** in the [Dashboard builder](/builder/widgets.md). You can enter expressions in the **Numbers, Categories,** and **Pie chart widgets.** We're listing and describing the expressions that you could use in GOAT.
 
-They work the same way as in QGIS, and by combining them you can compute more complex calculations or filter your data. 
+**They work the same way as in QGIS, and by combining them you can compute more complex calculations or filter your data.**
 
 :::info
 
@@ -161,12 +161,8 @@ The following functions work with any type of field. The input and the output wi
 | **ST_YMax(geometry)** | same as `ymax()`, **PostGIS version** | <button>ST_YMax($geometry)</button> = 52.55 |
 
 
-
-
-
-https://github.com/plan4better/goat/blob/main/apps/core/src/core/expression_converter.py 
-
 Here are some examples of combined expressions for more complex calculations:
+https://github.com/plan4better/goat/blob/main/apps/core/src/core/expression_converter.py 
 
 
 :::tip

@@ -11,16 +11,16 @@ import MathJax from 'react-mathjax';
 The Heatmap - Closest Average indicator **produces a color-coded map visualizing the average travel time to points, such as POIs, from surrounding areas.**
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
-<iframe width="674" height="378" src="https://www.youtube.com/embed/-nBXd-LAqZA?si=Ijls6J_GlJB8dav4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/-nBXd-LAqZA?si=3dUu-gFsVM1KjS4e&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
 
 ## 1. Explanation
 
 The heatmap displays a color-coded hexagonal grid **showing average travel times to destinations (opportunities) using real-world transport networks.** You can specify the **routing type**, **opportunity layer**, **number of destinations** and **travel time limit** to generate the visualization.
 
-The **Opportunity layer** contains point-based destination data (POIs, transit stations, schools, amenities, or custom data) that you want to analyze accessibility to. You can use multiple opportunity layers and they will be combined into a unified heatmap.
+- The **Opportunity layer contains point-based destination data** (POIs, transit stations, schools, amenities, or custom data) **that you want to analyze accessibility to**. You can use multiple opportunity layers and they will be combined into a unified heatmap.
 
-The **Number of destinations** sets the calculation of average travel time to only the *n* closest opportunities. This creates more targeted accessibility analysis.
+- The **Number of destinations sets the calculation of average travel time to only the *n* closest opportunities**. This creates more targeted accessibility analysis.
 
 **Key difference:** Heatmaps show *access* from many origins to specific destinations, while catchment areas show *reach* from specific origins to many destinations.
 
@@ -82,39 +82,28 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 </div>
 
 <Tabs>
-
 <TabItem value="walk" label="Walk" default className="tabItemBox">
 
 #### Walk
 
-Considers all paths accessible by foot. For heatmaps, a walking speed of 5 km/h is assumed.
-
+**Considers all paths accessible by foot**. For heatmaps, a walking speed of 5 km/h is assumed.
 </TabItem>
   
 <TabItem value="cycling" label="Bicycle" className="tabItemBox">
 
-#### Bicycle
-
-Considers all paths accessible by bicycle. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
+**Considers all paths accessible by bicycle**. This routing mode takes into account the surface, smoothness and slope of streets while computing accessibility. For heatmaps, a cycling speed of 15 km/h is assumed.
 
 </TabItem>
-
 <TabItem value="pedelec" label="Pedelec" className="tabItemBox">
 
-#### Pedelec
-
-Considers all paths accessible by pedelec. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
+**Considers all paths accessible by pedelec**. This routing mode takes into account the surface and smoothness of streets while computing accessibility. For heatmaps, a pedelec speed of 23 km/h is assumed.
 
 </TabItem>
-
 <TabItem value="car" label="Car" className="tabItemBox">
 
-#### Car
-
-Considers all paths accessible by car. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
+**Considers all paths accessible by car**. This routing mode takes into account speed limits and one-way access restrictions while computing accessibility.
 
 </TabItem>
-
 </Tabs>
 
 ### Opportunities
@@ -154,8 +143,9 @@ Need help choosing a suitable travel time limit for various common amenities? Th
 
 Once the calculation is complete, a result layer will be added to the map. Clicking on any of the **heatmap's hexagonal cells will reveal the computed average travel time value for this cell.**
 
-<img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/clst-avg-calculation.gif').default} alt="Options" style={{ maxHeight: "800px", maxWidth: "800px"}}/>
-<p></p>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/clst-avg-calculation.gif').default} alt="Closest Average Heatmap Calculation Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
 ## 4. Technical details
 
@@ -182,7 +172,7 @@ In order to classify the accessibility levels that were computed for each grid c
 
 Heatmaps in GOAT utilize **[Uber's H3 grid-based](../../further_reading/glossary#h3-grid)** solution for efficient computation and easy-to-understand visualization. Behind the scenes, a pre-computed travel time matrix for each *routing type* utilizes this solution and is queried and further processed in real-time to compute accessibility and produce a final heatmap.
 
-TThe resolution and dimensions of the hexagonal grid used depend on the selected *routing type*:
+The resolution and dimensions of the hexagonal grid used depend on the selected *routing type*:
 
 <div style={{ marginLeft: '20px' }}>
 
@@ -232,6 +222,10 @@ For further insights into the Routing algorithm, visit [Routing](../../category/
 
 The following examples illustrate the computation of a closest-average-based heatmap for the same opportunities, with a varying `Number of destinations` value.
 
-![Closest Average Heatmaps for different destinations](/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/cls-avg-destinations.png "Closest Average Heatmaps for different destinations")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/heatmaps/closest_average_based/cls-avg-destinations.png').default} alt="Closest Average Heatmaps for different destinations" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
+
+<p></p>
 
 In the first example, the average travel time is computed considering only the closest destination, while in the second example, the closest 5 destinations are considered.

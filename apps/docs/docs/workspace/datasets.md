@@ -4,19 +4,21 @@ sidebar_position: 4
 
 # Datasets
 
-The **Datasets** page is your data management hub where you can upload, organize, and share all your spatial and non-spatial data in GOAT. This centralized workspace provides an organized view of your datasets, categorized into **Personal Datasets**, **Team Datasets**, and **Organization-wide Shared Datasets**. Here you can:
+The Datasets page is your **data management hub where you can upload, organize, and share all your spatial and non-spatial data in GOAT**. This centralized workspace provides an organized view of your datasets, categorized into Personal Datasets, Team Datasets, and Organization-wide Shared Datasets. Here you can:
 
 - **Add new datasets**
 - **Filter and organize datasets** for better data structure and management
 - **Manage datasets** by sharing, moving, deleting, among others functions.
   
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/workspace/datasets/datasets_general.png').default} alt="Datasets Page in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/workspace/datasets/datasets_general.png').default} alt="Datasets Page in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
 </div> 
 
 ## Adding datasets
 
-You can add datasets to GOAT in two ways: by uploading files from your computer or by connecting to external data sources.
+You can add datasets to GOAT by: 
+- Uploading files from your computer
+- Connecting to external data sources.
 
 ### Upload data
 
@@ -148,7 +150,7 @@ Organize your datasets into folders for better structure and easier navigation.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click the three dots <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px"}}/> next to your dataset</div>
+  <div class="content">Click the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px"}}/> <code>more options</code> button next to your dataset</div>
 </div>
 
 <div class="step">
@@ -169,29 +171,27 @@ Organize your datasets into folders for better structure and easier navigation.
 
 Access comprehensive dataset management options through the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to each dataset. Available actions include:
 
-- **View/Edit Info** - Access and modify dataset metadata
-- **Move to Folder** - Reorganize your dataset structure  
-- **Download** - Export datasets to your local device
-- **Share** - Collaborate by sharing with team members or organization
-- **Delete** - Remove datasets you no longer need
+- <code>Edit metadata</code> - Access and edit dataset metadata
+- <code>Move to folder</code> - Reorganize your dataset location
+- <code>Download</code> - Export datasets to your local device
+- <code>Update</code> - Update datasets with new data
+- <code>Share</code> - Collaborate by sharing datasets with team members or your organization
+- <code>Delete</code> - Remove datasets you no longer need
+
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/workspace/datasets/managing_datasets.gif').default} alt="Dataset management options" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/workspace/datasets/managing_datasets.png').default} alt="Dataset management options" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
 </div>
 
 #### Dataset metadata and preview
 
-View detailed information about your datasets to better understand their content and structure. Access metadata in two ways:
-
-- Click **Info** from the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu 
-- Click directly on the dataset name
+View detailed information about your datasets to better understand their content and structure. Access metadata by clicking directly on the dataset name.
 
 The metadata view provides:
 
-- **Data Summary** - Overview of dataset properties and statistics
-- **Attribute Table** - Detailed view of all data fields and values  
-- **Map Preview** - Spatial visualization with interactive legend
-- **Edit Options** - Modify dataset name, description, and other properties
+- <code>Summary</code> - Overview of dataset properties and statistics
+- <code>Data</code> - Detailed view of all data fields and values  
+- <code>Map</code> - Spatial visualization with interactive legend
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/datasets/metadata.gif').default} alt="Metadata of the datasets in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>

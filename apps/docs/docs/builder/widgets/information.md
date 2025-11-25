@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Information
 
-This section contains widgets that provide information about your project layers and components. Simply **drag and drop** widgets from the right sidebar to any panel on your dashboard. Customize each widget by clicking on it, which opens the **widget settings** in the right panel.
+This section contains **widgets that provide information about your project** layers and components.
 
 ## Layers
 
@@ -21,15 +21,15 @@ This section contains widgets that provide information about your project layers
 <div class="step">
   <div class="step-number">3</div>
   <div class="content">
-    By clicking on the <img src={require('/img/scenarios/3dots.png').default} alt="More options" style={{ maxHeight: "18px", maxWidth: "18px", verticalAlign: "middle", marginRight: "4px" }}/> <code>more options</code> icon next to the layer name, users can:
-    <ul>
-      <li><code>Zoom to layer</code>: This will zoom the map view to the full extent of the layer. Available for the viewers as well.</li>
-      <li><code>Download</code>: Not available for the viewers.</li>
-      <li><code>Data source info</code>: Available for the viewers as well.</li>
-      <li><code>Hide/Show layer</code>: Set the default visibility of the layers, the viewers can hide/show them.</li>
-    </ul>
+    By clicking on the <img src={require('/img/scenarios/3dots.png').default} alt="More options" style={{ maxHeight: "18px", maxWidth: "18px", verticalAlign: "middle", marginRight: "4px" }}/> <code>more options</code> icon next to the layer name, users can click on: <code>Zoom to layer</code>, <code>Data source info</code>, and <code>Hide/Show layer</code>. There is also the option to <code>Download</code>, but it is not available for all viewers.
   </div>
 </div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/builder/widget_drag.gif').default} alt="recent datasets" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
+</div> 
+
+<p></p>
 
 ::::info
 Viewers can hide/show the pre-selected layers, but once the dashboard is **reloaded**, they will **set back to the original visibility.**

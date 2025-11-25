@@ -8,6 +8,10 @@ import TabItem from '@theme/TabItem';
 # Quickstart Guide
 Welcome to GOAT! This quickstart guide will help you get up and running with GOAT in no time. Follow these simple steps to explore the workspace, and create your first analysis and interactive map.
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/_wAEhPTT3jA?si=mJv_duAm_rXz4Jze&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
+
 ## Create a new project
 
 

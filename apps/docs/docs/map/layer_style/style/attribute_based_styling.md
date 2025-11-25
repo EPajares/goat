@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Attribute-based Styling
 
-**You can style layers based on data attributes to easily identify differences and trends.** Each visualization aspect—**Fill Color**, **Stroke Color**, **Custom Marker**, and **Labels**—can be styled by any field in your layer's data.
+**You can style layers based on data attributes to easily identify differences and trends.** Each visualization aspect—Fill Color, Stroke Color, Custom Marker, and Labels—can be styled by any field in your layer's data.
 
 <iframe width="100%" height="500" src="https://www.youtube.com/embed/cLIPMCOu4FQ?si=aydSJN_Pf0fusO9x" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
@@ -28,22 +28,22 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">In <code>Color based on</code>, select the **field to style by**.</div>
+  <div class="content">In <code>Color based on</code>, select the <strong>field to style by</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
+  <div class="content">Now you can go up to <code>Palette</code>, and choose a <strong>color palette</strong> or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">In <code>Color Scale</code>, choose your **data classification method**. See all methods in the [Data Classification](#data-classification-methods) section.</div>
+  <div class="content">In <code>Color Scale</code>, choose your <strong>data classification method</strong>. See all methods in the <a href="#data-classification-methods">Data Classification</a> section.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/attribute-based-fill-color.gif').default} alt="Fill Color Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/attribute-based-fill-color.gif').default} alt="Fill Color Styling" style={{ maxHeight: "auto", maxWidth: "20%", objectFit: "cover"}}/>
 
 </div>
 
@@ -62,17 +62,17 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Now you can go up to <code>Palette</code>, and choose a **color palette** or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
+  <div class="content">Now you can go up to <code>Palette</code>, and choose a <strong>color palette</strong> or keep the default. Learn more in the [Color Palette](#color-palette) section below.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">In <code>Color Scale</code>, choose your **data classification method**. See all methods in the [Data Classification](#data-classification-methods) section.</div>
+  <div class="content">In <code>Color Scale</code>, choose your <strong>data classification method</strong>. See all methods in the <a href="#data-classification-methods">Data Classification</a> section.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/attribute-based-stroke-color.gif').default} alt="Stroke Color Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/attribute-based-stroke-color.gif').default} alt="Stroke Color Styling" style={{ maxHeight: "auto", maxWidth: "20%", objectFit: "cover"}}/>
 
 </div>
 
@@ -96,7 +96,7 @@ import TabItem from '@theme/TabItem';
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/attribute-based-custom-marker.gif').default} alt="Custom Marker Styling" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/attribute-based-custom-marker.gif').default} alt="Custom Marker Styling" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 
 </div>
 
@@ -137,7 +137,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-<img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+<img src={require('/img/map/styling/quantile.png').default} alt="Quantile" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
 </div>  
 
@@ -146,7 +146,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 **Classifies data by deviation from the average**. Shows **relative dispersion, distribution, and outliers** statistically, but requires normally distributed data.
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/standard_deviation.png').default} alt="Standard Deviation" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/standard_deviation.png').default} alt="Standard Deviation" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
 </div> 
 
@@ -155,7 +155,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 **Divides data into equal-sized value ranges**. Works well for **evenly distributed data but can be misleading with skewed data** (some classes may be empty). 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/equal_interval.png').default} alt="Equal Interval" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/equal_interval.png').default} alt="Equal Interval" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
 </div> 
 
@@ -165,7 +165,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/heads_tails.png').default} alt="Heads and Tails" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/heads_tails.png').default} alt="Heads and Tails" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
 </div> 
 
@@ -175,7 +175,7 @@ The <code>Color Scale</code> determines how data values map to colors. GOAT offe
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/ordinal.png').default} alt="Custom Ordinal for strings" style={{ maxHeight: "auto", maxWidth: "75%", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/ordinal.png').default} alt="Custom Ordinal for strings" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 
 </div>
 
@@ -185,7 +185,7 @@ You can add more steps and select multiple string values per group from the <cod
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-  <img src={require('/img/map/styling/custom_ordinal.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>
+  <img src={require('/img/map/styling/custom_ordinal.gif').default} alt="Custom Ordinal for strings" style={{ maxHeight: "auto", maxWidth: "40%", objectFit: "cover"}}/>
 
 </div> 
 

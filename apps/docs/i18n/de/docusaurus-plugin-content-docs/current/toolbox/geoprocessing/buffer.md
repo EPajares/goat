@@ -12,7 +12,9 @@ import TabItem from '@theme/TabItem';
 
 Dieses Werkzeug ermöglicht es Ihnen, **Zonen um Punkte, Linien oder Polygone mit einem bestimmten Abstand zu erstellen**.
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 <iframe width="674" height="378" src="https://www.youtube.com/embed/Yboi3CwOLPM?si=FuSPRmK6zTB-GVJ1" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Erklärung
 
@@ -64,27 +66,34 @@ Ein Puffer ist ein Werkzeug, das verwendet wird, um **das Einzugsgebiet um einen
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Wenn Sie die <code>Polygon-Vereinigung</code> deaktiviert lassen, generiert GOAT einzelne Puffer um jede Eingabegeometrie. Wenn Sie sie aktivieren, erstellt GOAT eine **geometrische Vereinigung** aller Schritte der Puffer-Polygone. In diesem Fall umfasst der Puffer mit der größten Ausdehnung auch alle Pufferbereiche der kleineren Ausdehnung. Dieser Ansatz ist nützlich, wenn Sie die Gesamtfläche sehen möchten, die von allen Ihren Pufferschritten zusammen abgedeckt wird.</div>
+  <div class="content">Konfigurieren Sie die <code>Polygon-Vereinigung</code> Einstellung:
+    <ul>
+      <li><b>Deaktiviert</b>: GOAT generiert einzelne Puffer um jede Eingabegeometrie</li>
+      <li><b>Aktiviert</b>: GOAT erstellt eine <b>geometrische Vereinigung aller Schritte der Puffer-Polygone</b>. Der Puffer mit der größten Ausdehnung umfasst auch alle Pufferbereiche der kleineren Ausdehnung. Dieser Ansatz ist nützlich, wenn Sie die Gesamtfläche sehen möchten, die von allen Ihren Pufferschritten zusammen abgedeckt wird.</li>
+    </ul>
+  </div>
 </div>
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Wenn Sie die Polygon-Vereinigung aktiviert haben, können Sie die `Polygon-Differenz` aktivieren. GOAT erstellt eine **geometrische Differenz** der Puffer. Es subtrahiert ein Polygon von einem anderen, was zu Polygonformen führt, bei denen sich die **Puffer nicht überlappen**.</div>
+  <div class="content">Wenn Sie die <b>Polygon-Vereinigung aktiviert haben</b>, können Sie die `Polygon-Differenz` aktivieren. GOAT erstellt eine <b>geometrische Differenz der Puffer</b>. Es subtrahiert ein Polygon von einem anderen, was zu Polygonformen führt, bei denen sich die <b>Puffer nicht überlappen</b>.</div>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-  <img src={require('/img/toolbox/geoprocessing/buffer/polygon_union_difference.png').default} alt="Polygon-Vereinigung + Polygon-Differenz Ergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
+  <img src={require('/img/toolbox/geoprocessing/buffer/polygon_union_difference.png').default} alt="Polygon-Vereinigung + Polygon-Differenz Ergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "60%", objectFit: "cover"}}/>
 </div> 
+
 <div class="step">
   <div class="step-number">8</div>
   <div class="content">Klicken Sie auf <code>Ausführen</code>. Dies startet die Berechnung des Puffers.</div>
 </div>
+<div class="step">
+  <div class="step-number">8</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>. Dies startet die Berechnung des Puffers. Sobald diese Aufgabe abgeschlossen ist, wird der resultierende Layer namens <b>"Puffer"</b> zu Ihrer Karte hinzugefügt.</div>
+</div>
 
-### Ergebnisse
-
-Sobald diese Aufgabe abgeschlossen ist, wird der resultierende Layer namens **"Puffer"** zu Ihrer Karte hinzugefügt.
+<p></p>
 
 :::tip Tipp
 

@@ -8,8 +8,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 The Origin Destination tool allows you to **visualize movement flows between different locations by creating lines that connect origins to destinations**. Perfect for analyzing commuter patterns, transport flows, and spatial interactions.
 
+<div style={{ display: 'flex', justifyContent: 'center' }}>
 <iframe width="674" height="378" src="https://www.youtube.com/embed/VmHe1NfApRw?si=xzUGIkh2IHn6DTTl" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
+</div>
 
 ## 1. Explanation
 
@@ -18,7 +19,7 @@ The Origin-Destination tool creates **straight lines connecting starting points 
 The example below shows an *Input Table (Matrix Layer)* and the resulting *Origin-Destination Lines* based on the *Zipcode Areas (Geometry Layer)*.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/toolbox/geoanalysis/origin_destination/od_example.png').default} alt="Origin Destination Tool in GOAT" style={{ maxHeight: "700px", maxWidth: "700px", objectFit: "cover"}}/>
+  <img src={require('/img/toolbox/geoanalysis/origin_destination/od_example.png').default} alt="Origin Destination Tool in GOAT" style={{ maxHeight: "auto", maxWidth: "500px", objectFit: "cover"}}/>
 </div> 
 
 
@@ -45,7 +46,7 @@ The example below shows an *Input Table (Matrix Layer)* and the resulting *Origi
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Select your <code>Geometries Layer</code>. This should be a feature layer containing the geometries of the origins and destinations and an attribute that can be used as an identifier to match the OD-connections with the geometries.</div>
+  <div class="content">Select your <code>Geometries Layer</code>. This should be a <b>feature layer containing the geometries of the origins and destinations and an attribute that can be used as an identifier </b> to match the OD-connections with the geometries.</div>
 </div>
 
 <div class="step">
@@ -57,17 +58,17 @@ The example below shows an *Input Table (Matrix Layer)* and the resulting *Origi
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Matrix Table</code>. This is the table with the origin-destination-matrix and the <code>Origin Field</code>.</div>
+  <div class="content">Select the <code>Matrix Table</code>. This is the table with the <b>origin-destination-matrix and the Origin Field</b>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Select your <code>Destination Field</code>. This is the field that contains the destinations in the origin-destination matrix.</div>
+  <div class="content">Select your <code>Destination Field</code>. This is the <b>field that contains the destinations </b> in the origin-destination matrix.</div>
 </div>
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Select your <code>Weight Field</code>. This is the field that contains the weights in the origin-destination matrix.</div>
+  <div class="content">Select your <code>Weight Field</code>. This is the <b>field that contains the weights</b> in the origin-destination matrix.</div>
 </div>
 
 <div class="step">
@@ -87,7 +88,11 @@ As soon as the calculation process is finished, the resulting layers will be add
 
 If you click on an "O-D Relation" item on the map, you can view the attribute details, such as the **origin**, **destination** and **weight** of this relation.
 
-<img src={require('/img/toolbox/geoanalysis/origin_destination/result.png').default} alt="Origin Destination Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/geoanalysis/origin_destination/result.png').default} alt="Origin Destination Result in GOAT" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
+</div>
+
+<p></p>
 
 :::tip Tip
 Want to style your result layer and create nice-looking maps? See [Styling](../../map/layer_style/styling).

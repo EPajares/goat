@@ -12,7 +12,7 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 Einzugsgebiete zeigen **wie weit Menschen innerhalb einer bestimmten Reisezeit oder Entfernung, mit einem oder mehreren Verkehrsmitteln reisen können.**
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
-<iframe width="674" height="378" src="https://www.youtube.com/embed/_clsR386b9w?si=ZInxlY_TjYiEda23" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/GA_6PbhAA6k?si=4mA2OdTPGCl7iVRi&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 </div>
 
 ## 1. Erklärung
@@ -34,33 +34,37 @@ Die Berechnung von Einzugsgebieten ist in bestimmten Regionen möglich.
 Nach Auswahl eines <code>Routentyps</code> zeigt GOAT eine Kartenüberlagerung an, die dies anzeigt.  
 Für <code>zu Fuß</code>, <code>Fahrrad</code>, <code>Pedelec</code> und <code>Auto</code> werden über 30 europäische Länder unterstützt, während Einzugsgebiete für <code>ÖV</code> für Deutschland berechnet werden können.
 
-<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "wrap" }}>
-  <MapViewer
-      geojsonUrls={[
-        "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
-      ]}
-      styleOptions={{
-        fillColor: "#808080",
-        outlineColor: "#808080",
-        fillOpacity: 0.8
-      }}
-      legendItems={[
-        { label: "Abdeckung für Fußwege, Fahrrad, Pedelec und Auto", color: "#ffffff" }
-      ]}
-  />
-  <MapViewer
-      geojsonUrls={[
-        "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
-      ]}
-      styleOptions={{
-        fillColor: "#808080",
-        outlineColor: "#808080",
-        fillOpacity: 0.8
-      }}
-      legendItems={[
-        { label: "Abdeckung für den öffentlichen Nahverkehr", color: "#ffffff" }
-      ]}
-  />
+<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', flexWrap: "nowrap", maxWidth: '100%', padding: '0 20px' }}>
+  <div style={{ flex: '1', maxWidth: 'none', minWidth: '0' }}>
+    <MapViewer
+        geojsonUrls={[
+          "https://assets.plan4better.de/other/geofence/geofence_street.geojson"
+        ]}
+        styleOptions={{
+          fillColor: "#808080",
+          outlineColor: "#808080",
+          fillOpacity: 0.8
+        }}
+        legendItems={[
+          { label: "Abdeckung für Fußwege, Fahrrad, Pedelec und Auto", color: "#ffffff" }
+        ]}
+    />
+  </div>
+  <div style={{ flex: '1', maxWidth: 'none', minWidth: '0' }}>
+    <MapViewer
+        geojsonUrls={[
+          "https://assets.plan4better.de/other/geofence/geofence_gtfs.geojson"
+        ]}
+        styleOptions={{
+          fillColor: "#808080",
+          outlineColor: "#808080",
+          fillOpacity: 0.8
+        }}
+        legendItems={[
+          { label: "Abdeckung für den öffentlichen Nahverkehr", color: "#ffffff" }
+        ]}
+    />
+  </div>
 </div>
 
 <br />
@@ -103,9 +107,7 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
 <Tabs>
   <TabItem value="walk" label="zu Fuß" default className="tabItemBox">
 
-  #### zu Fuß
-
-  Berücksichtigt alle zu Fuß zugänglichen Wege.
+**Berücksichtigt alle zu Fuß zugänglichen Wege.**
 
   <div class="step">
     <div class="step-number">4</div>
@@ -113,7 +115,7 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
   </div>
 
   <Tabs>
-    <TabItem value="time" label="Zeit" default className="tabItemBox">
+  <TabItem value="time" label="Zeit" default className="tabItemBox">
 
   #### Zeit
 
@@ -124,12 +126,12 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
 
   <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
-  :::tip Hint
+:::tip Hint
 
-  Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz.
+Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz.
 
-  :::
-    </TabItem>
+:::
+  </TabItem>
   
   <TabItem value="distance" label="Entfernung" default className="tabItemBox">
 
@@ -143,108 +145,100 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
   <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
   
   </TabItem>
-
   </Tabs>
+
 </TabItem>
-  <TabItem value="cycling" label="Fahrrad/Pedelec" className="tabItemBox">
 
-#### Fahrrad/Pedelec
+<TabItem value="cycling" label="Fahrrad/Pedelec" className="tabItemBox">
 
-Berücksichtigt alle mit dem Fahrrad zugänglichen Wege. Dieser Routing-Modus berücksichtigt Oberfläche, Glätte und Steigung bei der Berechnung der Erreichbarkeit. Bei Pedelecs haben Steigungen eine geringere Behinderung als bei normalen Fahrrädern.
+**Berücksichtigt alle mit dem Fahrrad zugänglichen Wege.** Dieser Routing-Modus berücksichtigt Oberfläche, Glätte und Steigung bei der Berechnung der Erreichbarkeit. Bei Pedelecs haben Steigungen eine geringere Behinderung als bei normalen Fahrrädern.
 
 <div class="step">
   <div class="step-number">4</div>
   <div class="content">Wählen Sie, ob Sie das Einzugsgebiet basierend auf **Zeit** oder **Entfernung** berechnen möchten.</div>
 </div>
 
-<Tabs>
+  <Tabs>
   <TabItem value="time" label="Zeit" default className="tabItemBox">
 
-#### Zeit
+  #### Zeit
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code>, <code>Reisegeschwindigkeit</code>, und <code>Anzahl der Schritte</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code>, <code>Reisegeschwindigkeit</code>, und <code>Anzahl der Schritte</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="walking-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
 :::tip Hint
 
 Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz.
 
 :::
-
   </TabItem>
   
   <TabItem value="distance" label="Entfernung" default className="tabItemBox">
 
-#### Entfernung
+  #### Entfernung
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Konfigurieren Sie <code>Reiseentfernung</code> und <code>Anzahl der Schritte</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Konfigurieren Sie <code>Reiseentfernung</code> und <code>Anzahl der Schritte</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
-
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="walking-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  
   </TabItem>
+  </Tabs>
 
-</Tabs>
+</TabItem>
 
+<TabItem value="car" label="Auto" className="tabItemBox">
 
-  </TabItem>
-
-  <TabItem value="car" label="Auto" className="tabItemBox">
-
-#### Auto
-
-Berücksichtigt alle mit dem Auto zugänglichen Wege. Dieser Routing-Modus berücksichtigt Geschwindigkeitsbegrenzungen und Einbahnstraßenbeschränkungen bei der Berechnung der Erreichbarkeit.
+**Berücksichtigt alle mit dem Auto zugänglichen Wege.** Dieser Routing-Modus berücksichtigt Geschwindigkeitsbegrenzungen und Einbahnstraßenbeschränkungen bei der Berechnung der Erreichbarkeit.
 
 <div class="step">
   <div class="step-number">4</div>
   <div class="content">Wählen Sie, ob Sie das Einzugsgebiet basierend auf **Zeit** oder **Entfernung** berechnen möchten.</div>
 </div>
 
-<Tabs>
+  <Tabs>
   <TabItem value="time" label="Zeit" default className="tabItemBox">
 
-#### Zeit
+  #### Zeit
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code> und <code>Anzahl der Schritte</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Konfigurieren Sie <code>Reisezeitlimit</code> und <code>Anzahl der Schritte</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="travel-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_time.png').default} alt="travel-time configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
 :::tip Hint
 
 Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](https://www.chemnitz.de/chemnitz/media/unsere-stadt/verkehr/verkehrsplanung/vep2040_standortwerkzeug.pdf) der Stadt Chemnitz.
 
 :::
-
   </TabItem>
+  
   <TabItem value="distance" label="Entfernung" default className="tabItemBox">
 
-#### Entfernung
+  #### Entfernung
 
-<div class="step">
-  <div class="step-number">5</div>
-  <div class="content">Konfigurieren Sie <code>Reiseentfernung</code> und <code>Anzahl der Schritte</code>.</div>
-</div>
+  <div class="step">
+    <div class="step-number">5</div>
+    <div class="content">Konfigurieren Sie <code>Reiseentfernung</code> und <code>Anzahl der Schritte</code>.</div>
+  </div>
 
-<img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="travel-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
-
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/walk_config_distance.png').default} alt="travel-distance configurations" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  
   </TabItem>
-</Tabs>
+  </Tabs>
 
-  </TabItem>
+</TabItem>
   <TabItem value="public transport" label="Public Transport (PT)" className="tabItemBox">
 
-#### Öffentlicher Verkehr (ÖV)
-
-Berücksichtigt alle mit öffentlichen Verkehrsmitteln erreichbaren Orte, einschließlich intermodaler Transfers und Stationszugang.
+**Berücksichtigt alle mit öffentlichen Verkehrsmitteln erreichbaren Orte, einschließlich intermodaler Transfers und Stationszugang.**
 
 <div class="step">
   <div class="step-number">4</div>
@@ -292,35 +286,26 @@ Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](
 <Tabs>
   <TabItem value="Polygon" label="Polygon" default className="tabItemBox">
 
- #### Polygon
-- Es ist die *geometrische Darstellung* der Einzugsgebiete.
-- Bietet eine leicht verständliche Visualisierung des Einzugsgebiets.
-- Für jeden <code>Schritt</code> wird ein Polygon erzeugt.
+- Es ist die **geometrische Darstellung** der Einzugsgebiete.
+- **Leicht verständliche** Visualisierung
+- **Ein Polygon pro Schritt**
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_polygon.png').default} alt="Einzugsgebiet (Polygon) ÖV in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
-:::tip Tipp
-
-Wenn Sie **Polygon-Differenz** aktivieren, wird für jeden Schritt nur das "inkrementelle" (oder differenzielle) Polygon erstellt. Wenn Sie **Polygon-Differenz** deaktivieren, wird für jeden Schritt ein "vollständiges" Polygon erstellt (einschließlich der Bereiche, die von allen vorherigen Schritten abgedeckt wurden).
-
-<img src={require('/img/toolbox/accessibility_indicators/catchments/polygon_difference.png').default} alt="ÖV Konfigurationen" style={{ maxHeight: "400px", maxWidth: "400px"}}/>
-
-:::
+Sie können <code>Polygon-Differenz</code> **aktivieren**, wodurch "inkrementelle" Polygone für jeden Schritt erstellt werden. Andererseits erstellt **deaktiviert** "vollständige" Polygone einschließlich aller vorherigen Schritte.
 
   </TabItem>
-  <TabItem value="Netzwerk" label="Netzwerk" className="tabItemBox">
+  <TabItem value="Network" label="Network" className="tabItemBox">
 
- #### Netzwerk
-- Es ist eine *Darstellung auf Straßenebene* der Einzugsgebiete.
-- Ermöglicht eine einfache Korrelation zu tatsächlichen Straßen und deren Erreichbarkeit innerhalb des Einzugsgebiets.
-- Bietet feinere Details im Vergleich zu den anderen Einzugsgebietstypen.
+- Es ist eine **Darstellung auf Straßenebene** der Einzugsgebiete.
+- Ermöglicht **einfache Korrelation zu tatsächlichen Straßen** und deren Erreichbarkeit innerhalb des Einzugsgebiets.
+- **Feinere Details** im Vergleich zu den anderen Einzugsgebietstypen.
 
 <img src={require('/img/toolbox/accessibility_indicators/catchments/pt_network.png').default} alt="Einzugsgebiet (Network) ÖV in GOAT" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 
   </TabItem>
   <TabItem value="Rectangular Grid" label="Rectangular Grid" className="tabItemBox">
 
-#### Rechteckiges Gitter
 - Es ist eine **gitterzellenbasierte Darstellung** der Einzugsgebiete.
 - Erscheint ähnlich wie eine „Heatmap“-Visualisierung, unterscheidet sich jedoch konzeptionell und rechnerisch (dies stellt das Abfließen von einem bestimmten Ursprung zu verschiedenen anderen Standorten dar, während Heatmaps den Zugang von verschiedenen Standorten zu einem bestimmten Ziel darstellen).
 
@@ -376,7 +361,9 @@ Nach Abschluss der Berechnung werden die resultierenden Layer zur Karte hinzugef
 
 Klicken Sie auf ein Einzugsgebietspolygon, um Details anzuzeigen. Das **travel_cost** Attribut zeigt Reiseentfernung oder -zeit basierend auf Ihrer Berechnungseinheit: **Zeit in Minuten** oder **Entfernung in Metern**.
 
-![Catchment Area Calculation in GOAT](/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif "Catchment Area Calculation Result in GOAT")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+  <img src={require('/img/toolbox/accessibility_indicators/catchments/catchment_calculation.gif').default} alt="Einzugsgebietsberechnung Ergebnis in GOAT" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
 :::tip Tipp
 Möchten Sie Ihre Einzugsgebiete stilisieren und schöne Karten erstellen? Siehe [Styling](../../map/layer_style/styling).

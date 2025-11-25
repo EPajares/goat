@@ -45,19 +45,19 @@ This tool allows you to combine two datasets by linking their features through a
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">  Select your <code>Target layer</code>: the primary table or layer to which you want to add additional data. </div>
+  <div class="content">  Select your <code>Target layer</code>: the primary table or layer <strong>to which you want to add additional data.</strong> </div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select your <code>Join layer</code>: the secondary table or dataset that contains the records and attributes to be inserted into the Target Layer. </div>
+  <div class="content">Select your <code>Join layer</code>: the secondary table or dataset that <strong>contains the records and attributes to be inserted into the Target Layer.</strong> </div>
 </div>
 
 ### Fields to match
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Target field</code> of the target layer, which you like to use for matching the records of both layers.</div>
+  <div class="content">Select the <code>Target field</code> of the target layer, which you like <strong>to use for matching the records of both layers</strong>.</div>
 </div>
 
 <div class="step">
@@ -72,7 +72,7 @@ This tool allows you to combine two datasets by linking their features through a
   <div class="content"> Select the <code>Statistic Method</code> to be used to join the attribute. </div>
 </div>
 
-You can choose between several statistical operations. Some methods are only available for specific data types. The following list provides an overview of the available methods:
+**You can choose between several statistical operations**. Some methods are only available for specific data types. The following list provides an overview of the available methods:
 
 | Method | Data Types | Description |
 | -------|------| ------------|
@@ -103,6 +103,8 @@ The resulting layer **"Join"** will be added to your project and to the [Dataset
   <img src={require('/img/toolbox/data_management/join/result.png').default} alt="Join Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
 </div> 
+
+<p></p>
 
 
 :::tip Tip

@@ -58,5 +58,5 @@ Greifen Sie auf zusätzliche **Projekt**-Optionen zu, indem Sie auf das <img src
 - **Projekte löschen** - **Projekte** entfernen, die Sie nicht mehr benötigen
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-  <img src={require('/img/workspace/projects/options.gif').default} alt="Projekt-Verwaltungsoptionen" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
+  <img src={require('/img/workspace/projects/options.png').default} alt="Projekt-Verwaltungsoptionen" style={{ maxHeight: "300px", maxWidth: "300px"}}/>
 </div>

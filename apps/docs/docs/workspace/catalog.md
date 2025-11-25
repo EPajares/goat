@@ -4,7 +4,7 @@ sidebar_position: 5
 
 # Catalog
 
-The **Data Catalog** is your gateway to exploring Plan4Better's comprehensive collection of high-quality [geospatial datasets](../further_reading/glossary#geospatial-data). **This curated library provides reliable, ready-to-use data from official open-data providers and other trusted sources**, enabling you to immediately start analysis and visualization within your GOAT projects. From the Catalog you can:
+The Data Catalog is your gateway to exploring Plan4Better's comprehensive collection of high-quality [geospatial datasets](../further_reading/glossary#geospatial-data). **This curated library provides reliable, ready-to-use data from official open-data providers and other trusted sources**, enabling you to immediately start analysis and visualization within your GOAT projects. From the Catalog you can:
 
 - **Explore our dataset collection** spanning multiple thematic areas and geographic regions
 - **Search and filter through it** by keyword, spatial extent, and dataset attributes
@@ -18,12 +18,12 @@ The **Data Catalog** is your gateway to exploring Plan4Better's comprehensive co
 Access the Data Catalog from the [Workspace](../category/workspace) or directly through the <code>+ Add layer</code> button in your GOAT projects. The catalog provides powerful discovery tools including:
 
 - **Keyword search** for finding specific datasets or topics
-- **Filters** to browse datasets by Type, [Data Category](#Data-Category) , Region, Language, Distributor Name, and Licence
+- **Filters** to browse datasets by Type, Data Category, Region, Language, Distributor Name, and Licence
 - **Interactive preview** to assess data quality and content before use
 
 ### Dataset Category {#dataset-category}
 
-One way of filtering the Catalog is through **Data Category**, which organizes datasets into clear thematic categories for easy navigation:
+**One way of filtering the Catalog is through Data Category**, which organizes datasets into clear thematic categories for easy navigation:
 
 - **Boundary** - Administrative, political, and geographic boundaries including borders and districts
 - **Land-use** - Classifications of land areas by usage type (residential, commercial, industrial, etc.)
@@ -45,20 +45,20 @@ Each dataset includes comprehensive metadata accessible by clicking on the datas
 
 ### Available Dataset Types
 
-The catalog includes diverse datasets managed as feature layers containing geospatial features (points, lines, polygons) or non-geospatial tabular data. These datasets can be directly added to your projects for analysis and visualization.
+**The catalog includes diverse datasets** managed as feature layers containing geospatial features (points, lines, polygons) or non-geospatial tabular data. 
 
 #### Points of Interest (POIs)
-Strategic locations of amenities, facilities, and attractions essential for accessibility planning and urban analysis, such as Public transport stops and stations, Shopping centers and retail locations, Tourism and leisure facilities, Food and beverage establishments, Healthcare facilities and hospitals, Educational institutions and schools.
+**Strategic locations of amenities, facilities, and attractions essential for accessibility planning and urban analysis**, such as Public transport stops and stations, Shopping centers and retail locations, Tourism and leisure facilities, Food and beverage establishments, Healthcare facilities and hospitals, Educational institutions and schools.
 
 *Data Sources:* [Overture Maps Foundation](https://overturemaps.org/), [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/), government departments, health insurance providers, and retail companies. Additional field data collection conducted when necessary.
 
 #### Population and Buildings
-Detailed demographic data disaggregated to building and local levels, enhanced with land-use information for improved accuracy. We provide Building-level population data for German districts and municipalities, local population data from German Census 2022, and European NUTS-3 level population statistics (Nomenclature of Territorial Units for Statistics).
+**Detailed demographic data disaggregated to building and local levels**, enhanced with land-use information for improved accuracy. We provide Building-level population data for German districts and municipalities, local population data from German Census 2022, and European NUTS-3 level population statistics (Nomenclature of Territorial Units for Statistics).
 
 *Data Sources:* [German Census 2022](https://ergebnisse.zensus2022.de/datenbank/online/), individual municipalities and districts, and 3D City Models from German federal states.
 
 #### Administrative Boundaries
-Comprehensive boundary datasets defining governmental and administrative jurisdictions at multiple scales, such as Municipal boundaries, District boundaries, Federal state boundaries, and Postal code regions.
+**Comprehensive boundary datasets defining governmental and administrative jurisdictions at multiple scales**, such as Municipal boundaries, District boundaries, Federal state boundaries, and Postal code regions.
 
 *Data Sources:* [Federal Agency for Cartography and Geodesy (BKG)](https://www.bkg.bund.de/) and [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/).
 

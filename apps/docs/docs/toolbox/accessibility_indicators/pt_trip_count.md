@@ -7,7 +7,9 @@ import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 This indicator displays the **average number of public transport departures** per hour for each public transport stop.
 
-<iframe width="674" height="378" src="https://www.youtube.com/embed/2oRxWow9LBQ?si=YmElYi5cTTdkLtkF" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/2oRxWow9LBQ?si=IYvAqZcpSO02yDaA&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
@@ -83,8 +85,11 @@ When the calculation is finished, a new layer called <b>"Trip Count Station"</b>
 
 Click on stations to view details including **station name**, **total departure count**, and **departure counts per mode**.
 
-![Menu Overview for Public Transport Trip Count](/img/toolbox/accessibility_indicators/trip_count/trip_count_calculation.gif "Menu Overview for Public Transport Trip Count")
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/trip_count/trip_count_calculation.gif').default} alt="Calculation - Public Transport Trip Count" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
+</div>
 
+<p></p>
 
 :::tip Hint
 
