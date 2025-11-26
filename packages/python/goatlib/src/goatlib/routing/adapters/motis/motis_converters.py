@@ -498,7 +498,9 @@ def create_bus_station_buffers(
     reachable_locations: List[Dict[str, Any]],
     buffer_distances: List[float] = [200, 400, 600],
     dissolve: bool = True,
-    output_path: str = "/tmp/bus_station_buffers.geojson",
+    output_path: str = None,
+    input_path: str = None,
+    origin_name: str = "unknown_origin",
 ) -> BufferParams:
     """
     Create BufferParams for buffering bus stations from MOTIS one-to-all response.
@@ -507,30 +509,59 @@ def create_bus_station_buffers(
         reachable_locations: List of reachable location data from MOTIS
         buffer_distances: List of buffer distances in meters (default: 200m, 400m, 600m)
         dissolve: Whether to dissolve overlapping buffers (default: True)
-        output_path: Output path for buffered geometries
+        output_path: Output path for buffered geometries (auto-generated if None)
+        input_path: Input path for bus station points parquet file (auto-generated if None)
+        origin_name: Name/description of the origin location for filename generation
 
     Returns:
         BufferParams configured for bus station buffering
 
-    Example:
-        >>> # After getting MOTIS one-to-all response
-        >>> reachable_locations = motis_response.get("all", [])
-        >>>
-        >>> # Create buffer configuration
-        >>> buffer_config = create_bus_station_buffers(
-        ...     reachable_locations=reachable_locations,
-        ...     buffer_distances=[300, 500, 800],  # 300m, 500m, 800m buffers
-        ...     dissolve=True,
-        ...     output_path="/output/munich_bus_station_buffers.geojson"
-        ... )
-        >>>
-        >>> # Use with your spatial analysis library
-        >>> # buffer_results = your_gis_processor.process(buffer_config)
+    Note:
+        When paths are None, meaningful filenames are generated containing:
+        - Origin name (sanitized)
+        - Number of bus stations found
+        - Buffer distances (for output only)
+
+        Examples:
+        - bus_stations_munich_center_64stops.parquet
+        - bus_buffers_munich_center_64stops_200_400_600m.geojson
     """
+    # Convert bus stations to GeoDataFrame and save as parquet
+    import geopandas as gpd
+    from shapely.geometry import Point
+
     from goatlib.analysis.schemas.vector import BufferParams
 
-    # Create temporary input file path for bus station points
-    input_path = "/tmp/bus_stations_points.geojson"
+    # Generate meaningful filenames if not provided
+    num_stations = len(reachable_locations)
+    safe_origin_name = origin_name.lower().replace(" ", "_").replace(",", "")
+
+    if input_path is None:
+        input_path = f"bus_stations_{safe_origin_name}_{num_stations}stops.parquet"
+
+    if output_path is None:
+        distances_str = "_".join(map(str, buffer_distances))
+        output_path = f"bus_buffers_{safe_origin_name}_{num_stations}stops_{distances_str}m.geojson"
+
+    # Create GeoDataFrame from bus stations
+    gdf_data = []
+    for station in reachable_locations:
+        gdf_data.append(
+            {
+                "name": station["name"],
+                "lat": station["lat"],
+                "lon": station["lon"],
+                "duration_minutes": station["duration_minutes"],
+                "stop_id": station["stop_id"],
+                "geometry": Point(station["coordinates"]),
+            }
+        )
+
+    gdf = gpd.GeoDataFrame(gdf_data, crs="EPSG:4326")
+
+    # Save to parquet file
+    gdf.to_parquet(input_path)
+    logger.info(f"💾 Saved {len(gdf)} bus stations to {input_path}")
 
     # Log information about the stations
     logger.info(f"Creating buffers for {len(reachable_locations)} bus stations")

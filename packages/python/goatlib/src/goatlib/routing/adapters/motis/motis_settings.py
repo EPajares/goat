@@ -190,7 +190,7 @@ class Defaults(BaseSettings):
     max_post_transit_time: int = 900  # Default 15 minutes
     max_direct_time: int = 1800  # Default 30 minutes
     fastest_direct_factor: float = 1.0  # Default 1.0 factor
-    algorithm: str = "RAPTOR"  # Default algorithm from OpenAPI spec
+    algorithm: str = "PONG"  # Default algorithm from OpenAPI spec
 
 
 class Endpoints(BaseSettings):

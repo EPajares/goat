@@ -168,3 +168,27 @@ def mixed_content_path(request: pytest.FixtureRequest) -> Path:
 def motis_fixtures_dir(data_root: Path) -> Path:
     """Directory containing MOTIS fixture data for routing tests."""
     return data_root / "routing" / "motis"
+
+
+@pytest.fixture(scope="session")
+def buffered_stations_dir(data_root: Path) -> Path:
+    """Directory containing buffered bus station test data."""
+    return data_root / "routing" / "buffered_stations"
+
+
+@pytest.fixture(scope="session")
+def bus_stations_parquet(buffered_stations_dir: Path) -> Path:
+    """Path to bus stations parquet file."""
+    return buffered_stations_dir / "bus_stations_points.parquet"
+
+
+@pytest.fixture(scope="session")
+def extracted_stations_json(buffered_stations_dir: Path) -> Path:
+    """Path to extracted bus stations JSON file."""
+    return buffered_stations_dir / "extracted_bus_stations.json"
+
+
+@pytest.fixture(scope="session")
+def motis_response_json(buffered_stations_dir: Path) -> Path:
+    """Path to MOTIS one-to-all response JSON file."""
+    return buffered_stations_dir / "motis_one_to_all_response.json"
