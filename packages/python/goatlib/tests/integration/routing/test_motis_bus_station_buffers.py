@@ -1,13 +1,15 @@
 import json
 import logging
-import os
+import time
 from pathlib import Path
 from typing import Any, Dict, List
 
+import geopandas as gpd
 import pytest
+from goatlib.analysis.schemas.vector import BufferParams
+from goatlib.analysis.vector.buffer import BufferTool
 from goatlib.routing.adapters.motis.motis_client import MotisServiceClient
 from goatlib.routing.adapters.motis.motis_converters import (
-    create_bus_station_buffers,
     extract_bus_stations_for_buffering,
     translate_to_motis_one_to_all_request,
 )
@@ -17,308 +19,241 @@ from goatlib.routing.schemas.catchment_area_transit import (
     TransitCatchmentAreaTravelTimeCost,
     TransitMode,
 )
+from shapely.geometry import Point
 
 logger = logging.getLogger(__name__)
+
+# ==========================================
+#  Data Preparation Helper
+# ==========================================
+
+
+def create_pt_buffer_params(
+    reachable_locations: List[Dict[str, Any]],
+    config: Dict[str, Any],
+    work_dir: Path,
+) -> BufferParams:
+    """
+    Converts dictionary list to Parquet, then returns BufferParams.
+    """
+    # 1. Prepare Output Paths
+    input_path = work_dir / "motis_stations_input.parquet"
+    output_path = work_dir / "motis_stations_buffered.parquet"
+
+    # 2. Convert MOTIS list to GeoDataFrame
+    gdf_data = []
+    for station in reachable_locations:
+        coords = station["coordinates"]  # [lon, lat]
+        gdf_data.append(
+            {
+                "name": station.get("name", "Unknown"),
+                "duration_minutes": station.get("duration_minutes", 0),
+                "stop_id": station.get("stop_id", ""),
+                "geometry": Point(coords[0], coords[1]),
+            }
+        )
+
+    gdf = gpd.GeoDataFrame(gdf_data, crs="EPSG:4326")
+
+    # 3. Save Input Parquet (Required by BufferTool)
+    gdf.to_parquet(input_path)
+
+    # 4. Configure Tool
+    return BufferParams(
+        input_path=str(input_path),
+        output_path=str(output_path),
+        distances=config["distances"],  # e.g. [200, 400, 600]
+        units="meters",
+        dissolve=True,  # Merge overlapping circles into one shape
+        num_triangles=8,
+        cap_style="CAP_ROUND",
+        join_style="JOIN_ROUND",
+        output_crs="EPSG:4326",
+        output_name="pt_access_buffers",
+    )
+
+
+# ==========================================
+#  Configuration & Test
+# ==========================================
 
 
 @pytest.fixture
 def sample_request() -> TransitCatchmentAreaRequest:
-    """Fixture providing a sample transit catchment area request for bus station testing."""
+    """Munich City Center Request."""
     return TransitCatchmentAreaRequest(
         starting_points=TransitCatchmentAreaStartingPoints(
             latitude=[48.1351],
-            longitude=[11.582],  # Munich city center
+            longitude=[11.582],  # Munich center
         ),
-        transit_modes=[TransitMode.bus],
-        travel_cost=TransitCatchmentAreaTravelTimeCost(
-            max_traveltime=20,  # 20 minutes max travel time
-            cutoffs=[10, 20],  # 10 and 20 minute cutoffs
-        ),
+        transit_modes=[
+            TransitMode.bus,
+            TransitMode.subway,
+            TransitMode.tram,
+            TransitMode.rail,
+        ],
+        travel_cost=TransitCatchmentAreaTravelTimeCost(max_traveltime=60, cutoffs=[60]),
     )
 
 
 @pytest.fixture
-def buffer_configurations() -> List[Dict[str, Any]]:
-    """Fixture providing different buffer configurations for testing."""
-    return [
-        {
-            "name": "walking_access",
-            "distances": [200, 400, 600],
-            "description": "Walking access zones (200m, 400m, 600m)",
-        },
-        {
-            "name": "cycling_access",
-            "distances": [500, 1000, 1500],
-            "description": "Cycling access zones (500m, 1km, 1.5km)",
-        },
-        {
-            "name": "wheelchair_access",
-            "distances": [100, 200, 300],
-            "description": "Wheelchair accessible zones (100m, 200m, 300m)",
-        },
-    ]
+def pt_buffer_config() -> Dict[str, Any]:
+    """Single configuration for Public Transport Station Access."""
+    return {
+        "name": "pt_station_walk",
+        "title": "🚌 Public Transport Access",
+        "distances": [200, 400, 600],  # Walking distance from stations
+        "description": "Buffer zones around reachable stations",
+        "use_case": "Transit Coverage Analysis",
+    }
 
 
 @pytest.mark.asyncio
-async def test_bus_station_extraction(
+async def test_public_transport_buffer_pipeline(
     sample_request: TransitCatchmentAreaRequest,
-) -> None:
-    """Test extracting bus stations from MOTIS one-to-all response."""
-    client = MotisServiceClient(use_fixtures=False)
-
-    try:
-        # Get MOTIS one-to-all response
-        motis_request = translate_to_motis_one_to_all_request(sample_request)
-        motis_response = await client.one_to_all(motis_request)
-
-        # Extract bus stations for buffering
-        bus_stations = extract_bus_stations_for_buffering(motis_response)
-
-        # Assertions
-        assert len(motis_response.get("all", [])) > 0, "Should have reachable locations"
-        assert len(bus_stations) > 0, "Should extract at least some bus stations"
-
-        # Validate station structure
-        for station in bus_stations:
-            assert "name" in station, "Station should have a name"
-            assert "duration_minutes" in station, "Station should have duration"
-            assert "coordinates" in station, "Station should have coordinates"
-            assert isinstance(
-                station["duration_minutes"], (int, float)
-            ), "Duration should be numeric"
-            assert station["duration_minutes"] >= 0, "Duration should be non-negative"
-            assert (
-                station["duration_minutes"] <= sample_request.travel_cost.max_traveltime
-            ), "Duration should not exceed max travel time"
-
-        logger.info(
-            f"Extracted {len(bus_stations)} bus stations from {len(motis_response.get('all', []))} total locations"
-        )
-
-    finally:
-        await client.close()
-
-
-@pytest.mark.asyncio
-async def test_buffer_creation(
-    sample_request: TransitCatchmentAreaRequest,
-    buffer_configurations: List[Dict[str, Any]],
-    motis_response_json: Path,
-    extracted_stations_json: Path,
+    pt_buffer_config: Dict[str, Any],
     buffered_stations_dir: Path,
 ) -> None:
-    """Test creating buffer configurations for bus stations."""
+    """
+    1. Fetch MOTIS reachable stations.
+    2. Buffer them (200/400/600m).
+    3. Save Parquet.
+    """
+
+    buffered_stations_dir.mkdir(exist_ok=True)
+
+    # Fetch MOTIS Data
     client = MotisServiceClient(use_fixtures=False)
-
     try:
-        # Get bus stations
-        motis_request = translate_to_motis_one_to_all_request(sample_request)
-        motis_response = await client.one_to_all(motis_request)
-
-        # Save the raw MOTIS response to test data directory
-        with open(motis_response_json, "w") as f:
-            json.dump(motis_response, f, indent=2)
-
-        bus_stations = extract_bus_stations_for_buffering(motis_response)
-
-        # Save the extracted bus stations to test data directory
-        with open(extracted_stations_json, "w") as f:
-            json.dump(bus_stations, f, indent=2)
-
-        assert len(bus_stations) > 0, "Need bus stations to test buffer creation"
-
-        num_stations = len(bus_stations)
-        origin_name = "munich_center"
-
-        meaningful_input_path = (
-            buffered_stations_dir
-            / f"bus_stations_{origin_name}_{num_stations}stops.parquet"
-        )
-        meaningful_response_path = (
-            buffered_stations_dir
-            / f"motis_response_{origin_name}_{num_stations}stops.json"
-        )
-        meaningful_extracted_path = (
-            buffered_stations_dir
-            / f"extracted_stations_{origin_name}_{num_stations}stops.json"
-        )
-
-        with open(meaningful_response_path, "w") as f:
-            json.dump(motis_response, f, indent=2)
-
-        with open(meaningful_extracted_path, "w") as f:
-            json.dump(bus_stations, f, indent=2)
-
-        results = []
-        for config in buffer_configurations:
-            distances_str = "_".join(map(str, config["distances"]))
-            meaningful_output_path = (
-                buffered_stations_dir
-                / f"bus_buffers_{origin_name}_{num_stations}stops_{config['name']}_{distances_str}m.geojson"
-            )
-
-            # Create buffer parameters for this configuration
-            buffer_result = create_bus_station_buffers(
-                bus_stations,
-                config["distances"],
-                dissolve=True,
-                output_path=str(meaningful_output_path),
-                input_path=str(meaningful_input_path),
-                origin_name=f"Munich_Center_Test_{num_stations}stops",
-            )
-
-            # Assertions
-            assert (
-                buffer_result is not None
-            ), f"Should create buffer result for {config['name']}"
-            assert (
-                buffer_result.distances == config["distances"]
-            ), f"Distances should match for {config['name']}"
-            assert len(buffer_result.distances) == len(
-                config["distances"]
-            ), f"Should have all distance values for {config['name']}"
-
-            # Verify files exist
-            assert os.path.exists(
-                meaningful_response_path
-            ), "MOTIS response should be saved with meaningful name"
-            assert os.path.exists(
-                meaningful_extracted_path
-            ), "Extracted stations should be saved with meaningful name"
-            assert os.path.exists(
-                meaningful_input_path
-            ), "Input parquet should exist with meaningful name"
-            assert not os.path.exists(
-                meaningful_output_path
-            ), "Output buffer geometries should NOT exist (requires separate buffer processor)"
-
-            results.append(
-                {
-                    "config": config,
-                    "buffer_params": buffer_result,
-                    "stations_used": len(bus_stations),
-                    "buffer_count": len(config["distances"]),
-                }
-            )
-
-        # Validate overall results
-        total_buffers = sum(r["buffer_count"] for r in results)
-        total_stations = len(bus_stations)
-
-        assert total_buffers > 0, "Should create at least some buffer zones"
-        assert total_stations > 0, "Should have stations to buffer"
-        assert len(results) == len(
-            buffer_configurations
-        ), "Should have results for all configurations"
-
-        logger.info(
-            f"✅ Created {total_buffers} buffer configuration objects for {total_stations} bus stations"
-        )
-        logger.info("📁 Input Files Created in Test Data Directory:")
-        logger.info(f"   ✅ MOTIS response: {meaningful_response_path.name}")
-        logger.info(f"   ✅ Extracted stations: {meaningful_extracted_path.name}")
-        logger.info(f"   ✅ Bus stations parquet: {meaningful_input_path.name}")
-        logger.info("📁 Configuration Objects Created:")
-        logger.info(f"   ✅ BufferParams with {total_buffers} distance configurations")
-        logger.info(f"📂 All files saved to: {buffered_stations_dir}")
-        logger.info(
-            "📝 Note: Buffer geometries require separate processing using the BufferParams configuration"
-        )
-
+        motis_req = translate_to_motis_one_to_all_request(sample_request)
+        logger.info("🚀 Requesting MOTIS One-to-All...")
+        motis_response = await client.one_to_all(motis_req)
     finally:
         await client.close()
+
+    bus_stations = extract_bus_stations_for_buffering(motis_response)
+    assert len(bus_stations) > 0, "No stations found. Cannot perform buffering."
+    logger.info(f"Found {len(bus_stations)} reachable stations.")
+
+    # Prepare & Buffer
+    params = create_pt_buffer_params(
+        reachable_locations=bus_stations,
+        config=pt_buffer_config,
+        work_dir=buffered_stations_dir,
+    )
+
+    logger.info("⚙️ Running BufferTool...")
+    tool = BufferTool()
+    results = tool.run(params)
+
+    # D. Assertions & Visualization
+    assert len(results) > 0
+    output_file, _ = results[0]
+
+    assert output_file.exists()
+    assert output_file.suffix == ".parquet"
+
+
+# ==========================================
 
 
 @pytest.mark.asyncio
-async def test_buffer_parameter_validation(
+async def test_pipeline_performance(
     sample_request: TransitCatchmentAreaRequest,
+    buffered_stations_dir: Path,
+    pt_buffer_config: Dict[str, Any],
 ) -> None:
-    """Test that created buffer parameters have valid structure and values."""
+    """Simplified timing test for MOTIS -> Buffer pipeline."""
+
+    buffered_stations_dir.mkdir(exist_ok=True)
+
+    # Setup timing stats
+    stats = {}
+    t_start = time.perf_counter()
+
+    # Phase 1: API Request
+    logger.info("⏱️ Phase 1: MOTIS API Request")
+    t_api = time.perf_counter()
+
     client = MotisServiceClient(use_fixtures=False)
-
     try:
-        # Get bus stations
-        motis_request = translate_to_motis_one_to_all_request(sample_request)
-        motis_response = await client.one_to_all(motis_request)
-        bus_stations = extract_bus_stations_for_buffering(motis_response)
-
-        if len(bus_stations) == 0:
-            pytest.skip("No bus stations found for testing")
-
-        # Test with a simple configuration
-        test_distances = [200, 500, 1000]
-
-        buffer_result = create_bus_station_buffers(
-            bus_stations,
-            test_distances,
-            dissolve=True,
-            output_path="/tmp/test_bus_station_buffers.geojson",
-        )
-
-        # Validate buffer parameters structure
-        assert buffer_result is not None, "Should create buffer result"
-
-        # Test buffer parameter attributes
-        assert hasattr(buffer_result, "distances"), "Should have distances attribute"
-        assert hasattr(buffer_result, "dissolve"), "Should have dissolve attribute"
-        assert hasattr(buffer_result, "output_crs"), "Should have output_crs attribute"
-        assert hasattr(buffer_result, "units"), "Should have units attribute"
-
-        # Test buffer parameter values
-        assert buffer_result.distances == test_distances, "Distances should match input"
-        assert isinstance(buffer_result.dissolve, bool), "Dissolve should be boolean"
-        assert buffer_result.output_crs is not None, "Should have output CRS"
-        assert buffer_result.units is not None, "Should have units"
-
-        logger.info(
-            f"Buffer parameters validated successfully for {len(bus_stations)} stations"
-        )
-
+        motis_req = translate_to_motis_one_to_all_request(sample_request)
+        motis_response = await client.one_to_all(motis_req)
     finally:
         await client.close()
 
+    stats["api_latency_sec"] = round(time.perf_counter() - t_api, 4)
 
-def test_buffer_configuration_examples() -> None:
-    """Test that buffer configuration examples are properly structured."""
-    examples = [
-        {
-            "title": "🚶 Walking Access Analysis",
-            "description": "Analyze pedestrian access to transit stations",
-            "distances": [200, 400, 600],
-            "use_case": "Urban planning for pedestrian infrastructure",
-        },
-        {
-            "title": "🚲 Cycling Access Zones",
-            "description": "Define cycling catchment areas around stations",
-            "distances": [500, 1000, 1500],
-            "use_case": "Bike sharing system placement and planning",
-        },
-        {
-            "title": "♿ Accessibility Analysis",
-            "description": "Evaluate accessibility for mobility-impaired users",
-            "distances": [100, 200, 300],
-            "use_case": "ADA compliance and accessibility improvements",
-        },
-        {
-            "title": "🏘️ Neighborhood Impact",
-            "description": "Assess transit impact on surrounding areas",
-            "distances": [300, 600, 1200],
-            "use_case": "Transit-oriented development planning",
-        },
-    ]
+    # Phase 2: Data Processing
+    logger.info("⏱️ Phase 2: Data Processing")
+    t_process = time.perf_counter()
 
-    # Validate each example
-    for example in examples:
-        assert "title" in example, "Example should have a title"
-        assert "description" in example, "Example should have a description"
-        assert "distances" in example, "Example should have distances"
-        assert "use_case" in example, "Example should have a use case"
+    bus_stations = extract_bus_stations_for_buffering(motis_response)
+    assert len(bus_stations) > 0, "No stations found for timing test"
 
-        assert len(example["distances"]) > 0, "Should have at least one distance"
-        assert all(
-            d > 0 for d in example["distances"]
-        ), "All distances should be positive"
-        assert len(example["title"]) > 0, "Title should not be empty"
-        assert len(example["description"]) > 0, "Description should not be empty"
+    stats["processing_sec"] = round(time.perf_counter() - t_process, 4)
 
-    logger.info(f"Validated {len(examples)} buffer configuration examples")
+    # Phase 3: Buffer Creation
+    logger.info("⏱️ Phase 3: Buffer Creation")
+    t_buffer_setup = time.perf_counter()
+
+    params = create_pt_buffer_params(
+        reachable_locations=bus_stations,
+        config=pt_buffer_config,
+        work_dir=buffered_stations_dir,
+    )
+
+    stats["buffer_setup_sec"] = round(time.perf_counter() - t_buffer_setup, 4)
+
+    # BufferTool execution timing
+    t_buffer_run = time.perf_counter()
+    tool = BufferTool()
+    results = tool.run(params)
+    stats["buffer_tool_run_sec"] = round(time.perf_counter() - t_buffer_run, 4)
+
+    stats["buffering_total_sec"] = (
+        stats["buffer_setup_sec"] + stats["buffer_tool_run_sec"]
+    )
+    stats["total_time_sec"] = round(time.perf_counter() - t_start, 4)
+    stats["stations_processed"] = len(bus_stations)
+
+    # Log results
+    logger.info("🚀 Pipeline Performance Results:")
+    logger.info(f"   API Request: {stats['api_latency_sec']}s")
+    logger.info(f"   Processing: {stats['processing_sec']}s")
+    logger.info(f"   Buffer Setup: {stats['buffer_setup_sec']}s")
+    logger.info(f"   Buffer Tool Run: {stats['buffer_tool_run_sec']}s")
+    logger.info(f"   Buffering Total: {stats['buffering_total_sec']}s")
+    logger.info(f"   Total: {stats['total_time_sec']}s")
+    logger.info(f"   Stations: {stats['stations_processed']}")
+
+    # Save results to file
+    output_dir = buffered_stations_dir / "benchmarks"
+    output_dir.mkdir(exist_ok=True)
+
+    # Save as JSON
+    json_path = output_dir / "pipeline_performance.json"
+    with open(json_path, "w") as f:
+        json.dump(stats, f, indent=2)
+
+    # Save as readable text log
+    log_path = output_dir / "pipeline_performance.log"
+    with open(log_path, "w") as f:
+        f.write("Pipeline Performance Results:\n")
+        f.write(f"API Request: {stats['api_latency_sec']}s\n")
+        f.write(f"Processing: {stats['processing_sec']}s\n")
+        f.write(f"Buffer Setup: {stats['buffer_setup_sec']}s\n")
+        f.write(f"Buffer Tool Run: {stats['buffer_tool_run_sec']}s\n")
+        f.write(f"Buffering Total: {stats['buffering_total_sec']}s\n")
+        f.write(f"Total: {stats['total_time_sec']}s\n")
+        f.write(f"Stations: {stats['stations_processed']}\n")
+
+    logger.info("📁 Performance results saved to:")
+    logger.info(f"   JSON: {json_path.absolute()}")
+    logger.info(f"   Log: {log_path.absolute()}")
+
+    # Assertions
+    assert len(results) > 0
+    assert results[0][0].exists()  # Output file exists
+    assert stats["total_time_sec"] > 0
+    assert stats["stations_processed"] > 0

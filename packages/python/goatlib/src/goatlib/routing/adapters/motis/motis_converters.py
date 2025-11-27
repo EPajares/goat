@@ -1,8 +1,11 @@
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List
 
+import geopandas as gpd
 from pydantic import ValidationError
+from shapely.geometry import Point
 
 from goatlib.analysis.schemas.vector import BufferParams
 from goatlib.routing.errors import ParsingError
@@ -373,9 +376,6 @@ def parse_motis_one_to_all_response(
         cutoffs = request.travel_cost.cutoffs
         polygons = []
 
-        # Note: Minimal validation approach adopted here
-        # - Input validation happens at Pydantic schema level
-        # - Only critical coordinate bounds checking retained for geometry calculation safety
         for cutoff in cutoffs:
             # Find all locations reachable within this cutoff (in minutes)
             reachable_within_cutoff = []
@@ -496,89 +496,61 @@ def _create_polygon_from_points(
 
 def create_bus_station_buffers(
     reachable_locations: List[Dict[str, Any]],
-    buffer_distances: List[float] = [200, 400, 600],
-    dissolve: bool = True,
-    output_path: str = None,
+    buffer_distances: List[float],
+    output_path: str,
     input_path: str = None,
     origin_name: str = "unknown_origin",
 ) -> BufferParams:
     """
-    Create BufferParams for buffering bus stations from MOTIS one-to-all response.
-
-    Args:
-        reachable_locations: List of reachable location data from MOTIS
-        buffer_distances: List of buffer distances in meters (default: 200m, 400m, 600m)
-        dissolve: Whether to dissolve overlapping buffers (default: True)
-        output_path: Output path for buffered geometries (auto-generated if None)
-        input_path: Input path for bus station points parquet file (auto-generated if None)
-        origin_name: Name/description of the origin location for filename generation
-
-    Returns:
-        BufferParams configured for bus station buffering
-
-    Note:
-        When paths are None, meaningful filenames are generated containing:
-        - Origin name (sanitized)
-        - Number of bus stations found
-        - Buffer distances (for output only)
-
-        Examples:
-        - bus_stations_munich_center_64stops.parquet
-        - bus_buffers_munich_center_64stops_200_400_600m.geojson
+    Prepares the input parquet file and returns BufferParams.
     """
-    # Convert bus stations to GeoDataFrame and save as parquet
-    import geopandas as gpd
-    from shapely.geometry import Point
 
-    from goatlib.analysis.schemas.vector import BufferParams
+    # 1. Prepare Data
+    if not reachable_locations:
+        raise ValueError("No reachable locations provided.")
 
-    # Generate meaningful filenames if not provided
-    num_stations = len(reachable_locations)
-    safe_origin_name = origin_name.lower().replace(" ", "_").replace(",", "")
-
-    if input_path is None:
-        input_path = f"bus_stations_{safe_origin_name}_{num_stations}stops.parquet"
-
-    if output_path is None:
-        distances_str = "_".join(map(str, buffer_distances))
-        output_path = f"bus_buffers_{safe_origin_name}_{num_stations}stops_{distances_str}m.geojson"
-
-    # Create GeoDataFrame from bus stations
     gdf_data = []
     for station in reachable_locations:
+        # MOTIS coordinates are usually [lon, lat], Shapely expects (lon, lat)
+        coords = station["coordinates"]
         gdf_data.append(
             {
-                "name": station["name"],
+                "name": station.get("name", "Unknown"),
                 "lat": station["lat"],
                 "lon": station["lon"],
-                "duration_minutes": station["duration_minutes"],
-                "stop_id": station["stop_id"],
-                "geometry": Point(station["coordinates"]),
+                "duration_minutes": station.get("duration_minutes", 0),
+                "stop_id": station.get("stop_id", ""),
+                "geometry": Point(coords[0], coords[1]),
             }
         )
 
     gdf = gpd.GeoDataFrame(gdf_data, crs="EPSG:4326")
 
-    # Save to parquet file
+    # 2. handle Input Filename (if not provided)
+    if input_path is None:
+        safe_origin = origin_name.lower().replace(" ", "_")
+        # Save in the same folder as output_path if possible
+        parent_dir = Path(output_path).parent
+        input_path = str(
+            parent_dir / f"bus_stations_{safe_origin}_{len(gdf)}stops.parquet"
+        )
+
+    # 3. Save Input Parquet (This is what BufferTool reads)
     gdf.to_parquet(input_path)
     logger.info(f"💾 Saved {len(gdf)} bus stations to {input_path}")
 
-    # Log information about the stations
-    logger.info(f"Creating buffers for {len(reachable_locations)} bus stations")
-    logger.info(f"Buffer distances: {buffer_distances} meters")
-    logger.info(f"Dissolve overlapping buffers: {dissolve}")
-
-    # Create BufferParams with the provided configuration
+    # 4. Configure BufferParams
+    # For Isochrones, you would switch to using 'field="radius_column"'.
     buffer_params = BufferParams(
-        input_path=input_path,
-        output_path=output_path,
+        input_path=str(input_path),
+        output_path=str(output_path),
         distances=buffer_distances,
         units="meters",
-        dissolve=dissolve,
-        num_triangles=16,  # Smoother buffers for transit stations
-        cap_style="CAP_ROUND",  # Round caps for stations
-        join_style="JOIN_ROUND",  # Round joins for smoother appearance
-        output_crs="EPSG:4326",  # WGS84 for compatibility
+        dissolve=True,  # Merge overlapping buffers? Usually true for coverage maps.
+        num_triangles=8,
+        cap_style="CAP_ROUND",
+        join_style="JOIN_ROUND",
+        output_crs="EPSG:4326",
         output_name="bus_station_buffers",
     )
 
@@ -586,14 +558,13 @@ def create_bus_station_buffers(
 
 
 def extract_bus_stations_for_buffering(
-    motis_data: Dict[str, Any], min_frequency: int = 1
+    motis_data: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
     """
     Extract bus station information from MOTIS one-to-all response for buffer analysis.
 
     Args:
         motis_data: Raw MOTIS one-to-all response
-        min_frequency: Minimum frequency threshold for station inclusion
 
     Returns:
         List of bus station data suitable for buffering
