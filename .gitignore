@@ -68,6 +68,9 @@ apps/accounts
 
 apps/core/data/*
 
+# Rust packages (experimental)
+packages/rust/fast-routing/target/
+
 # Test
 .coverage
 
