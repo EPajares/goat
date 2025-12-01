@@ -86,7 +86,7 @@ class CatchmentAreaTravelDistanceCost(BaseModel):
         title="Max Distance",
         description="The maximum distance in meters.",
         ge=50,
-        le=20000,  # The validator will read this value automatically
+        le=20000,
     )
     steps: int = Field(
         ...,

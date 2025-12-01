@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 import tracemalloc
@@ -7,14 +6,13 @@ from pathlib import Path
 from typing import Any, Dict
 
 import psutil
-import pytest
 from goatlib.routing.adapters.motis import create_motis_adapter
 from goatlib.routing.schemas.catchment_area_transit import (
     AccessEgressMode,
+    CatchmentAreaRoutingModePT,
     TransitCatchmentAreaRequest,
     TransitCatchmentAreaStartingPoints,
     TransitCatchmentAreaTravelTimeCost,
-    TransitMode,
 )
 
 
@@ -97,9 +95,6 @@ def save_benchmark_results(metrics: PerformanceMetrics, test_name: str):
     return filepath
 
 
-@pytest.mark.slow
-@pytest.mark.network
-@pytest.mark.benchmark
 async def test_motis_one_to_all_performance_benchmark():
     """
     Comprehensive performance benchmark for MOTIS one-to-all functionality.
@@ -131,10 +126,10 @@ async def test_motis_one_to_all_performance_benchmark():
                 longitude=[13.4050],
             ),
             transit_modes=[
-                TransitMode.bus,
-                TransitMode.tram,
-                TransitMode.subway,
-                TransitMode.rail,
+                CatchmentAreaRoutingModePT.bus,
+                CatchmentAreaRoutingModePT.tram,
+                CatchmentAreaRoutingModePT.subway,
+                CatchmentAreaRoutingModePT.rail,
             ],
             access_mode=AccessEgressMode.walk,
             egress_mode=AccessEgressMode.walk,
@@ -252,9 +247,6 @@ async def test_motis_one_to_all_performance_benchmark():
         tracemalloc.stop()
 
 
-@pytest.mark.slow
-@pytest.mark.network
-@pytest.mark.benchmark
 async def test_motis_one_to_all_minimal_benchmark():
     """
     Minimal benchmark for quick performance checks.
@@ -273,7 +265,7 @@ async def test_motis_one_to_all_minimal_benchmark():
                 latitude=[52.5200],
                 longitude=[13.4050],
             ),
-            transit_modes=[TransitMode.subway],
+            transit_modes=[CatchmentAreaRoutingModePT.subway],
             access_mode=AccessEgressMode.walk,
             egress_mode=AccessEgressMode.walk,
             travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -309,12 +301,3 @@ async def test_motis_one_to_all_minimal_benchmark():
         if "adapter" in locals():
             await adapter.motis_client.close()
         tracemalloc.stop()
-
-
-if __name__ == "__main__":
-    # Allow running benchmark directly
-    async def main():
-        await test_motis_one_to_all_performance_benchmark()
-        await test_motis_one_to_all_minimal_benchmark()
-
-    asyncio.run(main())

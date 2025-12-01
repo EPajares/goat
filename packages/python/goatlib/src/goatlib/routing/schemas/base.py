@@ -19,9 +19,10 @@ class RoutingProvider(StrEnum):
 class CatchmentAreaType(StrEnum):
     """Catchment area type schema."""
 
-    polygon = "polygon"
+    point = "point"
     network = "network"
-    rectangular_grid = "rectangular_grid"
+    grid = "grid"
+    polygon = "polygon"
 
 
 class CatchmentAreaRoutingTypeActiveMobility(StrEnum):
@@ -50,6 +51,13 @@ class CatchmentAreaRoutingModePT(StrEnum):
     cable_car = "cable_car"
     gondola = "gondola"
     funicular = "funicular"
+
+
+class AccessEgressMode(StrEnum):
+    """Access and egress modes for transit routing."""
+
+    walk = "walk"
+    bicycle = "bicycle"
 
 
 class Mode(StrEnum):

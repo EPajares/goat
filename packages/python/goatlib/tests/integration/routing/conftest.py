@@ -4,10 +4,10 @@ import pytest_asyncio
 from goatlib.routing.adapters.motis import MotisPlanApiAdapter, create_motis_adapter
 from goatlib.routing.schemas.catchment_area_transit import (
     AccessEgressMode,
+    CatchmentAreaRoutingModePT,
     TransitCatchmentAreaRequest,
     TransitCatchmentAreaStartingPoints,
     TransitCatchmentAreaTravelTimeCost,
-    TransitMode,
 )
 
 
@@ -52,7 +52,11 @@ def berlin_request() -> TransitCatchmentAreaRequest:
             latitude=[52.5200],  # Berlin center
             longitude=[13.4050],
         ),
-        transit_modes=[TransitMode.bus, TransitMode.tram, TransitMode.subway],
+        transit_modes=[
+            CatchmentAreaRoutingModePT.bus,
+            CatchmentAreaRoutingModePT.tram,
+            CatchmentAreaRoutingModePT.subway,
+        ],
         access_mode=AccessEgressMode.walk,
         egress_mode=AccessEgressMode.walk,
         travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -70,7 +74,11 @@ def munich_request() -> TransitCatchmentAreaRequest:
             latitude=[48.1351],  # Munich center
             longitude=[11.5820],
         ),
-        transit_modes=[TransitMode.rail, TransitMode.subway, TransitMode.tram],
+        transit_modes=[
+            CatchmentAreaRoutingModePT.rail,
+            CatchmentAreaRoutingModePT.subway,
+            CatchmentAreaRoutingModePT.tram,
+        ],
         access_mode=AccessEgressMode.walk,
         egress_mode=AccessEgressMode.walk,
         travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -88,7 +96,7 @@ def simple_berlin_request() -> TransitCatchmentAreaRequest:
             latitude=[52.5200],  # Berlin
             longitude=[13.4050],
         ),
-        transit_modes=[TransitMode.subway],
+        transit_modes=[CatchmentAreaRoutingModePT.subway],
         access_mode=AccessEgressMode.walk,
         egress_mode=AccessEgressMode.walk,
         travel_cost=TransitCatchmentAreaTravelTimeCost(max_traveltime=15, cutoffs=[15]),

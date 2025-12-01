@@ -1,13 +1,9 @@
 import logging
 from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
-import geopandas as gpd
 from pydantic import ValidationError
-from shapely.geometry import Point
 
-from goatlib.analysis.schemas.vector import BufferParams
 from goatlib.routing.errors import ParsingError
 from goatlib.routing.schemas.ab_routing import (
     ABLeg,
@@ -24,67 +20,95 @@ from goatlib.routing.schemas.catchment_area_transit import (
 
 from ..distance_utils import haversine_distance
 from .motis_mappings import (
-    INTERNAL_TO_MOTIS_MODE_MAP,
     MOTIS_TO_INTERNAL_MODE_MAP,
     MotisMode,
+    internal_modes_to_motis_string,
 )
 from .motis_settings import motis_settings
 
 logger = logging.getLogger(__name__)
 
 
+# =============================================================================
+# SHARED UTILITY FUNCTIONS
+# =============================================================================
+
+
+def _validate_coordinates(lat: Optional[float], lon: Optional[float]) -> bool:
+    """Validate coordinate bounds. Centralized validation logic."""
+    return (
+        lat is not None and lon is not None and -90 <= lat <= 90 and -180 <= lon <= 180
+    )
+
+
+def _safe_parse_datetime(
+    time_str: str, fallback: Optional[datetime] = None
+) -> datetime:
+    """Safely parse ISO datetime string with fallback."""
+    try:
+        return datetime.fromisoformat(time_str.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return fallback or datetime.now()
+
+
+def _build_location_string(lat: float, lon: float) -> str:
+    """Build coordinate string for MOTIS API."""
+    return f"{lat},{lon}"
+
+
+def _extract_place_data(place: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract and validate place data from MOTIS response."""
+    fields = motis_settings.one_to_all_fields
+
+    lat = place.get(fields.lat)
+    lon = place.get(fields.lon)
+
+    if not _validate_coordinates(lat, lon):
+        logger.warning(f"Invalid coordinates: lat={lat}, lon={lon}")
+        return {}
+
+    return {
+        "lat": lat,
+        "lon": lon,
+        "name": place.get(fields.name, "Unknown"),
+        "stop_id": place.get(fields.stop_id, ""),
+        "coordinates": [lon, lat],  # GeoJSON format
+    }
+
+
+# =============================================================================
+# ROUTING API FUNCTIONS
+# =============================================================================
+
+
 def translate_to_motis_request(request: ABRoutingRequest) -> Dict[str, Any]:
-    """
-    Converts an internal ABRoutingRequest directly into the URL query parameters
-    required by the standard MOTIS v5/plan GET API.
-    """
-    # Pull the relevant sections from the settings for readability
+    """Convert ABRoutingRequest to MOTIS v5/plan GET API parameters."""
     params = motis_settings.request_params
     defaults = motis_settings.defaults
 
-    # Start with the required MOTIS parameters
+    # Build core parameters using utility functions
     api_params = {
-        params.origin: f"{request.origin.lat},{request.origin.lon}",
-        params.destination: f"{request.destination.lat},{request.destination.lon}",
-        params.detailed_transfers: (
-            request.detailed_transfers
-            if request.detailed_transfers is not None
-            else defaults.detailed_transfers
+        params.origin: _build_location_string(request.origin.lat, request.origin.lon),
+        params.destination: _build_location_string(
+            request.destination.lat, request.destination.lon
         ),
+        params.detailed_transfers: request.detailed_transfers
+        or defaults.detailed_transfers,
+        params.num_itineraries: defaults.num_itineraries,
+        params.time_is_arrival: request.time_is_arrival or defaults.time_is_arrival,
     }
 
-    # Add optional parameters from the request, falling back to defaults
-
-    # Handle time (optional)
+    # Add time if provided
     if request.time:
         api_params[params.time] = request.time.isoformat()
 
-    # Handle internal default parameters
-    api_params[params.num_itineraries] = defaults.num_itineraries
-
-    # Handle arriveBy (with default)
-    api_params[params.time_is_arrival] = (
-        request.time_is_arrival
-        if request.time_is_arrival is not None
-        else defaults.time_is_arrival
+    # Handle transport modes using utility function from motis_mappings
+    motis_modes_string = internal_modes_to_motis_string(request.modes)
+    api_params[params.transit_modes] = (
+        motis_modes_string
+        if motis_modes_string
+        else ",".join(mode.value for mode in defaults.transit_modes)
     )
-
-    # Handle transport modes with mapping and default
-
-    # Map internal modes to their MOTIS string values
-    motis_modes = [
-        INTERNAL_TO_MOTIS_MODE_MAP[m].value
-        for m in request.modes
-        if m in INTERNAL_TO_MOTIS_MODE_MAP
-    ]
-
-    # Use the mapped modes if any exist, otherwise use the default
-    if motis_modes:
-        api_params[params.transit_modes] = ",".join(motis_modes)
-    else:
-        # Use default transit modes
-        default_modes = [mode.value for mode in defaults.transit_modes]
-        api_params[params.transit_modes] = ",".join(default_modes)
 
     return api_params
 
@@ -234,28 +258,16 @@ def _extract_timing(leg: Dict[str, Any]) -> tuple[datetime, datetime]:
     start_time_str = leg[leg_fields.start_time]
     end_time_str = leg[leg_fields.end_time]
 
-    # Convert ISO string timestamps to datetime objects
-    departure_time = (
-        datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-        if start_time_str
-        else datetime.now()
-    )
+    # Use centralized datetime parsing
+    departure_time = _safe_parse_datetime(start_time_str)
+    arrival_time = _safe_parse_datetime(end_time_str, departure_time)
 
-    arrival_time = (
-        datetime.fromisoformat(end_time_str.replace("Z", "+00:00"))
-        if end_time_str
-        else departure_time  # Use departure time if no end time
-    )
-
-    # Check if we have valid times from MOTIS
+    # Validate and correct timing if needed
     if arrival_time <= departure_time:
-        # If MOTIS provided invalid times, try to use duration from MOTIS
         duration_from_motis = leg.get(leg_fields.duration, 0)
         if duration_from_motis > 0:
-            # Use MOTIS duration to calculate correct arrival time
             arrival_time = departure_time + timedelta(seconds=duration_from_motis)
         else:
-            # Last resort: assume minimum 1 minute duration
             arrival_time = departure_time + timedelta(minutes=1)
             logger.warning(
                 "MOTIS provided invalid timing data for leg, using minimal duration"
@@ -272,76 +284,71 @@ def _extract_timing(leg: Dict[str, Any]) -> tuple[datetime, datetime]:
 def translate_to_motis_one_to_all_request(
     request: TransitCatchmentAreaRequest,
 ) -> Dict[str, Any]:
-    """
-    Converts a TransitCatchmentAreaRequest to MOTIS one-to-all API parameters.
-
-    Args:
-        request: Internal transit catchment area request
-
-    Returns:
-        Dictionary of MOTIS one-to-all API parameters
-    """
-    # Get the settings for one-to-all parameters
+    """Convert TransitCatchmentAreaRequest to MOTIS one-to-all API parameters."""
     params = motis_settings.one_to_all_params
     defaults = motis_settings.one_to_all_defaults
 
-    # Extract the single starting point (transit only supports one)
-    lat = request.starting_points.latitude[0]
-    lon = request.starting_points.longitude[0]
+    # Extract starting point coordinates
+    lat, lon = request.starting_points.latitude[0], request.starting_points.longitude[0]
 
-    # Build the API parameters
+    # Build core parameters
     api_params = {
-        params.origin: f"{lat},{lon}",
+        params.origin: _build_location_string(lat, lon),
         params.max_travel_time: request.travel_cost.max_traveltime,
-        params.arrive_by: False,  # Always one-to-all for now
+        params.arrive_by: False,
+        params.time: (
+            request.departure_time.isoformat()
+            if hasattr(request, "departure_time") and request.departure_time
+            else datetime.now().isoformat()
+        ),
     }
 
-    # Add transit modes
-    motis_transit_modes = []
-    for mode in request.transit_modes:
-        # Map our transit modes to MOTIS modes if needed
-        motis_mode = mode.value.upper()
-        motis_transit_modes.append(motis_mode)
+    # Handle transit modes using utility function
+    transit_modes_string = internal_modes_to_motis_string(request.transit_modes)
+    api_params[params.transit_modes] = (
+        transit_modes_string
+        if transit_modes_string
+        else ",".join(defaults.transit_modes)
+    )
 
-    if motis_transit_modes:
-        api_params[params.transit_modes] = ",".join(motis_transit_modes)
-    else:
-        api_params[params.transit_modes] = ",".join(defaults.transit_modes)
-
-    # Add access/egress modes
-    access_mode = request.access_mode.value.upper()
-    egress_mode = request.egress_mode.value.upper()
-    api_params[params.pre_transit_modes] = access_mode
-    api_params[params.post_transit_modes] = egress_mode
+    # Handle access/egress modes using utility function
+    api_params[params.pre_transit_modes] = internal_modes_to_motis_string(
+        [request.access_mode]
+    )
+    api_params[params.post_transit_modes] = internal_modes_to_motis_string(
+        [request.egress_mode]
+    )
 
     # Add routing settings if provided
     if request.routing_settings:
         if request.routing_settings.max_transfers:
             api_params[params.max_transfers] = request.routing_settings.max_transfers
 
-        # Convert walk/bike settings to MOTIS parameters
         if request.routing_settings.walk_settings:
-            walk_time_seconds = request.routing_settings.walk_settings.max_time * 60
-            api_params[params.max_pre_transit_time] = walk_time_seconds
-            api_params[params.max_post_transit_time] = walk_time_seconds
-            # Note: MOTIS uses m/s for speed, our settings use km/h
-            walk_speed_ms = request.routing_settings.walk_settings.speed / 3.6
-            api_params[params.pedestrian_speed] = walk_speed_ms
+            walk_settings = request.routing_settings.walk_settings
+            walk_time_seconds = walk_settings.max_time * 60
+            walk_speed_ms = walk_settings.speed / 3.6  # km/h to m/s
+
+            api_params.update(
+                {
+                    params.max_pre_transit_time: walk_time_seconds,
+                    params.max_post_transit_time: walk_time_seconds,
+                    params.pedestrian_speed: walk_speed_ms,
+                }
+            )
 
         if request.routing_settings.bike_settings:
             bike_speed_ms = request.routing_settings.bike_settings.speed / 3.6
             api_params[params.cycling_speed] = bike_speed_ms
 
-    # Add time if provided (use current time if not specified)
-    if hasattr(request, "departure_time") and request.departure_time:
-        api_params[params.time] = request.departure_time.isoformat()
-    else:
-        api_params[params.time] = datetime.now().isoformat()
-
-    # Add default values for other parameters
-    api_params[params.pedestrian_profile] = defaults.pedestrian_profile
-    api_params[params.elevation_costs] = defaults.elevation_costs
-    api_params[params.use_routed_transfers] = defaults.use_routed_transfers
+    # Add default values
+    api_params.update(
+        {
+            params.pedestrian_profile: defaults.pedestrian_profile,
+            params.elevation_costs: defaults.elevation_costs,
+            params.use_routed_transfers: defaults.use_routed_transfers,
+        }
+    )
 
     return api_params
 
@@ -381,37 +388,18 @@ def parse_motis_one_to_all_response(
             reachable_within_cutoff = []
 
             for loc in reachable_locations:
-                # Get travel duration in minutes from MOTIS
                 duration_minutes = loc.get(fields.travel_time, 0)
 
                 if duration_minutes <= cutoff:
-                    # Extract place information
                     place = loc.get(fields.place, {})
-                    if place:
-                        lat = place.get(fields.lat)
-                        lon = place.get(fields.lon)
+                    if not place:
+                        continue
 
-                        # Minimal coordinate validation - only check existence and bounds
-                        if (
-                            lat is None
-                            or lon is None
-                            or not (-90 <= lat <= 90)
-                            or not (-180 <= lon <= 180)
-                        ):
-                            logger.warning(
-                                f"Invalid coordinates in MOTIS location: lat={lat}, lon={lon}"
-                            )
-                            continue
-
-                        reachable_within_cutoff.append(
-                            {
-                                "lat": lat,
-                                "lon": lon,
-                                "duration_minutes": duration_minutes,
-                                "name": place.get(fields.name, "Unknown"),
-                                "stop_id": place.get(fields.stop_id, ""),
-                            }
-                        )
+                    # Use centralized place data extraction
+                    place_data = _extract_place_data(place)
+                    if place_data:  # Only add if coordinates are valid
+                        place_data["duration_minutes"] = duration_minutes
+                        reachable_within_cutoff.append(place_data)
 
             if reachable_within_cutoff:
                 # Create polygon from reachable points
@@ -494,81 +482,10 @@ def _create_polygon_from_points(
     return {"type": "Polygon", "coordinates": bbox_coordinates}
 
 
-def create_bus_station_buffers(
-    reachable_locations: List[Dict[str, Any]],
-    buffer_distances: List[float],
-    output_path: str,
-    input_path: str = None,
-    origin_name: str = "unknown_origin",
-) -> BufferParams:
-    """
-    Prepares the input parquet file and returns BufferParams.
-    """
-
-    # 1. Prepare Data
-    if not reachable_locations:
-        raise ValueError("No reachable locations provided.")
-
-    gdf_data = []
-    for station in reachable_locations:
-        # MOTIS coordinates are usually [lon, lat], Shapely expects (lon, lat)
-        coords = station["coordinates"]
-        gdf_data.append(
-            {
-                "name": station.get("name", "Unknown"),
-                "lat": station["lat"],
-                "lon": station["lon"],
-                "duration_minutes": station.get("duration_minutes", 0),
-                "stop_id": station.get("stop_id", ""),
-                "geometry": Point(coords[0], coords[1]),
-            }
-        )
-
-    gdf = gpd.GeoDataFrame(gdf_data, crs="EPSG:4326")
-
-    # 2. handle Input Filename (if not provided)
-    if input_path is None:
-        safe_origin = origin_name.lower().replace(" ", "_")
-        # Save in the same folder as output_path if possible
-        parent_dir = Path(output_path).parent
-        input_path = str(
-            parent_dir / f"bus_stations_{safe_origin}_{len(gdf)}stops.parquet"
-        )
-
-    # 3. Save Input Parquet (This is what BufferTool reads)
-    gdf.to_parquet(input_path)
-    logger.info(f"💾 Saved {len(gdf)} bus stations to {input_path}")
-
-    # 4. Configure BufferParams
-    # For Isochrones, you would switch to using 'field="radius_column"'.
-    buffer_params = BufferParams(
-        input_path=str(input_path),
-        output_path=str(output_path),
-        distances=buffer_distances,
-        units="meters",
-        dissolve=True,  # Merge overlapping buffers? Usually true for coverage maps.
-        num_triangles=8,
-        cap_style="CAP_ROUND",
-        join_style="JOIN_ROUND",
-        output_crs="EPSG:4326",
-        output_name="bus_station_buffers",
-    )
-
-    return buffer_params
-
-
 def extract_bus_stations_for_buffering(
     motis_data: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """
-    Extract bus station information from MOTIS one-to-all response for buffer analysis.
-
-    Args:
-        motis_data: Raw MOTIS one-to-all response
-
-    Returns:
-        List of bus station data suitable for buffering
-    """
+    """Extract bus station information from MOTIS one-to-all response for buffer analysis."""
     fields = motis_settings.one_to_all_fields
     stations = []
 
@@ -576,29 +493,17 @@ def extract_bus_stations_for_buffering(
 
     for loc in reachable_locations:
         place = loc.get(fields.place, {})
-        if place:
-            lat = place.get(fields.lat)
-            lon = place.get(fields.lon)
-            station_name = place.get(fields.name, "Unknown Station")
-            duration = loc.get(fields.travel_time, 0)
+        if not place:
+            continue
 
-            # Basic coordinate validation
-            if (
-                lat is not None
-                and lon is not None
-                and -90 <= lat <= 90
-                and -180 <= lon <= 180
-            ):
-                stations.append(
-                    {
-                        "name": station_name,
-                        "lat": lat,
-                        "lon": lon,
-                        "duration_minutes": duration,
-                        "stop_id": place.get(fields.stop_id, ""),
-                        "coordinates": [lon, lat],  # GeoJSON format
-                    }
-                )
+        # Use centralized place data extraction
+        place_data = _extract_place_data(place)
+        if not place_data:  # Skip invalid coordinates
+            continue
+
+        # Add duration from location
+        place_data["duration_minutes"] = loc.get(fields.travel_time, 0)
+        stations.append(place_data)
 
     logger.info(f"Extracted {len(stations)} valid bus stations for buffering")
     return stations

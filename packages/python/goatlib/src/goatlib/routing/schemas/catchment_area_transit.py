@@ -1,37 +1,13 @@
-from enum import Enum
 from typing import Any, Dict, List, Optional, Self
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from goatlib.routing.schemas.base import (
+    AccessEgressMode,
+    CatchmentAreaRoutingModePT,
     CatchmentAreaStartingPoints,
 )
-
-"""Transit-specific routing mode schemas."""
-
-
-class TransitMode(str, Enum):
-    """Transit mode options for CatchmentArea calculation."""
-
-    bus = "bus"
-    tram = "tram"
-    rail = "rail"
-    subway = "subway"
-    ferry = "ferry"
-    cable_car = "cable_car"
-    gondola = "gondola"
-    funicular = "funicular"
-
-
-class AccessEgressMode(str, Enum):
-    """Access and egress modes for transit routing."""
-
-    walk = "walk"
-    bicycle = "bicycle"
-
-
-"""Transit CatchmentArea starting points"""
 
 
 class TransitCatchmentAreaStartingPoints(CatchmentAreaStartingPoints):
@@ -83,10 +59,7 @@ class TransitCatchmentAreaTravelTimeCost(BaseModel):
         if not all(c > 0 for c in self.cutoffs):
             raise ValueError("All cutoffs must be positive.")
 
-        # Check for uniqueness
-        if len(self.cutoffs) != len(set(self.cutoffs)) or self.cutoffs != sorted(
-            self.cutoffs
-        ):
+        if self.cutoffs != sorted(list(set(self.cutoffs))):
             raise ValueError("Cutoffs must be unique and in ascending order.")
 
         return self
@@ -146,7 +119,7 @@ class TransitCatchmentAreaRequest(BaseModel):
         title="Starting Points",
         description="Starting points for CatchmentArea calculation.",
     )
-    transit_modes: List[TransitMode] = Field(
+    transit_modes: List[CatchmentAreaRoutingModePT] = Field(
         ...,
         title="Transit Modes",
         description="List of transit modes to include in the CatchmentArea calculation.",
@@ -235,7 +208,7 @@ class TransitCatchmentAreaResponse(BaseModel):
 """Example requests."""
 
 
-rrequest_examples_transit_catchment_area = {
+request_examples_transit_catchment_area = {
     "basic_transit_catchment_area": {
         "summary": "basic transit catchment area request",
         "value": {

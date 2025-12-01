@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import pytest
-
 from goatlib.routing.adapters.motis.motis_adapter import create_motis_adapter
 from goatlib.routing.adapters.motis.motis_converters import (
     parse_motis_one_to_all_response,
@@ -12,10 +11,10 @@ from goatlib.routing.adapters.motis.motis_converters import (
 )
 from goatlib.routing.schemas.catchment_area_transit import (
     AccessEgressMode,
+    CatchmentAreaRoutingModePT,
     TransitCatchmentAreaRequest,
     TransitCatchmentAreaStartingPoints,
     TransitCatchmentAreaTravelTimeCost,
-    TransitMode,
     TransitRoutingSettings,
 )
 
@@ -137,7 +136,10 @@ class MotisOneToAllPlausibilityTester:
                     latitude=[48.1351],
                     longitude=[11.5820],
                 ),
-                transit_modes=[TransitMode.bus, TransitMode.subway],
+                transit_modes=[
+                    CatchmentAreaRoutingModePT.bus,
+                    CatchmentAreaRoutingModePT.subway,
+                ],
                 access_mode=AccessEgressMode.walk,
                 egress_mode=AccessEgressMode.walk,
                 travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -253,7 +255,10 @@ def sample_request():
             latitude=[48.1351],
             longitude=[11.5820],  # Munich city center
         ),
-        transit_modes=[TransitMode.bus, TransitMode.subway],
+        transit_modes=[
+            CatchmentAreaRoutingModePT.bus,
+            CatchmentAreaRoutingModePT.subway,
+        ],
         access_mode=AccessEgressMode.walk,
         egress_mode=AccessEgressMode.walk,
         travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -275,7 +280,7 @@ async def test_motis_one_to_all_raw_response_validation(plausibility_tester):
                 latitude=[48.1351],
                 longitude=[11.5820],
             ),
-            transit_modes=[TransitMode.bus],
+            transit_modes=[CatchmentAreaRoutingModePT.bus],
             travel_cost=TransitCatchmentAreaTravelTimeCost(
                 max_traveltime=20,
                 cutoffs=[10, 20],

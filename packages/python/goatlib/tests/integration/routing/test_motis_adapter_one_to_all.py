@@ -1,11 +1,11 @@
 import pytest
 from goatlib.routing.schemas.catchment_area_transit import (
     AccessEgressMode,
+    CatchmentAreaRoutingModePT,
     TransitCatchmentAreaRequest,
     TransitCatchmentAreaResponse,
     TransitCatchmentAreaStartingPoints,
     TransitCatchmentAreaTravelTimeCost,
-    TransitMode,
 )
 
 
@@ -103,7 +103,7 @@ class TestMotisAdapterOneToAll:
             starting_points=TransitCatchmentAreaStartingPoints(
                 latitude=[52.5200], longitude=[13.4050]
             ),
-            transit_modes=[TransitMode.rail],
+            transit_modes=[CatchmentAreaRoutingModePT.rail],
             access_mode=AccessEgressMode.walk,
             egress_mode=AccessEgressMode.walk,
             travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -124,7 +124,10 @@ class TestMotisAdapterOneToAll:
                 latitude=[48.1351],  # Munich
                 longitude=[11.5820],
             ),
-            transit_modes=[TransitMode.subway, TransitMode.tram],
+            transit_modes=[
+                CatchmentAreaRoutingModePT.subway,
+                CatchmentAreaRoutingModePT.tram,
+            ],
             access_mode=AccessEgressMode.walk,
             egress_mode=AccessEgressMode.walk,
             travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -151,7 +154,10 @@ class TestMotisAdapterOneToAll:
             starting_points=TransitCatchmentAreaStartingPoints(
                 latitude=[52.5200], longitude=[13.4050]
             ),
-            transit_modes=[TransitMode.bus, TransitMode.tram],
+            transit_modes=[
+                CatchmentAreaRoutingModePT.bus,
+                CatchmentAreaRoutingModePT.tram,
+            ],
             access_mode=AccessEgressMode.bicycle,
             egress_mode=AccessEgressMode.bicycle,
             travel_cost=TransitCatchmentAreaTravelTimeCost(
@@ -171,7 +177,7 @@ class TestMotisAdapterOneToAll:
                 latitude=[91.0],  # Invalid latitude > 90
                 longitude=[181.0],  # Invalid longitude > 180
             ),
-            transit_modes=[TransitMode.bus],
+            transit_modes=[CatchmentAreaRoutingModePT.bus],
             access_mode=AccessEgressMode.walk,
             egress_mode=AccessEgressMode.walk,
             travel_cost=TransitCatchmentAreaTravelTimeCost(

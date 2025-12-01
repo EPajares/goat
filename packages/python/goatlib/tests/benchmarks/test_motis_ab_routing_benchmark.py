@@ -1,4 +1,3 @@
-import asyncio
 import json
 import time
 import tracemalloc
@@ -7,7 +6,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 import psutil
-import pytest
 from goatlib.routing.adapters.motis import create_motis_adapter
 from goatlib.routing.schemas.ab_routing import ABRoutingRequest, ABRoutingResponse
 from goatlib.routing.schemas.base import Location, Mode
@@ -223,9 +221,6 @@ def validate_ab_routing_response(response: ABRoutingResponse) -> None:
             ), f"Route {i} leg {j} should have destination"
 
 
-@pytest.mark.slow
-@pytest.mark.network
-@pytest.mark.benchmark
 async def test_motis_ab_routing_performance_benchmark():
     """
     Comprehensive performance benchmark for MOTIS AB routing functionality.
@@ -415,9 +410,6 @@ async def test_motis_ab_routing_performance_benchmark():
         tracemalloc.stop()
 
 
-@pytest.mark.slow
-@pytest.mark.network
-@pytest.mark.benchmark
 async def test_motis_ab_routing_minimal_benchmark():
     """
     Minimal benchmark for quick AB routing performance checks.
@@ -477,9 +469,6 @@ async def test_motis_ab_routing_minimal_benchmark():
         tracemalloc.stop()
 
 
-@pytest.mark.slow
-@pytest.mark.network
-@pytest.mark.benchmark
 async def test_motis_ab_routing_stress_benchmark():
     """
     Stress test benchmark for AB routing with challenging parameters.
@@ -546,14 +535,3 @@ async def test_motis_ab_routing_stress_benchmark():
         if "adapter" in locals():
             await adapter.motis_client.close()
         tracemalloc.stop()
-
-
-if __name__ == "__main__":
-    # Allow running benchmarks directly
-    async def main():
-        print("Running AB Routing Benchmarks...")
-        await test_motis_ab_routing_performance_benchmark()
-        await test_motis_ab_routing_minimal_benchmark()
-        await test_motis_ab_routing_stress_benchmark()
-
-    asyncio.run(main())
