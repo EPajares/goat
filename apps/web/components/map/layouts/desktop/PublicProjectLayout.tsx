@@ -21,6 +21,7 @@ import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
 import { Container } from "@/components/builder/PanelContainer";
 import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
+// import { FloatingPanel } from "@/components/common/FloatingPanel";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
@@ -460,6 +461,30 @@ const PublicProjectLayout = ({
               <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
             )}
           </Box>
+          {/* Right Floating Panel */}
+          {/* <Box
+            sx={{
+              position: "absolute",
+              right: getOccupiedSpace.right + 16,
+              top: getOccupiedSpace.top + 16,
+              bottom: getOccupiedSpace.bottom + 16,
+              zIndex: 10000,
+              pointerEvents: "none",
+              transition: "all 0.3s",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 2,
+            }}>
+            <FloatingPanel>
+              <Box sx={{ p: 2 }}>
+                <div>Floating Panel Content</div>
+                <p>This is a floating panel positioned on the right side.</p>
+                <p>It adjusts its position based on existing panels and controls.</p>
+              </Box>
+            </FloatingPanel>
+          </Box> */}
+
           {/* Bottom-Right Controls */}
           <Box
             sx={{

@@ -1,5 +1,4 @@
-import { Box, Stack, type SxProps, type Theme, useTheme } from "@mui/material";
-import { alpha } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -27,6 +26,7 @@ import { useAuthZ } from "@/hooks/auth/AuthZ";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
+import { FloatingPanel } from "@/components/common/FloatingPanel";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
 import { Fullscren } from "@/components/map/controls/Fullscreen";
@@ -43,36 +43,6 @@ import Toolbox from "@/components/map/panels/toolbox/Toolbox";
 const toolbarHeight = 52;
 const panelWidth = 300;
 const GAP_SIZE = 16;
-
-interface FloatingPanelProps {
-  children: React.ReactNode;
-  sx?: SxProps<Theme>;
-}
-
-const FloatingPanel = ({ children, sx }: FloatingPanelProps) => {
-  const theme = useTheme();
-  return (
-    <Stack
-      direction="column"
-      sx={[
-        {
-          direction: "ltr",
-          width: `${panelWidth}px`,
-          minHeight: "400px",
-          height: "auto",
-          borderRadius: "1rem",
-          backgroundColor: alpha(theme.palette.background.paper, 0.9),
-          boxShadow: `rgba(0, 0, 0, 0.2) 0px 0px 10px`,
-          backdropFilter: "blur(10px)",
-          pointerEvents: "all",
-          overflow: "hidden",
-        },
-        ...(Array.isArray(sx) ? sx : [sx]),
-      ]}>
-      {children}
-    </Stack>
-  );
-};
 
 interface DataProjectLayoutProps {
   project: Project;
@@ -280,7 +250,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
             rowGap: 4,
             columnGap: 2,
           }}>
-          <FloatingPanel>
+          <FloatingPanel width={panelWidth}>
             <ProjectLayerTree
               projectId={projectId}
               projectLayers={projectLayers || []}
@@ -329,7 +299,11 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           pointerEvents: "none",
           alignItems: "flex-end",
         }}>
-        {activeRightComponent && <FloatingPanel sx={{ mb: 2 }}>{activeRightComponent}</FloatingPanel>}
+        {activeRightComponent && (
+          <FloatingPanel width={panelWidth} sx={{ mb: 2 }}>
+            {activeRightComponent}
+          </FloatingPanel>
+        )}
 
         <Stack
           direction="column"
