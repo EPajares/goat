@@ -39,6 +39,15 @@ export const useLayerSettingsMoreMenu = () => {
               },
             ]
           : []),
+        ...(layerType !== "table"
+          ? [
+              {
+                id: MapLayerActions.STYLE,
+                label: t("style"),
+                icon: ICON_NAME.STYLE,
+              },
+            ]
+          : []),
         ...(layerType !== "feature" || !inCatalog
           ? [
               {
@@ -63,6 +72,11 @@ export const useLayerSettingsMoreMenu = () => {
           id: MapLayerActions.PROPERTIES,
           label: t("properties"),
           icon: ICON_NAME.CIRCLEINFO,
+        },
+        {
+          id: MapLayerActions.STYLE,
+          label: t("style"),
+          icon: ICON_NAME.STYLE,
         },
         {
           id: MapLayerActions.ZOOM_TO,
@@ -158,6 +172,11 @@ export const useLayerSettingsMoreMenu = () => {
           id: MapLayerActions.PROPERTIES,
           label: t("properties"),
           icon: ICON_NAME.CIRCLEINFO,
+        },
+        {
+          id: MapLayerActions.STYLE,
+          label: t("style"),
+          icon: ICON_NAME.STYLE,
         },
         {
           id: MapLayerActions.ZOOM_TO,

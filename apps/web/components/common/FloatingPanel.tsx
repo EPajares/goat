@@ -5,9 +5,17 @@ interface FloatingPanelProps {
   children: React.ReactNode;
   sx?: SxProps<Theme>;
   width?: number;
+  minHeight?: string | number;
+  maxHeight?: string;
 }
 
-export const FloatingPanel = ({ children, sx, width = 300 }: FloatingPanelProps) => {
+export const FloatingPanel = ({
+  children,
+  sx,
+  width = 300,
+  minHeight = "400px",
+  maxHeight = "auto",
+}: FloatingPanelProps) => {
   const theme = useTheme();
   return (
     <Stack
@@ -16,7 +24,8 @@ export const FloatingPanel = ({ children, sx, width = 300 }: FloatingPanelProps)
         {
           direction: "ltr",
           width: `${width}px`,
-          minHeight: "400px",
+          minHeight: typeof minHeight === "number" ? `${minHeight}px` : minHeight,
+          maxHeight,
           height: "auto",
           borderRadius: "1rem",
           backgroundColor: alpha(theme.palette.background.paper, 0.9),

@@ -4,7 +4,13 @@ import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
-import { removeTemporaryFilter, setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";
+import { setSelectedLayers } from "@/lib/store/layer/slice";
+import {
+  removeTemporaryFilter,
+  setActiveRightPanel,
+  setGeocoderResult,
+  setSelectedBuilderItem,
+} from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema } from "@/lib/validations/project";
 import {
   type BuilderPanelSchema,
@@ -14,6 +20,9 @@ import {
   builderPanelSchema,
 } from "@/lib/validations/project";
 
+import { MapSidebarItemID } from "@/types/map/common";
+
+import { useLayerStyleChange } from "@/hooks/map/LayerStyleHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
@@ -21,7 +30,7 @@ import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
 import { Container } from "@/components/builder/PanelContainer";
 import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
-// import { FloatingPanel } from "@/components/common/FloatingPanel";
+import { FloatingPanel } from "@/components/common/FloatingPanel";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
@@ -30,6 +39,9 @@ import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
+import ViewContainer from "@/components/map/panels/Container";
+import PropertiesPanel from "@/components/map/panels/properties/Properties";
+import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
 
 export interface PublicProjectLayoutProps {
   project?: Project;
@@ -50,6 +62,8 @@ const PublicProjectLayout = ({
 }: PublicProjectLayoutProps) => {
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
+  // Layer style change hook
+  const { handleStyleChange } = useLayerStyleChange(projectLayers, viewOnly);
 
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
   const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
@@ -59,6 +73,42 @@ const PublicProjectLayout = ({
   const panels = useMemo(() => builderConfig?.interface ?? [], [builderConfig]);
   const PANEL_SIZE = 300;
   const COLLAPSED_SIZE = 40; // Should match the collapsedSize in Container component
+  const activeRight = useAppSelector((state) => state.map.activeRightPanel);
+
+  // Layer settings logic (public version)
+  const selectedLayerIds = useAppSelector((state) => state.layers.selectedLayerIds || []);
+  const activeLayer = useMemo(() => {
+    if (selectedLayerIds.length === 1) {
+      return projectLayers.find((l) => l.id === selectedLayerIds[0]);
+    }
+    return null;
+  }, [selectedLayerIds, projectLayers]);
+
+  const activeRightComponent = useMemo(() => {
+    // Check for layer configuration panel ID (public version - only Properties and Style)
+    const layerSettingsIds = [MapSidebarItemID.PROPERTIES, MapSidebarItemID.STYLE];
+
+    if (activeRight && layerSettingsIds.includes(activeRight) && activeLayer) {
+      let title = "Layer Settings";
+      let content: React.ReactNode = null;
+
+      if (activeRight === MapSidebarItemID.PROPERTIES) {
+        title = `${t("data_source_info")}: ${activeLayer.name || t("layer")}`;
+        content = <PropertiesPanel activeLayer={activeLayer} />;
+      } else if (activeRight === MapSidebarItemID.STYLE) {
+        title = `${t("style")}: ${activeLayer.name || t("layer")}`;
+        content = <SimpleLayerStyle activeLayer={activeLayer} onStyleChange={handleStyleChange} />;
+      }
+
+      return { title, content };
+    }
+    return null;
+  }, [activeRight, activeLayer, handleStyleChange, t]);
+
+  const handleClose = () => {
+    dispatch(setSelectedLayers([]));
+    dispatch(setActiveRightPanel(undefined));
+  };
 
   // Count total number of panels top, bottom, left, right using useMemo
   const topPanels = useMemo(() => panels.filter((panel) => panel.position === "top"), [panels]);
@@ -461,29 +511,32 @@ const PublicProjectLayout = ({
               <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
             )}
           </Box>
-          {/* Right Floating Panel */}
-          {/* <Box
-            sx={{
-              position: "absolute",
-              right: getOccupiedSpace.right + 16,
-              top: getOccupiedSpace.top + 16,
-              bottom: getOccupiedSpace.bottom + 16,
-              zIndex: 10000,
-              pointerEvents: "none",
-              transition: "all 0.3s",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              gap: 2,
-            }}>
-            <FloatingPanel>
-              <Box sx={{ p: 2 }}>
-                <div>Floating Panel Content</div>
-                <p>This is a floating panel positioned on the right side.</p>
-                <p>It adjusts its position based on existing panels and controls.</p>
-              </Box>
-            </FloatingPanel>
-          </Box> */}
+          {/* Right Floating Panel - Layer Settings */}
+          {activeRightComponent && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: getOccupiedSpace.right + 16,
+                top: getOccupiedSpace.top + 16,
+                bottom: getOccupiedSpace.bottom + 16,
+                zIndex: 10000,
+                pointerEvents: "auto",
+                transition: "all 0.3s",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 2,
+              }}>
+              <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
+                <ViewContainer
+                  title={activeRightComponent.title}
+                  disablePadding={true}
+                  close={handleClose}
+                  body={activeRightComponent.content}
+                />
+              </FloatingPanel>
+            </Box>
+          )}
 
           {/* Bottom-Right Controls */}
           <Box

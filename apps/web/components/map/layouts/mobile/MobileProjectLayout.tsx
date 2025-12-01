@@ -12,13 +12,17 @@ import { v4 } from "uuid";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
-import { setGeocoderResult } from "@/lib/store/map/slice";
+import { setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
 import { projectSchema } from "@/lib/validations/project";
 
+import { MapSidebarItemID } from "@/types/map/common";
+
+import { useLayerStyleChange } from "@/hooks/map/LayerStyleHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import WidgetWrapper from "@/components/builder/widgets/WidgetWrapper";
+import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BaseMapSelectorList, BasemapSelectorButton } from "@/components/map/controls/BasemapSelector";
@@ -29,6 +33,8 @@ import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
 import type { PublicProjectLayoutProps } from "@/components/map/layouts/desktop/PublicProjectLayout";
+import PropertiesPanel from "@/components/map/panels/properties/Properties";
+import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
 
 import "@/styles/swiper.css";
 
@@ -36,7 +42,7 @@ import "@/styles/swiper.css";
 const drawerBleeding = 56;
 
 // --- Types ---
-type DrawerView = "default" | "layerInfo" | "basemapSelector";
+type DrawerView = "default" | "layerInfo" | "basemapSelector" | "layerSettings";
 
 // --- GlobalSwiperStyles (Unchanged) ---
 const GlobalSwiperStyles = ({ open, drawerView }: { open: boolean; drawerView: DrawerView }) => (
@@ -119,10 +125,14 @@ const MobileProjectLayout = ({
   projectLayerGroups = [],
   project: _project,
   onProjectUpdate,
+  viewOnly,
 }: PublicProjectLayoutProps) => {
   const { t } = useTranslation("common");
   const theme = useTheme();
   const dispatch = useAppDispatch();
+
+  // Layer style change hook
+  const { handleStyleChange } = useLayerStyleChange(projectLayers, viewOnly);
   const project = useMemo(() => {
     const parsedProject = projectSchema.safeParse(_project);
     if (parsedProject.success) {
@@ -141,6 +151,16 @@ const MobileProjectLayout = ({
   // --- Redux State ---
   const layerInfo = useAppSelector((state) => state.map.popupInfo);
   const highlightedFeature = useAppSelector((state) => state.map.highlightedFeature);
+  const selectedLayerIds = useAppSelector((state) => state.layers.selectedLayerIds || []);
+  const activeRightPanel = useAppSelector((state) => state.map.activeRightPanel);
+
+  // Layer settings logic for mobile
+  const activeLayer = useMemo(() => {
+    if (selectedLayerIds.length === 1) {
+      return projectLayers.find((l) => l.id === selectedLayerIds[0]);
+    }
+    return null;
+  }, [selectedLayerIds, projectLayers]);
 
   // --- Hooks ---
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
@@ -150,6 +170,11 @@ const MobileProjectLayout = ({
   // Effect to handle changes in layerInfo (feature selection/deselection)
   useEffect(() => {
     if (layerInfo) {
+      // Clear activeRightPanel when switching to layerInfo to prevent conflicts
+      if (activeRightPanel) {
+        dispatch(setActiveRightPanel(undefined));
+      }
+
       // When a feature is selected, switch to layerInfo view and open drawer
       setDrawerView("layerInfo");
       setLayerInfoDetailsView(undefined); // Reset details view when feature changes
@@ -166,6 +191,22 @@ const MobileProjectLayout = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layerInfo]);
 
+  // Effect to handle layer settings panel requests from ProjectLayerTree three dots menu
+  useEffect(() => {
+    if (activeRightPanel && activeLayer) {
+      // Clear any existing layer info selection
+      if (layerInfo) {
+        layerInfo.onClose();
+      }
+
+      if (activeRightPanel === MapSidebarItemID.PROPERTIES || activeRightPanel === MapSidebarItemID.STYLE) {
+        setDrawerView("layerSettings");
+        setLayerInfoDetailsView(undefined);
+        setOpen(true);
+      }
+    }
+  }, [activeRightPanel, activeLayer, layerInfo]);
+
   // --- Handlers ---
   const toggleDrawer = (newOpen: boolean) => () => {
     setOpen(newOpen);
@@ -177,6 +218,12 @@ const MobileProjectLayout = ({
     if (drawerView === "layerInfo" && layerInfo) {
       layerInfo.onClose(); // This should set layerInfo to null via Redux
     }
+
+    // Clear activeRightPanel when closing any view to ensure clean state
+    if (activeRightPanel) {
+      dispatch(setActiveRightPanel(undefined));
+    }
+
     // Reset the view to default
     setDrawerView("default");
     // Keep the drawer open, allowing user to see default view or swipe down
@@ -189,6 +236,12 @@ const MobileProjectLayout = ({
     if (layerInfo) {
       layerInfo.onClose();
     }
+
+    // Clear activeRightPanel to prevent conflicts with layer settings
+    if (activeRightPanel) {
+      dispatch(setActiveRightPanel(undefined));
+    }
+
     setDrawerView("basemapSelector");
     setLayerInfoDetailsView(undefined); // Ensure details view is reset
     setOpen(true);
@@ -207,11 +260,21 @@ const MobileProjectLayout = ({
         return layerInfo ? { title: layerInfo.title, icon: ICON_NAME.LAYERS } : null;
       case "basemapSelector":
         return { title: t("map_style"), icon: ICON_NAME.MAP };
+      case "layerSettings":
+        if (activeLayer && activeRightPanel) {
+          const isProperties = activeRightPanel === MapSidebarItemID.PROPERTIES;
+          const title = isProperties
+            ? `${t("data_source_info")}: ${activeLayer.name || t("layer")}`
+            : `${t("style")}: ${activeLayer.name || t("layer")}`;
+          const icon = isProperties ? ICON_NAME.LAYERS : ICON_NAME.STYLE;
+          return { title, icon };
+        }
+        return null;
       case "default":
       default:
         return null; // No header needed for default view (only pagination)
     }
-  }, [drawerView, layerInfo, t]);
+  }, [drawerView, layerInfo, activeLayer, activeRightPanel, t]);
 
   return (
     <>
@@ -261,7 +324,13 @@ const MobileProjectLayout = ({
               m: 2,
               zIndex: 2,
               pointerEvents: "all",
+              display: "flex",
+              flexDirection: "column",
+              gap: 1,
             }}>
+            {project && project?.builder_config?.settings?.project_info && (
+              <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
+            )}
             {project?.builder_config?.settings.zoom_controls && (
               <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
             )}
@@ -380,6 +449,24 @@ const MobileProjectLayout = ({
                 onClick={() => setOpen(false)}
                 hideHeader // Header is now in the puller area
               />
+            )}
+
+            {drawerView === "layerSettings" && activeLayer && activeRightPanel && (
+              <Box
+                sx={{
+                  p: 3,
+                  minHeight: "200px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2,
+                }}>
+                {activeRightPanel === MapSidebarItemID.PROPERTIES && (
+                  <PropertiesPanel activeLayer={activeLayer} />
+                )}
+                {activeRightPanel === MapSidebarItemID.STYLE && (
+                  <SimpleLayerStyle activeLayer={activeLayer} onStyleChange={handleStyleChange} />
+                )}
+              </Box>
             )}
 
             {drawerView === "default" && project?.builder_config?.interface && (

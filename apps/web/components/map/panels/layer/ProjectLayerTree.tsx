@@ -296,12 +296,7 @@ const castNodeToProjectLayer = (node: ProjectLayerTreeNode): ProjectLayer => {
 
 // Helper function to filter menu options for view mode
 const filterMenuForViewMode = (menuOptions: PopperMenuItem[]): PopperMenuItem[] => {
-  const excludedActions = [
-    ContentActions.DELETE,
-    MapLayerActions.RENAME,
-    MapLayerActions.DUPLICATE,
-    MapLayerActions.PROPERTIES,
-  ];
+  const excludedActions = [ContentActions.DELETE, MapLayerActions.RENAME, MapLayerActions.DUPLICATE];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return menuOptions.filter((option) => !excludedActions.includes(option.id as any));
 };
@@ -454,6 +449,11 @@ export const ProjectLayerTree = ({
   const handleProperties = (layer: ProjectLayer) => {
     dispatch(setSelectedLayers([layer.id]));
     dispatch(setActiveRightPanel(MapSidebarItemID.PROPERTIES));
+  };
+
+  const handleStyle = (layer: ProjectLayer) => {
+    dispatch(setSelectedLayers([layer.id]));
+    dispatch(setActiveRightPanel(MapSidebarItemID.STYLE));
   };
 
   const handleDuplicate = async (layer: ProjectLayer) => {
@@ -635,6 +635,8 @@ export const ProjectLayerTree = ({
                 const target = castNodeToProjectLayer(node);
                 if (menuItem.id === MapLayerActions.PROPERTIES) {
                   handleProperties(target);
+                } else if (menuItem.id === MapLayerActions.STYLE) {
+                  handleStyle(target);
                 } else if (menuItem.id === MapLayerActions.DUPLICATE) {
                   handleDuplicate(target);
                 } else {
