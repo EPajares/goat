@@ -398,7 +398,7 @@ export const Container: React.FC<ContainerProps> = ({
                   position={panel.position}
                   expanded={!isCollapsed}
                   onClick={handleToggleCollapse}
-                  isVisible={true}
+                  isVisible={isHovered || isCollapsed}
                 />
               )}
           </Box>
