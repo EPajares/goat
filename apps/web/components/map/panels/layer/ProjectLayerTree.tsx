@@ -215,7 +215,10 @@ function formatApiDataForDnd(nodes: ProjectLayerTreeNode[]): ProjectTreeItem[] {
       id: `${node.type}-${node.id}`,
       parentId: node.parent_id ? `group-${node.parent_id}` : null,
       label: node.name,
-      collapsed: !(node.properties?.expanded ?? true), // Get expanded from properties and convert to collapsed (inverted)
+      collapsed:
+        node.type === "group"
+          ? !(node.properties?.expanded ?? true) // For groups, use expanded property
+          : (node.properties?.legend?.collapsed ?? false), // For layers, use legend.collapsed property
       isGroup: node.type === "group",
       data: node,
       // Hide expand/collapse functionality for invisible groups
@@ -269,13 +272,11 @@ function formatDndDataForApi(flatItems: ProjectTreeItem[]): ProjectLayerTreeUpda
         updateItem.properties.visibility = nodeVisibility;
       }
 
-      // Include legend collapsed state if it exists
-      if (item.data.properties?.legend?.collapsed !== undefined) {
-        if (!updateItem.properties.legend) {
-          updateItem.properties.legend = {};
-        }
-        updateItem.properties.legend.collapsed = item.data.properties.legend.collapsed;
+      // Update legend collapsed state from the tree item's collapsed property
+      if (!updateItem.properties.legend) {
+        updateItem.properties.legend = {};
       }
+      updateItem.properties.legend.collapsed = item.collapsed;
     }
 
     return updateItem;
@@ -857,7 +858,7 @@ export const ProjectLayerTree = ({
           items={itemsWithIcons}
           onItemsChange={(newItems) => {
             setItems(newItems);
-            if (isEditMode && onTreeUpdate) {
+            if (onTreeUpdate) {
               const updatePayload = formatDndDataForApi(newItems);
               onTreeUpdate(updatePayload);
             }

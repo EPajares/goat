@@ -113,16 +113,9 @@ export const LayerInformationWidget = ({
                 ...layer,
                 order: updateItem.order,
                 layer_project_group_id: updateItem.parent_id || null,
-                // Deep merge properties to preserve existing properties while updating new ones
+                // Update properties if provided (includes legend.collapsed, visibility, etc.)
                 properties: updateItem.properties
-                  ? {
-                      ...layer.properties,
-                      ...updateItem.properties,
-                      // Ensure legend properties are properly merged
-                      legend: updateItem.properties.legend
-                        ? { ...layer.properties?.legend, ...updateItem.properties.legend }
-                        : layer.properties?.legend,
-                    }
+                  ? { ...layer.properties, ...updateItem.properties }
                   : layer.properties,
               };
             }
