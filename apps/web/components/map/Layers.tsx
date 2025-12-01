@@ -209,6 +209,9 @@ const Layers = (props: LayersProps) => {
                       layout={{
                         visibility: layer.properties?.visibility ? "visible" : "none",
                       }}
+                      paint={{
+                        "raster-opacity": layer.properties?.opacity || 1,
+                      }}
                     />
                   </Source>
                 );
