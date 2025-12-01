@@ -12,7 +12,12 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { setCollapsedPanels } from "@/lib/store/map/slice";
-import type { BuilderPanelSchema, BuilderWidgetSchema, ProjectLayer } from "@/lib/validations/project";
+import type {
+  BuilderPanelSchema,
+  BuilderWidgetSchema,
+  ProjectLayer,
+  ProjectLayerGroup,
+} from "@/lib/validations/project";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
@@ -32,6 +37,7 @@ export interface BuilderPanelSchemaWithPosition extends BuilderPanelSchema {
 interface ContainerProps {
   panel: BuilderPanelSchemaWithPosition; // A single panel
   projectLayers: ProjectLayer[];
+  projectLayerGroups: ProjectLayerGroup[];
   selected?: boolean; // Whether the panel is selected
   onClick?: () => void;
   onChangeOrder?: (panelId: string, position: "top" | "bottom" | "left" | "right") => void;
@@ -81,6 +87,7 @@ const ChangeOrderButton: React.FC<{
 export const Container: React.FC<ContainerProps> = ({
   panel,
   projectLayers,
+  projectLayerGroups,
   selected,
   onClick,
   onChangeOrder,
@@ -337,6 +344,7 @@ export const Container: React.FC<ContainerProps> = ({
                     <WidgetWrapper
                       widget={widget}
                       projectLayers={projectLayers}
+                      projectLayerGroups={projectLayerGroups}
                       viewOnly={viewOnly}
                       onWidgetDelete={onWidgetDelete}
                       onWidgetUpdate={onWidgetUpdate}
@@ -374,7 +382,12 @@ export const Container: React.FC<ContainerProps> = ({
                       }),
                     }),
                   }}>
-                  <WidgetWrapper widget={widget} projectLayers={projectLayers} viewOnly={viewOnly} />
+                  <WidgetWrapper
+                    widget={widget}
+                    projectLayers={projectLayers}
+                    projectLayerGroups={projectLayerGroups}
+                    viewOnly={viewOnly}
+                  />
                 </Box>
               ))
             )}

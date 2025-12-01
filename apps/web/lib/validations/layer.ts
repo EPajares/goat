@@ -1,5 +1,6 @@
-import * as z from "zod";
 import { v4 } from "uuid";
+import * as z from "zod";
+
 import { DEFAULT_WKT_EXTENT } from "@/lib/constants";
 import { DEFAULT_COLOR, DEFAULT_COLOR_RANGE } from "@/lib/constants/color";
 import {
@@ -75,7 +76,17 @@ export const colorRange = z.object({
   color_legends: ColorLegends.optional(),
 });
 
-export const SymbolPlacementAnchor = z.enum(["center", "left", "right", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"]);
+export const SymbolPlacementAnchor = z.enum([
+  "center",
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+]);
 export const TextLabelSchema = z.object({
   size: z.number().min(1).max(100).default(14),
   color: z.array(z.number().min(0).max(255)).optional().default([0, 0, 0]),
@@ -90,7 +101,6 @@ export const TextLabelSchema = z.object({
   outline_color: z.array(z.number().min(0).max(255)).optional().default([255, 255, 255]),
   outline_width: z.number().min(0).max(10).optional().default(0),
 });
-
 
 export const layerPropertiesBaseSchema = z.object({
   opacity: z.number().min(0).max(1).default(0.8),
@@ -165,16 +175,21 @@ export const attributeSchema = z.object({
   format: z.string().optional(),
 });
 
-
 export const interactionFieldListContent = z.object({
-  id: z.string().uuid().default(() => v4()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => v4()),
   type: z.literal(layerInteractionContentType.Enum.field_list).default("field_list"),
   title: z.string().optional(),
   attributes: z.array(attributeSchema).optional().default([]),
 });
 
 export const interactionImageContent = z.object({
-  id: z.string().uuid().default(() => v4()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => v4()),
   type: z.literal(layerInteractionContentType.Enum.image).default("image"),
   title: z.string().optional(),
   url: z.string().optional().default(""),
@@ -192,7 +207,8 @@ export const interactionProperties = z.object({
 export const layerLegend = z.object({
   show: z.boolean().default(true),
   caption: z.string().optional(),
-})
+  collapsed: z.boolean().optional().default(false),
+});
 
 export const featureLayerBasePropertiesSchema = z
   .object({
@@ -221,9 +237,6 @@ export const featureLayerProperties = featureLayerPointPropertiesSchema
   .or(featureLayerPolygonPropertiesSchema);
 
 export const featureLabelProperties = z.object({});
-
-
-
 
 // lineage, positional_accuracy, attribute_accuracy, completeness
 export const layerMetadataSchema = contentMetadataSchema.extend({

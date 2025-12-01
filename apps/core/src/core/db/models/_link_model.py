@@ -34,14 +34,7 @@ class LayerProjectLink(DateTimeBase, table=True):
     __table_args__ = {"schema": settings.CUSTOMER_SCHEMA}
 
     id: int | None = Field(
-        default=None,
-        sa_column=Column(Integer, primary_key=True, autoincrement=True)
-    )
-    group: str | None = Field(
-        default=None,
-        sa_column=Column(Text, nullable=True),
-        description="Layer group name",
-        max_length=255,
+        default=None, sa_column=Column(Integer, primary_key=True, autoincrement=True)
     )
     layer_id: UUID = Field(
         sa_column=Column(
@@ -57,6 +50,18 @@ class LayerProjectLink(DateTimeBase, table=True):
         ),
         description="Project ID",
     )
+    layer_project_group_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey(
+                f"{settings.CUSTOMER_SCHEMA}.layer_project_group.id", ondelete="CASCADE"
+            ),
+            nullable=True,
+        ),
+        description="The Group ID this layer belongs to",
+    )
+    order: int = Field(default=0, sa_column=Column(Integer, default=0, nullable=False))
     name: str = Field(
         sa_column=Column(Text, nullable=False),
         description="Layer name within the project",
@@ -75,7 +80,8 @@ class LayerProjectLink(DateTimeBase, table=True):
     )
     charts: Dict[str, Any] | None = Field(
         default=None,
-        sa_column=Column(JSONB, nullable=True), description="Chart configuration"
+        sa_column=Column(JSONB, nullable=True),
+        description="Chart configuration",
     )
 
     # Relationships
@@ -84,6 +90,59 @@ class LayerProjectLink(DateTimeBase, table=True):
 
     scenario_features: List["ScenarioFeature"] = Relationship(
         back_populates="layer_project",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+    group: Optional["LayerProjectGroup"] = Relationship(back_populates="layers")
+
+
+class LayerProjectGroup(DateTimeBase, table=True):
+    __tablename__ = "layer_project_group"
+    __table_args__ = {"schema": settings.CUSTOMER_SCHEMA}
+
+    id: int | None = Field(
+        default=None, sa_column=Column(Integer, primary_key=True, autoincrement=True)
+    )
+    name: str = Field(sa_column=Column(Text, nullable=False))
+    order: int = Field(default=0, sa_column=Column(Integer, default=0, nullable=False))
+    properties: Dict[str, Any] | None = Field(
+        sa_column=Column(JSONB, nullable=True), description="Layer Group properties"
+    )
+    project_id: UUID = Field(
+        sa_column=Column(
+            UUID_PG(as_uuid=True),
+            ForeignKey(f"{settings.CUSTOMER_SCHEMA}.project.id", ondelete="CASCADE"),
+            nullable=False,
+        )
+    )
+
+    # Self-referential key for nested groups (Parent Group)
+    parent_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(
+            Integer,
+            ForeignKey(
+                f"{settings.CUSTOMER_SCHEMA}.layer_project_group.id", ondelete="CASCADE"
+            ),
+            nullable=True,
+        ),
+    )
+
+    # Relationships
+    project: "Project" = Relationship(back_populates="layer_groups")
+
+    # Parent/Child relationship for nesting
+    parent: Optional["LayerProjectGroup"] = Relationship(
+        back_populates="children",
+        sa_relationship_kwargs={"remote_side": "LayerProjectGroup.id"},
+    )
+    children: List["LayerProjectGroup"] = Relationship(
+        back_populates="parent",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+    # Usage: link.group_id
+    layers: List["LayerProjectLink"] = Relationship(
+        back_populates="group",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
@@ -125,8 +184,7 @@ class UserProjectLink(DateTimeBase, table=True):
     __table_args__ = {"schema": settings.CUSTOMER_SCHEMA}
 
     id: int | None = Field(
-        default=None,
-        sa_column=Column(Integer, primary_key=True, autoincrement=True)
+        default=None, sa_column=Column(Integer, primary_key=True, autoincrement=True)
     )
     user_id: UUID = Field(
         sa_column=Column(
@@ -151,7 +209,7 @@ class UserProjectLink(DateTimeBase, table=True):
     project: "Project" = Relationship(back_populates="user_projects")
 
     # Constraints
-    UniqueConstraint("project_id", "user_id", name="unique_user_project"),
+    (UniqueConstraint("project_id", "user_id", name="unique_user_project"),)
 
 
 class UserTeamLink(SQLModel, table=True):

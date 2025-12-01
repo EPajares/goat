@@ -1,5 +1,6 @@
 import * as z from "zod";
 
+import { DEFAULT_WKT_EXTENT } from "@/lib/constants";
 import { basicLayout } from "@/lib/constants/dashboard-builder-template-layouts";
 import {
   contentMetadataSchema,
@@ -112,18 +113,8 @@ export const projectSchema = contentMetadataSchema.extend({
   owned_by: publicUserSchema.optional(),
 });
 
-export const projectPublicSchemaConfig = z.object({
-  project: projectSchema,
-  layers: z.array(layerSchema),
-});
-
-export const projectPublicSchema = z.object({
-  created_at: z.string(),
-  updated_at: z.string(),
-  project_id: z.string(),
-  config: projectPublicSchemaConfig,
-});
-
+// order: int = Field(0, description="Visual sorting order")
+// layer_project_group_id: int | None = Field(None, description="Parent group ID")
 export const projectLayerSchema = layerSchema.extend({
   id: z.number(),
   folder_id: z.string(),
@@ -135,9 +126,66 @@ export const projectLayerSchema = layerSchema.extend({
     .nullable()
     .optional(),
   layer_id: z.string().uuid(),
+  order: z.number().optional(),
+  layer_project_group_id: z.number().nullable().optional(),
   charts: z.object({}).optional(),
   filtered_count: z.number().optional(),
   legend_urls: z.array(z.string()).optional(),
+});
+
+export const projectLayerGroupSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  properties: z.record(z.any()).nullable().optional(),
+  order: z.number().optional(),
+  project_id: z.string().uuid(),
+  parent_id: z.number().nullable().optional(),
+  children: z.array(z.union([z.lazy(() => projectLayerGroupSchema), projectLayerSchema])).optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export const projectPublicSchemaConfig = z.object({
+  project: projectSchema,
+  layers: z.array(layerSchema),
+  layer_groups: z.array(projectLayerGroupSchema).optional().default([]),
+});
+
+export const projectPublicSchema = z.object({
+  created_at: z.string(),
+  updated_at: z.string(),
+  project_id: z.string(),
+  config: projectPublicSchemaConfig,
+});
+
+export const projectLayerTreeNodeSchema = z.object({
+  id: z.number(),
+  // Differentiates between a Group folder and a Layer link
+  type: z.enum(["group", "layer"]),
+  name: z.string(),
+  parent_id: z.number().nullable().optional(),
+  order: z.number(),
+  extent: z.string().default(DEFAULT_WKT_EXTENT),
+  // Layer Specifics (Nullable for groups)
+  layer_id: z.string().uuid().nullable().optional(),
+  layer_type: z.string().nullable().optional(),
+  geometry_type: z.string().nullable().optional(),
+  // Dictionary / JSON properties
+  properties: z.record(z.any()).nullable().optional(),
+  other_properties: z.record(z.any()).nullable().optional(),
+  query: z.record(z.any()).nullable().optional(),
+});
+
+export const projectLayerTreeUpdateItemSchema = z.object({
+  id: z.number(),
+  type: z.enum(["group", "layer"]),
+  order: z.number(),
+  parent_id: z.number().nullable().optional(),
+  properties: z.record(z.any()).nullable().optional(),
+});
+
+export const projectLayerTreeUpdateSchema = z.object({
+  items: z.array(projectLayerTreeUpdateItemSchema),
 });
 
 export const projectViewStateSchema = z.object({
@@ -229,6 +277,10 @@ export const histogramStatsResponseSchema = z.object({
 
 export type Project = z.infer<typeof projectSchema>;
 export type ProjectLayer = z.infer<typeof projectLayerSchema>;
+export type ProjectLayerGroup = z.infer<typeof projectLayerGroupSchema>;
+export type ProjectLayerTreeNode = z.infer<typeof projectLayerTreeNodeSchema>;
+export type ProjectLayerTreeUpdate = z.infer<typeof projectLayerTreeUpdateSchema>;
+
 export type ProjectPaginated = z.infer<typeof projectResponseSchema>;
 export type PostProject = z.infer<typeof postProjectSchema>;
 export type ProjectViewState = z.infer<typeof projectViewStateSchema>;

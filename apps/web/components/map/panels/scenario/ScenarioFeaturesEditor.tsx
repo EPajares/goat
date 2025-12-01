@@ -143,17 +143,17 @@ const ScenarioFeaturesTable = ({
       <Table size="small" aria-label="scenario features table" stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell align="left" sx={{ px: 2, width: 100 }}>
+            <TableCell align="left" sx={{ px: 2, width: 100, backgroundColor: "transparent" }}>
               <Typography variant="caption" fontWeight="bold">
                 {t("layer")}
               </Typography>
             </TableCell>
-            <TableCell align="left" sx={{ px: 2, width: 100 }}>
+            <TableCell align="left" sx={{ px: 2, width: 100, backgroundColor: "transparent" }}>
               <Typography variant="caption" fontWeight="bold">
                 {t("type")}
               </Typography>
             </TableCell>
-            <TableCell align="left" sx={{ px: 2, width: 60 }}>
+            <TableCell align="left" sx={{ px: 2, width: 60, backgroundColor: "transparent" }}>
               {" "}
             </TableCell>
           </TableRow>

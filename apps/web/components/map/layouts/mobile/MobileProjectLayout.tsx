@@ -116,6 +116,7 @@ export const InfoHeader: React.FC<InfoHeaderProps> = ({ title, iconName, onClose
 // --- MobileProjectLayout component ---
 const MobileProjectLayout = ({
   projectLayers = [],
+  projectLayerGroups = [],
   project: _project,
   onProjectUpdate,
 }: PublicProjectLayoutProps) => {
@@ -414,7 +415,12 @@ const MobileProjectLayout = ({
                         >
                           {item?.widgets?.map((widget) => (
                             <Box key={widget.id} sx={{ p: 2, width: "100%", flexShrink: 0 }}>
-                              <WidgetWrapper widget={widget} projectLayers={projectLayers} viewOnly />
+                              <WidgetWrapper
+                                widget={widget}
+                                projectLayers={projectLayers}
+                                projectLayerGroups={projectLayerGroups}
+                                viewOnly
+                              />
                             </Box>
                           ))}
                         </Box>

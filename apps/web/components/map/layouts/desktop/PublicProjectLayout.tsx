@@ -10,6 +10,7 @@ import {
   type BuilderPanelSchema,
   type Project,
   type ProjectLayer,
+  type ProjectLayerGroup,
   builderPanelSchema,
 } from "@/lib/validations/project";
 
@@ -32,6 +33,7 @@ import { Zoom } from "@/components/map/controls/Zoom";
 export interface PublicProjectLayoutProps {
   project?: Project;
   projectLayers?: ProjectLayer[];
+  projectLayerGroups?: ProjectLayerGroup[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProjectUpdate?: (key: string, value: any, refresh?: boolean) => void;
   // add property isEditing to the interface
@@ -40,6 +42,7 @@ export interface PublicProjectLayoutProps {
 
 const PublicProjectLayout = ({
   projectLayers = [],
+  projectLayerGroups = [],
   project,
   onProjectUpdate,
   viewOnly,
@@ -388,6 +391,7 @@ const PublicProjectLayout = ({
                   key={panel.id}
                   panel={panel}
                   projectLayers={projectLayers}
+                  projectLayerGroups={projectLayerGroups}
                   viewOnly={viewOnly}
                   selected={selectedPanel?.type === "panel" && selectedPanel?.id === panel.id}
                   onChangeOrder={handleChangeOrder}

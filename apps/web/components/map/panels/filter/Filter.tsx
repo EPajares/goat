@@ -13,32 +13,27 @@ import {
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useDispatch } from "react-redux";
 import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { updateProjectLayer } from "@/lib/api/projects";
-import { setActiveRightPanel } from "@/lib/store/map/slice";
 import { createTheCQLBasedOnExpression, parseCQLQueryToObject } from "@/lib/transformers/filter";
 import { layerType } from "@/lib/validations/common";
 import { type Expression as ExpressionType, FilterType } from "@/lib/validations/filter";
+import type { ProjectLayer } from "@/lib/validations/project";
 
 import type { SelectorItem } from "@/types/map/common";
 
 import useLayerFields from "@/hooks/map/CommonHooks";
-import { useFilterQueries, useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
+import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 
-import Container from "@/components/map/panels/Container";
-import ProjectLayerDropdown from "@/components/map/panels/ProjectLayerDropdown";
 import Selector from "@/components/map/panels/common/Selector";
 import Expression from "@/components/map/panels/filter/Expression";
 
-const FilterPanel = ({ projectId }: { projectId: string }) => {
+const FilterPanel = ({ activeLayer, projectId }: { activeLayer: ProjectLayer; projectId: string }) => {
   const { t } = useTranslation("common");
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const { activeLayer } = useFilterQueries(projectId);
   const [previousLayerId, setPreviousLayerId] = useState<string | null>(null);
   const { layerFields } = useLayerFields(activeLayer?.layer_id || "");
   const { layers: projectLayers, mutate: mutateProjectLayers } = useFilteredProjectLayers(projectId);
@@ -179,132 +174,123 @@ const FilterPanel = ({ projectId }: { projectId: string }) => {
   };
 
   return (
-    <Container
-      title={t("filter")}
-      close={() => dispatch(setActiveRightPanel(undefined))}
-      body={
+    <Box sx={{ p: 3 }}>
+      {/* DESCRIPTION */}
+      {!expressions?.length && (
+        <Typography variant="body2" sx={{ fontStyle: "italic", marginBottom: theme.spacing(4) }}>
+          {t("filter_layer_message")}
+        </Typography>
+      )}
+      {expressions && expressions?.length > 1 && (
         <>
-          <ProjectLayerDropdown projectId={projectId} layerTypes={["feature", "table"]} />
-          {/* DESCRIPTION */}
-          {!expressions?.length && (
-            <Typography variant="body2" sx={{ fontStyle: "italic", marginBottom: theme.spacing(4) }}>
-              {t("filter_layer_message")}
-            </Typography>
-          )}
-          {expressions && expressions?.length > 1 && (
-            <>
-              <Divider />
-              <Selector
-                selectedItems={logicalOperator}
-                setSelectedItems={(item: SelectorItem[] | SelectorItem | undefined) => {
-                  setLogicalOperator(item as SelectorItem);
-                  updateLayerQuery(expressions, item);
-                }}
-                items={logicalOperators}
-                label={t("filter_results")}
-              />
-            </>
-          )}
-
-          {expressions && !!expressions?.length && (
-            <Stack spacing={4} sx={{ pt: 4 }}>
-              <Divider />
-              {expressions.map((expression: ExpressionType) => (
-                <Expression
-                  key={expression.id}
-                  expression={expression}
-                  onDelete={async (expression) => {
-                    const updatedExpressions = expressions.filter((e) => e.id !== expression.id);
-                    setExpressions(updatedExpressions);
-                    await updateLayerQuery(updatedExpressions, logicalOperator);
-                  }}
-                  onDuplicate={async (expression: ExpressionType) => {
-                    const updatedExpressions = [...expressions, { ...expression, id: v4() }];
-                    setExpressions(updatedExpressions);
-                    await updateLayerQuery(updatedExpressions, logicalOperator);
-                  }}
-                  onUpdate={async (expression: ExpressionType) => {
-                    const updatedExpressions = expressions.map((e) =>
-                      e.id === expression.id ? expression : e
-                    );
-                    setExpressions(updatedExpressions);
-                    await updateLayerQuery(updatedExpressions, logicalOperator);
-                  }}
-                />
-              ))}
-            </Stack>
-          )}
-
-          {activeLayer && (
-            <Stack spacing={2} sx={{ pt: 4 }}>
-              {/* ADD EXPRESSION */}
-              <Button
-                onClick={handleAddExpressionClick}
-                fullWidth
-                size="small"
-                disabled={!areAllExpressionsValid}
-                startIcon={<Icon iconName={ICON_NAME.PLUS} style={{ fontSize: "15px" }} />}>
-                <Typography variant="body2" fontWeight="bold" color="inherit">
-                  {t("common:add_expression")}
-                </Typography>
-              </Button>
-              {activeLayer.type === layerType.Values.feature && (
-                <Menu
-                  anchorEl={addExpressionAnchorEl}
-                  sx={{
-                    "& .MuiPaper-root": {
-                      boxShadow: "0px 0px 10px 0px rgba(58, 53, 65, 0.1)",
-                    },
-                  }}
-                  anchorOrigin={{ vertical: "top", horizontal: "center" }}
-                  transformOrigin={{ vertical: "bottom", horizontal: "center" }}
-                  open={open}
-                  MenuListProps={{
-                    "aria-labelledby": "basic-button",
-                    sx: {
-                      width: addExpressionAnchorEl && addExpressionAnchorEl.offsetWidth - 10,
-                      p: 0,
-                    },
-                  }}
-                  onClose={handleAddExpressionClose}>
-                  <Box>
-                    <ClickAwayListener onClickAway={handleAddExpressionClose}>
-                      <MenuList>
-                        {addExpressionItems.map((item, index) => (
-                          <MenuItem
-                            key={index}
-                            onClick={() => {
-                              createExpression(item.sourceType);
-                              handleAddExpressionClose();
-                            }}>
-                            <ListItemIcon>
-                              <Icon iconName={item.iconName} style={{ fontSize: "15px" }} />
-                            </ListItemIcon>
-                            <Typography variant="body2">{item.label}</Typography>
-                          </MenuItem>
-                        ))}
-                      </MenuList>
-                    </ClickAwayListener>
-                  </Box>
-                </Menu>
-              )}
-              {/* CLEAR FILTER */}
-              <Button
-                variant="outlined"
-                fullWidth
-                size="small"
-                color="error"
-                disabled={!expressions?.length}
-                onClick={clearFilter}>
-                <Typography variant="body2" color="inherit">
-                  {t("common:clear_filter")}
-                </Typography>
-              </Button>
-            </Stack>
-          )}
+          <Divider />
+          <Selector
+            selectedItems={logicalOperator}
+            setSelectedItems={(item: SelectorItem[] | SelectorItem | undefined) => {
+              setLogicalOperator(item as SelectorItem);
+              updateLayerQuery(expressions, item);
+            }}
+            items={logicalOperators}
+            label={t("filter_results")}
+          />
         </>
-      }
-    />
+      )}
+
+      {expressions && !!expressions?.length && (
+        <Stack spacing={4} sx={{ pt: 4 }}>
+          <Divider />
+          {expressions.map((expression: ExpressionType) => (
+            <Expression
+              key={expression.id}
+              expression={expression}
+              onDelete={async (expression) => {
+                const updatedExpressions = expressions.filter((e) => e.id !== expression.id);
+                setExpressions(updatedExpressions);
+                await updateLayerQuery(updatedExpressions, logicalOperator);
+              }}
+              onDuplicate={async (expression: ExpressionType) => {
+                const updatedExpressions = [...expressions, { ...expression, id: v4() }];
+                setExpressions(updatedExpressions);
+                await updateLayerQuery(updatedExpressions, logicalOperator);
+              }}
+              onUpdate={async (expression: ExpressionType) => {
+                const updatedExpressions = expressions.map((e) => (e.id === expression.id ? expression : e));
+                setExpressions(updatedExpressions);
+                await updateLayerQuery(updatedExpressions, logicalOperator);
+              }}
+            />
+          ))}
+        </Stack>
+      )}
+
+      {activeLayer && (
+        <Stack spacing={2} sx={{ pt: 4 }}>
+          {/* ADD EXPRESSION */}
+          <Button
+            onClick={handleAddExpressionClick}
+            fullWidth
+            size="small"
+            disabled={!areAllExpressionsValid}
+            startIcon={<Icon iconName={ICON_NAME.PLUS} style={{ fontSize: "15px" }} />}>
+            <Typography variant="body2" fontWeight="bold" color="inherit">
+              {t("common:add_expression")}
+            </Typography>
+          </Button>
+          {activeLayer.type === layerType.Values.feature && (
+            <Menu
+              anchorEl={addExpressionAnchorEl}
+              sx={{
+                "& .MuiPaper-root": {
+                  boxShadow: "0px 0px 10px 0px rgba(58, 53, 65, 0.1)",
+                },
+              }}
+              anchorOrigin={{ vertical: "top", horizontal: "center" }}
+              transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+              open={open}
+              MenuListProps={{
+                "aria-labelledby": "basic-button",
+                sx: {
+                  width: addExpressionAnchorEl && addExpressionAnchorEl.offsetWidth - 10,
+                  p: 0,
+                },
+              }}
+              onClose={handleAddExpressionClose}>
+              <Box>
+                <ClickAwayListener onClickAway={handleAddExpressionClose}>
+                  <MenuList>
+                    {addExpressionItems.map((item, index) => (
+                      <MenuItem
+                        key={index}
+                        onClick={() => {
+                          createExpression(item.sourceType);
+                          handleAddExpressionClose();
+                        }}>
+                        <ListItemIcon>
+                          <Icon iconName={item.iconName} style={{ fontSize: "15px" }} />
+                        </ListItemIcon>
+                        <Typography variant="body2">{item.label}</Typography>
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </ClickAwayListener>
+              </Box>
+            </Menu>
+          )}
+          {/* CLEAR FILTER */}
+          <Button
+            variant="outlined"
+            fullWidth
+            size="small"
+            color="error"
+            disabled={!expressions?.length}
+            onClick={clearFilter}>
+            <Typography variant="body2" color="inherit">
+              {t("common:clear_filter")}
+            </Typography>
+          </Button>
+        </Stack>
+      )}
+    </Box>
   );
 };
 
