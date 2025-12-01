@@ -8,6 +8,7 @@ from pydantic import (
     BaseModel,
     Field,
     HttpUrl,
+    RootModel,
     ValidationError,
     ValidationInfo,
     field_validator,
@@ -76,8 +77,10 @@ class OgrPostgresType(str, Enum):
     Time = "text"
     DateTime = "timestamp"
 
+
 class OgrPostgresSubType(str, Enum):
     Boolean = "boolean"
+
 
 class OgrDriverType(str, Enum):
     """OGR driver types."""
@@ -616,20 +619,34 @@ def get_layer_schema(
         raise ValueError(f"Layer type ({layer_type}) is invalid")
 
 
-FeatureLayer = Annotated[
-    Union[
-        IFeatureStandardLayerRead,
-        IFeatureToolLayerRead,
-        IFeatureStreetNetworkLayerRead,
-    ],
-    Field(discriminator="feature_layer_type"),
-]
+class FeatureLayer(
+    RootModel[
+        Annotated[
+            Union[
+                IFeatureStandardLayerRead,
+                IFeatureToolLayerRead,
+                IFeatureStreetNetworkLayerRead,
+            ],
+            Field(discriminator="feature_layer_type"),
+        ]
+    ]
+):
+    pass
 
 
-ILayerRead = Annotated[
-    Union[FeatureLayer, ITableLayerRead, IRasterLayerRead],
-    Field(discriminator="type"),
-]
+class ILayerRead(
+    RootModel[
+        Annotated[
+            Union[
+                FeatureLayer,
+                ITableLayerRead,
+                IRasterLayerRead,
+            ],
+            Field(discriminator="type"),
+        ]
+    ]
+):
+    pass
 
 
 class IUniqueValue(BaseModel):

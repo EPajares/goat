@@ -18,14 +18,13 @@ interface ContainerProps {
 }
 
 export default function Container(props: ContainerProps) {
-  const { header, body, action, close, title, backgroundColor, disableClose } = props;
+  const { header, body, action, close, title, disableClose } = props;
 
   const theme = useTheme();
 
   return (
     <Stack
       sx={{
-        backgroundColor: backgroundColor || theme.palette.background.default,
         height: "100%",
       }}>
       {(header || title) && (
@@ -80,7 +79,7 @@ export default function Container(props: ContainerProps) {
               </Box>
             )}
           </Stack>
-          <Divider />
+          <Divider sx={{ pb: 0, mb: 0 }} />
         </>
       )}
       {body && (
@@ -109,35 +108,35 @@ export default function Container(props: ContainerProps) {
         </Stack>
       )}
       {action && (
-        <Paper
-          sx={{
-            borderRadius: "0",
-            boxShadow: "0px -5px 10px -5px rgba(58, 53, 65, 0.1)",
-          }}
-          elevation={6}>
-          <Stack
-            direction="row"
+        <>
+          <Divider sx={{ py: 0, my: 0 }} />
+          <Paper
             sx={{
-              paddingTop: theme.spacing(4),
-              paddingBottom: theme.spacing(4),
-              paddingLeft: theme.spacing(3),
-              paddingRight: theme.spacing(3),
-              overflowY: "auto",
-              scrollbarGutter: "stable both-edges",
-              "&::-webkit-scrollbar": {
-                width: "6px",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                background: "#2836484D",
-                borderRadius: "3px",
-                "&:hover": {
-                  background: "#28364880",
-                },
-              },
+              borderRadius: "0",
+              backgroundColor: "transparent",
             }}>
-            {action}
-          </Stack>
-        </Paper>
+            <Stack
+              direction="row"
+              sx={{
+                py: theme.spacing(4),
+                px: theme.spacing(3),
+                overflowY: "auto",
+                scrollbarGutter: "stable both-edges",
+                "&::-webkit-scrollbar": {
+                  width: "6px",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: "#2836484D",
+                  borderRadius: "3px",
+                  "&:hover": {
+                    background: "#28364880",
+                  },
+                },
+              }}>
+              {action}
+            </Stack>
+          </Paper>
+        </>
       )}
     </Stack>
   );

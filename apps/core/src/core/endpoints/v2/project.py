@@ -16,13 +16,18 @@ from fastapi_pagination import Page
 from fastapi_pagination import Params as PaginationParams
 from pydantic import UUID4
 from sqlalchemy import select
+from sqlmodel import update
 
 from core.core.chart import read_chart_data
 from core.crud.crud_layer_project import layer_project as crud_layer_project
+from core.crud.crud_layer_project_group import (
+    layer_project_group as crud_layer_project_group,
+)
 from core.crud.crud_project import project as crud_project
 from core.crud.crud_scenario import scenario as crud_scenario
 from core.crud.crud_user_project import user_project as crud_user_project
 from core.db.models._link_model import (
+    LayerProjectGroup,
     LayerProjectLink,
     ScenarioScenarioFeatureLink,
     UserProjectLink,
@@ -39,12 +44,16 @@ from core.schemas.project import (
     IFeatureStandardProjectRead,
     IFeatureStreetNetworkProjectRead,
     IFeatureToolProjectRead,
+    ILayerProjectGroupCreate,
+    ILayerProjectGroupRead,
+    ILayerProjectGroupUpdate,
     InitialViewState,
     IProjectBaseUpdate,
     IProjectCreate,
     IProjectRead,
     IRasterProjectRead,
     ITableProjectRead,
+    LayerTreeUpdate,
     ProjectPublicRead,
 )
 from core.schemas.project import (
@@ -659,7 +668,6 @@ async def get_statistic_aggregation(
             detail="A column name or expression must be specified for the operation except for count.",
         )
 
-
     # Ensure the size is not excessively large
     if size > 100:
         raise HTTPException(
@@ -1109,3 +1117,219 @@ async def unpublish_project(
     await crud_project.unpublish_project(
         async_session=async_session, project_id=project_id
     )
+
+
+##############################################
+### Layer Group Endpoints
+##############################################
+
+
+@router.get(
+    "/{project_id}/group",
+    summary="Get project layer groups",
+    response_model=List[ILayerProjectGroupRead],
+    status_code=200,
+    dependencies=[Depends(auth_z)],
+)
+async def get_project_layer_groups(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(..., description="The ID of the project"),
+) -> List[ILayerProjectGroupRead]:
+    """
+    Get all layer groups for a project.
+    Returns groups in hierarchical order.
+    """
+    return await crud_layer_project_group.get_groups_by_project(
+        async_session=async_session, project_id=project_id
+    )
+
+
+@router.post(
+    "/{project_id}/group",
+    summary="Create a layer group",
+    response_model=ILayerProjectGroupRead,
+    status_code=201,
+    dependencies=[Depends(auth_z)],
+)
+async def create_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_in: ILayerProjectGroupCreate = Body(...),
+) -> ILayerProjectGroupRead:
+    """
+    Create a new layer group.
+    Supports nesting up to 2 levels.
+    """
+    return await crud_layer_project_group.create(
+        async_session=async_session, project_id=project_id, obj_in=group_in
+    )
+
+
+@router.put(
+    "/{project_id}/group/{group_id}",
+    summary="Update a layer group",
+    response_model=ILayerProjectGroupRead,
+    status_code=200,
+)
+async def update_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_id: int = Path(...),
+    group_in: ILayerProjectGroupUpdate = Body(...),
+) -> LayerProjectGroup:
+    group = await crud_layer_project_group.get(async_session, group_id)
+    if not group or group.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    return await crud_layer_project_group.update(
+        async_session=async_session, db_obj=group, obj_in=group_in
+    )
+
+
+@router.delete(
+    "/{project_id}/group/{group_id}", summary="Delete a layer group", status_code=204
+)
+async def delete_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_id: int = Path(...),
+) -> None:
+    """
+    Delete a group.
+    Database Cascade will automatically delete:
+    1. The Group
+    2. Any Sub-groups
+    3. Any Layers linked to these groups (via LayerProjectLink)
+    """
+
+    group = await crud_layer_project_group.get(async_session, group_id)
+    if not group or group.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    await crud_layer_project_group.remove(async_session, group_id)
+
+    return None
+
+
+@router.put(
+    "/{project_id}/layer-tree",
+    summary="Update layer tree structure (Reorder/Reparent)",
+    status_code=204,
+)
+async def update_project_layer_tree(
+    project_id: UUID4 = Path(..., description="The Project ID"),
+    tree_in: LayerTreeUpdate = Body(
+        ..., description="The flat list of items with updated positions"
+    ),
+    async_session: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Batch updates the structure of the sidebar.
+    This handles reordering items and reparenting (moving layers into/out of folders).
+    Also updates visibility, collapsed states, and expanded states for both groups and layers.
+    """
+
+    updates_groups = []
+    updates_layers = []
+
+    # 1. Separate updates by type for efficient batch processing
+    for item in tree_in.items:
+        if item.type == "group":
+            update_data = {
+                "id": item.id,
+                "parent_id": item.parent_id,
+                "order": item.order,
+            }
+            # Handle properties for groups (visibility, expanded, etc.)
+            if item.properties:
+                # Get current group to preserve existing properties
+                current_group = await async_session.get(LayerProjectGroup, item.id)
+                if current_group and current_group.project_id == project_id:
+                    current_properties = current_group.properties or {}
+
+                    # Update visibility if provided
+                    if "visibility" in item.properties:
+                        current_properties["visibility"] = item.properties["visibility"]
+
+                    # Update expanded state if provided
+                    if "expanded" in item.properties:
+                        current_properties["expanded"] = item.properties["expanded"]
+
+                    update_data["properties"] = current_properties
+            updates_groups.append(update_data)
+
+        elif item.type == "layer":
+            update_data = {
+                "id": item.id,
+                # Map standard 'parent_id' back to the specific DB column
+                "layer_project_group_id": item.parent_id,
+                "order": item.order,
+            }
+            # Handle properties for layers (visibility, legend.collapsed, etc.)
+            if item.properties:
+                # Get current layer to preserve existing properties
+                current_layer = await async_session.get(LayerProjectLink, item.id)
+                if current_layer and current_layer.project_id == project_id:
+                    current_properties = current_layer.properties or {}
+
+                    # Update visibility if provided
+                    if "visibility" in item.properties:
+                        current_properties["visibility"] = item.properties["visibility"]
+
+                    # Update legend collapsed state if provided
+                    if "legend" in item.properties:
+                        if "legend" not in current_properties:
+                            current_properties["legend"] = {}
+
+                        # Merge legend properties
+                        for key, value in item.properties["legend"].items():
+                            current_properties["legend"][key] = value
+
+                    update_data["properties"] = current_properties
+            updates_layers.append(update_data)
+
+    try:
+        # 2. Update Groups (Iterative update is safer than bulk for complex constraints)
+        if updates_groups:
+            for g in updates_groups:
+                update_values = {"parent_id": g["parent_id"], "order": g["order"]}
+                # Include properties if updated
+                if "properties" in g:
+                    update_values["properties"] = g["properties"]
+
+                await async_session.execute(
+                    update(LayerProjectGroup)
+                    .where(LayerProjectGroup.id == g["id"])
+                    .where(LayerProjectGroup.project_id == project_id)  # Security check
+                    .values(**update_values)
+                )
+
+        # 3. Update Layers
+        if updates_layers:
+            for l in updates_layers:
+                update_values = {
+                    "layer_project_group_id": l["layer_project_group_id"],
+                    "order": l["order"],
+                }
+                # Include properties if provided
+                if "properties" in l:
+                    update_values["properties"] = l["properties"]
+
+                await async_session.execute(
+                    update(LayerProjectLink)
+                    .where(LayerProjectLink.id == l["id"])
+                    .where(LayerProjectLink.project_id == project_id)  # Security check
+                    .values(**update_values)
+                )
+
+        await async_session.commit()
+
+    except Exception:
+        await async_session.rollback()
+        # In production, log the actual error 'e'
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update layer tree structure.",
+        )
+
+    return None
