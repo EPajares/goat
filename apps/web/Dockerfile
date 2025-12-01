@@ -65,4 +65,3 @@ ENV HOSTNAME=localhost
 COPY ./apps/web/entrypoint.sh /app/apps/web/entrypoint.sh
 ENTRYPOINT ["/app/apps/web/entrypoint.sh"]
 CMD ["node", "apps/web/server.js"]
-
