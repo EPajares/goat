@@ -174,3 +174,26 @@ def motis_fixtures_dir(data_root: Path) -> Path:
 def buffered_stations_dir(data_root: Path) -> Path:
     """Directory containing buffered bus station test data."""
     return data_root / "routing" / "buffered_stations"
+
+
+# ---------------------------------------------------------------------------
+# Network extractor fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def network_extractor_data_dir(data_root: Path) -> Path:
+    """Directory containing network extractor test data."""
+    return data_root / "network"
+
+
+@pytest.fixture(scope="session")
+def test_network_file(network_extractor_data_dir: Path) -> Path:
+    """Path to the test network parquet file."""
+    return network_extractor_data_dir / "test_network.parquet"
+
+
+@pytest.fixture(scope="session")
+def test_extracted_network_file(network_extractor_data_dir: Path) -> Path:
+    """Path to the test network parquet file."""
+    return network_extractor_data_dir / "extracted_network.parquet"
