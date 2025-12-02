@@ -136,6 +136,15 @@ class LayerType(str, Enum):
     table = "table"
 
 
+class RasterStyleType(str, Enum):
+    """Raster style types for COG layers."""
+
+    image = "image"
+    color_range = "color_range"
+    categories = "categories"
+    hillshade = "hillshade"
+
+
 class FeatureDataType(str, Enum):
     """Data types for feature layers."""
 

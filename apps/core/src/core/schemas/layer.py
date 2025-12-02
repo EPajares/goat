@@ -440,6 +440,77 @@ class IFeatureStreetNetworkUpdate(IFeatureStandardUpdate):
 ################################################################################
 
 
+# Raster Style Property Classes
+class RasterStyleImageProperties(BaseModel):
+    """Properties for simple image raster style."""
+
+    style_type: Literal["image"] = Field("image", description="Style type identifier")
+    band: int = Field(1, ge=1, description="Band number to display (1-indexed)")
+    opacity: float = Field(1.0, ge=0.0, le=1.0, description="Layer opacity")
+    brightness: float = Field(1.0, ge=0.0, le=2.0, description="Brightness adjustment")
+    contrast: float = Field(0.0, ge=-1.0, le=1.0, description="Contrast adjustment")
+    saturation: float = Field(0.0, ge=-1.0, le=1.0, description="Saturation adjustment")
+    gamma: float = Field(1.0, ge=0.1, le=3.0, description="Gamma correction")
+
+
+class RasterStyleColorRangeProperties(BaseModel):
+    """Properties for color range raster style."""
+
+    style_type: Literal["color_range"] = Field(
+        "color_range", description="Style type identifier"
+    )
+    band: int = Field(1, ge=1, description="Band number to colorize (1-indexed)")
+    min_value: float = Field(..., description="Minimum value for color range")
+    max_value: float = Field(..., description="Maximum value for color range")
+    colors: List[str] = Field(
+        ..., min_length=2, description="Array of hex color codes for gradient"
+    )
+    color_map: List[tuple[float, str]] = Field(
+        default_factory=list, description="Custom color stops as (value, color) pairs"
+    )
+    no_data_color: str | None = Field(
+        "transparent", description="Color for no-data values"
+    )
+    interpolate: bool = Field(True, description="Whether to interpolate between colors")
+
+
+class RasterStyleCategoriesProperties(BaseModel):
+    """Properties for categorical raster style."""
+
+    style_type: Literal["categories"] = Field(
+        "categories", description="Style type identifier"
+    )
+    band: int = Field(1, ge=1, description="Band number to categorize (1-indexed)")
+    categories: List[Dict[str, Any]] = Field(
+        ...,
+        min_length=1,
+        description="Array of category definitions with value, color, and optional label",
+    )
+    default_color: str = Field(
+        "#cccccc", description="Default color for uncategorized values"
+    )
+    no_data_color: str | None = Field(
+        "transparent", description="Color for no-data values"
+    )
+
+
+class RasterStyleHillshadeProperties(BaseModel):
+    """Properties for hillshade raster style."""
+
+    style_type: Literal["hillshade"] = Field(
+        "hillshade", description="Style type identifier"
+    )
+    band: int = Field(1, ge=1, description="Band number for elevation data (1-indexed)")
+    azimuth: float = Field(
+        315.0, ge=0.0, le=360.0, description="Light source azimuth angle in degrees"
+    )
+    altitude: float = Field(
+        45.0, ge=0.0, le=90.0, description="Light source altitude angle in degrees"
+    )
+    z_factor: float = Field(1.0, ge=0.01, description="Vertical exaggeration factor")
+    opacity: float = Field(1.0, ge=0.0, le=1.0, description="Layer opacity")
+
+
 class RasterAttributesBase(ExternalServiceAttributesBase):
     """Base model for attributes pertaining to an external service providing a raster."""
 

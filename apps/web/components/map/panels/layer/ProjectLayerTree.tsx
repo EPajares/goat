@@ -728,6 +728,24 @@ export const ProjectLayerTree = ({
             style={{ fontSize: "1rem", color: theme.palette.text.secondary }}
           />
         );
+
+        // Check if raster has categories or color_range style for legend
+        const rasterStyle = props.style as {
+          style_type?: string;
+          categories?: unknown[];
+          color_map?: unknown[];
+        };
+        const hasRasterLegend =
+          (rasterStyle?.style_type === "categories" &&
+            Array.isArray(rasterStyle.categories) &&
+            rasterStyle.categories.length > 0) ||
+          (rasterStyle?.style_type === "color_range" &&
+            Array.isArray(rasterStyle.color_map) &&
+            rasterStyle.color_map.length > 0);
+
+        if (hasRasterLegend && isVisible) {
+          legendNode = <LayerLegendPanel properties={props} geometryType="raster" />;
+        }
       }
       // 4. Complex Legend - Only show legend if layer is visible
       else if (hasComplexLegend) {

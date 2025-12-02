@@ -1,3 +1,4 @@
+import { setColorFunction } from "@geomatico/maplibre-cog-protocol";
 import React, { useMemo } from "react";
 import type { LayerProps, MapGeoJSONFeature } from "react-map-gl/maplibre";
 import { Layer as MapLayer, Source } from "react-map-gl/maplibre";
@@ -9,8 +10,9 @@ import {
   getSymbolStyleSpec,
   transformToMapboxLayerStyleSpec,
 } from "@/lib/transformers/layer";
+import { generateCOGColorFunction } from "@/lib/utils/map/cog-styling";
 import { getLayerKey } from "@/lib/utils/map/layer";
-import type { Layer } from "@/lib/validations/layer";
+import type { FeatureLayerProperties, Layer, RasterLayerProperties } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 import { type ScenarioFeatures, scenarioEditTypeEnum } from "@/lib/validations/scenario";
 
@@ -151,7 +153,9 @@ const Layers = (props: LayersProps) => {
                           properties: {
                             ...layer.properties,
                             opacity: 1, // todo: add stroke_opacity to the layer properties
-                            visibility: layer.properties?.visibility && layer.properties?.stroked,
+                            visibility:
+                              layer.properties?.visibility &&
+                              (layer.properties as FeatureLayerProperties)?.stroked,
                           },
                         }) as LayerProps)}
                         source-layer="default"
@@ -159,7 +163,8 @@ const Layers = (props: LayersProps) => {
                     )}
 
                     {/* Labels for all layers that aren't a custom marker*/}
-                    {(layer.properties?.text_label || layer.properties?.["custom_marker"]) && (
+                    {((layer.properties as FeatureLayerProperties)?.text_label ||
+                      layer.properties?.["custom_marker"]) && (
                       <MapLayer
                         key={
                           layer.properties?.["custom_marker"] ? getLayerKey(layer) : `text-label-${layer.id}`
@@ -170,7 +175,10 @@ const Layers = (props: LayersProps) => {
                         source-layer="default"
                         minzoom={layer.properties.min_zoom || 0}
                         maxzoom={layer.properties.max_zoom || 24}
-                        {...(getSymbolStyleSpec(layer.properties?.text_label, layer) as LayerProps)}
+                        {...(getSymbolStyleSpec(
+                          (layer.properties as FeatureLayerProperties)?.text_label,
+                          layer
+                        ) as LayerProps)}
                         beforeId={
                           index === 0 || !useDataLayers ? undefined : useDataLayers[index - 1].id.toString()
                         }
@@ -190,6 +198,14 @@ const Layers = (props: LayersProps) => {
                   </Source>
                 );
               } else if (layer.type === "raster" && layer.url) {
+                const rasterProperties = layer.properties as RasterLayerProperties;
+
+                // Register color function for COG layers with custom styling
+                if (layer.data_type === "cog" && rasterProperties?.style) {
+                  const colorFunction = generateCOGColorFunction(rasterProperties.style);
+                  setColorFunction(layer.url, colorFunction);
+                }
+
                 return (
                   <Source
                     key={layer.id}
@@ -199,8 +215,8 @@ const Layers = (props: LayersProps) => {
                     <MapLayer
                       key={getLayerKey(layer)}
                       id={layer.id.toString()}
-                      minzoom={layer.properties.min_zoom || 0}
-                      maxzoom={layer.properties.max_zoom || 24}
+                      minzoom={layer.properties?.min_zoom || 0}
+                      maxzoom={layer.properties?.max_zoom || 24}
                       type="raster"
                       source-layer="default"
                       beforeId={
@@ -210,7 +226,7 @@ const Layers = (props: LayersProps) => {
                         visibility: layer.properties?.visibility ? "visible" : "none",
                       }}
                       paint={{
-                        "raster-opacity": layer.properties?.opacity || 1,
+                        "raster-opacity": rasterProperties?.opacity || 1.0,
                       }}
                     />
                   </Source>

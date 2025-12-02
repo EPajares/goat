@@ -216,14 +216,14 @@ export function transformToMapboxLayerStyleSpec(data: ProjectLayer | Layer) {
   }
 }
 /** Used for both text labels and custom markers */
-export function getSymbolStyleSpec(data: TextLabelSchemaData, layer: ProjectLayer | Layer) {
+export function getSymbolStyleSpec(data: TextLabelSchemaData | undefined, layer: ProjectLayer | Layer) {
   const iconLayout = {};
   const iconPaint = {};
-  const textLayout = {}
+  const textLayout = {};
   const textPaint = {};
   if (layer.properties["custom_marker"]) {
     const pointProperties = layer.properties as FeatureLayerPointProperties;
-    const markerSize = pointProperties.marker_size ?? 100
+    const markerSize = pointProperties.marker_size ?? 100;
     iconLayout["icon-image"] = getMapboxStyleMarker(layer);
     iconLayout["icon-size"] = markerSize / 200;
     iconLayout["icon-allow-overlap"] = pointProperties.marker_allow_overlap || false;

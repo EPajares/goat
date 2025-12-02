@@ -2,6 +2,7 @@ import { Box, Stack, Typography } from "@mui/material";
 import React from "react";
 
 import { getLegendColorMap, getLegendMarkerMap } from "@/lib/utils/map/legend";
+import type { RasterLayerProperties } from "@/lib/validations/layer";
 
 import { LayerIcon } from "./LayerIcon";
 
@@ -11,7 +12,17 @@ interface LayerLegendPanelProps {
 }
 
 export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelProps) => {
-  // 1. Compute Maps
+  // Check if this is a raster layer with styling
+  const rasterProperties = properties as RasterLayerProperties;
+  const rasterStyle = rasterProperties?.style;
+
+  // 1. Raster Layer Legends
+  if (rasterStyle) {
+    return <RasterLayerLegend style={rasterStyle} />;
+  }
+
+  // 2. Feature Layer Legends
+  // Compute Maps
   const colorMap = getLegendColorMap(properties, "color");
   const strokeMap = getLegendColorMap(properties, "stroke_color");
   const markerMap = getLegendMarkerMap(properties);
@@ -75,5 +86,80 @@ export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelP
 
   // If no expanded legend is needed (Simple single-color layer),
   // usually we don't render anything here because the main Row Icon handles it.
+  return null;
+};
+
+// Raster Layer Legend Component
+interface RasterLayerLegendProps {
+  style: RasterLayerProperties["style"];
+}
+
+const RasterLayerLegend = ({ style }: RasterLayerLegendProps) => {
+  if (!style) return null;
+
+  // Helper to render a single legend row
+  const renderRow = (label: string, color: string) => (
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }} key={label}>
+      <Box
+        sx={{
+          width: 20,
+          height: 12,
+          backgroundColor: color,
+          border: "1px solid",
+          borderColor: "divider",
+          borderRadius: 0.5,
+        }}
+      />
+      <Typography variant="caption" sx={{ lineHeight: 1.2 }}>
+        {label}
+      </Typography>
+    </Stack>
+  );
+
+  // 1. Categories Style
+  if (style.style_type === "categories") {
+    return (
+      <Box sx={{ pb: 1 }}>
+        {style.categories.map((cat) => renderRow(cat.label || `Value ${cat.value}`, cat.color))}
+      </Box>
+    );
+  }
+
+  // 2. Color Range Style
+  if (style.style_type === "color_range" && style.color_map.length > 0) {
+    const minLabel =
+      style.min_label || style.min_value?.toString() || style.color_map[0]?.[0]?.toString() || "Min";
+    const maxLabel =
+      style.max_label ||
+      style.max_value?.toString() ||
+      style.color_map[style.color_map.length - 1]?.[0]?.toString() ||
+      "Max";
+
+    return (
+      <Box sx={{ pb: 1 }}>
+        <Box
+          sx={{
+            width: "100%",
+            height: 16,
+            background: `linear-gradient(to right, ${style.color_map.map(([, color]) => color).join(", ")})`,
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 0.5,
+            mb: 0.5,
+          }}
+        />
+        <Stack direction="row" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary">
+            {minLabel}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {maxLabel}
+          </Typography>
+        </Stack>
+      </Box>
+    );
+  }
+
+  // 3. Image/Hillshade Styles - No legend needed
   return null;
 };
