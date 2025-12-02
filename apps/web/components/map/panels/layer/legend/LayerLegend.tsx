@@ -29,7 +29,7 @@ export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelP
 
   // 2. Helper to render a single legend row
   const renderRow = (label: string, iconNode: React.ReactNode) => (
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }} key={label}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
       <Box sx={{ width: 20, display: "flex", justifyContent: "center" }}>{iconNode}</Box>
       <Typography variant="caption" sx={{ lineHeight: 1.2 }}>
         {label}
@@ -42,13 +42,18 @@ export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelP
   // A. Attribute-based Colors (Fill)
   if (colorMap.length > 1) {
     return (
-      <Box sx={{ pb: 1 }}>
+      <Box sx={{ pb: 1, pr: 2, pt: 0.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
           {(properties.color_field as { name?: string })?.name || "Legend"}
         </Typography>
-        {colorMap.map((item) =>
-          renderRow(item.value?.join(", ") || "Other", <LayerIcon type={geometryType} color={item.color} />)
-        )}
+        {colorMap.map((item, index) => (
+          <React.Fragment key={`${item.color}-${item.value?.join(",") || index}`}>
+            {renderRow(
+              item.value?.join(", ") || "Other",
+              <LayerIcon type={geometryType} color={item.color} />
+            )}
+          </React.Fragment>
+        ))}
       </Box>
     );
   }
@@ -56,16 +61,18 @@ export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelP
   // B. Attribute-based Stroke (Line or Outline)
   if (strokeMap.length > 1) {
     return (
-      <Box sx={{ pb: 1 }}>
+      <Box sx={{ pb: 1, pr: 2, pt: 0.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
           {(properties.stroke_color_field as { name?: string })?.name || "Legend"}
         </Typography>
-        {strokeMap.map((item) =>
-          renderRow(
-            item.value?.join(", ") || "Other",
-            <LayerIcon type={geometryType} color={undefined} strokeColor={item.color} filled={false} />
-          )
-        )}
+        {strokeMap.map((item, index) => (
+          <React.Fragment key={`${item.color}-${item.value?.join(",") || index}`}>
+            {renderRow(
+              item.value?.join(", ") || "Other",
+              <LayerIcon type={geometryType} color={undefined} strokeColor={item.color} filled={false} />
+            )}
+          </React.Fragment>
+        ))}
       </Box>
     );
   }
@@ -73,13 +80,18 @@ export const LayerLegendPanel = ({ properties, geometryType }: LayerLegendPanelP
   // C. Custom Markers (Points)
   if (markerMap.length > 1 && geometryType === "point") {
     return (
-      <Box sx={{ pb: 1 }}>
+      <Box sx={{ pb: 1, pr: 2, pt: 0.5 }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
           {(properties.marker_field as { name?: string })?.name || "Legend"}
         </Typography>
-        {markerMap.map((item) =>
-          renderRow(item.value?.join(", ") || "Other", <LayerIcon type="point" iconUrl={item.marker || ""} />)
-        )}
+        {markerMap.map((item, index) => (
+          <React.Fragment key={`${item.marker}-${item.value?.join(",") || index}`}>
+            {renderRow(
+              item.value?.join(", ") || "Other",
+              <LayerIcon type="point" iconUrl={item.marker || ""} />
+            )}
+          </React.Fragment>
+        ))}
       </Box>
     );
   }
@@ -99,7 +111,7 @@ const RasterLayerLegend = ({ style }: RasterLayerLegendProps) => {
 
   // Helper to render a single legend row
   const renderRow = (label: string, color: string) => (
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }} key={label}>
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 0.5 }}>
       <Box
         sx={{
           width: 20,
@@ -119,8 +131,12 @@ const RasterLayerLegend = ({ style }: RasterLayerLegendProps) => {
   // 1. Categories Style
   if (style.style_type === "categories") {
     return (
-      <Box sx={{ pb: 1 }}>
-        {style.categories.map((cat) => renderRow(cat.label || `Value ${cat.value}`, cat.color))}
+      <Box sx={{ pb: 1, pr: 2, pt: 0.5 }}>
+        {style.categories.map((cat) => (
+          <React.Fragment key={`${cat.value}-${cat.color}`}>
+            {renderRow(cat.label || `Value ${cat.value}`, cat.color)}
+          </React.Fragment>
+        ))}
       </Box>
     );
   }
@@ -136,14 +152,12 @@ const RasterLayerLegend = ({ style }: RasterLayerLegendProps) => {
       "Max";
 
     return (
-      <Box sx={{ pb: 1 }}>
+      <Box sx={{ pb: 1, pr: 2, pt: 3 }}>
         <Box
           sx={{
             width: "100%",
             height: 16,
             background: `linear-gradient(to right, ${style.color_map.map(([, color]) => color).join(", ")})`,
-            border: "1px solid",
-            borderColor: "divider",
             borderRadius: 0.5,
             mb: 0.5,
           }}
