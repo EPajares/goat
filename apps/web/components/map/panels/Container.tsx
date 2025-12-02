@@ -1,5 +1,5 @@
-import { Box, Divider, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
-import React from "react";
+import { Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, useTheme } from "@mui/material";
+import React, { useEffect, useRef, useState } from "react";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
@@ -19,8 +19,23 @@ interface ContainerProps {
 
 export default function Container(props: ContainerProps) {
   const { header, body, action, close, title, disableClose } = props;
+  const [showTooltip, setShowTooltip] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
 
   const theme = useTheme();
+
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (textRef.current) {
+        const isOverflowing = textRef.current.scrollWidth > textRef.current.clientWidth;
+        setShowTooltip(isOverflowing);
+      }
+    };
+
+    checkOverflow();
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, [title]);
 
   return (
     <Stack
@@ -63,14 +78,21 @@ export default function Container(props: ContainerProps) {
                   gap: "20px",
                   width: "100%",
                 }}>
-                <Typography
-                  variant="body1"
-                  fontWeight="bold"
-                  sx={{
-                    display: "flex",
-                  }}>
-                  {title}
-                </Typography>
+                <Tooltip title={title} arrow placement="top" disableHoverListener={!showTooltip}>
+                  <Typography
+                    variant="body1"
+                    fontWeight="bold"
+                    ref={textRef}
+                    sx={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flex: "1 1 0",
+                      minWidth: 0,
+                    }}>
+                    {title}
+                  </Typography>
+                </Tooltip>
                 {disableClose !== true && close && (
                   <IconButton onClick={() => close(undefined)}>
                     <Icon iconName={ICON_NAME.CLOSE} fontSize="small" />
