@@ -194,7 +194,7 @@ const Layers = (props: LayersProps) => {
                   <Source
                     key={layer.id}
                     type="raster"
-                    tiles={[layer.url]}
+                    {...(layer.data_type === "cog" ? { url: `cog://${layer.url}` } : { tiles: [layer.url] })}
                     tileSize={layer.other_properties?.tile_size || 256}>
                     <MapLayer
                       key={getLayerKey(layer)}

@@ -72,7 +72,9 @@ const CustomTreeItemContent = styled("div", {
   fontWeight: theme.typography.fontWeightMedium,
   display: "flex",
   alignItems: "center",
-  height: 40,
+  minHeight: 40,
+  paddingTop: theme.spacing(0.5),
+  paddingBottom: theme.spacing(0.5),
   border: "1px solid transparent",
   transition: "background-color 0.1s, opacity 0.2s",
   cursor: !enableSelection || isSelectable === false ? "default" : "pointer", // Updated cursor logic
@@ -354,8 +356,10 @@ const RecursiveTreeItem = <T extends BaseTreeItem>({
           className={`tree-item ${isSelected ? "selected" : ""}`}
           sx={{
             opacity: isVisible ? 1 : 0.5, // Apply opacity based on visibility
+            flexDirection: "column", // Stack main row and caption vertically
+            alignItems: "stretch", // Stretch to full width
           }}>
-          {/* Content area that can be dimmed for visibility */}
+          {/* Main content row */}
           <Box
             className="tree-content-area"
             sx={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0 }}>
@@ -363,33 +367,48 @@ const RecursiveTreeItem = <T extends BaseTreeItem>({
             <LeftIconContainer>{LeftIconContent}</LeftIconContainer>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <TruncatedLabel label={item.label} />
-              {item.labelInfo && (
-                <Typography variant="caption" sx={{ color: "text.disabled", ml: 1 }}>
-                  {item.labelInfo}
-                </Typography>
-              )}
             </Box>
+
+            {/* Actions container - always fully visible */}
+            <ActionsContainer className="tree-row-actions">
+              {/* Show collapse button for groups that can expand */}
+              {item.isGroup && item.canExpand !== false && (
+                <IconButton
+                  size="small"
+                  onClick={handleCollapseToggle}
+                  sx={{
+                    p: 0.5,
+                    mr: 0.5,
+                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s",
+                  }}>
+                  <ExpandMoreIcon fontSize="inherit" />
+                </IconButton>
+              )}
+
+              {renderActions && <Box onClick={(e) => e.stopPropagation()}>{renderActions(item)}</Box>}
+            </ActionsContainer>
           </Box>
 
-          {/* Actions container - always fully visible */}
-          <ActionsContainer className="tree-row-actions">
-            {/* Show collapse button for groups that can expand */}
-            {item.isGroup && item.canExpand !== false && (
-              <IconButton
-                size="small"
-                onClick={handleCollapseToggle}
+          {/* Caption row - part of the same tree item */}
+          {item.labelInfo && (
+            <Box
+              sx={{
+                ml: `${baseIndent + 28}px`, // Align with label text (indent + icon container width + margin)
+                mr: 2,
+                pb: 0.5,
+              }}>
+              <Typography
+                variant="caption"
                 sx={{
-                  p: 0.5,
-                  mr: 0.5,
-                  transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s",
+                  color: "text.secondary",
+                  wordBreak: "break-word",
+                  lineHeight: 1.3,
                 }}>
-                <ExpandMoreIcon fontSize="inherit" />
-              </IconButton>
-            )}
-
-            {renderActions && <Box onClick={(e) => e.stopPropagation()}>{renderActions(item)}</Box>}
-          </ActionsContainer>
+                {item.labelInfo}
+              </Typography>
+            </Box>
+          )}
         </CustomTreeItemContent>
         {isOver && !isDragging && !isOverlay && <InsertionLine sx={{ ml: `${baseIndent}px` }} />}
       </CustomTreeItemRoot>

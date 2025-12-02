@@ -334,6 +334,7 @@ export const ProjectLayerTree = ({
   const theme = useTheme();
   const { map } = useMap();
   const dispatch = useAppDispatch();
+  const currentZoom = useAppSelector((state) => state.map.currentZoom);
 
   const [items, setItems] = useState<ProjectTreeItem[]>([]);
   const [groupModal, setGroupModal] = useState<{
@@ -667,8 +668,22 @@ export const ProjectLayerTree = ({
       const node = item.data;
       const nodeVisibility = node.properties?.visibility ?? true; // Get visibility state
 
+      // Check zoom-based visibility for layers in view mode
+      let isZoomVisible = true;
+      if (viewMode === "view" && node.type === "layer" && currentZoom !== undefined) {
+        const minZoom = node.properties?.min_zoom;
+        const maxZoom = node.properties?.max_zoom;
+        if (minZoom !== undefined && maxZoom !== undefined) {
+          isZoomVisible = currentZoom >= minZoom && currentZoom <= maxZoom;
+        }
+      }
+
       // 1. Group Icon
       if (node.type === "group") {
+        // Check if legend should be shown based on viewMode
+        const shouldShowLegend = viewMode === "view" ? node.properties?.legend?.show !== false : true;
+        const legendCaption = shouldShowLegend ? node.properties?.legend?.caption : undefined;
+
         return {
           ...item,
           icon: (
@@ -681,13 +696,16 @@ export const ProjectLayerTree = ({
           isVisible: nodeVisibility,
           // Make groups non-selectable
           isSelectable: false,
+          // Add legend caption
+          labelInfo: legendCaption,
         };
       }
 
       const props = node.properties || {};
       const geomType = node.geometry_type?.toLowerCase() || "polygon";
       const hasComplexLegend = props.color_field || props.stroke_color_field || props.marker_field;
-      const isVisible = nodeVisibility; // Use the visibility from properties
+      // Combine visibility with zoom-based visibility
+      const isVisible = nodeVisibility && isZoomVisible;
       let iconNode: React.ReactNode = null;
       let legendNode: React.ReactNode = undefined;
       let isSelectable = true; // Default to selectable
@@ -748,6 +766,10 @@ export const ProjectLayerTree = ({
           />
         );
       }
+      // Check if legend should be shown based on viewMode
+      const shouldShowLegend = viewMode === "view" ? node.properties?.legend?.show !== false : true;
+      const legendCaption = shouldShowLegend ? node.properties?.legend?.caption : undefined;
+
       return {
         ...item,
         icon: iconNode,
@@ -755,9 +777,11 @@ export const ProjectLayerTree = ({
         isSelectable,
         // Pass visibility to DraggableTreeView for row styling
         isVisible,
+        // Add legend caption
+        labelInfo: legendCaption,
       };
     });
-  }, [items, theme]);
+  }, [items, theme, currentZoom, viewMode]);
 
   // --- RENDER ---
   if (isLoading && items.length === 0) {
