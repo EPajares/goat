@@ -80,4 +80,3 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["bash", "-c", "Xvfb ${DISPLAY} -screen 0 '1024x768x24' -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix & exec fastapi run apps/core/src/core/main.py"]
-
