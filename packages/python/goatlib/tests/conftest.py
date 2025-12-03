@@ -188,12 +188,12 @@ def network_extractor_data_dir(data_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
-def test_network_file(network_extractor_data_dir: Path) -> Path:
+def network_file(network_extractor_data_dir: Path) -> Path:
     """Path to the test network parquet file."""
-    return network_extractor_data_dir / "test_network.parquet"
+    return network_extractor_data_dir / "network.parquet"
 
 
 @pytest.fixture(scope="session")
-def test_extracted_network_file(network_extractor_data_dir: Path) -> Path:
+def extracted_network_file(network_extractor_data_dir: Path) -> Path:
     """Path to the test network parquet file."""
     return network_extractor_data_dir / "extracted_network.parquet"

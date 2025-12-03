@@ -1,338 +1,256 @@
 import logging
+import os
+import uuid
 from pathlib import Path
-from typing import Dict, List, Self, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.network import NetworkProcessorParams
 from goatlib.models.io import DatasetMetadata
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
 
-class NetworkProcessor(AnalysisTool):
+class InMemoryNetworkParams(BaseModel):
+    network_path: str = Field(..., description="Path to the network file")
+
+
+class InMemoryNetworkProcessor(AnalysisTool):
     """
-    Unified network processor that handles both basic network loading
-    and artificial edge creation in a single tool.
+    High-performance in-memory network processor for routing.
+
+    The recommended usage is via the context manager pattern, which guarantees
+    that all resources are safely cleaned up.
+
+    Example:
+        params = InMemoryNetworkParams(network_path="/path/to/network.parquet")
+        with InMemoryNetworkProcessor(params) as proc:
+            # The network is loaded and ready.
+            # ... perform operations on the network ...
     """
 
-    def _run_implementation(
-        self: Self, params: NetworkProcessorParams
-    ) -> List[Tuple[Path, DatasetMetadata]]:
-        """Process network data with optional artificial edge creation."""
-        meta, network_table = self.import_input(params.input_path)
-        crs_str = meta.crs.to_string() if meta.crs else "EPSG:4326"
-
-        if not meta.geometry_column:
-            logger.warning(
-                f"No geometry column detected for {params.input_path}, assuming 'geometry'"
-            )
-        if not meta.crs:
-            logger.warning(
-                f"No CRS detected for {params.input_path}, assuming 'EPSG:4326'"
-            )
-
-        final_table = (
-            self._create_enhanced_network(params, network_table)
-            if params.creates_artificial_edges
-            else network_table
+    def __init__(self, params: InMemoryNetworkParams):
+        """Initializes the processor. Requires network parameters to be valid."""
+        super().__init__(db_path=":memory:")
+        self.params = params
+        self.network_table_name = "in_memory_network"
+        self._is_loaded = False
+        self.geometry_column = (
+            "geometry"  # For simplicity, assuming a fixed schema name.
         )
 
-        # Set output path if not provided
-        if not params.output_path:
-            suffix = "_enhanced" if params.creates_artificial_edges else "_processed"
-            params.output_path = str(
-                Path(params.input_path).parent
-                / f"{Path(params.input_path).stem}{suffix}.parquet"
-            )
-        output_path = Path(params.output_path)
+    def __enter__(self):
+        """Enters the context, loading the network and returning the processor instance."""
+        self._load_network()
+        return self
 
-        # Execute final SQL and save
-        self._execute_sql_and_save(params, final_table, output_path)
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exits the context, automatically cleaning up all database resources."""
+        super().cleanup()
 
-        metadata = DatasetMetadata(
-            path=str(output_path),
-            source_type="vector",
-            format="geoparquet",
-            crs=crs_str or params.output_crs,
-            geometry_type="LineString",
-        )
+    def _load_network(self) -> str:
+        """Loads the network from Parquet and converts geometry to a native type."""
+        if self._is_loaded:
+            return self.network_table_name
 
-        return [(output_path, metadata)]
+        self.con.execute(f"""
+            CREATE TABLE {self.network_table_name} AS
+            SELECT edge_id, source, target, length_m, cost, ST_GeomFromText({self.geometry_column}) as {self.geometry_column}
+            FROM read_parquet('{self.params.network_path}')
+        """)
+        self._is_loaded = True
+        return self.network_table_name
 
-    def _create_enhanced_network(
-        self: Self, params: NetworkProcessorParams, network_table: str
-    ) -> str:
-        """Create enhanced network with artificial edges."""
-        _, points_table = self.import_input(params.origin_points_path)
-        return self._create_enhanced_network_with_points(
-            points_table,
-            network_table,
-            params.buffer_distance,
-            params.max_connections_per_point,
-            params.artificial_node_id_start,
-            params.artificial_edge_id_start,
-        )
+    def _ensure_loaded(self) -> None:
+        if not self._is_loaded:
+            self._load_network()
 
-    def _execute_sql_and_save(
-        self: Self,
-        params: NetworkProcessorParams,
-        table_name: str,
-        output_path: Path,
-    ) -> None:
-        """Execute custom SQL and save results."""
-        final_sql = params.custom_sql.replace("v_input", table_name)
+    def _generate_table_name(self, prefix: str) -> str:
+        return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
-        try:
-            self.con.execute(
-                f"COPY ({final_sql}) TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
-            )
-            logger.info(f"Network saved: {output_path}")
-        except Exception as e:
-            logger.error(f"Failed to process network: {e}")
-            raise
+    def cleanup_intermediate_tables(self) -> None:
+        """
+        Explicitly cleans all generated tables, keeping only the original network table.
+        This allows for manual memory management during long, complex workflows.
+        """
+        all_tables = self.con.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
+        ).fetchall()
+        for (table_name,) in all_tables:
+            # Do not drop the main table or DuckDB's internal spatial reference table
+            if table_name not in [self.network_table_name, "spatial_ref_sys"]:
+                self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
+        logger.info(f"Cleaned up intermediate tables. Kept: {self.network_table_name}")
 
-    def _create_enhanced_network_temporary(
+    def apply_sql_query(self, sql_query: str, base_table: str = None) -> str:
+        """Applies SQL and returns a NEW table, without destroying the input."""
+        self._ensure_loaded()
+        result_table = self._generate_table_name("query_result")
+        source_table = base_table or self.network_table_name
+        processed_query = sql_query.replace("network", source_table)
+        self.con.execute(f"CREATE TABLE {result_table} AS {processed_query}")
+        return result_table
+
+    def split_edge_at_point(
         self,
-        origin_points: Union[str, Path],
-        network_edges: Union[str, Path],
-        buffer_distance: float = 100.0,
-        max_connections_per_point: int = 3,
-        artificial_node_id_start: int = 1_000_000_000,
-        artificial_edge_id_start: int = 2_000_000_000,
-    ) -> str:
-        """Create temporary enhanced network for routing operations."""
-        if isinstance(origin_points, (str, Path)):
-            _, points_table = self.import_input(origin_points)
-        else:
-            points_table = "origin_points"
-            self.con.register(points_table, origin_points)
+        latitude: float,
+        longitude: float,
+        base_table: str = None,
+    ) -> tuple[str, dict[str, Any]]:
+        self._ensure_loaded()
+        source_table = base_table or self.network_table_name
+        split_table_name = self._generate_table_name("split_network")
+        new_node_id = f"split_node_{uuid.uuid4().hex[:8]}"
 
-        if isinstance(network_edges, (str, Path)):
-            _, edges_table = self.import_input(network_edges)
-        else:
-            edges_table = "network_edges"
-            self.con.register(edges_table, network_edges)
+        # Find closest edge and split it
+        closest_edge_query = f"""
+        CREATE TEMP TABLE closest_edge AS
+        SELECT *, 
+               ST_Distance({self.geometry_column}, ST_Point({longitude}, {latitude})) as distance,
+               ST_LineLocatePoint({self.geometry_column}, ST_Point({longitude}, {latitude})) as split_fraction
+        FROM {source_table}
+        ORDER BY distance ASC
+        LIMIT 1
+        """
+        self.con.execute(closest_edge_query)
 
-        return self._create_enhanced_network_with_points(
-            points_table,
-            edges_table,
-            buffer_distance,
-            max_connections_per_point,
-            artificial_node_id_start,
-            artificial_edge_id_start,
+        # Create the split network
+        split_query = f"""
+        CREATE TABLE {split_table_name} AS
+        WITH new_split_edges AS (
+            SELECT
+                edge_id || '_part_a' as edge_id, source, '{new_node_id}' as target,
+                length_m * split_fraction AS length_m, cost * split_fraction AS cost,
+                ST_LineSubstring({self.geometry_column}, 0.0, split_fraction) as {self.geometry_column}
+            FROM closest_edge
+            WHERE split_fraction > 0.0
+            UNION ALL
+            SELECT
+                edge_id || '_part_b' as edge_id, '{new_node_id}' as source, target,
+                length_m * (1.0 - split_fraction) AS length_m, cost * (1.0 - split_fraction) AS cost,
+                ST_LineSubstring({self.geometry_column}, split_fraction, 1.0) as {self.geometry_column}
+            FROM closest_edge
+            WHERE split_fraction < 1.0
+        ),
+        unchanged_edges AS (
+            SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM {source_table}
+            WHERE edge_id != (SELECT edge_id FROM closest_edge)
+        )
+        SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM unchanged_edges 
+        UNION ALL 
+        SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM new_split_edges
+        """
+        self.con.execute(split_query)
+
+        # Get split info
+        info_res = self.con.execute("""
+            SELECT edge_id, split_fraction,
+                   ST_X(ST_LineInterpolatePoint(geometry, split_fraction)) as lon,
+                   ST_Y(ST_LineInterpolatePoint(geometry, split_fraction)) as lat
+            FROM closest_edge
+        """).fetchone()
+
+        # Clean up temp table
+        self.con.execute("DROP TABLE closest_edge")
+
+        split_info = {
+            "artificial_node_id": new_node_id,
+            "original_edge_split": info_res[0],
+            "split_fraction": info_res[1],
+            "new_node_coords": {"lon": info_res[2], "lat": info_res[3]},
+        }
+        return split_table_name, split_info
+
+    # ... other methods like save_table_to_file, get_network_stats etc.
+    def get_network_stats(self, table_name: str = None) -> Dict[str, Any]:
+        """Get basic statistics about the network."""
+        target_table = table_name or self.network_table_name
+
+        result = self.con.execute(f"""
+            SELECT
+                COUNT(*) as edge_count,
+                SUM(length_m) as total_length_m,
+                AVG(length_m) as avg_length_m,
+                MIN(length_m) as min_length_m,
+                MAX(length_m) as max_length_m
+            FROM {target_table}
+        """).fetchone()
+
+        return {
+            "edge_count": result[0],
+            "total_length_m": float(result[1]) if result[1] else 0,
+            "avg_length_m": float(result[2]) if result[2] else 0,
+            "min_length_m": float(result[3]) if result[3] else 0,
+            "max_length_m": float(result[4]) if result[4] else 0,
+        }
+
+    def save_table_to_file(self, table_name: str, output_path: str) -> None:
+        """Save table to parquet file."""
+        self.con.execute(
+            f"COPY {table_name} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )
 
-    def _create_enhanced_network_with_points(
-        self,
-        points_table: str,
-        network_table: str,
-        buffer_distance: float,
-        max_connections_per_point: int,
-        artificial_node_id_start: int,
-        artificial_edge_id_start: int,
-    ) -> str:
-        """Create enhanced network with artificial edges."""
-        enhanced_table_name = "enhanced_network"
 
-        # Step 1: Find nearest edges for each point
-        self._create_nearest_edges_table(points_table, network_table, buffer_distance)
-
-        # Step 2: Limit connections per point
-        self._create_ranked_connections_table(max_connections_per_point)
-
-        # Step 3: Create artificial connector edges
-        self._create_artificial_connectors_table(
-            artificial_node_id_start, artificial_edge_id_start
-        )
-
-        # Step 4: Combine original and artificial edges
-        self._create_combined_network_table(network_table, enhanced_table_name)
-
-        return enhanced_table_name
-
-    def _create_nearest_edges_table(
-        self, points_table: str, network_table: str, buffer_distance: float
-    ):
-        """Create table with nearest edges for each point."""
-        sql = f"""
-        CREATE OR REPLACE TABLE nearest_edges AS
-        SELECT 
-            op.id as origin_id,
-            op.geom as origin_geom,
-            ne.id as edge_id,
-            ne.geom as edge_geom,
-            ne.source,
-            ne.target,
-            ST_Distance(op.geom, ne.geom) as distance,
-            ST_ClosestPoint(ne.geom, op.geom) as connection_point,
-            ST_LineLocatePoint(ne.geom, ST_ClosestPoint(ne.geom, op.geom)) as edge_fraction,
-            ROW_NUMBER() OVER (
-                PARTITION BY op.id 
-                ORDER BY ST_Distance(op.geom, ne.geom)
-            ) as rank
-        FROM {points_table} op
-        JOIN {network_table} ne ON ST_DWithin(op.geom, ne.geom, {buffer_distance})
-        """
-        self.con.execute(sql)
-
-    def _create_ranked_connections_table(self, max_connections_per_point: int):
-        """Create table with limited connections per point."""
-        sql = f"""
-        CREATE OR REPLACE TABLE ranked_connections AS
-        SELECT * FROM nearest_edges WHERE rank <= {max_connections_per_point}
-        """
-        self.con.execute(sql)
-
-    def _create_artificial_connectors_table(
-        self, artificial_node_id_start: int, artificial_edge_id_start: int
-    ):
-        """Create artificial connector edges table."""
-        sql = f"""
-        CREATE OR REPLACE TABLE artificial_connectors AS
-        WITH connector_geoms AS (
-            SELECT *,
-                ST_MakeLine(origin_geom, connection_point) as connector_geom,
-                ST_Length(ST_MakeLine(origin_geom, connection_point)) as connector_length
-            FROM ranked_connections
-        )
-        SELECT
-            {artificial_edge_id_start} + origin_id * 1000 + rank as id,
-            {artificial_node_id_start} + origin_id as source,
-            {artificial_node_id_start} + 1000000 + edge_id + 
-                CAST(edge_fraction * 1000 AS INTEGER) as target,
-            connector_geom as geom,
-            connector_length as length_m,
-            (connector_length / 1000.0) / 5.0 * 60.0 as cost,
-            (connector_length / 1000.0) / 5.0 * 60.0 as reverse_cost,
-            'artificial' as edge_type
-        FROM connector_geoms
-        WHERE connector_length > 0.1
-        """
-        self.con.execute(sql)
-
-    def _create_combined_network_table(
-        self, network_table: str, enhanced_table_name: str
-    ):
-        """Combine original network with artificial edges."""
-        sql = f"""
-        CREATE OR REPLACE TABLE {enhanced_table_name} AS
-        SELECT 
-            id, source, target, geom,
-            COALESCE(length_m, ST_Length(geom)) as length_m,
-            COALESCE(cost, ST_Length(geom) / 1000.0 / 5.0 * 60.0) as cost,
-            COALESCE(reverse_cost, cost) as reverse_cost,
-            COALESCE(edge_type, 'original') as edge_type
-        FROM {network_table}
-        UNION ALL
-        SELECT id, source, target, geom, length_m, cost, reverse_cost, edge_type
-        FROM artificial_connectors
-        """
-        self.con.execute(sql)
+# ==================== CONVENIENCE FUNCTIONS ====================
 
 
-# Convenience functions
-def process_network(
-    input_file: str,
-    custom_sql: str,
-    output_file: str = None,
-    origin_points_file: str = None,
-    buffer_distance: float = 100.0,
-    **kwargs,
-) -> str:
-    """Unified network processing with optional artificial edges."""
-    params = NetworkProcessorParams(
-        input_path=input_file,
-        output_path=output_file,
-        custom_sql=custom_sql,
-        origin_points_path=origin_points_file,
-        buffer_distance=buffer_distance,
-        **kwargs,
+def create_in_memory_network(network_path: str) -> InMemoryNetworkProcessor:
+    """Create in-memory network processor. Don't forget to call cleanup() when done."""
+    params = InMemoryNetworkParams(network_path=network_path)
+    processor = InMemoryNetworkProcessor(params)
+    processor._load_network()
+    return processor
+
+
+def process_network_with_sql(
+    network_path: str, sql_query: str, output_path: str
+) -> List[Tuple[Path, DatasetMetadata]]:
+    """Process network with SQL query and save results."""
+    params = InMemoryNetworkParams(
+        network_path=network_path, sql_query=sql_query, output_path=output_path
     )
-
-    tool = NetworkProcessor()
-    results = tool.run(params)
-    return str(results[0][0])
+    processor = InMemoryNetworkProcessor()
+    return processor.run(params)
 
 
-# Backward compatibility functions
-def load_network(input_file: str, custom_sql: str, output_file: str = None) -> str:
-    """Load network data from file (backward compatibility)."""
-    return process_network(
-        input_file=input_file, custom_sql=custom_sql, output_file=output_file
-    )
+def process_and_save_results(
+    network_path: str,
+    operations: List[Dict[str, Any]],
+    output_dir: str,
+) -> Dict[str, str]:
+    """Process network with operations and save results."""
+    # Create output directory
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    # Create processor and load network
+    params = InMemoryNetworkParams(network_path=network_path)
+    processor = InMemoryNetworkProcessor(params)
+    processor._load_network()
 
-def load_network_with_connectors(
-    network_file: str,
-    points_file: str,
-    custom_sql: str,
-    output_file: str = None,
-    buffer_distance: float = 100.0,
-) -> str:
-    """Load network with artificial connectors (backward compatibility)."""
-    return process_network(
-        input_file=network_file,
-        custom_sql=custom_sql,
-        output_file=output_file,
-        origin_points_file=points_file,
-        buffer_distance=buffer_distance,
-    )
+    # Process operations sequentially
+    current_table = processor.network_table_name
+    for op in operations:
+        if op["type"] == "filter":
+            filter_sql = f"SELECT * FROM network WHERE {op['condition']}"
+            current_table = processor.apply_sql_query(
+                filter_sql, base_table=current_table
+            )
+        elif op["type"] == "split_at_point":
+            current_table, _ = processor.split_edge_at_point(
+                op["lat"], op["lon"], base_table=current_table
+            )
+        elif op["type"] == "transform":
+            current_table = processor.apply_sql_query(
+                op["sql"], base_table=current_table
+            )
 
+    # Save results
+    saved_files = {}
+    base_name = Path(network_path).stem
 
-# Point connector creation function
-def create_temporary_enhanced_network(
-    origin_points: Union[str, Path],
-    network_edges: Union[str, Path],
-    buffer_distance: float = 100.0,
-) -> str:
-    """Create temporary enhanced network with artificial connector edges."""
-    processor = NetworkProcessor()
-    enhanced_table_name = processor._create_enhanced_network_temporary(
-        origin_points=origin_points,
-        network_edges=network_edges,
-        buffer_distance=buffer_distance,
-    )
+    network_path_out = os.path.join(output_dir, f"{base_name}_processed.parquet")
+    processor.save_table_to_file(current_table, network_path_out)
+    saved_files["processed_network"] = network_path_out
 
-    return enhanced_table_name
-
-
-def analyze_point_connectivity(
-    origin_points: Union[str, Path],
-    network_edges: Union[str, Path],
-    buffer_distance: float = 100.0,
-) -> Dict[str, int]:
-    """Analyze connectivity between points and network."""
-    processor = NetworkProcessor()
-    _, points_table = processor.import_input(origin_points)
-    _, network_table = processor.import_input(network_edges)
-
-    # Analyze connectivity using managed connection
-    stats_query = f"""
-    WITH connectivity AS (
-        SELECT 
-            p.geom as point_geom,
-            COUNT(n.geom) as nearby_edges
-        FROM {points_table} p
-        LEFT JOIN {network_table} n ON ST_DWithin(p.geom, n.geom, {buffer_distance})
-        GROUP BY p.geom
-    )
-    SELECT 
-        COUNT(*) as total_points,
-        SUM(CASE WHEN nearby_edges > 0 THEN 1 ELSE 0 END) as connectable_points,
-        SUM(CASE WHEN nearby_edges = 0 THEN 1 ELSE 0 END) as isolated_points,
-        AVG(nearby_edges) as avg_nearby_edges,
-        MAX(nearby_edges) as max_nearby_edges
-    FROM connectivity
-    """
-
-    result = processor.con.execute(stats_query).fetchone()
-
-    stats = {
-        "total_points": int(result[0]) if result[0] else 0,
-        "connectable_points": int(result[1]) if result[1] else 0,
-        "isolated_points": int(result[2]) if result[2] else 0,
-        "avg_nearby_edges": float(result[3]) if result[3] else 0.0,
-        "max_nearby_edges": int(result[4]) if result[4] else 0,
-    }
-
-    return stats
+    processor.cleanup()
+    return saved_files
