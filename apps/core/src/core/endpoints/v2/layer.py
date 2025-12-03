@@ -122,7 +122,7 @@ async def file_upload_external_service(
                 str(user_id),
                 "imports",
                 "external",
-                f"{metadata.dataset_id}_{os.path.basename(metadata.file_path)}"
+                f"{metadata.dataset_id}_{os.path.basename(metadata.file_path)}",
             )
             s3_service.upload_file(
                 file_content=f,
@@ -186,7 +186,7 @@ async def _create_layer_from_dataset(
     )
     if layer_in.s3_key is None:
         raise HTTPException(400, "Missing required s3_key")
-    
+
     if not layer_in.s3_key.startswith(expected_prefix):
         raise HTTPException(403, "Invalid s3_key (not owned by user)")
 
@@ -368,7 +368,6 @@ async def create_layer_table(
     response_class=FileResponse,
     status_code=201,
     description="Export a layer to a zip file.",
-    dependencies=[Depends(auth_z)],
 )
 async def export_layer(
     request: Request,
