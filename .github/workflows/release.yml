@@ -47,7 +47,7 @@ jobs:
   release-docker-core:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.core == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -57,8 +57,8 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/core/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/core
+      image-names: |
+        ghcr.io/${{ github.repository }}/core
 
   release-docker-geoapi:
     needs: [file-changes, lint]
