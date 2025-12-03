@@ -43,11 +43,12 @@ jobs:
       file: ./apps/web/Dockerfile
       image-names: |
         ghcr.io/${{ github.repository }}/web
+      
 
   release-docker-core:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.core == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -57,14 +58,15 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/core/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/core
+      platforms: linux/amd64
+      image-names: |
+        ghcr.io/${{ github.repository }}/core
 
   release-docker-geoapi:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.geoapi == 'true' ||
       startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -74,8 +76,9 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/geoapi/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/geoapi
+      platforms: linux/amd64
+      image-names: |
+        ghcr.io/${{ github.repository }}/geoapi
 
   release-docker-routing:
     needs: [file-changes, lint]
@@ -90,29 +93,30 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/routing/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/routing
+      platforms: linux/amd64
+      image-names: |
+        ghcr.io/${{ github.repository }}/routing
 
-  release-docker-accounts:
-    needs: [file-changes, lint]
-    if: needs.file-changes.outputs.accounts == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
-    permissions:
-      contents: read
-      packages: write
-      pull-requests: write
-    with:
-      dockerhub-enable: false
-      ghcr-enable: true
-      push: ${{ github.event_name != 'pull_request' }}
-      file: ./apps/accounts/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/accounts
+  # release-docker-accounts:
+  #   needs: [file-changes, lint]
+  #   if: needs.file-changes.outputs.accounts == 'true' || startsWith(github.ref, 'refs/tags/v')
+  #   uses: ./.github/workflows/reusable-docker-build.yml
+  #   permissions:
+  #     contents: read
+  #     packages: write
+  #     pull-requests: write
+  #   with:
+  #     dockerhub-enable: false
+  #     ghcr-enable: true
+  #     push: ${{ github.event_name != 'pull_request' }}
+  #     file: ./apps/accounts/Dockerfile
+  #     platforms: linux/amd64,linux/arm64
+  #     image-name: ghcr.io/${{ github.repository }}/accounts
 
   release-docker-storybook:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.storybook == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -122,13 +126,14 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/storybook/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/storybook
+      platforms: linux/amd64
+      image-names: |
+        ghcr.io/${{ github.repository }}/storybook
 
   release-docker-docs:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.docs == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -138,8 +143,9 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/docs/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/docs
+      platforms: linux/amd64
+      image-names: |
+        ghcr.io/${{ github.repository }}/docs
 
   release-keycloak-theme:
     needs: [file-changes, lint]
