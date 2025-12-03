@@ -11,6 +11,7 @@ export type ColorMapItem = {
 export type MarkerMapItem = {
   value: string[] | null;
   marker: string | null;
+  color?: string | null;
   source?: "custom" | "library" | undefined;
 };
 
@@ -138,21 +139,61 @@ export function getLegendMarkerMap(properties: Record<string, unknown>): MarkerM
   const markerMap: MarkerMapItem[] = [];
   if (!properties) return markerMap;
 
-  if (properties.marker_field) {
+  // Only extract markers if custom_marker is enabled
+  if (properties.marker_field && properties.custom_marker === true) {
+    // Build a color lookup map from color_range.color_map if it exists and uses the same field
+    const colorLookup = new Map<string, string>();
+    const markerFieldName = (properties.marker_field as Record<string, unknown>)?.name;
+    const colorFieldName = (properties.color_field as Record<string, unknown>)?.name;
+
+    // Only use color mapping if both fields reference the same attribute
+    if (markerFieldName === colorFieldName && properties.color_range) {
+      const colorMapArray = (properties.color_range as Record<string, unknown>)?.color_map as unknown[];
+      colorMapArray?.forEach((entry: unknown) => {
+        if (Array.isArray(entry) && entry.length === 2) {
+          const values = entry[0] as string[];
+          const color = entry[1] as string;
+          values?.forEach((val: string) => {
+            colorLookup.set(val, color);
+          });
+        }
+      });
+    }
+
+    // Get base color as fallback (for when there's no color_field)
+    const baseColor = properties.color
+      ? Array.isArray(properties.color)
+        ? rgbToHex(properties.color as RGBColor)
+        : (properties.color as string)
+      : null;
+
     (properties.marker_mapping as unknown[])?.forEach((value: unknown) => {
       const valueArray = value as [string[], { url: string; source?: "custom" | "library" }];
       if (valueArray[1]?.url && valueArray[0]) {
+        // Get the color for the first value in the array (categories typically have one value per entry)
+        const categoryValue = valueArray[0][0];
+        const color = categoryValue ? colorLookup.get(categoryValue) : undefined;
+
         markerMap.push({
           value: valueArray[0],
           marker: valueArray[1].url,
+          color: color || baseColor,
           source: valueArray[1].source || "library",
         });
       }
     });
-  } else if (properties.marker) {
+  } else if (properties.marker && properties.custom_marker === true) {
+    // Get base color for single marker
+    const baseColor = properties.color
+      ? Array.isArray(properties.color)
+        ? rgbToHex(properties.color as RGBColor)
+        : (properties.color as string)
+      : null;
+
     markerMap.push({
       value: null,
       marker: ((properties.marker as Record<string, unknown>)?.url as string) || null,
+      color: baseColor,
       source: ((properties.marker as Record<string, unknown>)?.source as "custom" | "library") || "library",
     });
   }

@@ -6,7 +6,7 @@ import Divider from "@mui/material/Divider";
 import { format, formatDistance, parseISO } from "date-fns";
 import { useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useMap } from "react-map-gl";
+import { useMap } from "react-map-gl/maplibre";
 
 import { GOATLogoIconOnlyGreen } from "@p4b/ui/assets/svg/GOATLogoIconOnlyGreen";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";

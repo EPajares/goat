@@ -780,7 +780,14 @@ export const ProjectLayerTree = ({
             color={baseColor}
             strokeColor={strokeColor}
             filled={props.filled !== false}
-            iconUrl={!props.marker_field && props.marker?.url ? props.marker.url : undefined}
+            iconUrl={
+              !props.marker_field && props.custom_marker && props.marker?.url ? props.marker.url : undefined
+            }
+            iconSource={
+              !props.marker_field && props.custom_marker && props.marker?.source
+                ? props.marker.source
+                : "library"
+            }
           />
         );
       }

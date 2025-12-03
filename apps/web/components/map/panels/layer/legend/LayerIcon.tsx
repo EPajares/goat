@@ -11,18 +11,30 @@ interface LayerIconProps {
   strokeColor?: string;
   filled?: boolean;
   iconUrl?: string; // For custom markers or raster thumbnails
+  iconSource?: "custom" | "library"; // To determine if we should apply mask
 }
 
-export const LayerIcon = ({ type, color, strokeColor, filled = true, iconUrl }: LayerIconProps) => {
+export const LayerIcon = ({
+  type,
+  color,
+  strokeColor,
+  filled = true,
+  iconUrl,
+  iconSource = "library",
+}: LayerIconProps) => {
   if (type === "raster") {
     return <ImageIcon fontSize="small" sx={{ color: "#888" }} />;
   }
 
   // Custom Marker Image
   if (type === "point" && iconUrl) {
+    // For library icons (SDF), apply mask with color
+    // For custom icons (external URLs), render directly without color
+    const shouldApplyMask = iconSource === "library" && !!color;
+
     return (
       <Box sx={{ width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <MaskedImageIcon imageUrl={iconUrl} dimension="16px" applyMask={false} />
+        <MaskedImageIcon imageUrl={iconUrl} dimension="16px" applyMask={shouldApplyMask} imgColor={color} />
       </Box>
     );
   }

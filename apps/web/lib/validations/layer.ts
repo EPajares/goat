@@ -536,3 +536,6 @@ export type RasterStyleCategoriesProperties = z.infer<typeof rasterStyleCategori
 export type RasterStyleHillshadeProperties = z.infer<typeof rasterStyleHillshadeProperties>;
 export type RasterStyleProperties = z.infer<typeof rasterStyleProperties>;
 export type RasterLayerProperties = z.infer<typeof rasterLayerPropertiesSchema>;
+
+// Union type for all layer properties
+export type LayerProperties = FeatureLayerProperties | RasterLayerProperties;
