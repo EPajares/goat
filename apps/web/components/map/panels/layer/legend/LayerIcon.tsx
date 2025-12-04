@@ -1,4 +1,3 @@
-// Reuse your existing component
 import ImageIcon from "@mui/icons-material/Image";
 import { Box } from "@mui/material";
 import React from "react";
@@ -55,7 +54,15 @@ export const LayerIcon = ({
       )}
       {type === "line" && (
         // line with round caps centered
-        <line x1="4" y1="14" x2="16" y2="6" stroke={color} strokeWidth="3" strokeLinecap="round" />
+        <line
+          x1="4"
+          y1="14"
+          x2="16"
+          y2="6"
+          stroke={strokeColor || color}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
       )}
       {type === "polygon" && (
         <rect
