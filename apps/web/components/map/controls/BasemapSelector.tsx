@@ -114,6 +114,8 @@ export function BasemapSelector(props: BasemapSelectorProps) {
           }}>
           <ArrowPopper
             placement="top-end"
+            disablePortal={false}
+            popperStyle={{ zIndex: theme.zIndex.modal }}
             content={
               <Box sx={{ width: 360, pointerEvents: "all" }}>
                 <BaseMapSelectorList

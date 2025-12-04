@@ -18,7 +18,7 @@ import { toast } from "react-toastify";
 import { mutate } from "swr";
 
 import { LAYERS_API_BASE_URL, updateDataset, useDataset } from "@/lib/api/layers";
-import { updateProjectLayer } from "@/lib/api/projects";
+import { updateProjectLayer, useProjectLayers } from "@/lib/api/projects";
 import type { ProjectLayer } from "@/lib/validations/project";
 
 interface ProjectLayerRenameDialogProps {
@@ -38,6 +38,7 @@ const ProjectLayerRenameModal: React.FC<ProjectLayerRenameDialogProps> = ({
   const { projectId } = useParams() as { projectId: string };
   const [isLoading, setIsLoading] = useState(false);
   const { dataset } = useDataset(projectLayer?.layer_id);
+  const { mutate: mutateProjectLayers } = useProjectLayers(projectId);
   const [renameSourceLayer, setRenameSourceLayer] = useState(false);
   const [layerName, setLayerName] = useState(projectLayer.name);
 
@@ -45,20 +46,28 @@ const ProjectLayerRenameModal: React.FC<ProjectLayerRenameDialogProps> = ({
     try {
       setIsLoading(true);
       if (!projectLayer) return;
+
       const updatedProjectLayer = {
         ...projectLayer,
         name: layerName,
       };
+
       await updateProjectLayer(projectId, projectLayer.id, updatedProjectLayer);
+
       if (renameSourceLayer && dataset) {
         await updateDataset(dataset.id, {
           name: layerName,
         });
-
-        // Revalidates the dataset layers cache
-        mutate((key) => Array.isArray(key) && key[0] === LAYERS_API_BASE_URL);
+        // Invalidate dataset layers cache
+        mutate(`${LAYERS_API_BASE_URL}`);
         toast.success(t("rename_layer_success"));
+      } else {
+        toast.success(t("layer_renamed_successfully"));
       }
+
+      // Always refresh project layers after rename
+      mutateProjectLayers();
+
       onRename?.();
     } catch (error) {
       toast.error(t("error_renaming_layer"));

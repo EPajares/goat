@@ -1,9 +1,16 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, HttpUrl, ValidationInfo, computed_field, field_validator
+from pydantic import (
+    UUID4,
+    BaseModel,
+    HttpUrl,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+)
 from sqlmodel import ARRAY, Column, Field, ForeignKey, SQLModel, Text
 from sqlmodel import UUID as UUID_PG
 
@@ -175,6 +182,8 @@ class IFeatureBaseProjectRead(IFeatureBaseProject):
     filtered_count: int | None = Field(
         None, description="Filtered count of features in the layer"
     )
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
 
 class IFeatureStandardProjectRead(
@@ -245,6 +254,8 @@ class ITableProjectRead(LayerProjectIds, TableRead, CQLQuery):
     filtered_count: int | None = Field(
         None, description="Filtered count of features in the layer"
     )
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
     # Compute table_name and where_query
     @computed_field
@@ -268,6 +279,8 @@ class IRasterProjectRead(LayerProjectIds, RasterRead):
         None,
         description="Layer properties",
     )
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
 
 @optional
@@ -327,6 +340,9 @@ class ProjectPublicConfig(BaseModel):
         | ITableProjectRead
         | IRasterProjectRead
     ] = Field(..., description="Layers of the project")
+    layer_groups: list["ILayerProjectGroupRead"] = Field(
+        ..., description="Layer groups of the project"
+    )
     project: ProjectPublicProjectConfig = Field(
         ..., description="Project configuration"
     )
@@ -353,6 +369,41 @@ def where_query(
         query=values.query,
         attribute_mapping=values.attribute_mapping,
     )
+
+
+# --- Schemas for Tree Structure Updates (Drag & Drop) ---
+
+
+# WRITE Model (PUT) - for the bulk update
+class LayerTreeItem(BaseModel):
+    id: int
+    type: Literal["group", "layer"]
+    order: int
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class LayerTreeUpdate(BaseModel):
+    items: List[LayerTreeItem]
+
+
+# --- Schemas for Group CRUD (Renamed) ---
+class ILayerProjectGroupCreate(BaseModel):
+    name: str
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class ILayerProjectGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class ILayerProjectGroupRead(ILayerProjectGroupCreate):
+    id: int
+    project_id: UUID4
+    order: int
 
 
 # TODO: Refactor

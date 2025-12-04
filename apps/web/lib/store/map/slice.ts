@@ -8,8 +8,8 @@ import type { Scenario } from "@/lib/validations/scenario";
 
 import type { Basemap, SelectorItem } from "@/types/map/common";
 import { MapSidebarItemID } from "@/types/map/common";
-import type { MapPopoverEditorProps, MapPopoverInfoProps } from "@/types/map/popover";
 import type { Result } from "@/types/map/controllers";
+import type { MapPopoverEditorProps, MapPopoverInfoProps } from "@/types/map/popover";
 
 export type TemporaryFilter = {
   id: string; // unique identifier
@@ -37,16 +37,17 @@ export interface MapState {
   popupEditor: MapPopoverEditorProps | undefined;
   mapMode: MapMode;
   userLocation:
-  | {
-    active: boolean;
-    position: GeolocationPosition | undefined;
-  }
-  | undefined;
+    | {
+        active: boolean;
+        position: GeolocationPosition | undefined;
+      }
+    | undefined;
   geocoderResult: Result | null;
   selectedBuilderItem: BuilderPanelSchema | BuilderWidgetSchema | undefined;
   currentZoom: number | undefined;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   temporaryFilters: TemporaryFilter[]; // Temporary filters for the map,
+  collapsedPanels: Record<string, boolean>;
 }
 
 const initialState = {
@@ -119,6 +120,7 @@ const initialState = {
   geocoderResult: null,
   selectedBuilderItem: undefined,
   temporaryFilters: [] as TemporaryFilter[],
+  collapsedPanels: {},
 } as MapState;
 
 const mapSlice = createSlice({
@@ -224,6 +226,12 @@ const mapSlice = createSlice({
     removeTemporaryFilter: (state, action: PayloadAction<string>) => {
       state.temporaryFilters = state.temporaryFilters.filter((f) => f.id !== action.payload);
     },
+    setCollapsedPanels: (state, action: PayloadAction<Record<string, boolean>>) => {
+      state.collapsedPanels = {
+        ...state.collapsedPanels,
+        ...action.payload,
+      };
+    },
   },
 });
 
@@ -250,6 +258,7 @@ export const {
   addTemporaryFilter,
   updateTemporaryFilter,
   removeTemporaryFilter,
+  setCollapsedPanels,
 } = mapSlice.actions;
 
 export const mapReducer = mapSlice.reducer;

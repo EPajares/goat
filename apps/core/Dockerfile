@@ -25,7 +25,7 @@ RUN apt-get install --no-install-recommends -y tzdata
 # ===== STAGE 2: Runtime dependencies ====
 FROM linux-base AS runtime-deps
 
-RUN apt-get install --no-install-recommends -y build-essential gettext wget clang
+RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext wget clang
 # Install Qgis, gdal and pymgl
 RUN apt-get install -y gdal-bin libgdal-dev
 RUN wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
@@ -37,7 +37,7 @@ RUN apt-get -y install xvfb
 # ==== STAGE 3: Python environment ====
 FROM runtime-deps AS python-base
 # Install debian dependencies
-RUN apt-get install --no-install-recommends -y build-essential gettext
+RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 # Create virtual environment and install dependencies
@@ -80,3 +80,4 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["bash", "-c", "Xvfb ${DISPLAY} -screen 0 '1024x768x24' -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix & exec fastapi run apps/core/src/core/main.py"]
+

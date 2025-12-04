@@ -125,6 +125,7 @@ class RasterDataType(str, Enum):
     wms = "wms"
     xyz = "xyz"
     wmts = "wmts"
+    cog = "cog"
 
 
 class LayerType(str, Enum):
@@ -133,6 +134,15 @@ class LayerType(str, Enum):
     feature = "feature"
     raster = "raster"
     table = "table"
+
+
+class RasterStyleType(str, Enum):
+    """Raster style types for COG layers."""
+
+    image = "image"
+    color_range = "color_range"
+    categories = "categories"
+    hillshade = "hillshade"
 
 
 class FeatureDataType(str, Enum):
@@ -375,11 +385,7 @@ def internal_layer_table_name(values: SQLModel | BaseModel) -> str:
     """Get the table name for the internal layer."""
 
     # Ensure the layer type is correct by validating available attributes
-    if (
-        not hasattr(values, "type")
-        or not hasattr(values, "feature_layer_geometry_type")
-        or not hasattr(values, "user_id")
-    ):
+    if not hasattr(values, "type") or not hasattr(values, "user_id"):
         raise ValueError("A valid layer must be provided.")
 
     # Get table name

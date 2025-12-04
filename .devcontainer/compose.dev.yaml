@@ -1,0 +1,29 @@
+networks:
+  proxy:
+    name: goat
+
+services:
+  rabbitmq:
+    image: rabbitmq:4.0.3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      proxy:
+
+  redis:
+    image: redis:7.4.1-alpine
+    networks:
+      proxy:
+
+  goat-dev:
+    depends_on:
+      - rabbitmq
+      - redis
+    build:
+      dockerfile: Dockerfile
+    container_name: goat-dev
+    volumes:
+      - ../:/app
+    networks:
+      proxy:

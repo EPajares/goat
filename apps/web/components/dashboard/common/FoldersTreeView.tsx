@@ -17,6 +17,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 import { useFolders } from "@/lib/api/folders";
 import { useTeams } from "@/lib/api/teams";
 import { useOrganization } from "@/lib/api/users";
+import { ACCOUNTS_DISABLED } from "@/lib/constants";
 import type { GetDatasetSchema } from "@/lib/validations/layer";
 import type { GetProjectsQueryParams } from "@/lib/validations/project";
 
@@ -66,7 +67,6 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
   const { organization } = useOrganization();
   const { teams: teamsData } = useTeams();
   const { t } = useTranslation("common");
-
   const [editModal, setEditModal] = useState<EditModal>();
   const { folders } = useFolders({});
   const homeFolder = useMemo(() => {
@@ -117,9 +117,12 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
   }, [teamsData]);
 
   const theme = useTheme();
+  const hideTeamsAndOrgs = ACCOUNTS_DISABLED;
+  const folderTypes = hideTeamsAndOrgs ? ["folder"] : ["folder", "team", "organization"];
 
-  const folderTypes = ["folder", "team", "organization"];
-  const folderTypeTitles = [t("my_content"), t("teams"), t("organizations")];
+  const folderTypeTitles = hideTeamsAndOrgs
+    ? [t("my_content")]
+    : [t("my_content"), t("teams"), t("organizations")];
 
   const moreMenuItems: PopperMenuItem[] = [
     {
@@ -195,7 +198,7 @@ export default function FoldersTreeView(props: FoldersTreeViewProps) {
       )}
 
       <List sx={{ width: "100%", maxWidth: 360 }} component="nav" aria-labelledby="content-tree-view">
-        {[folders ?? [], teams ?? [], organizations ?? []]
+        {(hideTeamsAndOrgs ? [folders ?? []] : [folders ?? [], teams ?? [], organizations ?? []])
           .map((folder, typeIndex) => {
             // Filter out "My Content" section if hideMyContent is true
             if (hideMyContent && folderTypes[typeIndex] === "folder") {

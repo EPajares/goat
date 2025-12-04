@@ -69,15 +69,16 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
     }
   }, [existingFilter, rawConfig?.setup?.multiple]);
 
-  // If cross filter is polygon, fetch geometry
+  // Fetch geometry data for zoom functionality (any geometry type) or cross filter (polygon only)
   const geometryDataQueryParams = useMemo(() => {
     const values = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
     if (
       !selectedValues?.length ||
-      !rawConfig?.options?.cross_filter ||
       !rawConfig?.setup?.column_name ||
       !layer ||
-      layer.feature_layer_geometry_type !== "polygon"
+      // Need geometry data if either: zoom_to_selection OR (cross_filter AND polygon)
+      (!rawConfig?.options?.zoom_to_selection &&
+        !(rawConfig?.options?.cross_filter && layer.feature_layer_geometry_type === "polygon"))
     )
       return undefined;
 
@@ -124,8 +125,8 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
         })),
       },
     };
-
-    if (geometryData && rawConfig?.options?.zoom_to_selection && map) {
+    // Zoom to selection if enabled and we have geometry data
+    if (geometryData?.features?.length && rawConfig?.options?.zoom_to_selection && map) {
       zoomToFeatureCollection(map, geometryData as GeoJSON.FeatureCollection, {
         duration: 200,
       });

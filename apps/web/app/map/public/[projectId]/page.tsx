@@ -11,8 +11,9 @@ import { shallowEqual, useSelector } from "react-redux";
 import { usePublicProject } from "@/lib/api/projects";
 import type { RootState } from "@/lib/store";
 import { selectFilteredProjectLayers } from "@/lib/store/layer/selectors";
-import { setProjectLayers } from "@/lib/store/layer/slice";
+import { setProjectLayerGroups, setProjectLayers } from "@/lib/store/layer/slice";
 import { setMapMode, setProject } from "@/lib/store/map/slice";
+import type { ProjectLayerGroup } from "@/lib/validations/project";
 import { type Project, type ProjectLayer, projectSchema } from "@/lib/validations/project";
 
 import { useBasemap } from "@/hooks/map/MapHooks";
@@ -31,12 +32,17 @@ export default function MapPage({ params: { projectId } }) {
   const projectLayers = useMemo(() => {
     return sharedProject?.config?.["layers"] ?? ([] as ProjectLayer[]);
   }, [sharedProject]);
+
+  const projectLayerGroups = useMemo(() => {
+    return sharedProject?.config?.["layer_groups"] ?? ([] as ProjectLayerGroup[]);
+  }, [sharedProject]);
+
   const _project = sharedProject?.config?.["project"] as Project;
   const mapRef = useRef<MapRef | null>(null);
   const initialView = sharedProject?.config?.["project"]?.["initial_view_state"] ?? {};
 
   const _projectLayers = useSelector(
-    (state: RootState) => selectFilteredProjectLayers(state, ["table"]),
+    (state: RootState) => selectFilteredProjectLayers(state, ["table"], []),
     shallowEqual
   );
 
@@ -54,10 +60,11 @@ export default function MapPage({ params: { projectId } }) {
   useEffect(() => {
     if (projectLayers && project) {
       dispatch(setProjectLayers(projectLayers as ProjectLayer[]));
+      dispatch(setProjectLayerGroups((projectLayerGroups || []) as ProjectLayerGroup[]));
       dispatch(setProject(project));
       dispatch(setMapMode("public"));
     }
-  }, [dispatch, project, projectLayers]);
+  }, [dispatch, project, projectLayers, projectLayerGroups]);
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,6 +99,7 @@ export default function MapPage({ params: { projectId } }) {
                 <MobileProjectLayout
                   project={project}
                   projectLayers={_projectLayers}
+                  projectLayerGroups={projectLayerGroups}
                   viewOnly
                   onProjectUpdate={onProjectUpdate}
                 />
@@ -99,6 +107,7 @@ export default function MapPage({ params: { projectId } }) {
                 <PublicProjectLayout
                   project={project}
                   projectLayers={_projectLayers}
+                  projectLayerGroups={projectLayerGroups}
                   viewOnly
                   onProjectUpdate={onProjectUpdate}
                 />

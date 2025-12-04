@@ -1,41 +1,48 @@
-import { Box, Collapse, Stack, useTheme } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import React, { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { MAPBOX_TOKEN } from "@/lib/constants";
-import { setActiveLeftPanel, setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
-import { layerType } from "@/lib/validations/common";
+import {
+  addProjectLayers,
+  createProjectLayerGroup,
+  deleteProjectLayerGroup,
+  updateProjectLayerGroup,
+  updateProjectLayerTree,
+  useProjectLayerGroups,
+  useProjectLayers,
+} from "@/lib/api/projects";
+import { MAPBOX_TOKEN, SYSTEM_LAYERS_IDS } from "@/lib/constants";
+import { setSelectedLayers } from "@/lib/store/layer/slice";
+import { setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
 import { FeatureName } from "@/lib/validations/organization";
-import type { Project } from "@/lib/validations/project";
+import type { Project, ProjectLayerTreeUpdate } from "@/lib/validations/project";
 
 import { MapSidebarItemID } from "@/types/map/common";
 
 import { useAuthZ } from "@/hooks/auth/AuthZ";
-import { useActiveLayer, useFilteredProjectLayers, useLayerActions } from "@/hooks/map/LayerPanelHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
-import MapSidebar from "@/components/map/Sidebar";
+import { FloatingPanel } from "@/components/common/FloatingPanel";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
 import { Fullscren } from "@/components/map/controls/Fullscreen";
 import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
+import { Scenario as ScenarioCtrl } from "@/components/map/controls/Scenario";
+import { Toolbox as ToolboxCtrl } from "@/components/map/controls/Toolbox";
 import { Zoom } from "@/components/map/controls/Zoom";
-import Legend from "@/components/map/panels/Legend";
-import Filter from "@/components/map/panels/filter/Filter";
-import LayerPanel from "@/components/map/panels/layer/Layer";
-import PropertiesPanel from "@/components/map/panels/properties/Properties";
+import LayerSettingsPanel from "@/components/map/panels/layer/LayerSettingsPanel";
+import { ProjectLayerTree } from "@/components/map/panels/layer/ProjectLayerTree";
 import Scenario from "@/components/map/panels/scenario/Scenario";
-import LayerStyle from "@/components/map/panels/style/LayerStyle";
 import Toolbox from "@/components/map/panels/toolbox/Toolbox";
 
-import type { MapSidebarProps } from "../../Sidebar";
-
-const sidebarWidth = 52;
 const toolbarHeight = 52;
+const panelWidth = 300;
+const GAP_SIZE = 16;
 
 interface DataProjectLayoutProps {
   project: Project;
@@ -45,66 +52,126 @@ interface DataProjectLayoutProps {
 }
 
 const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps) => {
-  const theme = useTheme();
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
   const projectId = project.id;
-  const { translatedBaseMaps, activeBasemap } = useBasemap(project);
-  const activeLeft = useAppSelector((state) => state.map.activeLeftPanel);
-  const activeRight = useAppSelector((state) => state.map.activeRightPanel);
-  const { activeLayer } = useActiveLayer(projectId);
-  const { isProjectEditor, isAppFeatureEnabled } = useAuthZ();
-  const { layers: projectLayers, mutate: mutateProjectLayers } = useFilteredProjectLayers(projectId);
-  const { toggleLayerVisibility } = useLayerActions(projectLayers);
 
-  const leftSidebar: MapSidebarProps = {
-    topItems: [
-      {
-        id: MapSidebarItemID.LAYERS,
-        icon: ICON_NAME.LAYERS,
-        name: t("layers"),
-        component: <LayerPanel projectId={projectId} />,
-      },
-      {
-        id: MapSidebarItemID.LEGEND,
-        icon: ICON_NAME.LEGEND,
-        name: t("legend"),
-        component: <Legend projectLayers={projectLayers} />,
-      },
-    ],
-    bottomItems: [],
-    width: sidebarWidth,
-    position: "left",
+  // Fetch project data with SWR
+  const { layers: allProjectLayers, mutate: mutateProjectLayers } = useProjectLayers(projectId);
+  const { layerGroups: projectLayerGroups, mutate: mutateProjectLayerGroups } =
+    useProjectLayerGroups(projectId);
+
+  // Filter out system layers
+  const projectLayers = useMemo(() => {
+    return allProjectLayers?.filter((layer) => !SYSTEM_LAYERS_IDS.includes(layer.layer_id)) || [];
+  }, [allProjectLayers]);
+
+  const { translatedBaseMaps, activeBasemap } = useBasemap(project);
+  const activeRight = useAppSelector((state) => state.map.activeRightPanel);
+  const { isAppFeatureEnabled } = useAuthZ();
+
+  // 1. Redux Global Selection
+  // Assume array of IDs (number/string)
+  const selectedLayerIds = useAppSelector((state) => state.layers.selectedLayerIds || []);
+
+  const handleLayerDuplicate = async (layerId: string) => {
+    try {
+      await addProjectLayers(projectId, [layerId]);
+      mutateProjectLayers();
+    } catch (error) {
+      toast.error(t("error_duplicating_layer"));
+      throw error;
+    }
   };
 
-  const rightSidebar: MapSidebarProps = {
+  // Wrapper functions to match ProjectLayerTree expectations
+  const handleCreateGroup = async (groupData: { name: string; parent_id?: number }) => {
+    await createProjectLayerGroup(projectId, groupData);
+    if (projectLayerGroups) {
+      mutateProjectLayerGroups();
+    }
+  };
+
+  const handleUpdateGroup = async (groupData: { name?: string; groupId?: number }) => {
+    if (groupData.groupId && groupData.name) {
+      await updateProjectLayerGroup(projectId, groupData.groupId, { name: groupData.name });
+      if (projectLayerGroups) {
+        mutateProjectLayerGroups();
+      }
+    }
+  };
+
+  const handleDeleteGroup = async (groupData: { groupId?: number }) => {
+    if (groupData.groupId) {
+      await deleteProjectLayerGroup(projectId, groupData.groupId);
+      if (projectLayerGroups) {
+        mutateProjectLayerGroups();
+      }
+    }
+  };
+
+  // Unified tree update handler - handles all tree changes
+  const handleTreeUpdate = async (updatePayload: ProjectLayerTreeUpdate) => {
+    try {
+      // First, do optimistic updates to both caches to prevent visual flicker
+      if (allProjectLayers) {
+        // Update layers with new order, parent relationships, and properties
+        const updatedLayers = allProjectLayers.map((layer) => {
+          const updateItem = updatePayload.items.find(
+            (item) => item.id === layer.id && item.type === "layer"
+          );
+          if (updateItem) {
+            return {
+              ...layer,
+              order: updateItem.order,
+              layer_project_group_id: updateItem.parent_id || null,
+              // Update properties if provided (includes legend.collapsed, visibility, etc.)
+              properties: updateItem.properties
+                ? { ...layer.properties, ...updateItem.properties }
+                : layer.properties,
+            };
+          }
+          return layer;
+        });
+        mutateProjectLayers(updatedLayers, false);
+      }
+
+      if (projectLayerGroups) {
+        // Update groups with new order, parent relationships, and properties
+        const updatedGroups = projectLayerGroups.map((group) => {
+          const updateItem = updatePayload.items.find(
+            (item) => item.id === group.id && item.type === "group"
+          );
+          if (updateItem) {
+            return {
+              ...group,
+              order: updateItem.order,
+              parent_id: updateItem.parent_id || null,
+              // Update properties if provided (includes expanded, visibility, etc.)
+              properties: updateItem.properties
+                ? { ...group.properties, ...updateItem.properties }
+                : group.properties,
+            };
+          }
+          return group;
+        });
+        mutateProjectLayerGroups(updatedGroups, false);
+      }
+
+      // Then sync with server using the batch update endpoint
+      await updateProjectLayerTree(projectId, updatePayload);
+    } catch (error) {
+      console.error("Failed to update tree", error);
+      toast.error(t("error_updating_tree"));
+
+      // Revert optimistic updates on error by refreshing from server
+      mutateProjectLayers();
+      mutateProjectLayerGroups();
+    }
+  };
+
+  const rightSidebar = {
     topItems: [
-      {
-        id: MapSidebarItemID.PROPERTIES,
-        icon: ICON_NAME.SLIDERS,
-        name: t("properties"),
-        component: <PropertiesPanel projectId={projectId} />,
-        disabled: !activeLayer,
-      },
-      {
-        id: MapSidebarItemID.FILTER,
-        icon: ICON_NAME.FILTER,
-        name: t("filter"),
-        component: <Filter projectId={projectId} />,
-        disabled:
-          !activeLayer ||
-          (activeLayer?.type !== layerType.Values.feature && activeLayer?.type !== layerType.Values.table),
-      },
-      {
-        id: MapSidebarItemID.STYLE,
-        icon: ICON_NAME.STYLE,
-        name: t("layer_design"),
-        component: <LayerStyle projectId={projectId} />,
-        disabled:
-          !activeLayer ||
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ![layerType.Values.feature, layerType.Values.raster].includes(activeLayer.type as any),
-      },
       {
         id: MapSidebarItemID.TOOLBOX,
         icon: ICON_NAME.TOOLBOX,
@@ -119,221 +186,149 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
         disabled: !isAppFeatureEnabled(FeatureName.SCENARIO),
       },
     ],
-    width: sidebarWidth,
-    position: "right",
   };
 
+  // --- DYNAMIC CONTENT ---
   const activeRightComponent = useMemo(() => {
-    if (activeRight) {
-      return rightSidebar.topItems?.find((item) => item.id === activeRight && !item.disabled)?.component;
-    }
-    return undefined;
-  }, [activeRight, rightSidebar.topItems]);
+    // Check for ANY layer configuration panel ID
+    const layerSettingsIds = [MapSidebarItemID.PROPERTIES, MapSidebarItemID.FILTER, MapSidebarItemID.STYLE];
 
-  const activeLeftComponent = useMemo(() => {
-    if (activeLeft) {
-      return leftSidebar.topItems?.find((item) => item.id === activeLeft)?.component;
+    if (activeRight && layerSettingsIds.includes(activeRight)) {
+      // Return the new panel component
+      return <LayerSettingsPanel projectId={projectId} projectLayers={projectLayers || []} />;
     }
-    return undefined;
-  }, [activeLeft, leftSidebar.topItems]);
 
-  useEffect(() => {
-    if (
-      activeRight !== undefined &&
-      !activeLayer &&
-      (activeRight === MapSidebarItemID.PROPERTIES ||
-        activeRight === MapSidebarItemID.STYLE ||
-        activeRight === MapSidebarItemID.FILTER)
-    ) {
+    // B. STANDARD TOOLS
+    return rightSidebar.topItems?.find((item) => item.id === activeRight && !item.disabled)?.component;
+  }, [activeRight, rightSidebar.topItems, projectId, projectLayers]);
+
+  // --- INTERACTION LOGIC ---
+
+  const handleToolboxToggle = async (open: boolean) => {
+    if (open) {
+      dispatch(setActiveRightPanel(MapSidebarItemID.TOOLBOX));
+      dispatch(setSelectedLayers([])); // Clear tree
+    } else {
       dispatch(setActiveRightPanel(undefined));
     }
-  }, [activeRight, activeLayer, dispatch]);
+  };
+
+  const handleScenarioToggle = async (open: boolean) => {
+    if (open) {
+      dispatch(setActiveRightPanel(MapSidebarItemID.SCENARIO));
+      dispatch(setSelectedLayers([])); // Clear tree
+    } else {
+      dispatch(setActiveRightPanel(undefined));
+    }
+  };
+
+  // Keep Panel state consistent
+  useEffect(() => {
+    if (activeRight === MapSidebarItemID.PROPERTIES && selectedLayerIds.length === 0) {
+      dispatch(setActiveRightPanel(undefined));
+    }
+  }, [activeRight, selectedLayerIds, dispatch]);
 
   return (
     <>
-      {isProjectEditor && (
-        <Box
-          sx={{
-            ".MuiDrawer-paper": {
-              height: `calc(100% - ${toolbarHeight}px)`,
-              marginTop: `${toolbarHeight}px`,
-            },
-            [theme.breakpoints.down("sm")]: {
-              display: "none",
-            },
-          }}>
-          <MapSidebar
-            {...leftSidebar}
-            active={activeLeft}
-            onClick={(item) => {
-              if (item.link) {
-                window.open(item.link, "_blank");
-                return;
-              } else {
-                dispatch(setActiveLeftPanel(item.id === activeLeft ? undefined : item.id));
-              }
-            }}
-          />
-        </Box>
-      )}
-
-      <Stack
-        direction="row"
+      <Box
         sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: "100%",
           position: "absolute",
-          top: 0,
+          top: toolbarHeight + 10,
+          height: `calc(100% - ${toolbarHeight + 20}px)`,
+          left: 10,
+          zIndex: (theme) => theme.zIndex.drawer + 1,
           pointerEvents: "none",
-          ...(isProjectEditor && { left: sidebarWidth }),
-          [theme.breakpoints.down("sm")]: {
-            left: "0",
-          },
         }}>
-        {isProjectEditor && (
-          <Collapse
-            timeout={200}
-            orientation="horizontal"
-            in={activeLeft !== undefined}
-            sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
-            onExited={() => {
-              dispatch(setActiveLeftPanel(undefined));
-            }}>
-            {activeLeft !== undefined && (
-              <Box
-                sx={{
-                  height: `calc(100% - ${toolbarHeight}px)`,
-                  marginTop: `${toolbarHeight}px`,
-                  width: 300,
-                  pointerEvents: "all",
-                }}>
-                {activeLeftComponent}
-              </Box>
-            )}
-          </Collapse>
-        )}
-        {/* Left Controls */}
         <Stack
           direction="column"
           sx={{
-            height: `calc(100% - ${toolbarHeight}px)`,
-            justifyContent: "space-between",
-            marginTop: `${toolbarHeight}px`,
-            padding: theme.spacing(4),
+            height: "100%",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            alignContent: "flex-start",
+            rowGap: 4,
+            columnGap: 2,
           }}>
-          <Stack direction="column">
-            <Geocoder
-              accessToken={MAPBOX_TOKEN}
-              placeholder={t("enter_an_address")}
-              tooltip={t("search")}
-              onSelect={(result) => {
-                dispatch(setGeocoderResult(result));
+          <FloatingPanel width={panelWidth}>
+            <ProjectLayerTree
+              projectId={projectId}
+              projectLayers={projectLayers || []}
+              projectLayerGroups={projectLayerGroups || []}
+              isLoading={false}
+              onTreeUpdate={handleTreeUpdate}
+              onLayerDuplicate={handleLayerDuplicate}
+              onCreateGroup={handleCreateGroup}
+              onUpdateGroup={handleUpdateGroup}
+              onDeleteGroup={handleDeleteGroup}
+              viewMode="edit"
+            />
+          </FloatingPanel>
+          <Box sx={{ marginTop: "auto" }}>
+            <Scalebar />
+          </Box>
+        </Stack>
+        <Box
+          sx={{
+            position: "absolute",
+            left: `${panelWidth + GAP_SIZE}px`,
+            top: 0,
+          }}>
+          <Geocoder
+            accessToken={MAPBOX_TOKEN}
+            placeholder={t("enter_an_address")}
+            tooltip={t("search")}
+            onSelect={(result) => {
+              dispatch(setGeocoderResult(result));
+            }}
+          />
+          <ToolboxCtrl onToggle={handleToolboxToggle} open={activeRight === MapSidebarItemID.TOOLBOX} />
+          <ScenarioCtrl onToggle={handleScenarioToggle} open={activeRight === MapSidebarItemID.SCENARIO} />
+        </Box>
+      </Box>
+
+      {/* RIGHT OVERLAY */}
+      <Stack
+        direction="column"
+        sx={{
+          position: "absolute",
+          top: toolbarHeight + 10,
+          height: `calc(100% - ${toolbarHeight + 10}px)`,
+          right: 10,
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+          pointerEvents: "none",
+          alignItems: "flex-end",
+        }}>
+        {activeRightComponent && (
+          <FloatingPanel width={panelWidth} sx={{ mb: 2 }}>
+            {activeRightComponent}
+          </FloatingPanel>
+        )}
+
+        <Stack
+          direction="column"
+          alignItems="flex-end"
+          sx={{
+            marginTop: "auto",
+            pointerEvents: "all",
+            width: "max-content",
+            maxWidth: "none",
+            whiteSpace: "nowrap",
+          }}>
+          <Stack direction="column" alignItems="flex-end" sx={{ mb: 1 }}>
+            <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
+            <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
+            <BasemapSelector
+              styles={translatedBaseMaps}
+              active={activeBasemap.value}
+              basemapChange={async (basemap) => {
+                await onProjectUpdate?.("basemap", basemap);
               }}
             />
           </Stack>
-          <Stack direction="column">
-            {!isProjectEditor && (
-              <Stack direction="column">
-                <Legend
-                  projectLayers={projectLayers}
-                  isFloating
-                  showAllLayers
-                  onVisibilityChange={async (layer) => {
-                    const { layers: _layers, layerToUpdate: _layerToUpdate } = toggleLayerVisibility(layer);
-                    await mutateProjectLayers(_layers, false);
-                  }}
-                />
-              </Stack>
-            )}
-            <Scalebar />
-          </Stack>
+          <AttributionControl />
         </Stack>
       </Stack>
-      <Stack
-        direction="row"
-        sx={{
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          height: "100%",
-          position: "absolute",
-          top: 0,
-          pointerEvents: "none",
-          right: isProjectEditor ? sidebarWidth : 0,
-          [theme.breakpoints.down("sm")]: {
-            right: "0",
-          },
-        }}>
-        <Stack
-          direction="column"
-          sx={{
-            height: `calc(100% - ${toolbarHeight}px)`,
-            justifyContent: "space-between",
-            marginTop: `${toolbarHeight}px`,
-            pt: theme.spacing(4),
-          }}>
-          <Stack direction="column" sx={{ pr: 4, pointerEvents: "none" }}>
-            <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
-            <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
-          </Stack>
-          <Stack direction="column">
-            <Box sx={{ pr: 4 }}>
-              <BasemapSelector
-                styles={translatedBaseMaps}
-                active={activeBasemap.value}
-                basemapChange={async (basemap) => {
-                  await onProjectUpdate?.("basemap", basemap);
-                }}
-              />
-            </Box>
-            <AttributionControl />
-          </Stack>
-        </Stack>
-        {isProjectEditor && (
-          <Collapse
-            timeout={200}
-            orientation="horizontal"
-            in={activeRight !== undefined}
-            onExit={() => {
-              dispatch(setActiveRightPanel(undefined));
-            }}>
-            {activeRight !== undefined && (
-              <Box
-                sx={{
-                  height: `calc(100% - ${toolbarHeight}px)`,
-                  marginTop: `${toolbarHeight}px`,
-                  width: 300,
-                  pointerEvents: "all",
-                }}>
-                {activeRightComponent}
-              </Box>
-            )}
-          </Collapse>
-        )}
-      </Stack>
-      {isProjectEditor && (
-        <Box
-          sx={{
-            ".MuiDrawer-paper": {
-              height: `calc(100% - ${toolbarHeight}px)`,
-              marginTop: `${toolbarHeight}px`,
-            },
-            [theme.breakpoints.down("sm")]: {
-              display: "none",
-            },
-          }}>
-          <MapSidebar
-            {...rightSidebar}
-            active={activeRight}
-            onClick={(item) => {
-              if (item.link) {
-                window.open(item.link, "_blank");
-                return;
-              } else {
-                dispatch(setActiveRightPanel(item.id === activeRight ? undefined : item.id));
-              }
-            }}
-          />
-        </Box>
-      )}
     </>
   );
 };

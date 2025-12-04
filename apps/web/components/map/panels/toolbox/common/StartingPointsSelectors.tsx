@@ -63,17 +63,19 @@ const StartingPoints = ({ maxStartingPoints }: { maxStartingPoints: number | und
       <Table size="small" aria-label="starting point table" stickyHeader>
         <TableHead>
           <TableRow>
-            <TableCell align="left">
+            <TableCell align="left" sx={{ backgroundColor: "transparent" }}>
               <Typography variant="caption" fontWeight="bold">
                 Lon
               </Typography>
             </TableCell>
-            <TableCell align="left">
+            <TableCell align="left" sx={{ backgroundColor: "transparent" }}>
               <Typography variant="caption" fontWeight="bold">
                 Lat
               </Typography>
             </TableCell>
-            <TableCell align="right"> </TableCell>
+            <TableCell align="right" sx={{ backgroundColor: "transparent" }}>
+              {" "}
+            </TableCell>
           </TableRow>
         </TableHead>
       </Table>

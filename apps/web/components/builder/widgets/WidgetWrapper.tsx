@@ -8,7 +8,7 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { setSelectedBuilderItem } from "@/lib/store/map/slice";
-import type { BuilderWidgetSchema, ProjectLayer } from "@/lib/validations/project";
+import type { BuilderWidgetSchema, ProjectLayer, ProjectLayerGroup } from "@/lib/validations/project";
 import type {
   WidgetChartConfig,
   WidgetDataConfig,
@@ -27,6 +27,7 @@ import WidgetInformation from "@/components/builder/widgets/information/WidgetIn
 interface WidgetWrapper {
   widget: BuilderWidgetSchema;
   projectLayers: ProjectLayer[];
+  projectLayerGroups: ProjectLayerGroup[];
   viewOnly?: boolean;
   onWidgetDelete?: (widgetId: string) => void;
   onWidgetUpdate?: (updatedWidget: BuilderWidgetSchema) => void;
@@ -139,6 +140,7 @@ const DraggableWidgetContainer: React.FC<DraggableWidgetContainerProps> = ({
 const WidgetWrapper: React.FC<WidgetWrapper> = ({
   widget,
   projectLayers,
+  projectLayerGroups,
   viewOnly,
   onWidgetDelete,
   onWidgetUpdate,
@@ -149,6 +151,7 @@ const WidgetWrapper: React.FC<WidgetWrapper> = ({
         <WidgetInformation
           config={widget.config as WidgetInformationConfig}
           projectLayers={projectLayers}
+          projectLayerGroups={projectLayerGroups}
           viewOnly={viewOnly}
         />
       )}

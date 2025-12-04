@@ -10,6 +10,8 @@ import type {
   PostProject,
   Project,
   ProjectLayer,
+  ProjectLayerGroup,
+  ProjectLayerTreeUpdate,
   ProjectPaginated,
   ProjectPublic,
   ProjectViewState,
@@ -61,6 +63,21 @@ export const useProjectLayers = (projectId?: string) => {
 
   return {
     layers: data,
+    isLoading: isLoading,
+    isError: error,
+    mutate,
+    isValidating,
+  };
+};
+
+export const useProjectLayerGroups = (projectId?: string) => {
+  const { data, isLoading, error, mutate, isValidating } = useSWR<ProjectLayerGroup[]>(
+    () => (projectId ? [`${PROJECTS_API_BASE_URL}/${projectId}/group`] : null),
+    fetcher
+  );
+
+  return {
+    layerGroups: data,
     isLoading: isLoading,
     isError: error,
     mutate,
@@ -249,6 +266,21 @@ export const updateProject = async (projectId: string, payload: PostProject) => 
   return await response.json();
 };
 
+export const updateProjectLayerTree = async (projectId: string, payload: ProjectLayerTreeUpdate) => {
+  const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}/${projectId}/layer-tree`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update project layer tree structure");
+  }
+  // 204 No Content usually, returns undefined or empty
+  return response;
+};
+
 export const createProject = async (payload: PostProject): Promise<Project> => {
   const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}`, {
     method: "POST",
@@ -410,4 +442,54 @@ export const unpublishProject = async (projectId: string) => {
     throw new Error("Failed to unpublish project");
   }
   return await response.json();
+};
+
+export const createProjectLayerGroup = async (
+  projectId: string,
+  payload: { name: string; parent_id?: number }
+) => {
+  const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}/${projectId}/group`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create project layer group");
+  }
+  return await response.json();
+};
+
+export const updateProjectLayerGroup = async (
+  projectId: string,
+  groupId: number,
+  payload: {
+    name?: string;
+    parent_id?: number;
+    properties?: Record<string, unknown> | null;
+    expanded?: boolean;
+  }
+) => {
+  const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}/${projectId}/group/${groupId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to update project layer group");
+  }
+  return await response.json();
+};
+
+export const deleteProjectLayerGroup = async (projectId: string, groupId: number) => {
+  const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}/${projectId}/group/${groupId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    throw Error(`Failed to delete project layer group ${groupId}`);
+  }
+  return response;
 };

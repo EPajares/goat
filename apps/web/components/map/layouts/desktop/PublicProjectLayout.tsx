@@ -4,21 +4,33 @@ import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
-import { removeTemporaryFilter, setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";
+import { setSelectedLayers } from "@/lib/store/layer/slice";
+import {
+  removeTemporaryFilter,
+  setActiveRightPanel,
+  setGeocoderResult,
+  setSelectedBuilderItem,
+} from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema } from "@/lib/validations/project";
 import {
   type BuilderPanelSchema,
   type Project,
   type ProjectLayer,
+  type ProjectLayerGroup,
   builderPanelSchema,
 } from "@/lib/validations/project";
 
+import { MapSidebarItemID } from "@/types/map/common";
+
+import { useLayerStyleChange } from "@/hooks/map/LayerStyleHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
 import { Container } from "@/components/builder/PanelContainer";
+import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
+import { FloatingPanel } from "@/components/common/FloatingPanel";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
@@ -27,10 +39,14 @@ import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
+import ViewContainer from "@/components/map/panels/Container";
+import PropertiesPanel from "@/components/map/panels/properties/Properties";
+import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
 
 export interface PublicProjectLayoutProps {
   project?: Project;
   projectLayers?: ProjectLayer[];
+  projectLayerGroups?: ProjectLayerGroup[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProjectUpdate?: (key: string, value: any, refresh?: boolean) => void;
   // add property isEditing to the interface
@@ -39,19 +55,60 @@ export interface PublicProjectLayoutProps {
 
 const PublicProjectLayout = ({
   projectLayers = [],
+  projectLayerGroups = [],
   project,
   onProjectUpdate,
   viewOnly,
 }: PublicProjectLayoutProps) => {
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
+  // Layer style change hook
+  const { handleStyleChange } = useLayerStyleChange(projectLayers, viewOnly);
 
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
   const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
   const selectedPanel = useAppSelector((state) => state.map.selectedBuilderItem) as BuilderPanelSchema;
+  const collapsedPanels = useAppSelector((state) => state.map.collapsedPanels);
   const builderConfig = project?.builder_config;
   const panels = useMemo(() => builderConfig?.interface ?? [], [builderConfig]);
   const PANEL_SIZE = 300;
+  const COLLAPSED_SIZE = 40; // Should match the collapsedSize in Container component
+  const activeRight = useAppSelector((state) => state.map.activeRightPanel);
+
+  // Layer settings logic (public version)
+  const selectedLayerIds = useAppSelector((state) => state.layers.selectedLayerIds || []);
+  const activeLayer = useMemo(() => {
+    if (selectedLayerIds.length === 1) {
+      return projectLayers.find((l) => l.id === selectedLayerIds[0]);
+    }
+    return null;
+  }, [selectedLayerIds, projectLayers]);
+
+  const activeRightComponent = useMemo(() => {
+    // Check for layer configuration panel ID (public version - only Properties and Style)
+    const layerSettingsIds = [MapSidebarItemID.PROPERTIES, MapSidebarItemID.STYLE];
+
+    if (activeRight && layerSettingsIds.includes(activeRight) && activeLayer) {
+      let title = "Layer Settings";
+      let content: React.ReactNode = null;
+
+      if (activeRight === MapSidebarItemID.PROPERTIES) {
+        title = `${t("data_source_info")}: ${activeLayer.name || t("layer")}`;
+        content = <PropertiesPanel activeLayer={activeLayer} />;
+      } else if (activeRight === MapSidebarItemID.STYLE) {
+        title = `${t("style")}: ${activeLayer.name || t("layer")}`;
+        content = <SimpleLayerStyle activeLayer={activeLayer} onStyleChange={handleStyleChange} />;
+      }
+
+      return { title, content };
+    }
+    return null;
+  }, [activeRight, activeLayer, handleStyleChange, t]);
+
+  const handleClose = () => {
+    dispatch(setSelectedLayers([]));
+    dispatch(setActiveRightPanel(undefined));
+  };
 
   // Count total number of panels top, bottom, left, right using useMemo
   const topPanels = useMemo(() => panels.filter((panel) => panel.position === "top"), [panels]);
@@ -59,13 +116,50 @@ const PublicProjectLayout = ({
   const leftPanels = useMemo(() => panels.filter((panel) => panel.position === "left"), [panels]);
   const rightPanels = useMemo(() => panels.filter((panel) => panel.position === "right"), [panels]);
 
+  // Helper function to get actual panel size considering collapsed state
+  const getPanelSize = (panel: BuilderPanelSchema) => {
+    const isCollapsed = !!collapsedPanels?.[panel.id];
+    return isCollapsed ? COLLAPSED_SIZE : PANEL_SIZE;
+  };
+
+  // Calculate the actual occupied space for each position considering collapsed panels
+  const getOccupiedSpace = useMemo(() => {
+    const leftSpace = leftPanels.reduce((total, panel) => total + getPanelSize(panel), 0);
+    const rightSpace = rightPanels.reduce((total, panel) => total + getPanelSize(panel), 0);
+    const topSpace = topPanels.reduce((total, panel) => total + getPanelSize(panel), 0);
+    const bottomSpace = bottomPanels.reduce((total, panel) => total + getPanelSize(panel), 0);
+
+    return { left: leftSpace, right: rightSpace, top: topSpace, bottom: bottomSpace };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leftPanels, rightPanels, topPanels, bottomPanels, collapsedPanels]);
+
   const panelsWithPosition: BuilderPanelSchemaWithPosition[] = useMemo(() => {
     return panels.map((panel, index) => {
-      // Count the number of left, right, top, bottom panels before the current panel
-      const leftPanelsBefore = panels.slice(0, index).filter((p) => p.position === "left").length;
-      const rightPanelsBefore = panels.slice(0, index).filter((p) => p.position === "right").length;
-      const topPanelsBefore = panels.slice(0, index).filter((p) => p.position === "top").length;
-      const bottomPanelsBefore = panels.slice(0, index).filter((p) => p.position === "bottom").length;
+      // Calculate cumulative space for each position before current panel
+      let leftSpaceBefore = 0;
+      let rightSpaceBefore = 0;
+      let topSpaceBefore = 0;
+      let bottomSpaceBefore = 0;
+
+      for (let i = 0; i < index; i++) {
+        const prevPanel = panels[i];
+        const prevPanelSize = getPanelSize(prevPanel);
+
+        switch (prevPanel.position) {
+          case "left":
+            leftSpaceBefore += prevPanelSize;
+            break;
+          case "right":
+            rightSpaceBefore += prevPanelSize;
+            break;
+          case "top":
+            topSpaceBefore += prevPanelSize;
+            break;
+          case "bottom":
+            bottomSpaceBefore += prevPanelSize;
+            break;
+        }
+      }
 
       switch (panel.position) {
         case "left":
@@ -73,9 +167,9 @@ const PublicProjectLayout = ({
             ...panel,
             orientation: "vertical",
             element: {
-              left: PANEL_SIZE * leftPanelsBefore,
-              top: PANEL_SIZE * topPanelsBefore,
-              bottom: PANEL_SIZE * bottomPanelsBefore,
+              left: leftSpaceBefore,
+              top: topSpaceBefore,
+              bottom: bottomSpaceBefore,
               width: PANEL_SIZE,
             },
           };
@@ -84,9 +178,9 @@ const PublicProjectLayout = ({
             ...panel,
             orientation: "vertical",
             element: {
-              right: PANEL_SIZE * rightPanelsBefore,
-              top: PANEL_SIZE * topPanelsBefore,
-              bottom: PANEL_SIZE * bottomPanelsBefore,
+              right: rightSpaceBefore,
+              top: topSpaceBefore,
+              bottom: bottomSpaceBefore,
               width: PANEL_SIZE,
             },
           };
@@ -95,9 +189,9 @@ const PublicProjectLayout = ({
             ...panel,
             orientation: "horizontal",
             element: {
-              top: 0,
-              left: PANEL_SIZE * leftPanelsBefore,
-              right: PANEL_SIZE * rightPanelsBefore,
+              top: topSpaceBefore,
+              left: leftSpaceBefore,
+              right: rightSpaceBefore,
               height: PANEL_SIZE,
             },
           };
@@ -106,10 +200,10 @@ const PublicProjectLayout = ({
             ...panel,
             orientation: "horizontal",
             element: {
-              bottom: 0,
-              left: PANEL_SIZE * leftPanelsBefore,
-              right: PANEL_SIZE * rightPanelsBefore,
-              height: PANEL_SIZE,
+              bottom: bottomSpaceBefore,
+              left: leftSpaceBefore,
+              right: rightSpaceBefore,
+              height: PANEL_SIZE, // Keep original height for smooth transition
             },
           };
         default:
@@ -124,7 +218,8 @@ const PublicProjectLayout = ({
           };
       }
     });
-  }, [panels]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panels, collapsedPanels]);
 
   // Check if a panel can be added to a specific position
   const canAddPanel = (position: "top" | "bottom" | "left" | "right") => {
@@ -143,6 +238,7 @@ const PublicProjectLayout = ({
 
     return true;
   };
+
   const handleChangeOrder = (panelId: string, direction: "left" | "right" | "top" | "bottom") => {
     const prevPanels = panels;
     const newPanels = [...prevPanels];
@@ -284,36 +380,40 @@ const PublicProjectLayout = ({
   };
 
   const addSectionStylePosition = useMemo(() => {
-    const style = {
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+    return {
+      top: getOccupiedSpace.top,
+      left: getOccupiedSpace.left,
+      right: getOccupiedSpace.right,
+      bottom: getOccupiedSpace.bottom,
     };
-    const panelCounts = {
-      top: topPanels.length,
-      bottom: bottomPanels.length,
-      left: leftPanels.length,
-      right: rightPanels.length,
+  }, [getOccupiedSpace]);
+
+  // Calculate control positions based on actual occupied space
+  const controlPositions = useMemo(() => {
+    return {
+      topLeft: {
+        left: getOccupiedSpace.left,
+        top: getOccupiedSpace.top,
+      },
+      topRight: {
+        right: getOccupiedSpace.right,
+        top: getOccupiedSpace.top,
+      },
+      bottomRight: {
+        right: getOccupiedSpace.right,
+        bottom: getOccupiedSpace.bottom,
+      },
+      bottomLeft: {
+        left: getOccupiedSpace.left,
+        bottom: getOccupiedSpace.bottom,
+      },
     };
-    Object.keys(panelCounts).forEach((key) => {
-      if (panelCounts[key] > 0) {
-        style[key] = panelCounts[key] * PANEL_SIZE;
-      }
-    });
-    return style;
-  }, [topPanels, bottomPanels, leftPanels, rightPanels]);
+  }, [getOccupiedSpace]);
 
   return (
     <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }}>
       {project && builderConfig?.settings?.toolbar && (
-        <Header
-          showHambugerMenu={false}
-          mapHeader={true}
-          project={project}
-          viewOnly
-          showInfo={builderConfig?.settings?.project_info}
-        />
+        <Header showHambugerMenu={false} mapHeader={true} project={project} viewOnly />
       )}
       <Box
         display="flex"
@@ -342,6 +442,7 @@ const PublicProjectLayout = ({
                   key={panel.id}
                   panel={panel}
                   projectLayers={projectLayers}
+                  projectLayerGroups={projectLayerGroups}
                   viewOnly={viewOnly}
                   selected={selectedPanel?.type === "panel" && selectedPanel?.id === panel.id}
                   onChangeOrder={handleChangeOrder}
@@ -359,6 +460,7 @@ const PublicProjectLayout = ({
                 flexGrow: 1,
                 position: "absolute",
                 ...addSectionStylePosition,
+                transition: "all 0.3s",
               }}>
               {/* Render AddSectionButton only if the panel can be added */}
               {["top", "bottom", "left", "right"].map((position) => {
@@ -381,10 +483,10 @@ const PublicProjectLayout = ({
             <Box
               sx={{
                 position: "absolute",
-                left: leftPanels.length * PANEL_SIZE,
-                top: topPanels.length * PANEL_SIZE,
+                ...controlPositions.topLeft,
                 m: 2,
                 zIndex: 2,
+                transition: "all 0.3s",
               }}>
               <Geocoder
                 accessToken={MAPBOX_TOKEN}
@@ -400,10 +502,50 @@ const PublicProjectLayout = ({
           <Box
             sx={{
               position: "absolute",
-              right: rightPanels.length * PANEL_SIZE,
-              top: topPanels.length * PANEL_SIZE,
+              ...controlPositions.topRight,
               m: 2,
               zIndex: 2,
+              transition: "all 0.3s",
+            }}>
+            {project && builderConfig?.settings?.project_info && (
+              <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
+            )}
+          </Box>
+          {/* Right Floating Panel - Layer Settings */}
+          {activeRightComponent && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: getOccupiedSpace.right + 16,
+                top: getOccupiedSpace.top + 16,
+                bottom: getOccupiedSpace.bottom + 16,
+                zIndex: 10000,
+                pointerEvents: "auto",
+                transition: "all 0.3s",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 2,
+              }}>
+              <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
+                <ViewContainer
+                  title={activeRightComponent.title}
+                  disablePadding={true}
+                  close={handleClose}
+                  body={activeRightComponent.content}
+                />
+              </FloatingPanel>
+            </Box>
+          )}
+
+          {/* Bottom-Right Controls */}
+          <Box
+            sx={{
+              position: "absolute",
+              ...controlPositions.bottomRight,
+              m: 2,
+              zIndex: 2,
+              transition: "all 0.3s",
             }}>
             {builderConfig?.settings.zoom_controls && (
               <Zoom tooltipZoomIn={t("zoom_in")} tooltipZoomOut={t("zoom_out")} />
@@ -412,25 +554,14 @@ const PublicProjectLayout = ({
               <Fullscren tooltipOpen={t("fullscreen")} tooltipExit={t("exit_fullscreen")} />
             )}
             {builderConfig?.settings.find_my_location && <UserLocation tooltip={t("find_location")} />}
-          </Box>
-          {/* Bottom-Right Controls */}
-          <Box
-            sx={{
-              position: "absolute",
-              right: rightPanels.length * PANEL_SIZE,
-              bottom: bottomPanels.length * PANEL_SIZE,
-              zIndex: 2,
-            }}>
             {builderConfig?.settings.basemap && (
-              <Box sx={{ m: 2 }}>
-                <BasemapSelector
-                  styles={translatedBaseMaps}
-                  active={activeBasemap.value}
-                  basemapChange={async (basemap) => {
-                    await onProjectUpdate?.("basemap", basemap);
-                  }}
-                />
-              </Box>
+              <BasemapSelector
+                styles={translatedBaseMaps}
+                active={activeBasemap.value}
+                basemapChange={async (basemap) => {
+                  await onProjectUpdate?.("basemap", basemap);
+                }}
+              />
             )}
             <AttributionControl />
           </Box>
@@ -439,11 +570,11 @@ const PublicProjectLayout = ({
             <Box
               sx={{
                 position: "absolute",
-                left: leftPanels.length * PANEL_SIZE,
+                ...controlPositions.bottomLeft,
                 zIndex: 2,
-                bottom: bottomPanels.length * PANEL_SIZE,
                 m: 2,
                 pointerEvents: "none",
+                transition: "all 0.3s",
               }}>
               <Scalebar />
             </Box>

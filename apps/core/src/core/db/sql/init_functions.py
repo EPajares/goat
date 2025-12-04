@@ -1,17 +1,34 @@
-from sqlalchemy import create_engine
+import logging
 
 from core.core.config import settings
-from core.db.sql.create_functions import FunctionManager
+from core.db.session import session_manager
+from core.db.sql.create_functions import AsyncFunctionManager
+
+logger = logging.getLogger(__name__)
 
 
-def main() -> None:
-    if settings.POSTGRES_DATABASE_URI is None:
+async def init_functions() -> None:
+    """
+    Initialize PostgreSQL SQL functions using an async session from session_manager.
+    """
+    if settings.ASYNC_SQLALCHEMY_DATABASE_URI is None:
         raise ValueError("PostgreSQL database URI not configured.")
 
-    with create_engine(settings.POSTGRES_DATABASE_URI).connect() as engine:
-        function_manager = FunctionManager(engine, "/src/db/sql/functions", "basic")
-        function_manager.update_functions()
+    async with session_manager.session() as session:
+        try:
+            manager = AsyncFunctionManager(
+                session=session,
+                path="functions",
+                schema="basic",
+            )
 
+            await manager.update_functions()
+            await session.commit()
 
-if __name__ == "__main__":
-    main()
+            logger.info("SQL functions updated successfully.")
+
+        except Exception as e:
+            logger.error("Error updating SQL functions — rolling back.")
+            logger.exception(e)
+            await session.rollback()
+            raise

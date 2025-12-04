@@ -47,7 +47,7 @@ jobs:
   release-docker-core:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.core == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/reusable-docker-build.yml
+    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
     permissions:
       contents: read
       packages: write
@@ -57,13 +57,13 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/core/Dockerfile
-      platforms: linux/amd64,linux/arm64
-      image-name: ghcr.io/${{ github.repository }}/core
+      image-names: |
+        ghcr.io/${{ github.repository }}/core
 
   release-docker-geoapi:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.geoapi == 'true' ||
-        startsWith(github.ref, 'refs/tags/v')
+      startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/reusable-docker-build.yml
     permissions:
       contents: read
@@ -112,7 +112,7 @@ jobs:
   release-docker-storybook:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.storybook == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
+    uses: ./.github/workflows/reusable-docker-build.yml
     permissions:
       contents: read
       packages: write
@@ -122,13 +122,13 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/storybook/Dockerfile
-      image-names: |
-        ghcr.io/${{ github.repository }}/storybook
+      platforms: linux/amd64,linux/arm64
+      image-name: ghcr.io/${{ github.repository }}/storybook
 
   release-docker-docs:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.docs == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: plan4better/.github/.github/workflows/reusable-docker-build.yml@main
+    uses: ./.github/workflows/reusable-docker-build.yml
     permissions:
       contents: read
       packages: write
@@ -138,8 +138,8 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/docs/Dockerfile
-      image-names: |
-        ghcr.io/${{ github.repository }}/docs
+      platforms: linux/amd64,linux/arm64
+      image-name: ghcr.io/${{ github.repository }}/docs
 
   release-keycloak-theme:
     needs: [file-changes, lint]

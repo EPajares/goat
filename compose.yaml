@@ -1,0 +1,206 @@
+x-env-base: &env-base
+  POSTGRES_USER: ${POSTGRES_USER}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_SERVER: ${POSTGRES_SERVER}
+  S3_PROVIDER: ${S3_PROVIDER}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+  S3_REGION_NAME: ${S3_REGION_NAME}
+  S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL}
+
+x-env-core: &env-core
+  <<: *env-base
+  AUTH: ${AUTH}
+  POSTGRES_DB: goat
+  REGION_MAPPING_PT_TABLE: basic.region_mapping_pt_04022025
+
+x-service-core: &service-core
+  image: ghcr.io/plan4better/goat/core
+  build:
+    context: .
+    dockerfile: apps/core/Dockerfile
+  environment:
+    <<: *env-core
+  depends_on:
+    db:
+      condition: service_healthy
+      restart: true
+    minio:
+      condition: service_healthy
+      restart: true
+
+services:
+  db:
+    image: ghcr.io/plan4better/docker-images/postgres:20251111-8198082
+    container_name: goat-db
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rds -d goat -h 127.0.0.1"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
+    environment:
+      DB_INSTANCE_NAME: goat-prod-db-master
+      PGUSER: ${POSTGRES_USER}
+      DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      DB_DATABASE_goat: goat
+      DB_USERNAME_goat: ${POSTGRES_USER}
+      DB_PASSWORD_goat: ${POSTGRES_PASSWORD}
+      DB_DATABASE_keycloak: keycloak
+      DB_USERNAME_keycloak: ${POSTGRES_USER}
+      DB_PASSWORD_keycloak: ${POSTGRES_PASSWORD}
+      DISABLE_BACKUP: 1
+      DB_INIT_SQL_goat: /rds/init/init-db.sql
+      DB_POSTGRES_EXTRA_CONFIG: |
+
+        max_connections = 200
+        shared_buffers = 4GB
+        effective_cache_size = 12GB
+        maintenance_work_mem = 2GB
+        checkpoint_completion_target = 0.9
+        wal_buffers = 32MB
+        default_statistics_target = 100
+        random_page_cost = 1.1
+        effective_io_concurrency = 200
+        work_mem = 26214kB
+        min_wal_size = 2GB
+        max_wal_size = 8GB
+        max_worker_processes = 8
+        max_parallel_workers_per_gather = 4
+        max_parallel_workers = 4
+        max_parallel_maintenance_workers = 2
+        shared_preload_libraries = 'citus,pg_cron'
+
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data/db:/storage/data
+      - ./scripts/db/init-db.sql:/rds/init/init-db.sql:ro
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.3
+    container_name: keycloak
+    restart: always
+    depends_on:
+      - db
+      - keycloak-theme-downloader
+    volumes:
+      - ./data/keycloak/providers:/opt/keycloak/providers
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_DB_URL: jdbc:postgresql://${POSTGRES_SERVER}:5432/keycloak
+      KC_FEATURES: declarative-user-profile
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+
+  keycloak-theme-downloader:
+    image: curlimages/curl:8.2.1
+    volumes:
+      - ./data/keycloak/providers:/opt/keycloak/providers
+    command: >
+      sh -c "curl -L -f -S -o /opt/keycloak/providers/p4b-keycloak-theme.jar https://assets.plan4better.de/other/keycloak/p4b-keyclok-theme-c7a4a10.jar"
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
+    container_name: goat-minio
+    restart: always
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    command: ["server", "--console-address", ":9001", "/data"]
+    volumes:
+      - ./data/s3:/data:z
+    healthcheck:
+      test: "mc ready local"
+      interval: 2s
+      timeout: 10s
+      retries: 5
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_ACCESS_KEY}
+      MINIO_DOMAIN: ${S3_PUBLIC_ENDPOINT_URL}
+
+  minio-buckets:
+    image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    depends_on:
+      minio:
+        condition: service_healthy
+    restart: on-failure
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set p4b http://minio:9000 ${S3_ACCESS_KEY_ID} ${S3_SECRET_ACCESS_KEY};
+      /usr/bin/mc mb p4b/${S3_BUCKET_NAME};
+      exit 0;
+      "
+
+  core-migrate:
+    <<: *service-core
+    container_name: goat-core-migrate
+    restart: "no"
+    command: bash -c "cd apps/core && src/core/scripts/prestart.sh"
+
+  core:
+    <<: *service-core
+    container_name: goat-core
+    restart: always
+    ports:
+      - 8000:8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/healthz"]
+      interval: 120s
+      timeout: 60s
+      retries: 3
+      start_period: 20s
+
+  geoapi:
+    image: ghcr.io/plan4better/goat/geoapi
+    build:
+      context: .
+      dockerfile: apps/geoapi/Dockerfile
+    container_name: goat-geoapi
+    restart: always
+    ports:
+      - 8100:8000
+    environment:
+      <<: *env-core
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/plan4better/goat/web
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: goat-web
+    restart: always
+    ports:
+      - 3000:3000
+    environment:
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GEOAPI_URL: ${NEXT_PUBLIC_GEOAPI_URL}
+      NEXT_PUBLIC_ACCOUNTS_API_URL: ${NEXT_PUBLIC_ACCOUNTS_API_URL}
+      NEXT_PUBLIC_DOCS_URL: ${NEXT_PUBLIC_DOCS_URL}
+      NEXT_PUBLIC_MAP_TOKEN: ${NEXT_PUBLIC_MAP_TOKEN}
+      NEXT_PUBLIC_KEYCLOAK_ISSUER: ${NEXT_PUBLIC_KEYCLOAK_ISSUER}
+      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: ${NEXT_PUBLIC_KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN}
+      NEXT_PUBLIC_AUTH_DISABLED: ${NEXT_PUBLIC_AUTH_DISABLED}
+      NEXT_PUBLIC_ACCOUNTS_DISABLED: ${NEXT_PUBLIC_ACCOUNTS_DISABLED}
+    depends_on:
+      - core

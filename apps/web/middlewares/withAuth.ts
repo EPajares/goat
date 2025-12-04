@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+
 import type { MiddlewareFactory } from "@/middlewares/types";
 
 const protectedPaths = [
@@ -17,6 +18,16 @@ const publicPaths = ["/map/public"];
 
 export const withAuth: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
+    // Check if auth is disabled - handle both actual values and unreplaced placeholders
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED;
+    const isAuthDisabled =
+      authDisabled &&
+      authDisabled !== "APP_NEXT_PUBLIC_AUTH_DISABLED" &&
+      authDisabled.toLowerCase() === "true";
+
+    if (isAuthDisabled || !process.env.NEXTAUTH_URL || !process.env.NEXTAUTH_SECRET) {
+      return next(request, _next);
+    }
     const { pathname, search, origin, basePath } = request.nextUrl;
 
     // Skip public paths
@@ -30,10 +41,7 @@ export const withAuth: MiddlewareFactory = (next) => {
     // Verify secret & token
     const nextAuthSecret = process.env.NEXTAUTH_SECRET;
     if (!nextAuthSecret) {
-      console.error(`[next-auth][error][NO_SECRET]`, "\nhttps://next-auth.js.org/errors#no_secret");
-      const errorUrl = new URL(`${basePath}/auth/error`, origin);
-      errorUrl.searchParams.append("error", "Configuration");
-      return NextResponse.redirect(errorUrl);
+      return next(request, _next);
     }
 
     const token = await getToken({ req: request, secret: nextAuthSecret });

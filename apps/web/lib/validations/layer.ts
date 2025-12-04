@@ -1,5 +1,6 @@
-import * as z from "zod";
 import { v4 } from "uuid";
+import * as z from "zod";
+
 import { DEFAULT_WKT_EXTENT } from "@/lib/constants";
 import { DEFAULT_COLOR, DEFAULT_COLOR_RANGE } from "@/lib/constants/color";
 import {
@@ -75,7 +76,17 @@ export const colorRange = z.object({
   color_legends: ColorLegends.optional(),
 });
 
-export const SymbolPlacementAnchor = z.enum(["center", "left", "right", "top", "bottom", "top-left", "top-right", "bottom-left", "bottom-right"]);
+export const SymbolPlacementAnchor = z.enum([
+  "center",
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "top-left",
+  "top-right",
+  "bottom-left",
+  "bottom-right",
+]);
 export const TextLabelSchema = z.object({
   size: z.number().min(1).max(100).default(14),
   color: z.array(z.number().min(0).max(255)).optional().default([0, 0, 0]),
@@ -90,7 +101,6 @@ export const TextLabelSchema = z.object({
   outline_color: z.array(z.number().min(0).max(255)).optional().default([255, 255, 255]),
   outline_width: z.number().min(0).max(10).optional().default(0),
 });
-
 
 export const layerPropertiesBaseSchema = z.object({
   opacity: z.number().min(0).max(1).default(0.8),
@@ -165,16 +175,21 @@ export const attributeSchema = z.object({
   format: z.string().optional(),
 });
 
-
 export const interactionFieldListContent = z.object({
-  id: z.string().uuid().default(() => v4()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => v4()),
   type: z.literal(layerInteractionContentType.Enum.field_list).default("field_list"),
   title: z.string().optional(),
   attributes: z.array(attributeSchema).optional().default([]),
 });
 
 export const interactionImageContent = z.object({
-  id: z.string().uuid().default(() => v4()),
+  id: z
+    .string()
+    .uuid()
+    .default(() => v4()),
   type: z.literal(layerInteractionContentType.Enum.image).default("image"),
   title: z.string().optional(),
   url: z.string().optional().default(""),
@@ -192,7 +207,8 @@ export const interactionProperties = z.object({
 export const layerLegend = z.object({
   show: z.boolean().default(true),
   caption: z.string().optional(),
-})
+  collapsed: z.boolean().optional().default(false),
+});
 
 export const featureLayerBasePropertiesSchema = z
   .object({
@@ -221,9 +237,6 @@ export const featureLayerProperties = featureLayerPointPropertiesSchema
   .or(featureLayerPolygonPropertiesSchema);
 
 export const featureLabelProperties = z.object({});
-
-
-
 
 // lineage, positional_accuracy, attribute_accuracy, completeness
 export const layerMetadataSchema = contentMetadataSchema.extend({
@@ -257,9 +270,75 @@ export const otherPropertiesSchmea = z.object({
   tile_size: z.number().optional(),
 });
 
+// Raster styling schemas
+export const rasterStyleType = z.enum(["image", "color_range", "categories", "hillshade"]);
+
+export const rasterStyleImageProperties = z.object({
+  style_type: z.literal("image").default("image"),
+  opacity: z.number().min(0).max(1).default(1.0),
+  brightness_min: z.number().min(0).max(1).optional().default(0.0),
+  brightness_max: z.number().min(0).max(1).optional().default(1.0),
+  contrast: z.number().min(-1).max(1).optional().default(0.0),
+  saturation: z.number().min(-1).max(1).optional().default(0.0),
+  gamma: z.number().min(0.1).max(3).optional().default(1.0),
+});
+
+export const rasterStyleColorRangeProperties = z.object({
+  style_type: z.literal("color_range").default("color_range"),
+  band: z.number().min(1).default(1),
+  min_value: z.number().optional(),
+  max_value: z.number().optional(),
+  min_label: z.string().optional(),
+  max_label: z.string().optional(),
+  color_map: z.array(z.tuple([z.number(), z.string()])).default([]),
+  no_data_color: z.string().optional().default("transparent"),
+  interpolate: z.boolean().default(true),
+});
+
+export const rasterStyleCategoriesProperties = z.object({
+  style_type: z.literal("categories").default("categories"),
+  band: z.number().min(1).default(1),
+  categories: z
+    .array(
+      z.object({
+        value: z.number(),
+        color: z.string(),
+        label: z.string().optional(),
+      })
+    )
+    .default([]),
+  default_color: z.string().default("#cccccc"),
+  no_data_color: z.string().optional().default("transparent"),
+});
+
+export const rasterStyleHillshadeProperties = z.object({
+  style_type: z.literal("hillshade").default("hillshade"),
+  band: z.number().min(1).default(1),
+  azimuth: z.number().min(0).max(360).default(315.0),
+  altitude: z.number().min(0).max(90).default(45.0),
+  z_factor: z.number().min(0.01).default(1.0),
+  opacity: z.number().min(0).max(1).default(1.0),
+});
+
+export const rasterStyleProperties = z.discriminatedUnion("style_type", [
+  rasterStyleImageProperties,
+  rasterStyleColorRangeProperties,
+  rasterStyleCategoriesProperties,
+  rasterStyleHillshadeProperties,
+]);
+
+export const rasterLayerPropertiesSchema = layerPropertiesBaseSchema.extend({
+  text_label: TextLabelSchema.optional(),
+  interaction: interactionProperties.optional().default({}),
+  legend: layerLegend.optional().default({}),
+  style: rasterStyleProperties
+    .optional()
+    .default({ style_type: "image", opacity: 1.0 } as z.infer<typeof rasterStyleImageProperties>),
+});
+
 export const layerSchema = layerMetadataSchema.extend({
   id: z.string(),
-  properties: featureLayerProperties.or(z.record(z.any())).default({}),
+  properties: featureLayerProperties.or(rasterLayerPropertiesSchema).or(z.record(z.any())).default({}),
   total_count: z.number().optional(),
   extent: z.string().default(DEFAULT_WKT_EXTENT),
   folder_id: z.string(),
@@ -309,7 +388,7 @@ export const createRasterLayerSchema = createLayerBaseSchema.extend({
   url: z.string().url(),
   data_type: dataType,
   extent: z.string().optional(),
-  properties: z.record(z.any()).optional(), // add validation for raster properties
+  properties: rasterLayerPropertiesSchema.optional(),
   other_properties: otherPropertiesSchmea,
 });
 
@@ -449,3 +528,15 @@ export type TextLabelSchemaData = z.infer<typeof TextLabelSchema>;
 export type LayerInteractionContentType = z.infer<typeof layerInteractionContentType>;
 export type LayerInteractionContent = z.infer<typeof layerInteractionContent>;
 export type LayerInteractionFieldListContent = z.infer<typeof interactionFieldListContent>;
+
+// Raster styling types
+export type RasterStyleType = z.infer<typeof rasterStyleType>;
+export type RasterStyleImageProperties = z.infer<typeof rasterStyleImageProperties>;
+export type RasterStyleColorRangeProperties = z.infer<typeof rasterStyleColorRangeProperties>;
+export type RasterStyleCategoriesProperties = z.infer<typeof rasterStyleCategoriesProperties>;
+export type RasterStyleHillshadeProperties = z.infer<typeof rasterStyleHillshadeProperties>;
+export type RasterStyleProperties = z.infer<typeof rasterStyleProperties>;
+export type RasterLayerProperties = z.infer<typeof rasterLayerPropertiesSchema>;
+
+// Union type for all layer properties
+export type LayerProperties = FeatureLayerProperties | RasterLayerProperties;

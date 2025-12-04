@@ -188,6 +188,8 @@ const Toolbox = () => {
                 main_accordions.map((tab) => (
                   <AccordionWrapper
                     key={tab.name}
+                    boxShadow="none"
+                    backgroundColor="transparent"
                     header={
                       <Typography
                         variant="body2"

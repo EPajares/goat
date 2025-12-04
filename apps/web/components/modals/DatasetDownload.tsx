@@ -41,14 +41,20 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
   dataset,
 }) => {
   const { t } = useTranslation("common");
+
+  // Support both 'type' (Layer schema) and 'layer_type' (ProjectLayerTreeNode)
+  // For ProjectLayerTreeNode, 'type' is "layer" or "group", so we need 'layer_type' for the actual layer type
+  const layerType = (dataset as { layer_type?: string }).layer_type || dataset.type;
+  const isSpatialLayer = layerType === "feature" || layerType === "raster";
+
   const [dataDownloadType, setDataDownloadType] = useState<FeatureDataExchangeType>(
-    dataset.type === "feature" ? featureDataExchangeType.Enum.gpkg : tableDataExchangeType.Enum.csv
+    isSpatialLayer ? featureDataExchangeType.Enum.gpkg : tableDataExchangeType.Enum.csv
   );
 
   const [isBusy, setIsBusy] = useState(false);
 
   const [dataCrs, setDataCrs] = useState<string | null>(
-    dataset.type === "feature" ? featureDataExchangeCRS.Enum["3857"] : null
+    isSpatialLayer ? featureDataExchangeCRS.Enum["3857"] : null
   );
 
   const handleDownload = async () => {
@@ -101,13 +107,13 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
               id="download-simple-select"
               value={dataDownloadType}
               onChange={(e) => setDataDownloadType(e.target.value as FeatureDataExchangeType)}>
-              {dataset.type === "feature" &&
+              {isSpatialLayer &&
                 featureDataExchangeType.options.map((type: string) => (
                   <MenuItem key={type} value={type}>
                     {t(`${type}`)}
                   </MenuItem>
                 ))}
-              {dataset.type !== "feature" &&
+              {!isSpatialLayer &&
                 tableDataExchangeType.options.map((type: string) => (
                   <MenuItem key={type} value={type}>
                     {t(`${type}`)}
@@ -115,7 +121,7 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
                 ))}
             </Select>
           </Box>
-          {dataset.type === "feature" && (
+          {isSpatialLayer && (
             <Box>
               <Typography variant="caption">{t(`download_crs`)}</Typography>
               <Select
@@ -127,12 +133,11 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
                 id="download-crs-select"
                 value={dataCrs}
                 onChange={(e) => setDataCrs(e.target.value as string)}>
-                {dataset.type === "feature" &&
-                  featureDataExchangeCRS.options.map((type: string) => (
-                    <MenuItem key={type} value={type}>
-                      {t(`${type}`)}
-                    </MenuItem>
-                  ))}
+                {featureDataExchangeCRS.options.map((type: string) => (
+                  <MenuItem key={type} value={type}>
+                    {t(`${type}`)}
+                  </MenuItem>
+                ))}
               </Select>
             </Box>
           )}

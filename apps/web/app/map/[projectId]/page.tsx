@@ -17,6 +17,7 @@ import {
   updateProjectInitialViewState,
   useProject,
   useProjectInitialViewState,
+  useProjectLayerGroups,
   useProjectScenarioFeatures,
 } from "@/lib/api/projects";
 import { PATTERN_IMAGES } from "@/lib/constants/pattern-images";
@@ -66,9 +67,16 @@ export default function MapPage({ params: { projectId } }) {
   const {
     isLoading: areProjectLayersLoading,
     isError: projectLayersError,
-    layers: projectLayers,
+    layers: allProjectLayers,
     mutate: mutateProjectLayers,
   } = useFilteredProjectLayers(projectId, ["table"], []);
+
+  const {
+    layerGroups: projectLayerGroups,
+    isLoading: areProjectLayerGroupsLoading,
+    isError: projectLayerGroupsError,
+    mutate: mutateProjectLayerGroups,
+  } = useProjectLayerGroups(projectId);
 
   const project = useMemo(() => {
     if (!_project) return undefined;
@@ -81,19 +89,69 @@ export default function MapPage({ params: { projectId } }) {
     }
   }, [_project]);
 
+  // Filter out layers that are in invisible layer groups
+  const projectLayers = useMemo(() => {
+    if (!allProjectLayers || !projectLayerGroups) {
+      return allProjectLayers || [];
+    }
+
+    // Create a set of invisible group IDs (including nested invisible groups)
+    const invisibleGroupIds = new Set<number>();
+
+    const findInvisibleGroups = (groups: typeof projectLayerGroups) => {
+      groups.forEach((group) => {
+        // Get visibility from properties (default to true if not set)
+        const groupVisibility = group.properties?.visibility ?? true;
+        if (!groupVisibility) {
+          invisibleGroupIds.add(group.id);
+        }
+        // Also check if parent group is invisible
+        if (group.parent_id && invisibleGroupIds.has(group.parent_id)) {
+          invisibleGroupIds.add(group.id);
+        }
+      });
+    };
+
+    // Run multiple times to catch nested invisible groups
+    let previousSize = -1;
+    while (invisibleGroupIds.size !== previousSize) {
+      previousSize = invisibleGroupIds.size;
+      findInvisibleGroups(projectLayerGroups);
+    }
+
+    // Filter out layers that belong to invisible groups
+    return allProjectLayers.filter((layer) => {
+      if (!layer.layer_project_group_id) {
+        return true; // Layer not in any group, so it's visible
+      }
+      return !invisibleGroupIds.has(layer.layer_project_group_id);
+    });
+  }, [allProjectLayers, projectLayerGroups]);
+
   const { activeBasemap } = useBasemap(project);
 
   const { isProjectEditor, isLoading: isAuthZLoading } = useAuthZ();
 
   const { scenarioFeatures } = useProjectScenarioFeatures(projectId, project?.active_scenario_id);
   const isLoading = useMemo(
-    () => isProjectLoading || isInitialViewLoading || areProjectLayersLoading || isAuthZLoading,
-    [isProjectLoading, isInitialViewLoading, areProjectLayersLoading, isAuthZLoading]
+    () =>
+      isProjectLoading ||
+      isInitialViewLoading ||
+      areProjectLayersLoading ||
+      areProjectLayerGroupsLoading ||
+      isAuthZLoading,
+    [
+      isProjectLoading,
+      isInitialViewLoading,
+      areProjectLayersLoading,
+      areProjectLayerGroupsLoading,
+      isAuthZLoading,
+    ]
   );
 
   const hasError = useMemo(
-    () => projectError || projectInitialViewError || projectLayersError,
-    [projectError, projectInitialViewError, projectLayersError]
+    () => projectError || projectInitialViewError || projectLayersError || projectLayerGroupsError,
+    [projectError, projectInitialViewError, projectLayersError, projectLayerGroupsError]
   );
 
   const updateViewState = useMemo(
@@ -137,6 +195,7 @@ export default function MapPage({ params: { projectId } }) {
 
   useJobStatus(() => {
     mutateProjectLayers();
+    mutateProjectLayerGroups();
     mutateProject();
   });
 
