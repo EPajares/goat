@@ -201,9 +201,12 @@ const Layers = (props: LayersProps) => {
                 const rasterProperties = layer.properties as RasterLayerProperties;
 
                 // Register color function for COG layers with custom styling
-                if (layer.data_type === "cog" && rasterProperties?.style) {
+                // Only needed for color_range, categories, hillshade (not image - use native MapLibre properties)
+                if (layer.data_type === "cog" && rasterProperties?.style?.style_type !== "image") {
                   const colorFunction = generateCOGColorFunction(rasterProperties.style);
-                  setColorFunction(layer.url, colorFunction);
+                  if (colorFunction) {
+                    setColorFunction(layer.url, colorFunction);
+                  }
                 }
 
                 return (
@@ -227,6 +230,12 @@ const Layers = (props: LayersProps) => {
                       }}
                       paint={{
                         "raster-opacity": rasterProperties?.opacity || 1.0,
+                        ...(rasterProperties?.style?.style_type === "image" && {
+                          "raster-brightness-min": rasterProperties.style.brightness_min ?? 0,
+                          "raster-brightness-max": rasterProperties.style.brightness_max ?? 1,
+                          "raster-contrast": rasterProperties.style.contrast ?? 0,
+                          "raster-saturation": rasterProperties.style.saturation ?? 0,
+                        }),
                       }}
                     />
                   </Source>

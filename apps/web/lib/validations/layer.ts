@@ -276,7 +276,8 @@ export const rasterStyleType = z.enum(["image", "color_range", "categories", "hi
 export const rasterStyleImageProperties = z.object({
   style_type: z.literal("image").default("image"),
   opacity: z.number().min(0).max(1).default(1.0),
-  brightness: z.number().min(-1).max(1).optional().default(0.0),
+  brightness_min: z.number().min(0).max(1).optional().default(0.0),
+  brightness_max: z.number().min(0).max(1).optional().default(1.0),
   contrast: z.number().min(-1).max(1).optional().default(0.0),
   saturation: z.number().min(-1).max(1).optional().default(0.0),
   gamma: z.number().min(0.1).max(3).optional().default(1.0),

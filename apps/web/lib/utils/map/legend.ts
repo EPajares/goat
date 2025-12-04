@@ -60,9 +60,11 @@ export function getLegendColorMap(
 
       if (scaleType === "custom_breaks") {
         const colorMapValues = (properties[`${type}_range`] as Record<string, unknown>)?.color_map;
+        // Create a new mutable object to avoid "object is not extensible" errors
         const _customClassBreaks: { breaks: number[]; min?: number; max?: number } = {
           breaks: [],
-          ...(classBreaksValues || {}),
+          min: (classBreaksValues as { min?: number })?.min,
+          max: (classBreaksValues as { max?: number })?.max,
         };
         const _colors: string[] = [];
 
@@ -71,7 +73,9 @@ export function getLegendColorMap(
           _colors.push(valueArray[1]);
           if (index === 0) return;
           if (valueArray[0] !== null && valueArray[0] !== undefined) {
-            _customClassBreaks.breaks.push(Number(valueArray[0][0]));
+            // Handle both array and non-array formats
+            const firstValue = Array.isArray(valueArray[0]) ? valueArray[0][0] : valueArray[0];
+            _customClassBreaks.breaks.push(Number(firstValue));
           }
         });
         classBreaksValues = _customClassBreaks;

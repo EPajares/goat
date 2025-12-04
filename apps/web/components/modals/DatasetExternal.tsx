@@ -54,6 +54,7 @@ import {
   createRasterLayerSchema,
   externalDatasetFeatureUrlSchema,
   layerMetadataSchema,
+  rasterLayerPropertiesSchema,
 } from "@/lib/validations/layer";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
@@ -121,31 +122,31 @@ const extractFilenameFromUrl = (url: string): string => {
   try {
     const parsedUrl = new URL(url);
     const pathname = parsedUrl.pathname;
-    const filename = pathname.split('/').pop() || '';
+    const filename = pathname.split("/").pop() || "";
     // Remove file extension for display
-    return filename.replace(/\.[^/.]+$/, '');
+    return filename.replace(/\.[^/.]+$/, "");
   } catch (error) {
     console.error("Invalid URL", error);
-    return 'COG Layer';
+    return "COG Layer";
   }
 };
 
 const findExternalDatasetType = (url: string): CapabilitiesType | null => {
   // COG pattern - ends with .tif or .tiff (supports query params and hash fragments)
   const cogPattern = /^https?:\/\/.*\.(tiff?|TIF|TIFF)(\?.*)?(\#.*)?$/;
-  
+
   // XYZ pattern (Should contain {x}, {y}, {z} and shouldn't contain {TileRow} and {TileCol})
   const xyzPattern = /^(?=.*\{z\})(?=.*\{x\})(?=.*\{y\})(?!.*\{TileRow\})(?!.*\{TileCol\}).*$/;
   const wmtsPattern =
     /^(?=.*\{TileRow\})(?=.*\{TileCol\})(?=.*\{TileMatrix\})(?!.*\{x\})(?!.*\{y\})(?!.*\{z\})(?!.*\{Style\})(?!.*\{TileMatrixSet\}).*$/;
-    
+
   if (cogPattern.test(url)) {
     return {
       type: imageryDataType.Enum.cog,
       directUrl: url,
     };
   }
-  
+
   // Check if the URL matches the xyz pattern
   if (xyzPattern.test(url)) {
     // Return the capabilities object for xyz
@@ -490,13 +491,13 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
         if (preselectedFolder) {
           setSelectedFolder(preselectedFolder);
         }
-        
+
         // For COG type, set default layer name from URL filename
         if (urlCapabilities.type === imageryDataType.Enum.cog) {
           const filename = extractFilenameFromUrl(externalUrl);
           setValue("name", filename || "COG Layer");
         }
-        
+
         // Skip dataset selection step if it's a direct link and go to destination and metadata step
         setActiveStep((prevActiveStep) => prevActiveStep + 2);
         return;
@@ -654,11 +655,18 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           // For COG, save the URL as-is (client will handle cog:// prefix)
           url = externalUrl;
         }
+
+        // Parse default raster properties using the schema
+        const defaultRasterProperties = rasterLayerPropertiesSchema.parse({
+          visibility: true,
+        });
+
         const payload = createRasterLayerSchema.parse({
           ...layerPayload,
           type: "raster",
           data_type: capabilities.type,
           url,
+          properties: defaultRasterProperties,
           other_properties: {
             ...(layers && { layers }),
             ...(legendUrls.length && { legend_urls: legendUrls }),

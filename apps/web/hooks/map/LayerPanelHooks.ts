@@ -10,6 +10,7 @@ import {
   featureLayerLinePropertiesSchema,
   featureLayerPointPropertiesSchema,
   featureLayerPolygonPropertiesSchema,
+  rasterLayerPropertiesSchema,
 } from "@/lib/validations/layer";
 import { type ProjectLayer, projectLayerSchema } from "@/lib/validations/project";
 
@@ -268,6 +269,10 @@ export const useActiveLayer = (projectId: string) => {
 
     if (parsedActiveLayer.feature_layer_geometry_type === "polygon") {
       parsedActiveLayer.properties = featureLayerPolygonPropertiesSchema.parse(properties);
+    }
+
+    if (parsedActiveLayer.type === "raster") {
+      parsedActiveLayer.properties = rasterLayerPropertiesSchema.parse(properties);
     }
 
     return parsedActiveLayer;

@@ -2,7 +2,6 @@ import type {
   RasterStyleCategoriesProperties,
   RasterStyleColorRangeProperties,
   RasterStyleHillshadeProperties,
-  RasterStyleImageProperties,
   RasterStyleProperties,
 } from "@/lib/validations/layer";
 
@@ -32,19 +31,22 @@ export type COGColorFunction = (pixel: PixelData, color: ColorOutput, metadata: 
 
 /**
  * Generates a color function for COG layers based on the style properties.
+ * Note: 'image' style should use MapLibre native raster paint properties instead.
  * This integrates with the maplibre-cog-protocol via setColorFunction().
  * @see https://github.com/geomatico/maplibre-cog-protocol#apply-a-custom-color-function-to-any-cog
  */
-export function generateCOGColorFunction(styleProps: RasterStyleProperties): COGColorFunction {
+export function generateCOGColorFunction(styleProps: RasterStyleProperties): COGColorFunction | null {
   switch (styleProps.style_type) {
-    case "image":
-      return generateImageColorFunction(styleProps);
     case "color_range":
       return generateColorRangeColorFunction(styleProps);
     case "categories":
       return generateCategoriesColorFunction(styleProps);
     case "hillshade":
       return generateHillshadeColorFunction(styleProps);
+    case "image":
+      // Image style should use MapLibre native properties, not custom color function
+      console.warn("Image style should use MapLibre native raster paint properties");
+      return null;
     default:
       // Fallback to simple pass-through
       return (pixel, color) => {
@@ -70,47 +72,6 @@ function parseColor(colorStr: string): [number, number, number] {
   const b = parseInt(hex.substring(4, 6), 16);
 
   return [r, g, b];
-}
-
-/**
- * Generate simple image color function (grayscale from single band)
- */
-function generateImageColorFunction(props: RasterStyleImageProperties): COGColorFunction {
-  const band = 0; // Image style uses first band
-  const opacity = Math.floor((props.opacity || 1.0) * 255);
-
-  return (pixel, color, metadata) => {
-    let value = pixel[band];
-
-    // Handle no-data
-    if (value === null || value === undefined || value === metadata.noData) {
-      color.set([0, 0, 0, 0]);
-      return;
-    }
-
-    // Apply scale and offset if present
-    if (metadata.scale !== undefined) {
-      value = value * metadata.scale;
-    }
-    if (metadata.offset !== undefined) {
-      value = value + metadata.offset;
-    }
-
-    // Apply brightness (simple multiplication)
-    if (props.brightness && props.brightness !== 1.0) {
-      value = value * props.brightness;
-    }
-
-    // Apply gamma correction
-    if (props.gamma && props.gamma !== 1.0) {
-      value = Math.pow(value / 255, 1 / props.gamma) * 255;
-    }
-
-    // Clamp to 0-255
-    value = Math.max(0, Math.min(255, Math.floor(value)));
-
-    color.set([value, value, value, opacity]);
-  };
 }
 
 /**
