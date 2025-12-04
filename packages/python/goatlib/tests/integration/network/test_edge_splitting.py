@@ -135,10 +135,20 @@ def test_split_is_non_destructive(processor: InMemoryNetworkProcessor) -> None:
 
     # Verify that the original table was not altered
     post_split_stats = processor.get_network_stats(original_table_name)
+    import pytest
 
     # Use pytest.approx for floating-point comparisons to handle precision differences
-    assert original_stats["edge_count"] == post_split_stats["edge_count"]
-    assert original_stats["total_length_m"] == post_split_stats["total_length_m"]
-    assert original_stats["avg_length_m"] == post_split_stats["avg_length_m"]
-    assert original_stats["min_length_m"] == post_split_stats["min_length_m"]
-    assert original_stats["max_length_m"] == post_split_stats["max_length_m"]
+    assert post_split_stats["edge_count"] == pytest.approx(original_stats["edge_count"])
+    assert post_split_stats["total_length_m"] == pytest.approx(
+        original_stats["total_length_m"]
+    )
+    assert post_split_stats["avg_length_m"] == pytest.approx(
+        original_stats["avg_length_m"]
+    )
+    assert post_split_stats["min_length_m"] == pytest.approx(
+        original_stats["min_length_m"]
+    )
+    assert post_split_stats["max_length_m"] == pytest.approx(
+        original_stats["max_length_m"]
+    )
+    assert post_split_stats == original_stats

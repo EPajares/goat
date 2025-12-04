@@ -33,12 +33,12 @@ class InMemoryNetworkProcessor(AnalysisTool):
         self.network_table_name = "in_memory_network"
         self._is_loaded = False
 
-    def __enter__(self):
+    def __enter__(self) -> "InMemoryNetworkProcessor":
         """Enters the context, loading the network and returning the processor instance."""
         self._load_network()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exits the context, automatically cleaning up all database resources."""
         super().cleanup()
 
@@ -75,6 +75,13 @@ class InMemoryNetworkProcessor(AnalysisTool):
             if table_name not in [self.network_table_name, "spatial_ref_sys"]:
                 self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
         logger.info(f"Cleaned up intermediate tables. Kept: {self.network_table_name}")
+
+    def get_available_tables(self) -> list[str]:
+        """Get list of available table names in the database."""
+        tables = self.con.execute(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'main'"
+        ).fetchall()
+        return [table[0] for table in tables]
 
     def apply_sql_query(self, sql_query: str) -> str:
         """Applies SQL and returns a NEW table, without destroying the input."""
@@ -189,6 +196,125 @@ class InMemoryNetworkProcessor(AnalysisTool):
 
         return split_table_name, split_info
 
+    def interpolate_long_edges(
+        self,
+        max_edge_length: float,
+        base_table: str = None,
+        interpolation_distance: float = None,
+    ) -> tuple[str, dict[str, Any]]:
+        """
+        Interpolate nodes along edges that are longer than the specified threshold.
+        Creates actual intermediate nodes with coordinates and splits edges accordingly.
+
+        Args:
+            max_edge_length: Maximum allowed edge length in meters
+            base_table: Table to process (defaults to main network table)
+            interpolation_distance: Distance between interpolated points (defaults to max_edge_length/2)
+
+        Returns:
+            Tuple of (table_name, interpolation_info) where interpolation_info contains
+            statistics about the interpolation process
+        """
+        import time
+
+        start_time = time.time()
+        self._ensure_loaded()
+        source_table = base_table or self.network_table_name
+        interpolated_table = self._generate_table_name("interpolated_network")
+
+        # Default interpolation distance
+        if interpolation_distance is None:
+            interpolation_distance = max_edge_length / 2
+
+        interpolation_query = f"""
+        CREATE TABLE {interpolated_table} AS
+        WITH long_edges AS (
+            -- Identify edges that need interpolation and calculate segments needed
+            SELECT *,
+                   CAST(CEIL(length_m / {interpolation_distance}) AS INTEGER) as num_segments
+            FROM {source_table}
+            WHERE length_m > {max_edge_length}
+        ),
+        interpolated_segments AS (
+            -- Generate new edges with intermediate nodes
+            SELECT 
+                edge_id || '_seg_' || CAST(segment_id AS VARCHAR) as edge_id,
+                CASE 
+                    WHEN segment_id = 1 THEN CAST(source AS VARCHAR)
+                    ELSE 'interp_' || edge_id || '_' || CAST((segment_id - 1) AS VARCHAR)
+                END as source,
+                CASE 
+                    WHEN segment_id = num_segments THEN CAST(target AS VARCHAR)
+                    ELSE 'interp_' || edge_id || '_' || CAST(segment_id AS VARCHAR)
+                END as target,
+                length_m / num_segments as length_m,
+                cost / num_segments as cost,
+                ST_LineSubstring(
+                    geometry, 
+                    (segment_id - 1.0) / num_segments, 
+                    segment_id / num_segments
+                ) as geometry
+            FROM long_edges
+            CROSS JOIN generate_series(1, num_segments) as t(segment_id)
+        )
+        -- Combine short edges (unchanged) with interpolated segments
+        SELECT edge_id, source, target, length_m, cost, geometry
+        FROM {source_table}
+        WHERE length_m <= {max_edge_length}
+
+        UNION ALL
+
+        SELECT edge_id, source, target, length_m, cost, geometry
+        FROM interpolated_segments
+        ORDER BY edge_id;
+        """
+
+        self.con.execute(interpolation_query)
+
+        processing_time = time.time() - start_time
+
+        # Get interpolation statistics
+        stats_query = f"""
+        WITH original_stats AS (
+            SELECT 
+                COUNT(*) as original_edges,
+                COUNT(*) FILTER (WHERE length_m > {max_edge_length}) as long_edges_count
+            FROM {source_table}
+        ),
+        new_stats AS (
+            SELECT COUNT(*) as new_edges FROM {interpolated_table}
+        ),
+        node_stats AS (
+            SELECT 
+                COUNT(DISTINCT source) + COUNT(DISTINCT target) as total_nodes,
+                COUNT(DISTINCT source) FILTER (WHERE source LIKE 'interp_%') + 
+                COUNT(DISTINCT target) FILTER (WHERE target LIKE 'interp_%') as new_nodes
+            FROM {interpolated_table}
+        )
+        SELECT 
+            o.original_edges,
+            o.long_edges_count,
+            n.new_edges,
+            ns.new_nodes,
+            ns.total_nodes
+        FROM original_stats o, new_stats n, node_stats ns;
+        """
+
+        stats_result = self.con.execute(stats_query).fetchone()
+
+        interpolation_info = {
+            "original_edge_count": stats_result[0],
+            "long_edges_processed": stats_result[1],
+            "final_edge_count": stats_result[2],
+            "new_intermediate_nodes": stats_result[3],
+            "total_nodes": stats_result[4],
+            "max_edge_length_threshold": max_edge_length,
+            "interpolation_distance": interpolation_distance,
+            "processing_time_seconds": processing_time,
+        }
+
+        return interpolated_table, interpolation_info
+
     def get_network_stats(self, table_name: str = None) -> Dict[str, Any]:
         """Get basic statistics about the network."""
         target_table = table_name or self.network_table_name
@@ -215,3 +341,12 @@ class InMemoryNetworkProcessor(AnalysisTool):
         self.con.execute(
             f"COPY {table_name} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )
+
+    def save_table_to_tmp(self, table_name: str) -> str:
+        """Save table to a temporary parquet file and return the path."""
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix=".parquet", delete=False) as tmp_file:
+            output_path = tmp_file.name
+        self.save_table_to_file(table_name, output_path)
+        return output_path
