@@ -1,11 +1,8 @@
 import logging
-import os
 import uuid
-from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.models.io import DatasetMetadata
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -35,9 +32,6 @@ class InMemoryNetworkProcessor(AnalysisTool):
         self.params = params
         self.network_table_name = "in_memory_network"
         self._is_loaded = False
-        self.geometry_column = (
-            "geometry"  # For simplicity, assuming a fixed schema name.
-        )
 
     def __enter__(self):
         """Enters the context, loading the network and returning the processor instance."""
@@ -55,7 +49,7 @@ class InMemoryNetworkProcessor(AnalysisTool):
 
         self.con.execute(f"""
             CREATE TABLE {self.network_table_name} AS
-            SELECT edge_id, source, target, length_m, cost, ST_GeomFromText({self.geometry_column}) as {self.geometry_column}
+            SELECT edge_id, source, target, length_m, cost, ST_GeomFromText(geometry) as geometry
             FROM read_parquet('{self.params.network_path}')
         """)
         self._is_loaded = True
@@ -82,13 +76,12 @@ class InMemoryNetworkProcessor(AnalysisTool):
                 self.con.execute(f"DROP TABLE IF EXISTS {table_name}")
         logger.info(f"Cleaned up intermediate tables. Kept: {self.network_table_name}")
 
-    def apply_sql_query(self, sql_query: str, base_table: str = None) -> str:
+    def apply_sql_query(self, sql_query: str) -> str:
         """Applies SQL and returns a NEW table, without destroying the input."""
         self._ensure_loaded()
         result_table = self._generate_table_name("query_result")
-        source_table = base_table or self.network_table_name
-        processed_query = sql_query.replace("network", source_table)
-        self.con.execute(f"CREATE TABLE {result_table} AS {processed_query}")
+        # WARNING: This does not sanitize input SQL - use with caution. Add validation as needed.
+        self.con.execute(f"CREATE TABLE {result_table} AS {sql_query}")
         return result_table
 
     def split_edge_at_point(
@@ -97,75 +90,108 @@ class InMemoryNetworkProcessor(AnalysisTool):
         longitude: float,
         base_table: str = None,
     ) -> tuple[str, dict[str, Any]]:
+        """
+        Finds the closest edge to a point, splits it, and creates a new network table
+        using DuckDB's spatial extension.
+
+        This version uses CTEs instead of a temporary table to simplify the SQL
+        and reduce database interactions.
+        """
         self._ensure_loaded()
         source_table = base_table or self.network_table_name
         split_table_name = self._generate_table_name("split_network")
         new_node_id = f"split_node_{uuid.uuid4().hex[:8]}"
+        point_geom = f"ST_Point({longitude}, {latitude})"
 
-        # Find closest edge and split it
-        closest_edge_query = f"""
-        CREATE TEMP TABLE closest_edge AS
-        SELECT *, 
-               ST_Distance({self.geometry_column}, ST_Point({longitude}, {latitude})) as distance,
-               ST_LineLocatePoint({self.geometry_column}, ST_Point({longitude}, {latitude})) as split_fraction
-        FROM {source_table}
-        ORDER BY distance ASC
-        LIMIT 1
-        """
-        self.con.execute(closest_edge_query)
-
-        # Create the split network
+        # Create the split network table using a single CTE-based query
         split_query = f"""
         CREATE TABLE {split_table_name} AS
-        WITH new_split_edges AS (
+        WITH closest_edge AS (
+            -- Find the single edge closest to the split point and calculate split position
             SELECT
-                edge_id || '_part_a' as edge_id, source, '{new_node_id}' as target,
-                length_m * split_fraction AS length_m, cost * split_fraction AS cost,
-                ST_LineSubstring({self.geometry_column}, 0.0, split_fraction) as {self.geometry_column}
-            FROM closest_edge
-            WHERE split_fraction > 0.0
-            UNION ALL
-            SELECT
-                edge_id || '_part_b' as edge_id, '{new_node_id}' as source, target,
-                length_m * (1.0 - split_fraction) AS length_m, cost * (1.0 - split_fraction) AS cost,
-                ST_LineSubstring({self.geometry_column}, split_fraction, 1.0) as {self.geometry_column}
-            FROM closest_edge
-            WHERE split_fraction < 1.0
+                *,
+                ST_LineLocatePoint(geometry, {point_geom}) as split_fraction
+            FROM {source_table}
+            ORDER BY ST_Distance(geometry, {point_geom}) ASC
+            LIMIT 1
         ),
-        unchanged_edges AS (
-            SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM {source_table}
-            WHERE edge_id != (SELECT edge_id FROM closest_edge)
+        new_split_parts AS (
+            -- Create two new edge segments from the original edge at the split point
+            -- Part A: from original source to new split node
+            SELECT
+                edge_id || '_part_a' as edge_id,
+                source,
+                '{new_node_id}' as target,
+                length_m * split_fraction AS length_m,
+                cost * split_fraction AS cost,
+                ST_LineSubstring(geometry, 0.0, split_fraction) as geometry
+            FROM closest_edge
+            WHERE split_fraction > 1e-9 -- Only create if split point is not at start
+
+            UNION ALL
+
+            -- Part B: from new split node to original target
+            SELECT
+                edge_id || '_part_b' as edge_id,
+                '{new_node_id}' as source,
+                target,
+                length_m * (1.0 - split_fraction) AS length_m,
+                cost * (1.0 - split_fraction) AS cost,
+                ST_LineSubstring(geometry, split_fraction, 1.0) as geometry
+            FROM closest_edge
+            WHERE split_fraction < 1.0 - 1e-9 -- Only create if split point is not at end
         )
-        SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM unchanged_edges 
-        UNION ALL 
-        SELECT edge_id, source, target, length_m, cost, {self.geometry_column} FROM new_split_edges
+        -- Combine all unchanged edges with the new split edge parts
+        SELECT edge_id, source, target, length_m, cost, geometry FROM {source_table}
+        WHERE edge_id <> (SELECT edge_id FROM closest_edge)
+        UNION ALL
+        SELECT edge_id, source, target, length_m, cost, geometry FROM new_split_parts;
         """
         self.con.execute(split_query)
 
-        # Get split info
-        info_res = self.con.execute("""
-            SELECT edge_id, split_fraction,
-                   ST_X(ST_LineInterpolatePoint(geometry, split_fraction)) as lon,
-                   ST_Y(ST_LineInterpolatePoint(geometry, split_fraction)) as lat
-            FROM closest_edge
-        """).fetchone()
+        # Query to extract information about the split operation
+        info_query = f"""
+        WITH closest_edge AS (
+            -- Re-find the closest edge to get split details (stateless approach)
+            SELECT
+                *,
+                ST_LineLocatePoint(geometry, {point_geom}) as split_fraction
+            FROM {source_table}
+            ORDER BY ST_Distance(geometry, {point_geom}) ASC
+            LIMIT 1
+        )
+        SELECT
+            edge_id,                                                             -- Original edge ID
+            split_fraction,                                                      -- Position along edge (0.0 to 1.0)
+            ST_X(ST_LineInterpolatePoint(geometry, split_fraction)) as lon,      -- Longitude of split point
+            ST_Y(ST_LineInterpolatePoint(geometry, split_fraction)) as lat       -- Latitude of split point
+        FROM closest_edge;
+        """
+        info_res = self.con.execute(info_query).fetchone()
 
-        # Clean up temp table
-        self.con.execute("DROP TABLE closest_edge")
-
+        # Package split operation results
         split_info = {
             "artificial_node_id": new_node_id,
             "original_edge_split": info_res[0],
             "split_fraction": info_res[1],
-            "new_node_coords": {"lon": info_res[2], "lat": info_res[3]},
+            "new_node_coords": {
+                "lon": info_res[2],
+                "lat": info_res[3],
+            },
         }
+
+        # The warning logic is adjusted to account for floating point inaccuracies.
+        if not (1e-9 < split_info["split_fraction"] < 1.0 - 1e-9):
+            logger.warning(
+                f"Split point is at or very near an existing node (fraction={split_info['split_fraction']:.6f}). "
+                "The original edge was effectively replaced, not split into two new segments."
+            )
+
         return split_table_name, split_info
 
-    # ... other methods like save_table_to_file, get_network_stats etc.
     def get_network_stats(self, table_name: str = None) -> Dict[str, Any]:
         """Get basic statistics about the network."""
         target_table = table_name or self.network_table_name
-
         result = self.con.execute(f"""
             SELECT
                 COUNT(*) as edge_count,
@@ -189,68 +215,3 @@ class InMemoryNetworkProcessor(AnalysisTool):
         self.con.execute(
             f"COPY {table_name} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )
-
-
-# ==================== CONVENIENCE FUNCTIONS ====================
-
-
-def create_in_memory_network(network_path: str) -> InMemoryNetworkProcessor:
-    """Create in-memory network processor. Don't forget to call cleanup() when done."""
-    params = InMemoryNetworkParams(network_path=network_path)
-    processor = InMemoryNetworkProcessor(params)
-    processor._load_network()
-    return processor
-
-
-def process_network_with_sql(
-    network_path: str, sql_query: str, output_path: str
-) -> List[Tuple[Path, DatasetMetadata]]:
-    """Process network with SQL query and save results."""
-    params = InMemoryNetworkParams(
-        network_path=network_path, sql_query=sql_query, output_path=output_path
-    )
-    processor = InMemoryNetworkProcessor()
-    return processor.run(params)
-
-
-def process_and_save_results(
-    network_path: str,
-    operations: List[Dict[str, Any]],
-    output_dir: str,
-) -> Dict[str, str]:
-    """Process network with operations and save results."""
-    # Create output directory
-    Path(output_dir).mkdir(parents=True, exist_ok=True)
-
-    # Create processor and load network
-    params = InMemoryNetworkParams(network_path=network_path)
-    processor = InMemoryNetworkProcessor(params)
-    processor._load_network()
-
-    # Process operations sequentially
-    current_table = processor.network_table_name
-    for op in operations:
-        if op["type"] == "filter":
-            filter_sql = f"SELECT * FROM network WHERE {op['condition']}"
-            current_table = processor.apply_sql_query(
-                filter_sql, base_table=current_table
-            )
-        elif op["type"] == "split_at_point":
-            current_table, _ = processor.split_edge_at_point(
-                op["lat"], op["lon"], base_table=current_table
-            )
-        elif op["type"] == "transform":
-            current_table = processor.apply_sql_query(
-                op["sql"], base_table=current_table
-            )
-
-    # Save results
-    saved_files = {}
-    base_name = Path(network_path).stem
-
-    network_path_out = os.path.join(output_dir, f"{base_name}_processed.parquet")
-    processor.save_table_to_file(current_table, network_path_out)
-    saved_files["processed_network"] = network_path_out
-
-    processor.cleanup()
-    return saved_files
