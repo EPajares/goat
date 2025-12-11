@@ -310,7 +310,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           alignItems="flex-end"
           sx={{
             marginTop: "auto",
-            pointerEvents: "all",
+            pointerEvents: "none",
             width: "max-content",
             maxWidth: "none",
             whiteSpace: "nowrap",
