@@ -2,9 +2,9 @@
 
 import { LoadingButton } from "@mui/lab";
 import { Alert, Avatar, Box, Link, Stack, Typography, useTheme } from "@mui/material";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import AuthContainer from "@p4b/ui/components/AuthContainer";
@@ -12,7 +12,6 @@ import AuthLayout from "@p4b/ui/components/AuthLayout";
 import { Loading } from "@p4b/ui/components/Loading";
 
 import { acceptInvitation, declineInvitation, useInvitations } from "@/lib/api/users";
-import { createRegistrationUrl } from "@/lib/utils/auth";
 import type { GetInvitationsQueryParams } from "@/lib/validations/user";
 
 import type { ResponseResult } from "@/types/common";
@@ -24,7 +23,7 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
     type: "organization",
     invitation_id: inviteId,
   });
-  const { invitations, isLoading: isInvitationLoading, isError } = useInvitations(queryParams);
+  const { invitations, isLoading: isInvitationLoading } = useInvitations(queryParams);
   const { status, data: session, update } = useSession();
   const router = useRouter();
   const [isBusy, setIsBusy] = useState(false);
@@ -42,16 +41,6 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
     )
       return invitations?.items?.[0];
   }, [invitations, session]);
-
-  useEffect(() => {
-    if (!invitations && !isLoading && !isError) return;
-    if (invitations?.items?.length === 0 || isError) {
-      const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/keycloak`;
-      signOut({ redirect: false });
-      const registrationUrl = createRegistrationUrl(redirectUrl as string);
-      router.replace(registrationUrl);
-    }
-  }, [invitations, isLoading, router, isError]);
 
   async function handleAcceptInvite() {
     setIsBusy(true);
