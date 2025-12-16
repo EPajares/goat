@@ -1275,7 +1275,9 @@ const ReportsCanvas: React.FC<ReportsCanvasProps> = ({
 
                 <Tooltip title={t("next_page")}>
                   <span>
-                    <ToolButton onClick={handleNextPage} disabled={currentPage >= totalPages || isAtlasLoading}>
+                    <ToolButton
+                      onClick={handleNextPage}
+                      disabled={currentPage >= totalPages || isAtlasLoading}>
                       <NextIcon />
                     </ToolButton>
                   </span>

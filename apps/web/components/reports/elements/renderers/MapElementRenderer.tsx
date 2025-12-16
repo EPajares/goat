@@ -4,8 +4,8 @@ import { Box, Chip, CircularProgress, useTheme } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map, MapProvider, type MapRef, type ViewStateChangeEvent } from "react-map-gl/maplibre";
 
-import type { AtlasPage } from "@/lib/print/atlas-utils";
 import { PATTERN_IMAGES } from "@/lib/constants/pattern-images";
+import type { AtlasPage } from "@/lib/print/atlas-utils";
 import { addOrUpdateMarkerImages, addPatternImages } from "@/lib/transformers/map-image";
 import type { FeatureLayerPointProperties } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
@@ -68,13 +68,13 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
   // Get snapshot view state from element config (NOT synced)
   // Use optional chaining directly to allow React to properly track changes
   const configViewState = element.config?.viewState;
-  
+
   // Create a stable key for detecting config changes
   const configKey = JSON.stringify(configViewState);
-  
+
   // Debug: Log config changes
   useEffect(() => {
-    console.log('[MapElementRenderer] Config viewState changed:', configViewState);
+    console.log("[MapElementRenderer] Config viewState changed:", configViewState);
   }, [configViewState]);
 
   // Use live basemap URL from props, fallback to default
@@ -109,15 +109,20 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
   // Only update from config if NOT in atlas mode (or atlas not controlling this map)
   useEffect(() => {
     if (atlasPage && isAtlasControlled) return; // Atlas mode handles viewState separately
-    
+
     const configBearing = configViewState?.bearing ?? DEFAULT_VIEW_STATE.bearing;
     const configZoom = configViewState?.zoom ?? DEFAULT_VIEW_STATE.zoom;
     const configLat = configViewState?.latitude ?? DEFAULT_VIEW_STATE.latitude;
     const configLng = configViewState?.longitude ?? DEFAULT_VIEW_STATE.longitude;
     const configPitch = configViewState?.pitch ?? DEFAULT_VIEW_STATE.pitch;
-    
-    console.log('[MapElementRenderer] Setting viewState:', { configBearing, configZoom, configLat, configLng });
-    
+
+    console.log("[MapElementRenderer] Setting viewState:", {
+      configBearing,
+      configZoom,
+      configLat,
+      configLng,
+    });
+
     setViewState({
       latitude: configLat,
       longitude: configLng,
@@ -125,7 +130,7 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
       bearing: configBearing,
       pitch: configPitch,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configKey, atlasPage, isAtlasControlled]);
 
   // Atlas mode: fit map to atlas page bounds when atlas page changes
@@ -134,10 +139,13 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
     if (!atlasPage || !isAtlasControlled || !mapLoaded || !mapRef.current) return;
 
     const [west, south, east, north] = atlasPage.bounds;
-    
+
     // Fit the map to the atlas page bounds with some padding
     mapRef.current.fitBounds(
-      [[west, south], [east, north]],
+      [
+        [west, south],
+        [east, north],
+      ],
       {
         padding: 20, // Add some padding around the feature
         duration: 0, // No animation for print preview
