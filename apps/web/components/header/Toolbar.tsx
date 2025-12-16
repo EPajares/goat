@@ -7,6 +7,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 export type MapToolbarProps = {
   LeftToolbarChild?: React.ReactNode;
+  CenterToolbarChild?: React.ReactNode;
   RightToolbarChild?: React.ReactNode;
   height: number;
   showHambugerMenu?: boolean;
@@ -14,7 +15,14 @@ export type MapToolbarProps = {
 };
 
 export function Toolbar(props: MapToolbarProps) {
-  const { LeftToolbarChild, RightToolbarChild, height, showHambugerMenu, onMenuIconClick } = props;
+  const {
+    LeftToolbarChild,
+    CenterToolbarChild,
+    RightToolbarChild,
+    height,
+    showHambugerMenu,
+    onMenuIconClick,
+  } = props;
 
   const theme = useTheme();
 
@@ -52,6 +60,22 @@ export function Toolbar(props: MapToolbarProps) {
           }}>
           {LeftToolbarChild}
         </Stack>
+        <Box sx={{ flexGrow: 1 }} />
+
+        {CenterToolbarChild && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="center"
+            sx={{
+              position: "absolute",
+              left: "50%",
+              transform: "translateX(-50%)",
+            }}>
+            {CenterToolbarChild}
+          </Stack>
+        )}
+
         <Box sx={{ flexGrow: 1 }} />
 
         {RightToolbarChild}

@@ -26,6 +26,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onChange, onReset }
         { name: "location", label: t("location_search") },
         { name: "find_my_location", label: t("find_my_location") },
         { name: "scalebar", label: t("scalebar") },
+        { name: "measure", label: t("measure") },
       ],
     },
     {

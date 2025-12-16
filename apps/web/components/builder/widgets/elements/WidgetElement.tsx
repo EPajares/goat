@@ -10,6 +10,7 @@ interface WidgetElementProps {
   config: WidgetElementConfig;
   viewOnly?: boolean;
   onWidgetUpdate?: (newData: WidgetElementConfig) => void;
+  fitMode?: "auto" | "contain";
 }
 
 const hasOptions = (
@@ -17,15 +18,20 @@ const hasOptions = (
 ): config is WidgetElementConfig & { options: { description?: string } } =>
   "options" in config && typeof config.options === "object" && config.options !== null;
 
-const WidgetElement: React.FC<WidgetElementProps> = ({ config, onWidgetUpdate, viewOnly }) => {
+const WidgetElement: React.FC<WidgetElementProps> = ({ config, onWidgetUpdate, viewOnly, fitMode }) => {
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%", height: fitMode === "contain" ? "100%" : undefined }}>
       {config.type === "text" && (
         <TextElementWidget config={config} viewOnly={viewOnly} onWidgetUpdate={onWidgetUpdate} />
       )}
       {config.type === "divider" && <DividerElementWidget config={config} />}
       {config.type === "image" && (
-        <ImageElementWidget config={config} viewOnly={viewOnly} onWidgetUpdate={onWidgetUpdate} />
+        <ImageElementWidget
+          config={config}
+          viewOnly={viewOnly}
+          onWidgetUpdate={onWidgetUpdate}
+          fitMode={fitMode}
+        />
       )}
       {hasOptions(config) && config.options.description && (
         <Typography variant="body2" align="left">

@@ -47,6 +47,12 @@
     "packages/python/goatlib/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
+  
+  // Vitest testing for web app
+  "vitest.enable": true,
+  "vitest.commandLine": "pnpm --filter @p4b/web test",
+  "testExplorer.useNativeTesting": true,
+  
   "mypy-type-checker.ignorePatterns": [
     ".direnv/*",
     "docs/*",

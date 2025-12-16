@@ -274,6 +274,24 @@ export default function Header(props: HeaderProps) {
               ))}
           </>
         }
+        CenterToolbarChild={
+          <>
+            {props.mapHeader && !viewOnly && (
+              <SlidingToggle
+                options={[
+                  { label: t("common:data"), value: "data" },
+                  { label: t("common:builder"), value: "builder" },
+                  { label: t("common:reports"), value: "reports" },
+                  { label: t("common:workflows"), value: "workflows" },
+                ]}
+                activeOption={mapMode}
+                onToggle={(value: "data" | "builder" | "reports" | "workflows") => {
+                  dispatch(setMapMode(value));
+                }}
+              />
+            )}
+          </>
+        }
         RightToolbarChild={
           <>
             {!props.viewOnly && (
@@ -307,18 +325,6 @@ export default function Header(props: HeaderProps) {
                 )}
                 {props.mapHeader && (
                   <>
-                    <Stack sx={{ px: 4 }}>
-                      <SlidingToggle
-                        options={[
-                          { label: t("common:data"), value: "data" },
-                          { label: t("common:builder"), value: "builder" },
-                        ]}
-                        activeOption={mapMode}
-                        onToggle={(value: "data" | "builder") => {
-                          dispatch(setMapMode(value));
-                        }}
-                      />
-                    </Stack>
                     <Divider orientation="vertical" flexItem />
                     <Stack sx={{ px: 4 }} spacing={2} direction="row">
                       <Button

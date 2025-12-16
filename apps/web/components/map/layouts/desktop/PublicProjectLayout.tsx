@@ -24,6 +24,7 @@ import { MapSidebarItemID } from "@/types/map/common";
 
 import { useLayerStyleChange } from "@/hooks/map/LayerStyleHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
+import { useMeasureTool } from "@/hooks/map/useMeasureTool";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import AddSectionButton from "@/components/builder/AddSectionButton";
@@ -39,6 +40,7 @@ import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
+import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/measure";
 import ViewContainer from "@/components/map/panels/Container";
 import PropertiesPanel from "@/components/map/panels/properties/Properties";
 import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
@@ -64,6 +66,9 @@ const PublicProjectLayout = ({
   const dispatch = useAppDispatch();
   // Layer style change hook
   const { handleStyleChange } = useLayerStyleChange(projectLayers, viewOnly);
+
+  // Measure tool - using the reusable hook
+  const measureTool = useMeasureTool();
 
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
   const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
@@ -496,6 +501,7 @@ const PublicProjectLayout = ({
                   dispatch(setGeocoderResult(result));
                 }}
               />
+              {builderConfig?.settings.measure && <MeasureButton {...measureTool} />}
             </Box>
           )}
           {/* Top-Right Controls  */}
@@ -511,8 +517,8 @@ const PublicProjectLayout = ({
               <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
             )}
           </Box>
-          {/* Right Floating Panel - Layer Settings */}
-          {activeRightComponent && (
+          {/* Right Floating Panel - Measure Results and Layer Settings */}
+          {(builderConfig?.settings.measure || activeRightComponent) && (
             <Box
               sx={{
                 position: "absolute",
@@ -520,21 +526,26 @@ const PublicProjectLayout = ({
                 top: getOccupiedSpace.top + 16,
                 bottom: getOccupiedSpace.bottom + 16,
                 zIndex: 10000,
-                pointerEvents: "auto",
+                pointerEvents: "none",
                 transition: "all 0.3s",
                 display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
+                flexDirection: "row",
+                alignItems: "flex-start",
                 gap: 2,
               }}>
-              <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
-                <ViewContainer
-                  title={activeRightComponent.title}
-                  disablePadding={true}
-                  close={handleClose}
-                  body={activeRightComponent.content}
-                />
-              </FloatingPanel>
+              {/* Measurement Results Panel */}
+              {builderConfig?.settings.measure && <MeasureResultsPanel {...measureTool} />}
+              {/* Layer Settings Panel */}
+              {activeRightComponent && (
+                <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
+                  <ViewContainer
+                    title={activeRightComponent.title}
+                    disablePadding={true}
+                    close={handleClose}
+                    body={activeRightComponent.content}
+                  />
+                </FloatingPanel>
+              )}
             </Box>
           )}
 

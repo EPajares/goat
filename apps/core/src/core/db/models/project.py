@@ -30,6 +30,7 @@ if TYPE_CHECKING:
         UserProjectLink,
     )
 
+    from .report_layout import ReportLayout
     from .scenario import Scenario
 
 
@@ -132,6 +133,11 @@ class Project(ContentBaseAttributes, DateTimeBase, table=True):
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "uselist": False},
     )
     layer_groups: List["LayerProjectGroup"] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+    report_layouts: List["ReportLayout"] = Relationship(
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )

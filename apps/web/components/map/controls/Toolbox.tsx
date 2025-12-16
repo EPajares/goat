@@ -22,7 +22,7 @@ export function Toolbox(props: ToolboxProps) {
               alignItems: "flex-start",
               my: 1,
             }}>
-            <Tooltip title={props.open ? "Close Toolbox" : "Open Toolbox"} arrow placement="left">
+            <Tooltip title={props.open ? "Close Toolbox" : "Open Toolbox"} arrow placement="right">
               <Fab
                 onClick={() => props.onToggle && props.onToggle(!props.open)}
                 size="small"

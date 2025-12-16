@@ -22,7 +22,7 @@ interface Props {
 const Popper = styled(MuiPopper, {
   shouldForwardProp: (prop) => prop !== "arrow",
 })(({ theme }) => ({
-  zIndex: 2,
+  zIndex: 1300, // Higher than MUI modal (1300) to ensure it appears above report elements
   "& > div": {
     position: "relative",
   },
