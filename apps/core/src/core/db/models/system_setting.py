@@ -42,6 +42,7 @@ class SystemSetting(SystemSettingBase, DateTimeBase, table=True):
     __table_args__ = {"schema": settings.CUSTOMER_SCHEMA}
 
     id: UUID | None = Field(
+        default=None,
         sa_column=Column(
             UUID_PG(as_uuid=True),
             primary_key=True,
