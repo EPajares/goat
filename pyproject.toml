@@ -5,9 +5,9 @@ version = "2.0.0"
 requires-python = ">3.10,<3.12"
 dependencies = ["boto3>=1.38.23", "dotenv>=0.9.9", "python-jose>=3.4.0"]
 authors = [{ name = "Plan4Better GmbH", email = "info@plan4better.de" }]
-[tool.uv]
-package = false
-dev-dependencies = [
+
+[dependency-groups]
+dev = [
     "pre-commit==4.0.1",
     "pyright==1.1.384",
     "pytest-asyncio==0.24.0",
@@ -21,6 +21,9 @@ dev-dependencies = [
     "ruff==0.7.3",
     "pytest-memray>=1.8.0",
 ]
+
+[tool.uv]
+package = false
 
 [tool.uv.sources]
 core = { workspace = true }
