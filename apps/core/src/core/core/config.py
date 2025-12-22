@@ -207,6 +207,11 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: Optional[str] = "goat"
     MAX_UPLOAD_DATASET_FILE_SIZE: int = 300 * 1024 * 1024  # 300MB
 
+    # Print service settings
+    PRINT_FRONTEND_URL: Optional[str] = "http://localhost:3000"  # Next.js frontend URL
+    PRINT_TIMEOUT: int = 120  # seconds to wait for page to render
+    PRINT_OUTPUT_DIR: Optional[str] = "prints"  # S3 subdirectory for print outputs
+
     class Config:
         case_sensitive = True
 

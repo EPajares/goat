@@ -42,7 +42,7 @@ import type {
 
 import type { SelectorItem } from "@/types/map/common";
 
-import { usePrintReport } from "@/hooks/usePrintReport";
+import { type ExportFormat, useExportReport } from "@/hooks/useExportReport";
 
 import MoreMenu from "@/components/common/PopperMenu";
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
@@ -478,21 +478,22 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     [t, handleDuplicateReport]
   );
 
-  // Print hook
-  const { isPrinting, printReport } = usePrintReport();
+  // Print hook (server-side PDF generation via Playwright)
+  const { isBusy: isPrinting, exportReport } = useExportReport();
 
   const handlePrintReport = useCallback(async () => {
     if (!project?.id || !selectedReport) return;
 
     try {
-      await printReport({
+      await exportReport({
         projectId: project.id,
         layoutId: selectedReport.id,
+        format: exportFormat as ExportFormat,
       });
     } catch (error) {
       console.error("Failed to print report:", error);
     }
-  }, [project?.id, selectedReport, printReport]);
+  }, [project?.id, selectedReport, exportReport, exportFormat]);
 
   return (
     <PanelContainer>
@@ -778,34 +779,37 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
         </Box>
       </Box>
 
-      {/* Print Button - Fixed at bottom */}
+      {/* Action Buttons - Fixed at bottom */}
       <Box
         sx={{
           px: 2,
-          py: 4,
+          py: 3,
           borderTop: 1,
           borderColor: "divider",
           flexShrink: 0,
           backgroundColor: "background.default",
         }}>
-        <Button
-          variant="contained"
-          fullWidth
-          onClick={handlePrintReport}
-          disabled={!selectedReport || isPrinting}
-          startIcon={
-            isPrinting ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : (
-              <Icon iconName={ICON_NAME.PRINT} style={{ fontSize: "16px" }} />
-            )
-          }
-          sx={{
-            textTransform: "none",
-            py: 1.5,
-          }}>
-          {isPrinting ? t("printing") : t("print_layout")}
-        </Button>
+        <Stack spacing={1.5}>
+          {/* Print Button (server-side PDF generation) */}
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handlePrintReport}
+            disabled={!selectedReport || isPrinting}
+            startIcon={
+              isPrinting ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <Icon iconName={ICON_NAME.PRINT} style={{ fontSize: "16px" }} />
+              )
+            }
+            sx={{
+              textTransform: "none",
+              py: 1.5,
+            }}>
+            {isPrinting ? t("printing") : t("print_layout")}
+          </Button>
+        </Stack>
       </Box>
 
       {/* Delete Confirmation Modal */}

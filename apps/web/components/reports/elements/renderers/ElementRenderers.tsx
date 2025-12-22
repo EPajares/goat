@@ -43,6 +43,7 @@ interface ElementContentRendererProps {
   viewOnly?: boolean;
   onElementUpdate?: (elementId: string, config: Record<string, unknown>) => void;
   onNavigationModeChange?: (isNavigating: boolean) => void;
+  onMapLoaded?: () => void;
 }
 
 /**
@@ -195,6 +196,7 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
   viewOnly = true,
   onElementUpdate,
   onNavigationModeChange,
+  onMapLoaded,
 }) => {
   // For chart and element types, use the widget renderers
   if (isChartElementType(element.type) || isElementElementType(element.type)) {
@@ -229,6 +231,7 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
           viewOnly={viewOnly}
           onElementUpdate={onElementUpdate}
           onNavigationModeChange={onNavigationModeChange}
+          onMapLoaded={onMapLoaded}
         />
       </Box>
     );

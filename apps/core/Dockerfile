@@ -48,6 +48,9 @@ ENV UV_PYTHON_PREFERENCE=only-managed
 # Install project dependencies
 RUN uv sync --all-extras --frozen --no-dev --no-editable --package=core
 
+# Install Playwright browsers (Chromium) for PDF generation
+RUN uv run playwright install chromium --with-deps
+
 # ==== STAGE 4: Webapp environment ====
 FROM runtime-deps AS webapp
 

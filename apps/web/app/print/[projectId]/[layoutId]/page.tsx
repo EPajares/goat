@@ -1,19 +1,21 @@
 "use client";
 
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { useParams } from "next/navigation";
-import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import ThemeProvider from "@p4b/ui/theme/ThemeProvider";
 
 import { useProject } from "@/lib/api/projects";
 import { useReportLayout } from "@/lib/api/reportLayouts";
+import type { AtlasPage } from "@/lib/print/atlas-utils";
 import { PAGE_SIZES, mmToPx } from "@/lib/print/units";
 import type { ProjectLayer } from "@/lib/validations/project";
 import type { ReportLayoutConfig } from "@/lib/validations/reportLayout";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
+import { useAtlasFeatures } from "@/hooks/reports/useAtlasFeatures";
 
 import { ElementContentRenderer } from "@/components/reports/elements/renderers/ElementRenderers";
 
@@ -32,11 +34,18 @@ const LIGHT_THEME_SETTINGS = {
  * This page is designed to be rendered without any UI chrome - just the paper content.
  *
  * Playwright will navigate to this page and use page.pdf() to generate the PDF.
+ *
+ * Query params:
+ * - page: Atlas page index (0-based). If not provided and atlas is enabled, renders page 0.
  */
 export default function PrintPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.projectId as string;
   const layoutId = params.layoutId as string;
+
+  // Get atlas page index from query params (0-based)
+  const atlasPageIndex = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 0;
 
   const { reportLayout, isLoading, isError } = useReportLayout(projectId, layoutId);
   const { project, isLoading: isProjectLoading } = useProject(projectId);
@@ -48,18 +57,55 @@ export default function PrintPage() {
   const { activeBasemap } = useBasemap(project);
   const [isReady, setIsReady] = useState(false);
 
+  // Atlas support - fetch features and generate pages
+  const {
+    atlasResult,
+    currentPage: currentAtlasPage,
+    isLoading: isAtlasLoading,
+    totalPages: atlasTotalPages,
+  } = useAtlasFeatures({
+    atlasConfig: reportLayout?.config?.atlas,
+    projectLayers,
+    currentPageIndex: atlasPageIndex,
+  });
+
+  // Check if atlas is enabled
+  const isAtlasEnabled = reportLayout?.config?.atlas?.enabled === true;
+
+  // Track map loading state
+  const [mapsLoadedCount, setMapsLoadedCount] = useState(0);
+
+  // Count how many map elements there are
+  const mapElementCount = useMemo(() => {
+    if (!reportLayout?.config?.elements) return 0;
+    return reportLayout.config.elements.filter((el) => el.type === "map").length;
+  }, [reportLayout]);
+
+  // Callback for when a map finishes loading
+  const handleMapLoaded = useCallback(() => {
+    setMapsLoadedCount((prev) => prev + 1);
+  }, []);
+
+  // Check if all maps are loaded
+  const allMapsLoaded = mapElementCount === 0 || mapsLoadedCount >= mapElementCount;
+
+  // Check if atlas data is ready (if atlas is enabled)
+  const atlasReady = !isAtlasEnabled || (!isAtlasLoading && (atlasResult !== null || atlasTotalPages === 0));
+
   // Signal to Playwright that the page is ready for printing
+  // Wait for data to load AND all maps to be loaded AND atlas data (if enabled)
   useEffect(() => {
-    if (reportLayout && !isLoading && !isProjectLoading && !isLayersLoading) {
-      // Give a small delay for any async rendering to complete
+    if (reportLayout && !isLoading && !isProjectLoading && !isLayersLoading && allMapsLoaded && atlasReady) {
+      // Give additional delay for map tiles to fully render
+      // Keep this short since Playwright also waits for networkidle
       const timer = setTimeout(() => {
         setIsReady(true);
         // Add a data attribute that Playwright can check
         document.body.setAttribute("data-print-ready", "true");
-      }, 500);
+      }, 1000); // 1 second delay to allow map tiles to render
       return () => clearTimeout(timer);
     }
-  }, [reportLayout, isLoading, isProjectLoading, isLayersLoading]);
+  }, [reportLayout, isLoading, isProjectLoading, isLayersLoading, allMapsLoaded, atlasReady]);
 
   // Extract page config
   const pageConfig = useMemo(() => {
@@ -88,7 +134,7 @@ export default function PrintPage() {
     };
   }, [pageConfig.size, pageConfig.orientation]);
 
-  if (isLoading || isProjectLoading || isLayersLoading) {
+  if (isLoading || isProjectLoading || isLayersLoading || (isAtlasEnabled && isAtlasLoading)) {
     return (
       <Box
         sx={{
@@ -163,6 +209,8 @@ export default function PrintPage() {
             config={reportLayout.config}
             basemapUrl={activeBasemap?.url}
             projectLayers={projectLayers}
+            atlasPage={currentAtlasPage}
+            onMapLoaded={handleMapLoaded}
           />
         </ThemeProvider>
       </Box>
@@ -174,6 +222,9 @@ export default function PrintPage() {
         data-width-mm={paperDimensions.widthMm}
         data-height-mm={paperDimensions.heightMm}
         data-orientation={pageConfig.orientation}
+        data-atlas-enabled={isAtlasEnabled}
+        data-atlas-total-pages={atlasTotalPages}
+        data-atlas-current-page={atlasPageIndex}
         style={{ display: "none" }}
       />
     </Box>
@@ -187,9 +238,17 @@ interface ReportElementsProps {
   config: ReportLayoutConfig;
   basemapUrl?: string;
   projectLayers?: ProjectLayer[];
+  atlasPage?: AtlasPage | null;
+  onMapLoaded?: () => void;
 }
 
-const ReportElements: React.FC<ReportElementsProps> = ({ config, basemapUrl, projectLayers }) => {
+const ReportElements: React.FC<ReportElementsProps> = ({
+  config,
+  basemapUrl,
+  projectLayers,
+  atlasPage,
+  onMapLoaded,
+}) => {
   const elements = config.elements || [];
 
   if (elements.length === 0) {
@@ -244,7 +303,9 @@ const ReportElements: React.FC<ReportElementsProps> = ({ config, basemapUrl, pro
               height={heightPx}
               basemapUrl={basemapUrl}
               projectLayers={projectLayers}
+              atlasPage={atlasPage}
               viewOnly
+              onMapLoaded={onMapLoaded}
             />
           </Box>
         );

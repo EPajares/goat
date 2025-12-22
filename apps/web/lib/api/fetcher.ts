@@ -1,5 +1,27 @@
 import { getSession } from "next-auth/react";
 
+/**
+ * Get access token from session or localStorage (for print mode)
+ * Print mode uses localStorage to pass token from Playwright
+ */
+const getAccessToken = async (): Promise<string | null> => {
+  // First try NextAuth session (normal user flow)
+  const session = await getSession();
+  if (session?.access_token) {
+    return session.access_token;
+  }
+
+  // Fallback to localStorage for print mode (Playwright injects token here)
+  if (typeof window !== "undefined") {
+    const printToken = localStorage.getItem("print_access_token");
+    if (printToken) {
+      return printToken;
+    }
+  }
+
+  return null;
+};
+
 export const fetcher = async (params) => {
   let queryParams, url, payload;
   const urlSearchParams = new URLSearchParams();
@@ -30,13 +52,13 @@ export const fetcher = async (params) => {
       "Content-Type": "application/json",
     };
   }
-  const session = await getSession();
+  const accessToken = await getAccessToken();
 
-  if (session?.access_token) {
+  if (accessToken) {
     if (!options["headers"]) {
       options["headers"] = {};
     }
-    options["headers"]["Authorization"] = `Bearer ${session.access_token}`;
+    options["headers"]["Authorization"] = `Bearer ${accessToken}`;
   }
 
   const res = await fetch(urlWithParams, options);
@@ -55,15 +77,15 @@ export const fetcher = async (params) => {
 };
 
 export const apiRequestAuth = async (url: string, options?: RequestInit): Promise<Response> => {
-  const session = await getSession();
-  if (session?.access_token) {
+  const accessToken = await getAccessToken();
+  if (accessToken) {
     if (!options) {
       options = {};
     }
     if (!options.headers) {
       options.headers = {};
     }
-    options.headers["Authorization"] = `Bearer ${session.access_token}`;
+    options.headers["Authorization"] = `Bearer ${accessToken}`;
   }
   return fetch(url, options);
 };

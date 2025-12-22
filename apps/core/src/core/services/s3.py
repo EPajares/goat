@@ -101,13 +101,32 @@ class S3Service:
             )
 
     def generate_presigned_download_url(
-        self, bucket_name: str, s3_key: str, expires_in: int = 3600
+        self,
+        bucket_name: str,
+        s3_key: str,
+        expires_in: int = 3600,
+        filename: str | None = None,
     ) -> str:
-        """Generate a presigned GET URL for downloading an object."""
+        """Generate a presigned GET URL for downloading an object.
+
+        Args:
+            bucket_name: The S3 bucket name
+            s3_key: The object key in S3
+            expires_in: URL expiration time in seconds
+            filename: Optional filename for Content-Disposition header (forces download)
+        """
         try:
+            params = {"Bucket": bucket_name, "Key": s3_key}
+
+            # Add Content-Disposition to force download instead of inline display
+            if filename:
+                params["ResponseContentDisposition"] = (
+                    f'attachment; filename="{filename}"'
+                )
+
             return self.s3_client.generate_presigned_url(
                 "get_object",
-                Params={"Bucket": bucket_name, "Key": s3_key},
+                Params=params,
                 ExpiresIn=expires_in,
             )
         except ClientError as e:

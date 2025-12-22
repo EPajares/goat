@@ -26,6 +26,7 @@ export const jobTypeEnum = z.enum([
   "trip_count_station",
   "origin_destination",
   "nearby_station_access",
+  "print_report",
 ]);
 export const jobStatusTypeEnum = z.enum(["pending", "running", "finished", "failed", "killed", "timeout"]);
 
@@ -47,6 +48,16 @@ const jobStatusLayerUpload = z.object({
   migration: jobStepSchema.optional(),
 });
 
+// Payload schema for print_report jobs
+export const printReportPayloadSchema = z.object({
+  download_url: z.string().optional(),
+  file_name: z.string().optional(),
+  file_size_bytes: z.number().optional(),
+  page_count: z.number().optional(),
+  format: z.string().optional(),
+  layout_id: z.string().uuid().optional(),
+});
+
 export const jobSchema = z.object({
   updated_at: z.string(),
   created_at: z.string(),
@@ -56,6 +67,8 @@ export const jobSchema = z.object({
   status_simple: jobStatusTypeEnum,
   msg_simple: z.string().optional(),
   read: z.boolean().optional(),
+  project_id: z.string().uuid().optional(),
+  payload: z.record(z.unknown()).optional(),
 });
 
 export const getJobsQueryParamsSchema = paginatedSchema.extend({
@@ -76,3 +89,4 @@ export type JobStep = z.infer<typeof jobStepSchema>;
 export type Job = z.infer<typeof jobSchema>;
 export type JobPaginated = z.infer<typeof jobResponseSchema>;
 export type GetJobsQueryParam = z.infer<typeof getJobsQueryParamsSchema>;
+export type PrintReportPayload = z.infer<typeof printReportPayloadSchema>;

@@ -29,6 +29,7 @@ class JobType(str, Enum):
     heatmap_connectivity_motorized_mobility = "heatmap_connectivity_motorized_mobility"
     data_delete_multi = "data_delete_multi"
     update_layer_dataset = "update_layer_dataset"
+    print_report = "print_report"
 
 
 class JobStatusType(str, Enum):
@@ -162,6 +163,10 @@ class JobStatusLayerDeleteMulti(BaseModel):
     data_delete_multi: JobStep = JobStep()
 
 
+class JobStatusPrintReport(BaseModel):
+    print_report: JobStep = JobStep()
+
+
 # Only add jobs here that are consisting of multiple steps
 job_mapping = {
     JobType.file_import: JobStatusFileImport,
@@ -184,4 +189,5 @@ job_mapping = {
     JobType.heatmap_connectivity_motorized_mobility: JobStatusHeatmapConnectivityMotorizedMobility,
     JobType.data_delete_multi: JobStatusLayerDeleteMulti,
     JobType.update_layer_dataset: JobStatusFileImport,
+    JobType.print_report: JobStatusPrintReport,
 }

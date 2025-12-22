@@ -1,17 +1,32 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Box, Card, CardHeader, Grid, Stack, Typography, useTheme } from "@mui/material";
-import React, { useMemo, useState } from "react";
+import { Download as DownloadIcon } from "@mui/icons-material";
+import {
+  Box,
+  Card,
+  CardHeader,
+  CircularProgress,
+  Divider,
+  Grid,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Icon } from "@p4b/ui/components/Icon";
 
+import { useJobs } from "@/lib/api/jobs";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement, ReportElementType, ReportLayout } from "@/lib/validations/reportLayout";
 
 import SettingsGroupHeader from "@/components/builder/widgets/common/SettingsGroupHeader";
 import SidePanel, { SidePanelTabPanel, SidePanelTabs } from "@/components/common/SidePanel";
+import JobProgressItem from "@/components/jobs/JobProgressItem";
 import { reportElementIconMap } from "@/components/reports/elements/ReportElementIconMap";
 import ElementConfiguration from "@/components/reports/elements/config/ElementConfiguration";
 
@@ -189,20 +204,124 @@ const ElementsTabContent: React.FC = () => {
   );
 };
 
-// History tab content
-const HistoryTabContent: React.FC = () => {
+// History tab content - shows print jobs for the current layout
+interface HistoryTabContentProps {
+  projectId?: string;
+  layoutId?: string;
+}
+
+const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layoutId }) => {
   const { t } = useTranslation("common");
 
-  // Mock history data - will be fetched from API
-  const printJobs: Array<{
-    id: string;
-    name: string;
-    date: string;
-    status: "completed" | "failed" | "processing";
-  }> = [];
+  // Fetch all print jobs for this project (don't filter by read status to get history)
+  // Note: We fetch all jobs for the project and filter client-side by layout_id
+  const { jobs, isLoading, mutate } = useJobs(
+    projectId
+      ? {
+          project_id: projectId,
+        }
+      : undefined
+  );
+
+  // Helper to parse payload (can be string or object)
+  const parsePayload = (
+    payload: unknown
+  ): {
+    layout_id?: string;
+    s3_key?: string;
+    file_name?: string;
+    format?: string;
+    layout_name?: string;
+  } | null => {
+    if (!payload) return null;
+    if (typeof payload === "string") {
+      try {
+        return JSON.parse(payload);
+      } catch {
+        return null;
+      }
+    }
+    return payload as {
+      layout_id?: string;
+      s3_key?: string;
+      file_name?: string;
+      format?: string;
+      layout_name?: string;
+    };
+  };
+
+  // Filter jobs by type and layout_id from payload
+  const printJobs = useMemo(() => {
+    if (!jobs?.items || !layoutId) return [];
+    return jobs.items.filter((job) => {
+      // Filter by job type first
+      if (job.type !== "print_report") return false;
+      // Then filter by layout_id in payload (payload can be string or object)
+      const payload = parsePayload(job.payload);
+      return payload?.layout_id === layoutId;
+    });
+  }, [jobs?.items, layoutId]);
+
+  // Check if there are running jobs
+  const hasRunningJobs = useMemo(() => {
+    return printJobs.some((job) => job.status_simple === "running" || job.status_simple === "pending");
+  }, [printJobs]);
+
+  // Poll for updates - always poll at a slower rate, faster when jobs are running
+  useEffect(() => {
+    const intervalId = setInterval(
+      () => {
+        mutate();
+      },
+      hasRunningJobs ? 3000 : 10000
+    );
+
+    return () => clearInterval(intervalId);
+  }, [hasRunningJobs, mutate]);
+
+  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
+
+  const handleDownload = async (jobId: string, fallbackFileName: string) => {
+    if (!projectId) return;
+
+    setDownloadingJobId(jobId);
+    try {
+      // Get a fresh download URL from the API
+      const { apiRequestAuth } = await import("@/lib/api/fetcher");
+      const response = await apiRequestAuth(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v2/project/${projectId}/print/${jobId}/download`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to get download URL");
+      }
+
+      const data = await response.json();
+
+      // Trigger download
+      const link = document.createElement("a");
+      link.href = data.download_url;
+      link.download = data.file_name || fallbackFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed:", error);
+    } finally {
+      setDownloadingJobId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 200 }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box>
       {printJobs.length === 0 ? (
         <Box
           sx={{
@@ -217,25 +336,45 @@ const HistoryTabContent: React.FC = () => {
           </Typography>
         </Box>
       ) : (
-        <Stack spacing={1}>
-          {printJobs.map((job) => (
-            <Box
-              key={job.id}
-              sx={{
-                p: 1.5,
-                borderRadius: 1,
-                border: 1,
-                borderColor: "divider",
-                backgroundColor: "background.paper",
-              }}>
-              <Typography variant="body2" fontWeight={600}>
-                {job.name}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {job.date}
-              </Typography>
-            </Box>
-          ))}
+        <Stack direction="column">
+          {printJobs.map((job, index) => {
+            const payload = parsePayload(job.payload);
+            // Show download button for finished jobs that have s3_key
+            const canDownload = job.status_simple === "finished" && payload?.s3_key;
+            const isDownloading = downloadingJobId === job.id;
+
+            // Create download button to pass as custom action
+            const downloadButton = canDownload ? (
+              <Tooltip title={t("download")}>
+                <IconButton
+                  size="small"
+                  onClick={() => handleDownload(job.id, payload?.file_name || "report.pdf")}
+                  disabled={isDownloading}
+                  sx={{ fontSize: "1.2rem", color: "success.main" }}>
+                  {isDownloading ? (
+                    <CircularProgress size={18} color="success" />
+                  ) : (
+                    <DownloadIcon fontSize="small" />
+                  )}
+                </IconButton>
+              </Tooltip>
+            ) : undefined;
+
+            return (
+              <Box key={job.id} sx={{ overflow: "hidden" }}>
+                <JobProgressItem
+                  id={job.id}
+                  type={job.type}
+                  status={job.status_simple}
+                  name={job.id}
+                  date={job.updated_at}
+                  errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
+                  actionButton={downloadButton}
+                />
+                {index < printJobs.length - 1 && <Divider />}
+              </Box>
+            );
+          })}
         </Stack>
       )}
     </Box>
@@ -243,7 +382,7 @@ const HistoryTabContent: React.FC = () => {
 };
 
 const ReportsElementsPanel: React.FC<ReportsElementsPanelProps> = ({
-  project: _project,
+  project,
   projectLayers,
   selectedReport,
   selectedElementId,
@@ -323,7 +462,7 @@ const ReportsElementsPanel: React.FC<ReportsElementsPanelProps> = ({
         <ElementsTabContent />
       </SidePanelTabPanel>
       <SidePanelTabPanel value={activeTab} index={1} id="history">
-        <HistoryTabContent />
+        <HistoryTabContent projectId={project?.id} layoutId={selectedReport?.id} />
       </SidePanelTabPanel>
     </SidePanel>
   );

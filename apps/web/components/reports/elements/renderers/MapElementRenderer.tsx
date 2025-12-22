@@ -34,6 +34,7 @@ interface MapElementRendererProps {
   viewOnly?: boolean;
   onElementUpdate?: (elementId: string, config: Record<string, unknown>) => void;
   onNavigationModeChange?: (isNavigating: boolean) => void;
+  onMapLoaded?: () => void; // Called when the map has finished loading
 }
 
 /**
@@ -59,6 +60,7 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
   viewOnly = false,
   onElementUpdate,
   onNavigationModeChange,
+  onMapLoaded,
 }) => {
   const theme = useTheme();
   const mapRef = useRef<MapRef>(null);
@@ -71,11 +73,6 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
 
   // Create a stable key for detecting config changes
   const configKey = JSON.stringify(configViewState);
-
-  // Debug: Log config changes
-  useEffect(() => {
-    console.log("[MapElementRenderer] Config viewState changed:", configViewState);
-  }, [configViewState]);
 
   // Use live basemap URL from props, fallback to default
   const mapStyleUrl = basemapUrl || DEFAULT_BASEMAP_URL;
@@ -116,13 +113,6 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
     const configLng = configViewState?.longitude ?? DEFAULT_VIEW_STATE.longitude;
     const configPitch = configViewState?.pitch ?? DEFAULT_VIEW_STATE.pitch;
 
-    console.log("[MapElementRenderer] Setting viewState:", {
-      configBearing,
-      configZoom,
-      configLat,
-      configLng,
-    });
-
     setViewState({
       latitude: configLat,
       longitude: configLng,
@@ -140,6 +130,9 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
 
     const [west, south, east, north] = atlasPage.bounds;
 
+    // Get bearing from config to preserve rotation during fitBounds
+    const configBearing = configViewState?.bearing ?? DEFAULT_VIEW_STATE.bearing;
+
     // Fit the map to the atlas page bounds with some padding
     mapRef.current.fitBounds(
       [
@@ -150,9 +143,10 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
         padding: 20, // Add some padding around the feature
         duration: 0, // No animation for print preview
         maxZoom: 18, // Prevent excessive zoom for small features
+        bearing: configBearing, // Preserve rotation from config
       }
     );
-  }, [atlasPage, isAtlasControlled, mapLoaded]);
+  }, [atlasPage, isAtlasControlled, mapLoaded, configViewState?.bearing]);
 
   // Handle double-click to enter navigation mode
   const handleDoubleClick = useCallback(
@@ -218,6 +212,19 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
     }
     setMapLoaded(true);
   }, [visibleLayers]);
+
+  // Track if we've already notified parent that map is ready
+  const hasNotifiedReady = useRef(false);
+
+  // Handle map idle - called when the map has finished rendering
+  // This is more reliable for print than onLoad which fires when style is loaded
+  const handleMapIdle = useCallback(() => {
+    // Only notify once when the map first becomes idle after loading
+    if (mapLoaded && !hasNotifiedReady.current) {
+      hasNotifiedReady.current = true;
+      onMapLoaded?.();
+    }
+  }, [mapLoaded, onMapLoaded]);
 
   // Calculate inverse scale to render map at native size
   // The parent container is already scaled by zoom, so we render the map
@@ -285,6 +292,7 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
             doubleClickZoom={false}
             onMoveEnd={handleMoveEnd}
             onLoad={handleMapLoad}
+            onIdle={handleMapIdle}
             interactive={isNavigationMode}>
             {visibleLayers.length > 0 && <Layers layers={visibleLayers} />}
           </Map>
