@@ -46,6 +46,8 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
     setIsBusy(true);
     try {
       await acceptInvitation(inviteId);
+      await update();
+      router.push("/");
     } catch (_error) {
       setResponseResult({
         message: t("invite_accept_error"),
@@ -54,14 +56,14 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
     } finally {
       setIsBusy(false);
     }
-    update();
-    router.push("/");
   }
 
   async function handleDeclineInvite() {
     setIsBusy(true);
     try {
       await declineInvitation(inviteId);
+      await update();
+      router.push("/");
     } catch (_error) {
       setResponseResult({
         message: t("invite_decline_error"),
@@ -70,8 +72,6 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
     } finally {
       setIsBusy(false);
     }
-    update();
-    router.push("/");
   }
 
   return (
@@ -151,7 +151,7 @@ export default function OrganizationInviteJoin({ params: { inviteId } }) {
             }
           />
         )}
-        {isLoading && <Loading />}
+        {(isLoading || status === "loading") && <Loading />}
       </>
     </AuthLayout>
   );
