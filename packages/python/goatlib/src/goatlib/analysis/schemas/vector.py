@@ -3,6 +3,12 @@ from typing import List, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
+from goatlib.analysis.schemas.base import (
+    ALL_GEOMETRY_TYPES,
+    POLYGON_TYPES,
+    GeometryType,
+)
+
 
 class BufferParams(BaseModel):
     """
@@ -353,3 +359,138 @@ class JoinParams(BaseModel):
             )
 
         return self
+
+
+class ClipParams(BaseModel):
+    """
+    Parameters for performing clip (zuschneiden) operation
+    """
+
+    input_path: str = Field(..., description="Path to the input dataset to be clipped.")
+    overlay_path: str = Field(
+        ..., description="Path to the overlay dataset used for clipping."
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for clipped output. If not provided, will be auto-generated.",
+    )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )
+
+    # Hardcoded accepted geometry types for each layer
+    @property
+    def accepted_input_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for input layer in clip operation."""
+        return ALL_GEOMETRY_TYPES
+
+    @property
+    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for overlay layer in clip operation (must be polygon)."""
+        return POLYGON_TYPES
+
+
+class IntersectionParams(BaseModel):
+    """
+    Parameters for performing intersection (verschneiden) operation
+    """
+
+    input_path: str = Field(..., description="Path to the input dataset.")
+    overlay_path: str = Field(
+        ..., description="Path to the overlay dataset to intersect with."
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for intersection output. If not provided, will be auto-generated.",
+    )
+    input_fields: Optional[List[str]] = Field(
+        None,
+        description="List of field names from input layer to keep in output. If None, all fields are kept.",
+    )
+    overlay_fields: Optional[List[str]] = Field(
+        None,
+        description="List of field names from overlay layer to keep in output. If None, all fields are kept.",
+    )
+    overlay_fields_prefix: Optional[str] = Field(
+        "intersection_",
+        description="Prefix to add to overlay field names to avoid naming conflicts. Default is 'intersection_'.",
+    )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )
+
+    # Hardcoded accepted geometry types for each layer
+    @property
+    def accepted_input_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for input layer in intersection operation."""
+        return ALL_GEOMETRY_TYPES
+
+    @property
+    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for overlay layer in intersection operation."""
+        return ALL_GEOMETRY_TYPES
+
+
+class UnionParams(BaseModel):
+    """
+    Parameters for performing union (vereinigen) operation
+    """
+
+    input_path: str = Field(..., description="Path to the input dataset.")
+    overlay_path: Optional[str] = Field(
+        None,
+        description="Path to the overlay dataset to union with. If None, performs self-union on input.",
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for union output. If not provided, will be auto-generated.",
+    )
+    overlay_fields_prefix: Optional[str] = Field(
+        None,
+        description="Prefix to add to overlay field names to avoid naming conflicts.",
+    )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )
+
+    # Hardcoded accepted geometry types for each layer
+    @property
+    def accepted_input_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for input layer in union operation."""
+        return ALL_GEOMETRY_TYPES
+
+    @property
+    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for overlay layer in union operation."""
+        return ALL_GEOMETRY_TYPES
+
+
+class DifferenceParams(BaseModel):
+    """
+    Parameters for performing difference (differenz) operation
+    """
+
+    input_path: str = Field(
+        ..., description="Path to the input dataset to subtract from."
+    )
+    overlay_path: str = Field(
+        ..., description="Path to the overlay dataset to subtract."
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for difference output. If not provided, will be auto-generated.",
+    )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )
+
+    # Hardcoded accepted geometry types for each layer
+    @property
+    def accepted_input_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for input layer in difference operation."""
+        return ALL_GEOMETRY_TYPES
+
+    @property
+    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for overlay layer in difference operation (typically polygon)."""
+        return POLYGON_TYPES
