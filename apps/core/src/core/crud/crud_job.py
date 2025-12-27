@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List
+from typing import Any, Dict, List
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -26,6 +26,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
         job_type: JobType,
         project_id: UUID | None = None,
         read: bool | None = None,
+        payload: Dict[str, Any] | None = None,
     ) -> Job:
         """Create a job."""
 
@@ -65,6 +66,8 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
             job.project_id = project_id
         if read:
             job.read = read
+        if payload:
+            job.payload = payload
 
         # Create job
         job = await self.create(db=async_session, obj_in=dict(job))
@@ -187,7 +190,9 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
                 ),
             )
         )
-        jobs = [job[0] for job in (await self.get_multi(async_session, query=query_get))]
+        jobs = [
+            job[0] for job in (await self.get_multi(async_session, query=query_get))
+        ]
 
         # Create dict of len jobs with read=True.
         jobs_update = [{"read": True} for job in jobs]

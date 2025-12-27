@@ -1,9 +1,10 @@
 # Standard library imports
 import asyncio
 import json
+import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from uuid import UUID, uuid4
 
 # Third party imports
@@ -22,7 +23,6 @@ from core.core.content import build_shared_with_object, create_query_shared_cont
 from core.core.job import (
     CRUDFailedJob,
     job_init,
-    job_log,
     run_background_or_immediately,
 )
 from core.core.layer import (
@@ -30,7 +30,6 @@ from core.core.layer import (
     FileUpload,
     OGRFileHandling,
     delete_layer_data,
-    delete_old_files,
 )
 from core.crud.base import CRUDBase
 from core.crud.crud_layer_project import layer_project as crud_layer_project
@@ -38,14 +37,13 @@ from core.db.models._link_model import (
     LayerOrganizationLink,
     LayerTeamLink,
 )
-from core.db.models.layer import FeatureGeometryType, FeatureType, Layer, LayerType
+from core.db.models.layer import Layer, LayerType
 from core.db.models.organization import Organization
 from core.db.models.role import Role
 from core.db.models.team import Team
 from core.schemas.error import (
     ColumnNotFoundError,
     LayerNotFoundError,
-    NoCRSError,
     OperationNotSupportedError,
     UnsupportedLayerTypeError,
 )
@@ -54,31 +52,25 @@ from core.schemas.layer import (
     AreaStatisticsOperation,
     ComputeBreakOperation,
     ICatalogLayerGet,
-    IFeatureStandardCreateAdditionalAttributes,
     IFileUploadExternalService,
     IFileUploadMetadata,
-    ILayerExport,
     ILayerFromDatasetCreate,
     ILayerGet,
     IMetadataAggregate,
     IMetadataAggregateRead,
-    ITableCreateAdditionalAttributes,
     IUniqueValue,
     MetadataGroupAttributes,
-    OgrDriverType,
-    SupportedOgrGeomType,
     UserDataGeomType,
     get_layer_schema,
     layer_update_class,
 )
-from core.schemas.style import get_base_style
 from core.schemas.toolbox_base import MaxFeatureCnt
 from core.utils import (
     async_delete_dir,
-    async_zip_directory,
     build_where,
-    build_where_clause,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CRUDLayer(CRUDLayerBase):
@@ -755,351 +747,8 @@ class CRUDLayer(CRUDLayerBase):
 layer = CRUDLayer(Layer)
 
 
-class CRUDLayerImport(CRUDFailedJob):
-    """CRUD class for Layer import."""
-
-    def __init__(
-        self,
-        job_id: UUID,
-        background_tasks: BackgroundTasks,
-        async_session: AsyncSession,
-        user_id: UUID,
-    ) -> None:
-        super().__init__(job_id, background_tasks, async_session, user_id)
-        self.temp_table_name = (
-            f'{settings.USER_DATA_SCHEMA}."{str(self.job_id).replace("-", "")}"'
-        )
-
-    async def create_internal(
-        self,
-        layer_in: ILayerFromDatasetCreate,
-        file_metadata: Dict[str, Any],
-        attribute_mapping: Dict[str, Any],
-        project_id: UUID | None = None,
-    ) -> UUID:
-        additional_attributes: Dict[str, Any] = {}
-        # Get layer_id and size from import job
-        additional_attributes["user_id"] = self.user_id
-        # Create attribute mapping
-        additional_attributes["attribute_mapping"] = attribute_mapping
-        # Map original file type
-        additional_attributes["upload_file_type"] = file_metadata["file_ending"]
-
-        # Get default style if feature layer
-        if file_metadata["data_types"].get("geometry"):
-            geom_type = SupportedOgrGeomType[
-                file_metadata["data_types"]["geometry"]["type"]
-            ].value
-            if not layer_in.properties:
-                layer_in.properties = get_base_style(
-                    feature_geometry_type=FeatureGeometryType[geom_type]
-                )
-            additional_attributes["type"] = LayerType.feature
-            additional_attributes["feature_layer_type"] = FeatureType.standard
-            additional_attributes["feature_layer_geometry_type"] = geom_type
-            additional_attributes["extent"] = file_metadata["data_types"]["geometry"][
-                "extent"
-            ]
-            additional_attributes = IFeatureStandardCreateAdditionalAttributes(
-                **additional_attributes
-            ).model_dump()
-        else:
-            additional_attributes["type"] = LayerType.table
-            additional_attributes = ITableCreateAdditionalAttributes(
-                **additional_attributes
-            ).model_dump()
-
-        # Check to update the layer name if it already exists
-        layer_in.name = await CRUDLayer(Layer).check_and_alter_layer_name(
-            async_session=self.async_session,
-            folder_id=layer_in.folder_id,
-            layer_name=layer_in.name,
-            project_id=project_id,
-        )
-
-        # Populate layer_in with additional attributes
-        layer_in = Layer(
-            **layer_in.model_dump(exclude_none=True),
-            **additional_attributes,
-            job_id=self.job_id,
-        )
-
-        # Update size
-        layer_in.size = await CRUDLayer(Layer).get_feature_layer_size(
-            async_session=self.async_session, layer=layer_in
-        )
-        layer: Layer = await CRUDLayer(Layer).create(
-            db=self.async_session,
-            obj_in=layer_in.model_dump(),
-        )
-        assert layer.id is not None
-
-        # Label cluster_keep
-        if layer.type == LayerType.feature:
-            await CRUDLayer(Layer).label_cluster_keep(self.async_session, layer)
-
-        if project_id:
-            # Add layer to project
-            await crud_layer_project.create(
-                async_session=self.async_session,
-                layer_ids=[layer.id],
-                project_id=project_id,
-            )
-
-        return layer.id
-
-    async def import_file(
-        self,
-        file_metadata: Dict[str, Any],
-        layer_in: ILayerFromDatasetCreate,
-        project_id: UUID | None = None,
-    ) -> Tuple[Dict[str, Any], UUID]:
-        """Import file using ogr2ogr."""
-
-        # Initialize OGRFileHandling
-        ogr_file_upload = OGRFileHandling(
-            async_session=self.async_session,
-            user_id=self.user_id,
-            file_path=file_metadata["file_path"],
-        )
-
-        # Create attribute mapping out of valid attributes
-        attribute_mapping = {}
-        for field_type, field_names in file_metadata["data_types"]["valid"].items():
-            cnt = 1
-            for field_name in field_names:
-                if field_name == "id":
-                    continue
-                # Replace hyphens with an underscore as ogr2ogr also does this while importing the layer
-                # TODO: Find a more robust way to sync changes made by ogr2ogr to field names and this attribute mapping
-                attribute_mapping[field_type + "_attr" + str(cnt)] = field_name.replace(
-                    "-", "_"
-                )
-                cnt += 1
-
-        # Upload file to temporary table using ogr2ogr
-        result = await ogr_file_upload.upload_ogr2ogr(
-            temp_table_name=self.temp_table_name,
-            job_id=self.job_id,
-        )
-        # Migrate temporary table to target table
-        result = await ogr_file_upload.migrate_target_table(
-            validation_result=file_metadata,
-            attribute_mapping=attribute_mapping,
-            temp_table_name=self.temp_table_name,
-            layer_id=layer_in.id,
-            job_id=self.job_id,
-        )
-        # Create layer metadata and thumbnail
-        layer_id = await self.create_internal(
-            layer_in=layer_in,
-            file_metadata=file_metadata,
-            attribute_mapping=attribute_mapping,
-            project_id=project_id,
-        )
-
-        return result, layer_id
-
-    @run_background_or_immediately(settings)
-    @job_init()
-    async def import_file_job(
-        self,
-        file_metadata: Dict[str, Any],
-        layer_in: ILayerFromDatasetCreate,
-        project_id: UUID | None = None,
-    ) -> dict[str, Any]:
-        """Create a layer from a dataset file."""
-
-        result, _ = await self.import_file(
-            file_metadata=file_metadata,
-            layer_in=layer_in,
-            project_id=project_id,
-        )
-        return result
-
-
-class CRUDLayerExport:
-    """CRUD class for Layer import."""
-
-    def __init__(self, id: UUID, async_session: AsyncSession, user_id: UUID) -> None:
-        self.id = id
-        self.user_id = user_id
-        self.async_session = async_session
-        self.folder_path = os.path.join(
-            settings.DATA_DIR, str(self.user_id), str(self.id)
-        )
-
-    async def create_metadata_file(self, layer: Layer, layer_in: ILayerExport) -> None:
-        last_data_updated_at = await CRUDLayer(Layer).get_last_data_updated_at(
-            async_session=self.async_session, id=self.id, query=layer_in.query
-        )
-        # Write metadata to metadata.txt file
-        with open(
-            os.path.join(self.folder_path, layer_in.file_name, "metadata.txt"), "w"
-        ) as f:
-            # Write some heading
-            f.write("############################################################\n")
-            f.write(f"Metadata for layer {layer.name}\n")
-            f.write("############################################################\n")
-            f.write(f"Exported Coordinate Reference System: {layer_in.crs}\n")
-            f.write(
-                f"Exported File Type: {OgrDriverType[layer_in.file_type.value].value}\n"
-            )
-            f.write("############################################################\n")
-            f.write(f"Last data update: {last_data_updated_at}\n")
-            f.write(f"Last metadata update: {layer.updated_at}\n")
-            f.write(f"Created at: {layer.created_at}\n")
-            f.write(f"Exported at: {datetime.now()}\n")
-            f.write("############################################################\n")
-            f.write(f"Name: {layer.name}\n")
-            f.write(f"Description: {layer.description}\n")
-            if layer.tags:
-                f.write(f"Tags: {', '.join(layer.tags)}\n")
-            f.write(f"Lineage: {layer.lineage}\n")
-            f.write(f"Positional Accuracy: {layer.positional_accuracy}\n")
-            f.write(f"Attribute Accuracy: {layer.attribute_accuracy}\n")
-            f.write(f"Completeness: {layer.completeness}\n")
-            f.write(f"Upload Reference System: {layer.upload_reference_system}\n")
-            f.write(f"Upload File Type: {layer.upload_file_type}\n")
-            f.write(f"Geographical Code: {layer.geographical_code}\n")
-            f.write(f"Language Code: {layer.language_code}\n")
-            f.write(f"Distributor Name: {layer.distributor_name}\n")
-            f.write(f"Distributor Email: {layer.distributor_email}\n")
-            f.write(f"Distribution URL: {layer.distribution_url}\n")
-            f.write(f"License: {layer.license}\n")
-            f.write(f"Attribution: {layer.attribution}\n")
-            f.write(f"Data Reference Year: {layer.data_reference_year}\n")
-            f.write(f"Data Category: {layer.data_category}\n")
-            f.write("############################################################")
-
-    async def export_file(
-        self,
-        layer_in: ILayerExport,
-    ) -> str:
-        """Export file using ogr2ogr."""
-
-        # Get layer
-        layer = await CRUDLayer(Layer).get_internal(
-            async_session=self.async_session, id=self.id
-        )
-
-        # Only feature and table layers can be exported
-        if layer.type not in [LayerType.feature, LayerType.table]:
-            raise UnsupportedLayerTypeError(
-                "Layer is not a feature layer or table layer. Other layer types cannot be exported."
-            )
-
-        # Make sure that feature layer have CRS set
-        if layer.type == LayerType.feature:
-            if layer_in.crs is None:
-                raise NoCRSError(
-                    "CRS is required for feature layers. Please provide a CRS."
-                )
-
-        # Build SQL query for export
-        # Build select query based on attribute mapping
-        select_query = ""
-        for key, value in layer.attribute_mapping.items():
-            select_query += f'{key} AS "{value}", '
-
-        # Add id and geom
-        if layer.type == LayerType.feature:
-            select_query = "id, " + select_query + "geom"
-        else:
-            select_query = "id, " + select_query
-            select_query = select_query[:-2]
-
-        # Build where query
-        where_query = build_where(
-            layer.id, layer.table_name, layer_in.query, layer.attribute_mapping
-        )
-        query = build_where_clause([where_query])
-        sql_query = f"""
-            SELECT {select_query}
-            FROM {layer.table_name}
-            {query}
-        """
-        # Build filepath
-        file_path = os.path.join(
-            self.folder_path,
-            layer_in.file_name,
-            f"{layer_in.file_name}." + layer_in.file_type,
-        )
-
-        # Delete files that are older then one hour
-        await delete_old_files(3600)
-
-        # Initialize OGRFileHandling
-        ogr_file_handling = OGRFileHandling(
-            async_session=self.async_session,
-            user_id=self.user_id,
-            file_path=file_path,
-        )
-        file_path = await ogr_file_handling.export_ogr2ogr(
-            layer=layer,
-            file_type=layer_in.file_type,
-            file_name=layer_in.file_name,
-            sql_query=sql_query,
-            crs=layer_in.crs,
-        )
-
-        # Write data into metadata.txt file
-        await self.create_metadata_file(layer=layer, layer_in=layer_in)
-
-        # Zip result folder
-        result_dir = os.path.join(
-            settings.DATA_DIR, str(self.user_id), str(layer_in.file_name) + ".zip"
-        )
-        await async_zip_directory(
-            result_dir, os.path.join(self.folder_path, layer_in.file_name)
-        )
-
-        # Delete folder
-        await async_delete_dir(self.folder_path)
-
-        return result_dir
-
-    async def export_file_run(self, layer_in: ILayerExport) -> str:
-        return await self.export_file(layer_in=layer_in)
-
-
-class CRUDDataDelete(CRUDFailedJob):
-    """CRUD class for Layer import."""
-
-    def __init__(
-        self,
-        job_id: UUID,
-        background_tasks: BackgroundTasks,
-        async_session: AsyncSession,
-        user_id: UUID,
-    ) -> None:
-        super().__init__(job_id, background_tasks, async_session, user_id)
-
-    @job_log(job_step_name="data_delete_multi")
-    async def delete_multi(
-        self,
-        async_session: AsyncSession,
-        layers: list[Layer],
-    ) -> Dict[str, Any]:
-        for layer in layers:
-            await delete_layer_data(async_session=async_session, layer=layer)
-        return {
-            "status": JobStatusType.finished.value,
-            "msg": "Data was successfuly deleted.",
-        }
-
-    @run_background_or_immediately(settings)
-    @job_init()
-    async def delete_multi_run(
-        self,
-        async_session: AsyncSession,
-        layers: list[Layer],
-    ) -> Dict[str, Any]:
-        return await self.delete_multi(async_session=async_session, layers=layers)
-
-
 class CRUDLayerDatasetUpdate(CRUDFailedJob):
-    """CRUD class for updating the dataset of an existing layer and updating all layer project references."""
+    """CRUD class for updating the dataset of an existing layer in-place."""
 
     def __init__(
         self,
@@ -1118,39 +767,124 @@ class CRUDLayerDatasetUpdate(CRUDFailedJob):
         file_metadata: dict,
         layer_in: ILayerFromDatasetCreate,
     ) -> Dict[str, Any]:
-        """Update layer dataset."""
+        """Update layer dataset in-place (keeps same layer_id).
+
+        Uses atomic swap approach:
+        1. Convert file to parquet (goatlib)
+        2. Create temp DuckLake table from parquet
+        3. If successful: DROP old table, RENAME temp table
+        4. If failed: DROP temp table, original data intact
+        5. Update layer metadata
+        """
+        import tempfile
+        from pathlib import Path
+
+        from goatlib.io.converter import IOConverter
+
+        from core.crud.crud_layer_ducklake import (
+            build_extent_wkt,
+            map_geometry_type,
+        )
+        from core.storage.ducklake import ducklake_manager
 
         if not self.job_id:
             raise ValueError("Job ID not defined")
 
-        original_name = layer_in.name
-
-        # Create a new layer with the updated dataset while transferring existing layer properties
-        result, layer_id = await CRUDLayerImport(
-            background_tasks=self.background_tasks,
+        # Verify layer exists (will raise if not found)
+        await layer.get_internal(
             async_session=self.async_session,
-            user_id=self.user_id,
-            job_id=self.job_id,
-        ).import_file(
-            file_metadata=file_metadata,
-            layer_in=layer_in,
+            id=existing_layer_id,
         )
 
-        # Update all layer project references with the new layer id
-        await crud_layer_project.update_layer_id(
-            async_session=self.async_session,
-            layer_id=existing_layer_id,
-            new_layer_id=layer_id,
+        logger.info(
+            "Updating layer dataset in-place: layer_id=%s",
+            existing_layer_id,
         )
 
-        # Delete the old layer
-        await layer.delete(async_session=self.async_session, id=existing_layer_id)
+        # Step 1: Convert file to parquet using goatlib
+        with tempfile.TemporaryDirectory(prefix="goat_update_") as temp_dir:
+            parquet_path = Path(temp_dir) / f"{existing_layer_id}.parquet"
 
-        # Rename the new layer
+            converter = IOConverter()
+            metadata = converter.to_parquet(
+                src_path=file_metadata["file_path"],
+                out_path=str(parquet_path),
+                target_crs="EPSG:4326",
+            )
+            logger.info("Converted to parquet: %s", metadata.short_summary())
+
+            # Step 2: Atomic replace in DuckLake
+            # This creates temp table, drops old, renames - all in one transaction
+            table_info = ducklake_manager.replace_layer_from_parquet(
+                user_id=self.user_id,
+                layer_id=existing_layer_id,
+                parquet_path=str(parquet_path),
+                target_crs="EPSG:4326",
+            )
+
+        # Step 3: Build updated attributes
+        columns_info = {col["name"]: col["type"] for col in table_info["columns"]}
+
+        update_attrs: Dict[str, Any] = {
+            "attribute_mapping": columns_info,
+            "job_id": self.job_id,
+        }
+
+        # Update geometry-related fields if geometry exists
+        if table_info.get("geometry_type"):
+            update_attrs["feature_layer_geometry_type"] = map_geometry_type(
+                table_info["geometry_type"]
+            )
+            if table_info.get("extent"):
+                update_attrs["extent"] = build_extent_wkt(table_info["extent"])
+
+        # Update size from DuckLake metadata
+        user_schema = f"user_{str(self.user_id).replace('-', '')}"
+        table_name = f"t_{str(existing_layer_id).replace('-', '')}"
+        query = text("""
+            SELECT COALESCE(ts.file_size_bytes, 0) as file_size_bytes
+            FROM ducklake.ducklake_table t
+            JOIN ducklake.ducklake_schema s ON t.schema_id = s.schema_id
+            JOIN ducklake.ducklake_table_stats ts ON t.table_id = ts.table_id
+            WHERE s.schema_name = :schema_name
+              AND t.table_name = :table_name
+              AND t.end_snapshot IS NULL
+              AND s.end_snapshot IS NULL
+        """)
+        result = await self.async_session.execute(
+            query,
+            {"schema_name": user_schema, "table_name": table_name},
+        )
+        row = result.fetchone()
+        update_attrs["size"] = row.file_size_bytes if row else 0
+
+        # Step 4: Update layer metadata in PostgreSQL
         await layer.update(
             async_session=self.async_session,
-            id=layer_id,
-            layer_in={"name": original_name},
+            id=existing_layer_id,
+            layer_in=update_attrs,
         )
 
+        # Step 5: Cleanup uploaded file directory
+        upload_dir = os.path.dirname(file_metadata["file_path"])
+        user_upload_dir = os.path.dirname(upload_dir)
+        if upload_dir and os.path.isdir(upload_dir):
+            await async_delete_dir(upload_dir)
+            logger.info("Cleaned up upload directory: %s", upload_dir)
+            if user_upload_dir and os.path.isdir(user_upload_dir):
+                try:
+                    os.rmdir(user_upload_dir)
+                except OSError:
+                    pass
+
+        result = {
+            "status": JobStatusType.finished.value,
+            "msg": "Layer dataset updated successfully",
+            "layer_id": str(existing_layer_id),
+            "table_name": table_info["table_name"],
+            "feature_count": table_info["feature_count"],
+            "geometry_type": table_info.get("geometry_type"),
+        }
+
+        logger.info("Layer dataset update complete: %s", result)
         return result

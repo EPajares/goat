@@ -16,6 +16,8 @@
     "charliermarsh.ruff", // ruff plugin
     "tamasfe.even-better-toml", // TOML plugin
 
+    // Testing
+    "vitest.explorer", // Vitest test explorer for JS/TS
 
     // Utilities
     "github.copilot", // GitHub Copilot

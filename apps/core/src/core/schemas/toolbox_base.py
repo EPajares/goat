@@ -229,9 +229,9 @@ class PTTimeWindow(BaseModel):
     @property
     def weekday_date(self) -> str:
         mapping = {
-            "weekday": "2025-08-19",
-            "saturday": "2025-08-23",
-            "sunday": "2025-08-24",
+            "weekday": "2025-09-16",
+            "saturday": "2025-09-20",
+            "sunday": "2025-09-21",
         }
         return mapping[PTSupportedDay(self.weekday).value]
 

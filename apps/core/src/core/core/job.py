@@ -218,7 +218,13 @@ def job_init() -> Callable[[Any], Any]:
                 JobStatusType.timeout.value,
                 JobStatusType.failed.value,
             ]:
-                if kwargs.get("params"):
+                # Use result payload if provided, otherwise use input params
+                if result.get("result"):
+                    payload = {
+                        "status_simple": JobStatusType.finished.value,
+                        "payload": result["result"],
+                    }
+                elif kwargs.get("params"):
                     payload = {
                         "status_simple": JobStatusType.finished.value,
                         "payload": kwargs["params"].json(exclude_none=True),

@@ -18,7 +18,7 @@ import { EditorModes } from "@/types/map/popover";
 import { useAppDispatch } from "@/hooks/store/ContextHooks";
 
 import FormLabelHelper from "@/components/common/FormLabelHelper";
-import { CustomDrawModes } from "@/components/map/controls/draw/Draw";
+import { DrawModes } from "@/components/map/controls/Draw";
 
 export type FeatureEditorToolsProps = {
   layer: Layer;
@@ -29,7 +29,7 @@ export type FeatureEditorToolsProps = {
 };
 
 export const SelectModes = {
-  DRAW_CIRCLE: CustomDrawModes.DRAW_CIRCLE,
+  DRAW_CIRCLE: DrawModes.CIRCLE,
 };
 
 export const toMapDrawModeGeometryType = {

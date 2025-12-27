@@ -18,13 +18,15 @@ export const PATTERN_IMAGE_PREFIX = "goat-pattern-";
  * @returns void
  */
 export const loadImage = (
-  map: MapRef,
+  map: MapRef | null | undefined,
   url: string,
   marker_name: string,
   sdf?: boolean,
-  targetWidth = 200,   // default
-  targetHeight = 200   // default
+  targetWidth = 200, // default
+  targetHeight = 200 // default
 ) => {
+  if (!map) return;
+
   const addOrUpdateImage = (
     image:
       | HTMLImageElement
@@ -32,17 +34,14 @@ export const loadImage = (
       | ImageData
       | ImageBitmap
   ) => {
-    if (map?.hasImage(marker_name)) {
+    if (!map) return;
+    if (map.hasImage(marker_name)) {
       map.removeImage(marker_name);
     }
     map.addImage(marker_name, image, { sdf: sdf ?? true });
   };
 
-  const rasterizeToCanvas = (
-    img: HTMLImageElement,
-    targetW: number,
-    targetH: number
-  ) => {
+  const rasterizeToCanvas = (img: HTMLImageElement, targetW: number, targetH: number) => {
     const pixelRatio = window.devicePixelRatio || 1;
     const canvas = document.createElement("canvas");
     canvas.width = targetW * pixelRatio;

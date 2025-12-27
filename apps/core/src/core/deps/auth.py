@@ -111,13 +111,23 @@ async def _validate_authorization(
 
 async def auth_z(
     request: Request,
-    user_token: Dict[str, Any] = Depends(user_token),
     async_session: AsyncSession = Depends(get_db),
 ) -> bool:
     """
     Authorization function to check if the user has access to the requested resource.
     """
     try:
+        if settings.AUTH is False:
+            return True
+        token = request.headers.get("Authorization")
+        if token:
+            token = token.split(" ")[1]
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing authorization token",
+            )
+        user_token = decode_token(token)
         await _validate_authorization(request, user_token, async_session)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
@@ -131,6 +141,8 @@ async def auth_z_lite(request: Request, async_session: AsyncSession) -> bool:
     """
 
     try:
+        if settings.AUTH is False:
+            return True
         token = request.headers.get("Authorization")
         if token:
             token = token.split(" ")[1]

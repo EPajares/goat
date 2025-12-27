@@ -8,7 +8,9 @@ from . import (
     job,
     layer,
     motorized_mobility,
+    print,
     project,
+    report_layout,
     status,
     system,
     tool,
@@ -21,6 +23,8 @@ router.include_router(user.router, prefix="/user", tags=["User"])
 router.include_router(folder.router, prefix="/folder", tags=["Folder"])
 router.include_router(layer.router, prefix="/layer", tags=["Layer"])
 router.include_router(project.router, prefix="/project", tags=["Project"])
+router.include_router(report_layout.router, prefix="/project", tags=["Report Layout"])
+router.include_router(print.router, prefix="/project", tags=["Print"])
 router.include_router(job.router, prefix="/job", tags=["Job"])
 router.include_router(system.router, prefix="/system", tags=["System Settings"])
 router.include_router(

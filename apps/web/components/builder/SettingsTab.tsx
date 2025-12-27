@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import SettingsGroupHeader from "@/components/builder/widgets/common/SettingsGroupHeader";
 
 interface SettingsTabProps {
-  settings: { [key: string]: boolean };
-  onChange: (name: string, value: boolean) => void;
+  settings: { [key: string]: unknown };
+  onChange: (name: string, value: unknown) => void;
   onReset: () => void;
 }
 
@@ -26,6 +26,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onChange, onReset }
         { name: "location", label: t("location_search") },
         { name: "find_my_location", label: t("find_my_location") },
         { name: "scalebar", label: t("scalebar") },
+        { name: "measure", label: t("measure") },
       ],
     },
     {
@@ -60,7 +61,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ settings, onChange, onReset }
                     <Stack direction="row" alignItems="center" key={option.name}>
                       <Switch
                         name={option.name}
-                        checked={settings[option.name]}
+                        checked={settings[option.name] as boolean}
                         onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                           onChange(option.name, event.target.checked)
                         }

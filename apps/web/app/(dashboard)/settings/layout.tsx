@@ -22,6 +22,8 @@ import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
+import { ACCOUNTS_DISABLED } from "@/lib/constants";
+
 import { useAuthZ } from "@/hooks/auth/AuthZ";
 
 interface SettingsLayoutProps {
@@ -34,8 +36,21 @@ const SettingsLayout = (props: SettingsLayoutProps) => {
   const theme = useTheme();
   const { t, i18n } = useTranslation("common");
   const { isOrgAdmin, isLoading: isUserProfileLoading } = useAuthZ();
-  const navigation = useMemo(
-    () => [
+  const navigation = useMemo(() => {
+    // If ACCOUNTS API URL IS NOT set → only show "Account"
+    if (ACCOUNTS_DISABLED) {
+      return [
+        {
+          link: "/settings/account",
+          icon: ICON_NAME.USER,
+          label: t("account"),
+          current: pathname?.includes("/account"),
+        },
+      ];
+    }
+
+    // If ACCOUNTS API URL IS set → show ALL settings
+    return [
       {
         link: "/settings/account",
         icon: ICON_NAME.USER,
@@ -69,9 +84,8 @@ const SettingsLayout = (props: SettingsLayoutProps) => {
         current: pathname?.includes("/billing"),
         auth: isOrgAdmin,
       },
-    ],
-    [pathname, t, isOrgAdmin]
-  );
+    ];
+  }, [pathname, t, isOrgAdmin]);
 
   return (
     <Container sx={{ py: 10, px: 10 }} maxWidth="xl">

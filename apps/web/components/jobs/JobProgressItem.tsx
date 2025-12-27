@@ -1,5 +1,6 @@
 import { Box, Collapse, IconButton, LinearProgress, Stack, Typography, useTheme } from "@mui/material";
 import { format, parseISO } from "date-fns";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +17,8 @@ interface JobProgressItemProps {
   errorMessage?: string;
   name: string;
   date: string;
+  /** Optional custom action button to replace the default status icon */
+  actionButton?: ReactNode;
 }
 
 const statusIcons: Record<JobStatusType, ICON_NAME> = {
@@ -117,15 +120,19 @@ export default function JobProgressItem(props: JobProgressItemProps) {
           )}
         </Stack>
       </Box>
-      <IconButton
-        size="small"
-        disabled={status === "pending" || status === "running"}
-        sx={{
-          fontSize: "1.2rem",
-          color: statusColors[status],
-        }}>
-        <Icon iconName={statusIcons[status]} htmlColor="inherit" fontSize="inherit" />
-      </IconButton>
+      {props.actionButton ? (
+        props.actionButton
+      ) : (
+        <IconButton
+          size="small"
+          disabled={status === "pending" || status === "running"}
+          sx={{
+            fontSize: "1.2rem",
+            color: statusColors[status],
+          }}>
+          <Icon iconName={statusIcons[status]} htmlColor="inherit" fontSize="inherit" />
+        </IconButton>
+      )}
     </Box>
   );
 }

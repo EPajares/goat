@@ -6,7 +6,7 @@ import Divider from "@mui/material/Divider";
 import { format, formatDistance, parseISO } from "date-fns";
 import { useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useMap } from "react-map-gl";
+import { useMap } from "react-map-gl/maplibre";
 
 import { GOATLogoIconOnlyGreen } from "@p4b/ui/assets/svg/GOATLogoIconOnlyGreen";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -26,12 +26,10 @@ import EditableTypography from "@/components/common/EditableTypography";
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
 import MoreMenu from "@/components/common/PopperMenu";
 import SlidingToggle from "@/components/common/SlidingToggle";
-import { ProjectMetadataView } from "@/components/dashboard/project/Metadata";
 import JobsPopper from "@/components/jobs/JobsPopper";
 import ContentDeleteModal from "@/components/modals/ContentDelete";
 import Metadata from "@/components/modals/Metadata";
 import ShareModal from "@/components/modals/Share";
-import ViewModal from "@/components/modals/View";
 
 import { Toolbar } from "./Toolbar";
 
@@ -43,7 +41,6 @@ export type HeaderProps = {
   mapHeader?: boolean;
   project?: Project;
   viewOnly?: boolean;
-  showInfo?: boolean; // Only when viewOnly is true
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProjectUpdate?: (key: string, value: any, refresh?: boolean) => void;
 };
@@ -62,7 +59,6 @@ export default function Header(props: HeaderProps) {
 
   const [isEditingProjectName, setIsEditingProjectName] = useState(false);
   const [isEditingProjectMetadata, setIsEditingProjectMetadata] = useState(false);
-  const [showProjectMetadataView, setShowProjectMetadataView] = useState(false);
   const [showDeleteProjectDialog, setShowDeleteProjectDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const mapMode = useAppSelector((state) => state.map.mapMode);
@@ -187,16 +183,6 @@ export default function Header(props: HeaderProps) {
         />
       )}
 
-      {project && showProjectMetadataView && (
-        <ViewModal
-          title={t("project_info")}
-          open={true}
-          onClose={() => setShowProjectMetadataView(false)}
-          closeText={t("close")}>
-          <ProjectMetadataView project={project} />
-        </ViewModal>
-      )}
-
       <Toolbar
         showHambugerMenu={showHambugerMenu}
         onMenuIconClick={onMenuIconClick}
@@ -288,6 +274,24 @@ export default function Header(props: HeaderProps) {
               ))}
           </>
         }
+        CenterToolbarChild={
+          <>
+            {props.mapHeader && !viewOnly && (
+              <SlidingToggle
+                options={[
+                  { label: t("common:data"), value: "data" },
+                  { label: t("common:builder"), value: "builder" },
+                  { label: t("common:reports"), value: "reports" },
+                  { label: t("common:workflows"), value: "workflows" },
+                ]}
+                activeOption={mapMode}
+                onToggle={(value: "data" | "builder" | "reports" | "workflows") => {
+                  dispatch(setMapMode(value));
+                }}
+              />
+            )}
+          </>
+        }
         RightToolbarChild={
           <>
             {!props.viewOnly && (
@@ -321,18 +325,6 @@ export default function Header(props: HeaderProps) {
                 )}
                 {props.mapHeader && (
                   <>
-                    <Stack sx={{ px: 4 }}>
-                      <SlidingToggle
-                        options={[
-                          { label: t("common:data"), value: "data" },
-                          { label: t("common:builder"), value: "builder" },
-                        ]}
-                        activeOption={mapMode}
-                        onToggle={(value: "data" | "builder") => {
-                          dispatch(setMapMode(value));
-                        }}
-                      />
-                    </Stack>
                     <Divider orientation="vertical" flexItem />
                     <Stack sx={{ px: 4 }} spacing={2} direction="row">
                       <Button
@@ -346,17 +338,6 @@ export default function Header(props: HeaderProps) {
                           {t("common:share")}
                         </Typography>
                       </Button>
-                      {/* <Button
-                        startIcon={
-                          <Icon iconName={ICON_NAME.PLAY} style={{ fontSize: 16, color: "inherit" }} />
-                        }
-                        onClick={() => setShowShareDialog(true)}
-                        variant="outlined"
-                        size="small">
-                        <Typography variant="body2" color="inherit" fontWeight="bold">
-                          {t("common:preview")}
-                        </Typography>
-                      </Button> */}
                     </Stack>
                     <Divider orientation="vertical" flexItem />
                   </>
@@ -374,19 +355,6 @@ export default function Header(props: HeaderProps) {
                 <JobsPopper />
                 <Divider orientation="vertical" flexItem />
                 <UserInfoMenu />
-              </Stack>
-            )}
-            {props.showInfo && (
-              <Stack spacing={2} direction="row">
-                <Tooltip title={t("common:project_info")}>
-                  <IconButton
-                    size="small"
-                    onClick={() => {
-                      setShowProjectMetadataView(!showProjectMetadataView);
-                    }}>
-                    <Icon iconName={ICON_NAME.CIRCLEINFO} fontSize="inherit" />
-                  </IconButton>
-                </Tooltip>
               </Stack>
             )}
           </>

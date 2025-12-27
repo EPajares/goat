@@ -383,9 +383,8 @@ class PrintMap:
         if style["type"] == "symbol":
             map = await self.add_icons_to_map(map, layer)
 
-        # Get collection id
-        layer_id = layer.id
-        collection_id = "user_data." + str(layer_id).replace("-", "")
+        # Get collection id (standard UUID format with hyphens)
+        collection_id = str(layer.id)
 
         # Request in recursive loop if layer was already added in geoapi if it does not fail the layer was added
         header = {"Content-Type": "application/json"}
@@ -552,9 +551,8 @@ class PrintMap:
                 layer.type == LayerType.feature
                 and layer.feature_layer_type != FeatureType.street_network
             ):
-                # Get collection id
-                layer_id = layer.layer_id
-                collection_id = "user_data." + str(layer_id).replace("-", "")
+                # Get collection id (standard UUID format with hyphens)
+                collection_id = str(layer.layer_id)
 
                 # Request in recursive loop if layer was already added in geoapi if it does not fail the layer was added
                 header = {"Content-Type": "application/json"}

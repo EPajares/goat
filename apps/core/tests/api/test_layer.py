@@ -1,13 +1,10 @@
 import os
 import zipfile
-from uuid import uuid4
 
 import pytest
 from core.core.config import settings
 from core.db.models.layer import LayerType
 from core.schemas.layer import (
-    AreaStatisticsOperation,
-    ComputeBreakOperation,
     FeatureLayerExportType,
     TableLayerExportType,
 )
@@ -223,253 +220,19 @@ async def test_delete_layers(client: AsyncClient, fixture_delete_layers):
     return
 
 
-@pytest.mark.asyncio
-async def test_get_feature_cnt(client: AsyncClient, fixture_create_feature_layer):
-    layer_id = fixture_create_feature_layer["id"]
-    query = '{"op": "=", "args": [{"property": "category"}, "bus_stop"]}'
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/feature-count?query={str(query)}"
-    )
-    assert response.status_code == 200
-    assert response.json()["filtered_count"] == 2
-    assert response.json()["total_count"] == 26
-
-
-@pytest.mark.asyncio
-async def test_get_area_statistics(
-    client: AsyncClient, fixture_create_feature_polygon_layer
-):
-    layer_id = fixture_create_feature_polygon_layer["id"]
-    expected_result = {
-        "sum": 978867237.0440512,
-        "min": 239195114.2226817,
-        "max": 739672122.8213694,
-    }
-
-    query = '{"op": "=", "args": [{"property": "gen"}, "Hamburg"]}'
-    # Request each statistical operation
-    for operation in AreaStatisticsOperation:
-        response = await client.get(
-            f"{settings.API_V2_STR}/layer/{layer_id}/area/{operation.value}?query={str(query)}"
-        )
-        assert response.status_code == 200
-        # Check if results are same as expected results
-        assert response.json()[operation.value] == expected_result[operation.value]
-
-
-@pytest.mark.asyncio
-async def test_get_area_statistics_no_query(
-    client: AsyncClient, fixture_create_feature_polygon_layer
-):
-    layer_id = fixture_create_feature_polygon_layer["id"]
-
-    response = await client.get(f"{settings.API_V2_STR}/layer/{layer_id}/area/sum")
-    assert response.status_code == 200
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_wrong_area_statistics_wrong_geom_type(
-    client: AsyncClient, fixture_create_feature_layer
-):
-    layer_id = fixture_create_feature_layer["id"]
-    response = await client.get(f"{settings.API_V2_STR}/layer/{layer_id}/area/sum")
-    assert response.status_code == 422
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_unique_values_layer_pagination(
-    client: AsyncClient, fixture_create_feature_layer
-):
-    layer_id = fixture_create_feature_layer["id"]
-    column = "name"
-
-    # Request the first 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=1&size=5&order=descendent"
-    )
-    assert response.status_code == 200
-    first_five = response.json()["items"]
-    assert len(first_five) == 5
-
-    # Request the next 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=2&size=5"
-    )
-    assert response.status_code == 200
-    next_five = response.json()["items"]
-    assert len(next_five) == 5
-
-    # Request the first 10 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=1&size=10"
-    )
-    assert response.status_code == 200
-    first_ten = response.json()["items"]
-    assert len(first_ten) == 10
-
-    # Check that the first and next five are the same as the 10 unique values
-    assert first_five + next_five == first_ten
-
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_unique_values_layer_query(
-    client: AsyncClient, fixture_create_feature_layer
-):
-    layer_id = fixture_create_feature_layer["id"]
-    column = "name"
-    query = '{"op": "=", "args": [{"property": "category"}, "bus_stop"]}'
-
-    # Request the first 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?query={str(query)}&page=1&size=5"
-    )
-    assert response.status_code == 200
-    values = response.json()
-    assert len(values["items"]) == 1
-    assert values["items"][0]["count"] == 2
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_unique_values_wrong_layer_id(
-    client: AsyncClient, fixture_create_feature_layer
-):
-    layer_id = uuid4()
-    column = "name"
-
-    # Request the first 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=1&size=5"
-    )
-    assert response.status_code == 404
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_unique_values_wrong_layer_type(
-    client: AsyncClient, fixture_create_raster_layer
-):
-    layer_id = fixture_create_raster_layer["id"]
-    column = "name"
-
-    # Request the first 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=1&size=5"
-    )
-    assert response.status_code == 422
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_unique_value_wrong_column_name(
-    client: AsyncClient, fixture_create_feature_layer
-):
-    layer_id = fixture_create_feature_layer["id"]
-    column = "wrong_column"
-
-    # Request the first 5 unique values
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/unique-values/{column}?page=1&size=5"
-    )
-    assert response.status_code == 404
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_statistics_column(client: AsyncClient, fixture_create_table_layer):
-    layer_id = fixture_create_table_layer["id"]
-    column = "einwohnerzahl_ewz"
-
-    base_results = {
-        "max": 3677472,
-        "min": 34091,
-        "mean": 208092.81,
-    }
-    results = {
-        "quantile": {
-            **base_results,
-            "breaks": [88430, 122724, 155900, 203831, 288097],
-        },
-        "standard_deviation": {
-            **base_results,
-            "breaks": [
-                85339.48205224,
-                330846.13794776,
-                576352.7938432801,
-                821859.4497388001,
-            ],
-        },
-        "equal_interval": {
-            **base_results,
-            "breaks": [
-                641321.1666666666,
-                1248551.3333333333,
-                1855781.5,
-                2463011.6666666665,
-                3070241.833333333,
-            ],
-        },
-        "heads_and_tails": {
-            **base_results,
-            "breaks": [
-                208092.81,
-                383477.3106060606,
-                720935.3636363636,
-                1668162.6666666667,
-                2765703.5,
-            ],
-        },
-    }
-
-    # Request each statistical operation
-    for operation in ComputeBreakOperation:
-        if operation.value == ComputeBreakOperation.standard_deviation.value:
-            # There is no breaks parameter for standard deviation
-            response = await client.get(
-                f"{settings.API_V2_STR}/layer/{layer_id}/class-breaks/{operation.value}/{column}?stripe_zeros=true"
-            )
-        else:
-            response = await client.get(
-                f"{settings.API_V2_STR}/layer/{layer_id}/class-breaks/{operation.value}/{column}?breaks=5&stripe_zeros=true"
-            )
-        assert response.status_code == 200
-        # Check that the results are the same as the expected results. Avoid checking the breaks for standard deviation as they can slighly differ.
-        if operation.value != ComputeBreakOperation.standard_deviation.value:
-            assert response.json() == results[operation.value]
-    return
-
-
-@pytest.mark.asyncio
-async def test_get_statistics_column_wrong_layer_id(
-    client: AsyncClient, fixture_create_table_layer
-):
-    layer_id = uuid4()
-    column = "einwohnerzahl_ewz"
-
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/class-breaks/quantile/{column}?breaks=5&stripe_zeros=true"
-    )
-    assert response.status_code == 404
-    return
-
-
-# Get not existing column name
-@pytest.mark.asyncio
-async def test_get_statistics_column_wrong_column_name(
-    client: AsyncClient, fixture_create_table_layer
-):
-    layer_id = fixture_create_table_layer["id"]
-    column = "wrong_column"
-
-    response = await client.get(
-        f"{settings.API_V2_STR}/layer/{layer_id}/class-breaks/quantile/{column}?breaks=5&stripe_zeros=true"
-    )
-    assert response.status_code == 404
-    return
+# NOTE: The following tests have been removed as the endpoints were migrated to GeoAPI OGC API Processes:
+# - test_get_feature_cnt
+# - test_get_area_statistics
+# - test_get_area_statistics_no_query
+# - test_get_wrong_area_statistics_wrong_geom_type
+# - test_get_unique_values_layer_pagination
+# - test_get_unique_values_layer_query
+# - test_get_unique_values_wrong_layer_id
+# - test_get_unique_values_wrong_layer_type
+# - test_get_unique_value_wrong_column_name
+# - test_get_statistics_column
+# - test_get_statistics_column_wrong_layer_id
+# - test_get_statistics_column_wrong_column_name
 
 
 # Get metadata aggregate for layers based on different filters
@@ -478,20 +241,33 @@ async def test_get_layers(client: AsyncClient, fixture_create_multiple_layers):
     assert response.status_code == 200
     assert len(response.json()["items"]) == 4
 
-async def test_get_shared_team_layers(client: AsyncClient, fixture_create_shared_team_layers):
+
+async def test_get_shared_team_layers(
+    client: AsyncClient, fixture_create_shared_team_layers
+):
     team_id = fixture_create_shared_team_layers["teams"][0].id
     response = await client.post(f"{settings.API_V2_STR}/layer?team_id={team_id}")
     assert response.status_code == 200
     assert len(response.json()["items"]) == 5
 
-async def test_get_shared_organization_layers(client: AsyncClient, fixture_create_shared_organization_layers):
+
+async def test_get_shared_organization_layers(
+    client: AsyncClient, fixture_create_shared_organization_layers
+):
     organization_id = fixture_create_shared_organization_layers["organizations"][0].id
-    response = await client.post(f"{settings.API_V2_STR}/layer?organization_id={organization_id}")
+    response = await client.post(
+        f"{settings.API_V2_STR}/layer?organization_id={organization_id}"
+    )
     assert response.status_code == 200
     assert len(response.json()["items"]) == 5
 
+
 # Get metadata aggregate for layers based on different filters
-async def test_get_layers_with_shared(client: AsyncClient, fixture_create_shared_team_layers, fixture_create_shared_organization_layers):
+async def test_get_layers_with_shared(
+    client: AsyncClient,
+    fixture_create_shared_team_layers,
+    fixture_create_shared_organization_layers,
+):
     response = await client.post(f"{settings.API_V2_STR}/layer")
     assert response.status_code == 200
     assert len(response.json()["items"]) == 10

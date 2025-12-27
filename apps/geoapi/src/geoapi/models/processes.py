@@ -1,0 +1,270 @@
+"""OGC API Processes models.
+
+Implements OGC API - Processes - Part 1: Core (OGC 18-062r2)
+https://docs.ogc.org/is/18-062r2/18-062r2.html
+"""
+
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from geoapi.models.ogc import Link
+
+
+class JobControlOptions(str, Enum):
+    """Execution modes supported by a process."""
+
+    sync_execute = "sync-execute"
+    async_execute = "async-execute"
+
+
+class TransmissionMode(str, Enum):
+    """How output values are transmitted."""
+
+    value = "value"
+    reference = "reference"
+
+
+class StatusCode(str, Enum):
+    """Job status codes."""
+
+    accepted = "accepted"
+    running = "running"
+    successful = "successful"
+    failed = "failed"
+    dismissed = "dismissed"
+
+
+class ResponseType(str, Enum):
+    """Response format for process execution."""
+
+    raw = "raw"
+    document = "document"
+
+
+# === Process Description Models ===
+
+
+class ProcessSummary(BaseModel):
+    """Summary of a process for listing."""
+
+    id: str
+    title: str
+    description: str | None = None
+    version: str = "1.0.0"
+    jobControlOptions: list[JobControlOptions] = Field(
+        default_factory=lambda: [JobControlOptions.sync_execute]
+    )
+    outputTransmission: list[TransmissionMode] = Field(
+        default_factory=lambda: [TransmissionMode.value]
+    )
+    links: list[Link] = Field(default_factory=list)
+
+
+class ProcessList(BaseModel):
+    """List of available processes."""
+
+    processes: list[ProcessSummary]
+    links: list[Link] = Field(default_factory=list)
+
+
+class InputDescription(BaseModel):
+    """Description of a process input."""
+
+    title: str
+    description: str | None = None
+    schema_: dict[str, Any] = Field(alias="schema")
+    minOccurs: int = 1
+    maxOccurs: int | str = 1  # Can be "unbounded"
+
+    class Config:
+        populate_by_name = True
+
+
+class OutputDescription(BaseModel):
+    """Description of a process output."""
+
+    title: str
+    description: str | None = None
+    schema_: dict[str, Any] = Field(alias="schema")
+
+    class Config:
+        populate_by_name = True
+
+
+class ProcessDescription(ProcessSummary):
+    """Full description of a process with inputs/outputs."""
+
+    inputs: dict[str, InputDescription] = Field(default_factory=dict)
+    outputs: dict[str, OutputDescription] = Field(default_factory=dict)
+
+
+# === Execution Models ===
+
+
+class OutputDefinition(BaseModel):
+    """Output specification in execute request."""
+
+    transmissionMode: TransmissionMode = TransmissionMode.value
+    format: dict[str, str] | None = None
+
+
+class ExecuteRequest(BaseModel):
+    """Request body for process execution."""
+
+    inputs: dict[str, Any] = Field(default_factory=dict)
+    outputs: dict[str, OutputDefinition] | None = None
+    response: ResponseType = ResponseType.raw
+
+
+# === Job Status Models ===
+
+
+class StatusInfo(BaseModel):
+    """Status information for a job."""
+
+    processID: str | None = None
+    type: str = "process"
+    jobID: str
+    status: StatusCode
+    message: str | None = None
+    created: str | None = None
+    started: str | None = None
+    finished: str | None = None
+    updated: str | None = None
+    progress: int | None = Field(default=None, ge=0, le=100)
+    links: list[Link] = Field(default_factory=list)
+
+
+class JobList(BaseModel):
+    """List of jobs."""
+
+    jobs: list[StatusInfo]
+    links: list[Link] = Field(default_factory=list)
+
+
+# === Result Models ===
+
+
+class ResultDocument(BaseModel):
+    """Result document containing process outputs."""
+
+    # This uses additionalProperties pattern - outputs are keyed by output ID
+    # For now we use a simple dict
+    pass
+
+
+# === Process-Specific Input/Output Models ===
+
+
+class FeatureCountInput(BaseModel):
+    """Input for feature-count process."""
+
+    collection: str = Field(description="Collection/layer ID (UUID)")
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+
+
+class FeatureCountOutput(BaseModel):
+    """Output for feature-count process."""
+
+    count: int = Field(description="Number of features matching the criteria")
+
+
+class AreaStatisticsOperation(str, Enum):
+    """Operations for area statistics."""
+
+    sum = "sum"
+    mean = "mean"
+    min = "min"
+    max = "max"
+
+
+class AreaStatisticsInput(BaseModel):
+    """Input for area-statistics process."""
+
+    collection: str = Field(description="Collection/layer ID (UUID)")
+    operation: AreaStatisticsOperation = Field(description="Statistical operation")
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+
+
+class AreaStatisticsOutput(BaseModel):
+    """Output for area-statistics process."""
+
+    total_area: float | None = Field(
+        default=None, description="Total area in square meters"
+    )
+    feature_count: int | None = Field(default=None, description="Number of features")
+    result: float | None = Field(default=None, description="Result of the operation")
+    unit: str = Field(default="m²", description="Unit of measurement")
+
+
+class UniqueValuesOrder(str, Enum):
+    """Order for unique values."""
+
+    ascendent = "ascendent"
+    descendent = "descendent"
+
+
+class UniqueValuesInput(BaseModel):
+    """Input for unique-values process."""
+
+    collection: str = Field(description="Collection/layer ID (UUID)")
+    attribute: str = Field(description="Attribute/column name")
+    order: UniqueValuesOrder = Field(
+        default=UniqueValuesOrder.descendent, description="Sort order by count"
+    )
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+    limit: int = Field(
+        default=100, ge=1, le=1000, description="Maximum values to return"
+    )
+    offset: int = Field(default=0, ge=0, description="Offset for pagination")
+
+
+class UniqueValue(BaseModel):
+    """A unique value with its count."""
+
+    value: Any
+    count: int
+
+
+class UniqueValuesOutput(BaseModel):
+    """Output for unique-values process."""
+
+    attribute: str
+    total: int = Field(description="Total number of unique values")
+    values: list[UniqueValue]
+
+
+class ClassBreaksMethod(str, Enum):
+    """Classification methods for class breaks."""
+
+    quantile = "quantile"
+    equal_interval = "equal_interval"
+    standard_deviation = "standard_deviation"
+    heads_and_tails = "heads_and_tails"
+
+
+class ClassBreaksInput(BaseModel):
+    """Input for class-breaks process."""
+
+    collection: str = Field(description="Collection/layer ID (UUID)")
+    attribute: str = Field(description="Numeric attribute/column name")
+    method: ClassBreaksMethod = Field(
+        default=ClassBreaksMethod.quantile, description="Classification method"
+    )
+    breaks: int = Field(default=5, ge=2, le=20, description="Number of classes")
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+    strip_zeros: bool = Field(default=False, description="Exclude zero values")
+
+
+class ClassBreaksOutput(BaseModel):
+    """Output for class-breaks process."""
+
+    attribute: str
+    method: str
+    breaks: list[float] = Field(description="Break values defining class boundaries")
+    min: float | None = Field(default=None, description="Minimum value")
+    max: float | None = Field(default=None, description="Maximum value")
+    mean: float | None = Field(default=None, description="Mean value")
+    std_dev: float | None = Field(default=None, description="Standard deviation")

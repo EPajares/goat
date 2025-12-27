@@ -22,7 +22,7 @@ import { toast } from "react-toastify";
 import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useFolders } from "@/lib/api/folders";
 import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createTableLayer } from "@/lib/api/layers";
+import { createLayer } from "@/lib/api/layers";
 import { useProject } from "@/lib/api/projects";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
@@ -61,7 +61,6 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   const [fileValue, setFileValue] = useState<File>();
   const [fileUploadError, setFileUploadError] = useState<string>();
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>();
-  const [datasetType, setDatasetType] = useState<"feature_layer" | "table">("feature_layer");
   const [isBusy, setIsBusy] = useState(false);
   useEffect(() => {
     const homeFolder = folders?.find((folder) => folder.name === "home");
@@ -104,17 +103,16 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         return;
       }
 
-      // Autodetect dataset type
+      // Autodetect dataset type (for UI feedback only - backend does actual detection)
       const isFeatureLayer =
         file.name.endsWith(".gpkg") ||
         file.name.endsWith(".geojson") ||
         file.name.endsWith(".shp") ||
         file.name.endsWith(".kml");
       const isTable = file.name.endsWith(".csv") || file.name.endsWith(".xlsx");
-      if (isFeatureLayer) {
-        setDatasetType("feature_layer");
-      } else if (isTable) {
-        setDatasetType("table");
+      if (!isFeatureLayer && !isTable) {
+        setFileUploadError("Invalid file type");
+        return;
       }
       setFileValue(file);
     }
@@ -163,15 +161,8 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         s3_key: presigned.fields.key,
       });
 
-      // Kick off layer creation depending on type
-      let response;
-      if (datasetType === "table") {
-        response = await createTableLayer(payload, projectId);
-      } else if (datasetType === "feature_layer") {
-        response = await createFeatureLayer(payload, projectId);
-      } else {
-        throw new Error("Unsupported dataset type");
-      }
+      // Kick off layer creation (type is auto-detected by backend)
+      const response = await createLayer(payload, projectId);
 
       const jobId = response?.job_id;
       if (jobId) {

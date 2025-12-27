@@ -85,6 +85,7 @@ import {
   faGripVertical,
   faHouse,
   faImage,
+  faInfo,
   faItalic,
   faLanguage,
   faLayerGroup,
@@ -108,8 +109,10 @@ import {
   faPen,
   faPersonBiking,
   faPersonRunning,
+  faPlane,
   faPlay,
   faPlus,
+  faPrint,
   faQuestionCircle,
   faRefresh,
   faRocket,
@@ -150,6 +153,7 @@ import {
   arcgisFeatureServiceIcon,
   boundingBoxIcon,
   categories,
+  circleEmpty,
   comingSoonIcon,
   dataCategoryIcon,
   divider,
@@ -195,6 +199,7 @@ export enum ICON_NAME {
   SETTINGS = "settings",
   CIRCLECHECK = "circleCheck",
   CIRCLEINFO = "circleInfo",
+  INFO = "info",
   OUTILINEDINFO = "outlinedInfo",
   EMAIL = "email",
   ROCKET = "rocket",
@@ -304,6 +309,8 @@ export enum ICON_NAME {
   ALIGN_LEFT = "align-left",
   ALIGN_JUSTIFY = "align-justify",
   ALIGN_CENTER = "align-center",
+  PLANE = "plane",
+  PRINT = "print",
   // Brand icons
   GOOGLE = "google",
   MICROSOFT = "microsoft",
@@ -343,6 +350,8 @@ export enum ICON_NAME {
   DIVIDER = "divider",
   NUMBER = "number",
   CATEGORIES = "categories",
+  CIRCLE_EMPTY = "circle-empty",
+  LINE = "line",
 }
 
 const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
@@ -367,6 +376,7 @@ const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
   [ICON_NAME.SETTINGS]: faGears,
   [ICON_NAME.CIRCLECHECK]: faCircleCheck,
   [ICON_NAME.CIRCLEINFO]: faCircleInfo,
+  [ICON_NAME.INFO]: faInfo,
   [ICON_NAME.OUTILINEDINFO]: faCircleQuestion,
   [ICON_NAME.EMAIL]: faEnvelope,
   [ICON_NAME.ROCKET]: faRocket,
@@ -475,6 +485,8 @@ const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
   [ICON_NAME.ALIGN_LEFT]: faAlignLeft,
   [ICON_NAME.ALIGN_JUSTIFY]: faAlignJustify,
   [ICON_NAME.ALIGN_CENTER]: faAlignCenter,
+  [ICON_NAME.PLANE]: faPlane,
+  [ICON_NAME.PRINT]: faPrint,
   // Brand icons
   [ICON_NAME.GOOGLE]: faGoogle,
   [ICON_NAME.MICROSOFT]: faMicrosoft,
@@ -515,6 +527,8 @@ const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
   [ICON_NAME.DIVIDER]: divider,
   [ICON_NAME.NUMBER]: number,
   [ICON_NAME.CATEGORIES]: categories,
+  [ICON_NAME.CIRCLE_EMPTY]: circleEmpty,
+  [ICON_NAME.LINE]: lineIcon,
 };
 
 interface BrandColors {
