@@ -38,7 +38,7 @@ import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useFolders } from "@/lib/api/folders";
 import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createRasterLayer, layerFeatureUrlUpload } from "@/lib/api/layers";
+import { createLayer, createRasterLayer, layerFeatureUrlUpload } from "@/lib/api/layers";
 import { addProjectLayers, useProject, useProjectLayers } from "@/lib/api/projects";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { generateLayerGetLegendGraphicUrl, generateWmsUrl } from "@/lib/transformers/wms";
@@ -608,7 +608,7 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           s3_key: s3Key,
           ...featureUrlPayload,
         });
-        const response = await createFeatureLayer(payload, projectId);
+        const response = await createLayer(payload, projectId);
         const jobId = response?.job_id;
         if (jobId) {
           mutate();

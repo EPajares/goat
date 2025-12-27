@@ -3,12 +3,10 @@ from uuid import UUID
 from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.core.job import crud_job
-from core.crud.crud_layer import CRUDDataDelete
 from core.db.models.folder import Folder
 from core.schemas.error import FolderNotFoundError
 from core.schemas.folder import FolderCreate, FolderUpdate
-from core.schemas.job import JobType
+from core.storage.ducklake import ducklake_manager
 
 from .base import CRUDBase
 
@@ -33,23 +31,19 @@ class CRUDFolder(CRUDBase[Folder, FolderCreate, FolderUpdate]):
 
         # Get all layers with the folder_id
         layers = db_obj[0].layers
+
+        # Delete DuckLake tables for all layers BEFORE removing folder
+        # (folder removal will cascade delete layer records)
+        for layer in layers:
+            try:
+                ducklake_manager.delete_layer_table(
+                    user_id=layer.user_id, layer_id=layer.id
+                )
+            except Exception:
+                pass  # Table may not exist, continue
+
+        # Remove folder (cascades to layer records)
         await self.remove(async_session, id=db_obj[0].id)
-
-        # Create job and check if user can create a new job
-        job = await crud_job.check_and_create(
-            async_session=async_session,
-            user_id=user_id,
-            job_type=JobType.data_delete_multi,
-            read=True,
-        )
-
-        # Delete data from all layers
-        await CRUDDataDelete(
-            async_session=async_session,
-            job_id=job.id,
-            user_id=user_id,
-            background_tasks=background_tasks,
-        ).delete_multi_run(async_session=async_session, layers=layers)
 
 
 folder = CRUDFolder(Folder)

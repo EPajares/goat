@@ -943,10 +943,11 @@ class OGRFileHandling:
 
 
 async def delete_layer_data(async_session: AsyncSession, layer: Layer) -> None:
-    """Delete layer data which is in the user data tables."""
+    """Delete layer data from DuckLake storage.
 
-    # Delete layer data
-    await async_session.execute(
-        text(f"DELETE FROM {layer.table_name} WHERE layer_id = '{layer.id}'")
-    )
-    await async_session.commit()
+    With DuckLake, each layer is a separate table, so we drop the entire table.
+    """
+    from core.services.layer_import import layer_importer
+
+    # Delete the layer table from DuckLake
+    layer_importer.delete_layer(user_id=layer.user_id, layer_id=layer.id)

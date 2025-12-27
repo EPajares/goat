@@ -41,6 +41,7 @@ class GeometryInfo:
     output_column: str | None = None
     geom_type: str | None = None
     srid: str | None = None
+    is_wkt: bool = False  # True if geometry is WKT text that needs conversion
 
 
 class IOConverter:
@@ -310,9 +311,10 @@ class IOConverter:
             return f"ST_Read('{src_info.path}', allowed_drivers=ARRAY['WFS'])"
         elif src_info.layer_name:
             return f"ST_Read('{src_info.path}', layer='{src_info.layer_name}')"
-        elif (
-            src_info.path_obj
-            and src_info.path_obj.suffix.lower() == FileFormat.TXT.value
+        elif src_info.path_obj and src_info.path_obj.suffix.lower() in (
+            FileFormat.TXT.value,
+            FileFormat.CSV.value,
+            FileFormat.TSV.value,
         ):
             return f"read_csv_auto('{src_info.path}', header=True)"
         elif (
@@ -328,6 +330,24 @@ class IOConverter:
     ) -> GeometryInfo:
         """Detect geometry column and CRS information."""
         geom_info = GeometryInfo()
+
+        # For CSV/tabular reads, check for WKT geometry columns
+        if st_read.startswith("read_csv") or st_read.startswith("read_parquet"):
+            return self._detect_tabular_geometry(st_read, user_geometry_col)
+
+        # Check if this is a tabular format read via ST_Read (XLSX, etc.)
+        # that might have WKT geometry columns
+        if src_info.path_obj and src_info.path_obj.suffix.lower() in (
+            FileFormat.XLSX.value,
+            FileFormat.CSV.value,
+            FileFormat.TSV.value,
+            FileFormat.TXT.value,
+        ):
+            # Try to detect WKT geometry in tabular format
+            tabular_geom = self._detect_tabular_geometry(st_read, user_geometry_col)
+            if tabular_geom.has_geometry:
+                return tabular_geom
+            # If no WKT found, continue with ST_Read detection
 
         # Only detect geometry for spatial reads
         if not st_read.startswith("ST_Read("):
@@ -382,6 +402,73 @@ class IOConverter:
 
         return geom_info
 
+    def _detect_tabular_geometry(
+        self: Self, st_read: str, user_geometry_col: str | None
+    ) -> GeometryInfo:
+        """Detect WKT geometry column in tabular data (CSV, XLSX, TSV, etc.).
+
+        Looks for columns named 'geometry', 'geom', 'wkt', 'wkt_geom', 'the_geom'
+        that contain WKT text representations.
+        """
+        geom_info = GeometryInfo()
+
+        # Known WKT geometry column names (case-insensitive)
+        wkt_column_names = {"geometry", "geom", "wkt", "wkt_geom", "the_geom"}
+
+        try:
+            # Get column info from CSV
+            col_info = self.con.execute(f"SELECT * FROM {st_read} LIMIT 0").description
+            all_cols = [c[0] for c in col_info]
+
+            # Find geometry column
+            geom_col = None
+            if user_geometry_col:
+                # User specified geometry column
+                if user_geometry_col in all_cols:
+                    geom_col = user_geometry_col
+            else:
+                # Auto-detect by name
+                for col in all_cols:
+                    if col.lower() in wkt_column_names:
+                        geom_col = col
+                        break
+
+            if not geom_col:
+                logger.debug("No WKT geometry column found in tabular data")
+                return geom_info
+
+            # Verify it contains WKT by checking first non-null value
+            try:
+                sample = self.con.execute(
+                    f'SELECT "{geom_col}" FROM {st_read} WHERE "{geom_col}" IS NOT NULL LIMIT 1'
+                ).fetchone()
+                if sample and sample[0]:
+                    val = str(sample[0]).strip().upper()
+                    # Check if it looks like WKT
+                    wkt_prefixes = (
+                        "POINT",
+                        "LINESTRING",
+                        "POLYGON",
+                        "MULTIPOINT",
+                        "MULTILINESTRING",
+                        "MULTIPOLYGON",
+                        "GEOMETRYCOLLECTION",
+                    )
+                    if val.startswith(wkt_prefixes):
+                        geom_info.has_geometry = True
+                        geom_info.source_column = geom_col
+                        geom_info.output_column = "geometry"
+                        geom_info.srid = "EPSG:4326"  # Assume WGS84 for WKT
+                        geom_info.is_wkt = True  # Mark as WKT for conversion
+                        logger.info("Detected WKT geometry column: %s", geom_col)
+            except Exception as e:
+                logger.debug("Could not verify WKT column %s: %s", geom_col, e)
+
+        except Exception as e:
+            logger.debug("Tabular geometry detection failed: %s", e)
+
+        return geom_info
+
     def _build_conversion_query(
         self: Self,
         st_read: str,
@@ -393,22 +480,39 @@ class IOConverter:
         # Build select list with column mapping
         select_list = self._build_select_list(st_read, column_mapping)
 
-        # Handle geometry transformation if needed
-        if geom_info.has_geometry and target_crs and geom_info.source_column:
+        # Handle geometry conversion/transformation if needed
+        if geom_info.has_geometry and geom_info.source_column:
             from_crs = geom_info.srid or "EPSG:4326"
-            transform_expr = f"ST_Transform(\"{geom_info.source_column}\", '{from_crs}', '{target_crs}') AS \"{geom_info.output_column}\""
 
-            if select_list == "*":
-                return f'SELECT * EXCLUDE ("{geom_info.source_column}"), {transform_expr} FROM {st_read}'
+            # Build geometry expression: WKT text → geometry, optionally transform
+            if geom_info.is_wkt:
+                # Convert WKT text to geometry
+                geom_expr = f'ST_GeomFromText("{geom_info.source_column}")'
+                if target_crs and target_crs != from_crs:
+                    # Use always_xy to ensure consistent X,Y (lon,lat) axis order
+                    geom_expr = f"ST_Transform({geom_expr}, '{from_crs}', '{target_crs}', always_xy := true)"
+                geom_expr = f'{geom_expr} AS "{geom_info.output_column}"'
+            elif target_crs:
+                # Already geometry, just transform
+                # Use always_xy to ensure consistent X,Y (lon,lat) axis order
+                # Many WFS services return lat,lon order which causes issues
+                geom_expr = f"ST_Transform(\"{geom_info.source_column}\", '{from_crs}', '{target_crs}', always_xy := true) AS \"{geom_info.output_column}\""
             else:
-                # Remove original geometry column from select list and add transformed one
-                filtered_cols = [
-                    col
-                    for col in select_list.split(", ")
-                    if f'"{geom_info.source_column}"' not in col
-                ]
-                filtered_cols.append(transform_expr)
-                return f"SELECT {', '.join(filtered_cols)} FROM {st_read}"
+                # No transformation needed
+                geom_expr = None
+
+            if geom_expr:
+                if select_list == "*":
+                    return f'SELECT * EXCLUDE ("{geom_info.source_column}"), {geom_expr} FROM {st_read}'
+                else:
+                    # Remove original geometry column from select list and add converted one
+                    filtered_cols = [
+                        col
+                        for col in select_list.split(", ")
+                        if f'"{geom_info.source_column}"' not in col
+                    ]
+                    filtered_cols.append(geom_expr)
+                    return f"SELECT {', '.join(filtered_cols)} FROM {st_read}"
 
         return f"SELECT {select_list} FROM {st_read}"
 

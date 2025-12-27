@@ -382,8 +382,35 @@ layer_base_example = {
 
 
 def internal_layer_table_name(values: SQLModel | BaseModel) -> str:
-    """Get the table name for the internal layer."""
+    """Get the table name for the internal layer in DuckLake.
 
+    With DuckLake, each layer has its own table in a per-user schema:
+    - Schema: lake.user_{user_id}
+    - Table: t_{layer_id}
+
+    This ensures isolation between users and simple 1:1 mapping between
+    layers and tables.
+    """
+    # Ensure required attributes exist
+    if not hasattr(values, "user_id") or not hasattr(values, "id"):
+        raise ValueError("A valid layer with user_id and id must be provided.")
+
+    if values.id is None:
+        raise ValueError("Layer id must be set to get table name.")
+
+    # Build DuckLake table reference
+    user_id_clean = str(values.user_id).replace("-", "")
+    layer_id_clean = str(values.id).replace("-", "")
+
+    return f"lake.user_{user_id_clean}.t_{layer_id_clean}"
+
+
+def legacy_postgres_table_name(values: SQLModel | BaseModel) -> str:
+    """Get the legacy PostgreSQL table name for the internal layer.
+
+    DEPRECATED: This is kept for backward compatibility during migration.
+    New code should use internal_layer_table_name() which returns DuckLake paths.
+    """
     # Ensure the layer type is correct by validating available attributes
     if not hasattr(values, "type") or not hasattr(values, "user_id"):
         raise ValueError("A valid layer must be provided.")

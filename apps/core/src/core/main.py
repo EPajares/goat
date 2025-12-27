@@ -22,6 +22,7 @@ from core.endpoints.deps import (
     initialize_qgis_application,
 )
 from core.endpoints.v2.api import router as api_router_v2
+from core.storage.ducklake import ducklake_manager
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT:
     sentry_sdk.init(
@@ -35,6 +36,7 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print("Starting up...")
     session_manager.init(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
+    ducklake_manager.init(settings)
     logger = logging.getLogger("uvicorn.access")
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
@@ -43,6 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     print("Shutting down...")
     await session_manager.close()
+    ducklake_manager.close()
     await close_http_client()
     close_qgis_application(qgis_application)
 
@@ -56,11 +59,14 @@ app = FastAPI(
 
 
 @app.exception_handler(ValueError)
-async def value_error_exception_handler(request: Request, exc: ValueError) -> JSONResponse:
+async def value_error_exception_handler(
+    request: Request, exc: ValueError
+) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": str(exc)},
     )
+
 
 static_path = Path(__file__).resolve().parent.parent.parent / "static"
 app.mount("/static", StaticFiles(directory=static_path), name="static")
@@ -95,7 +101,9 @@ app.include_router(api_router_v2, prefix=settings.API_V2_STR)
 
 
 @app.exception_handler(IntegrityError)
-async def item_already_exists_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+async def item_already_exists_handler(
+    request: Request, exc: IntegrityError
+) -> JSONResponse:
     return JSONResponse(
         status_code=409,
         content={

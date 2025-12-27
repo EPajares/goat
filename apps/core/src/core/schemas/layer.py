@@ -289,7 +289,17 @@ class FeatureReadBaseAttributes(
         ..., description="Attribute mapping of the layer"
     )
     size: int = Field(..., description="Size of the layer in bytes")
-    properties: Dict[str, Any] = Field(..., description="Layer properties.")
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer properties."
+    )
+
+    @field_validator("properties", mode="before")
+    @classmethod
+    def properties_default(
+        cls: type["FeatureReadBaseAttributes"], v: Dict[str, Any] | None
+    ) -> Dict[str, Any]:
+        """Ensure properties is never None."""
+        return v if v is not None else {}
 
 
 class FeatureUpdateBase(LayerBase, GeospatialAttributes):
@@ -360,6 +370,9 @@ class IFeatureStandardCreateAdditionalAttributes(BaseModel):
     )
     attribute_mapping: Dict[str, Any] = Field(
         ..., description="Attribute mapping of the layer"
+    )
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer style properties."
     )
 
 
@@ -616,6 +629,9 @@ class ITableCreateAdditionalAttributes(BaseModel):
     type: LayerType = Field(..., description="Layer type")
     attribute_mapping: Dict[str, Any] = Field(
         ..., description="Attribute mapping of the layer"
+    )
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer properties."
     )
 
 

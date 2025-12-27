@@ -34,18 +34,18 @@ from core.core.content import (
 from core.crud.crud_job import job as crud_job
 from core.crud.crud_layer import (
     CRUDLayerDatasetUpdate,
-    CRUDLayerExport,
-    CRUDLayerImport,
 )
 from core.crud.crud_layer import layer as crud_layer
-from core.crud.crud_layer_project import layer_project as crud_layer_project
+from core.crud.crud_layer_ducklake import (
+    CRUDLayerExportDuckLake,
+    CRUDLayerImportDuckLake,
+    delete_layer_ducklake,
+)
 from core.db.models._link_model import LayerProjectLink
 from core.db.models.layer import (
-    FeatureUploadType,
     FileUploadType,
     Layer,
     LayerType,
-    TableUploadType,
 )
 from core.db.models.project import ProjectPublic
 from core.db.session import AsyncSession
@@ -55,8 +55,6 @@ from core.schemas.common import OrderEnum
 from core.schemas.error import HTTPErrorHandler
 from core.schemas.job import JobType
 from core.schemas.layer import (
-    AreaStatisticsOperation,
-    ComputeBreakOperation,
     ICatalogLayerGet,
     IFeatureStandardLayerRead,
     IFeatureStreetNetworkLayerRead,
@@ -72,13 +70,11 @@ from core.schemas.layer import (
     IRasterCreate,
     IRasterLayerRead,
     ITableLayerRead,
-    IUniqueValue,
 )
 from core.schemas.layer import (
     request_examples as layer_request_examples,
 )
 from core.services.s3 import s3_service
-from core.utils import build_where
 
 router = APIRouter()
 
@@ -178,7 +174,12 @@ async def _create_layer_from_dataset(
     project_id: Optional[UUID] = None,
     layer_in: ILayerFromDatasetCreate = Body(...),
 ) -> Dict[str, UUID]:
-    """Create a feature or table layer from a dataset uploaded to S3."""
+    """Create a feature or table layer from a dataset uploaded to S3.
+
+    The layer type (feature vs table) is auto-detected based on whether
+    the data contains geometry. CSV/Excel with WKT geometry columns will
+    automatically become feature layers.
+    """
 
     # --- ensure s3 key belongs to this user
     expected_prefix = s3_service.build_s3_key(
@@ -195,12 +196,8 @@ async def _create_layer_from_dataset(
     file_ext = os.path.splitext(orig_filename)[-1].lower()
     ext_trimmed = file_ext.lstrip(".")
 
-    # --- Decide type
-    if ext_trimmed in TableUploadType.__members__:
-        layer_type = LayerType.table
-    elif ext_trimmed in FeatureUploadType.__members__:
-        layer_type = LayerType.feature
-    else:
+    # --- Validate file type is allowed (but don't pre-determine layer type)
+    if ext_trimmed not in FileUploadType.__members__:
         raise HTTPException(
             415,
             f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
@@ -219,15 +216,19 @@ async def _create_layer_from_dataset(
             tmp_path,
         )
 
-        # --- Wrap downloaded file as UploadFile (!! This will be removed once new dataset upload is finished  !!)
+        # --- Wrap downloaded file as UploadFile
+        # Note: layer_type is not pre-determined here anymore
+        # The actual type will be detected after goatlib conversion based on geometry
         with open(tmp_path, "rb") as f:
             upload = UploadFile(filename=orig_filename, file=f)
 
+            # Use feature type for validation - goatlib will handle both
+            # The actual layer type is determined during import based on geometry presence
             file_metadata = await crud_layer.upload_file(
                 async_session=async_session,
                 user_id=user_id,
                 source=upload,
-                layer_type=layer_type,
+                layer_type=LayerType.feature,  # Default for validation, actual type determined by geometry
             )
 
     except Exception as e:
@@ -241,38 +242,38 @@ async def _create_layer_from_dataset(
             # log, but don’t swallow main exception
             logger.warning(f"Could not delete temp file {tmp_path}: {cleanup_err}")
 
-    # --- Create job
-    job = await crud_job.check_and_create(
-        async_session=async_session,
-        user_id=user_id,
-        job_type=JobType.file_import,
-        project_id=project_id,
-    )
+    # --- Run import directly (layer type auto-detected based on geometry)
+    from uuid import uuid4
 
-    # --- Run import
-    await CRUDLayerImport(
+    job_id = uuid4()  # Dummy job_id for now
+    crud_import = CRUDLayerImportDuckLake(
+        job_id=job_id,
         background_tasks=background_tasks,
         async_session=async_session,
         user_id=user_id,
-        job_id=job.id,
-    ).import_file_job(
-        file_metadata=file_metadata.model_dump(),
+    )
+    result, layer_id = await crud_import.import_file(
+        file_path=file_metadata.file_path,
         layer_in=layer_in,
+        file_metadata=file_metadata.model_dump(),
         project_id=project_id,
     )
 
-    return {"job_id": job.id}
+    return {"layer_id": str(layer_id), **result}
 
 
 @router.post(
-    "/feature-standard",
-    summary="Create a new feature standard layer",
+    "/internal",
+    summary="Create a new layer (auto-detects feature vs table)",
     response_class=JSONResponse,
     status_code=201,
-    description="Generate a new layer from a file that was previously uploaded using the file-upload endpoint.",
+    description="Create a new layer from a previously uploaded dataset. "
+    "The layer type (feature or table) is automatically detected based on "
+    "whether the data contains geometry. CSV/Excel files with WKT geometry "
+    "columns will be imported as feature layers.",
     dependencies=[Depends(auth_z)],
 )
-async def create_layer_feature_standard(
+async def create_layer(
     background_tasks: BackgroundTasks,
     async_session: AsyncSession = Depends(get_db),
     user_id: UUID = Depends(get_user_id),
@@ -287,8 +288,12 @@ async def create_layer_feature_standard(
         description="Layer to create",
     ),
 ) -> Dict[str, Any]:
-    """Create a new feature standard layer from a previously uploaded dataset."""
+    """Create a new layer from a previously uploaded dataset.
 
+    The layer type is auto-detected:
+    - Files with geometry (GeoJSON, GPKG, SHP, KML, or CSV/Excel with WKT column) → feature layer
+    - Files without geometry (plain CSV, Excel) → table layer
+    """
     return await _create_layer_from_dataset(
         background_tasks=background_tasks,
         async_session=async_session,
@@ -326,40 +331,6 @@ async def create_layer_raster(
         ).model_dump()
     )
     return layer
-
-
-@router.post(
-    "/table",
-    summary="Create a new table layer",
-    response_class=JSONResponse,
-    status_code=201,
-    description="Generate a new layer from a file that was previously uploaded using the file-upload endpoint.",
-    dependencies=[Depends(auth_z)],
-)
-async def create_layer_table(
-    background_tasks: BackgroundTasks,
-    async_session: AsyncSession = Depends(get_db),
-    user_id: UUID = Depends(get_user_id),
-    project_id: Optional[UUID] = Query(
-        None,
-        description="The ID of the project to add the layer to",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_in: ILayerFromDatasetCreate = Body(
-        ...,
-        example=layer_request_examples["create"],
-        description="Layer to create",
-    ),
-) -> Dict[str, Any]:
-    """Create a new table layer from a previously uploaded dataset."""
-
-    return await _create_layer_from_dataset(
-        background_tasks=background_tasks,
-        async_session=async_session,
-        user_id=user_id,
-        project_id=project_id,
-        layer_in=layer_in,
-    )
 
 
 @router.post(
@@ -406,17 +377,47 @@ async def export_layer(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
             )
-    # Run the export
-    crud_export = CRUDLayerExport(
-        id=layer_id,
+    # Run the export using DuckLake CRUD
+    crud_export = CRUDLayerExportDuckLake(
+        layer_id=layer_id,
         async_session=async_session,
         user_id=user_id,
     )
     with HTTPErrorHandler():
-        zip_file_path = await crud_export.export_file_run(layer_in=layer_in)
-    # Return file
+        zip_file_path = await crud_export.export_to_file(
+            output_format=layer_in.file_type.value,
+            file_name=layer_in.file_name,
+            target_crs=layer_in.crs,
+            where_clause=layer_in.query,
+        )
+
+    # Return file with cleanup after download
     file_name = os.path.basename(zip_file_path)
-    return FileResponse(zip_file_path, media_type="application/zip", filename=file_name)
+    user_export_dir = os.path.dirname(zip_file_path)  # data/{user_id}
+
+    # Background task to delete the zip file and empty user folder after response
+    async def cleanup_export_file() -> None:
+        try:
+            if os.path.exists(zip_file_path):
+                os.remove(zip_file_path)
+            # Also remove parent user folder if empty
+            if user_export_dir and os.path.isdir(user_export_dir):
+                try:
+                    os.rmdir(user_export_dir)  # Only removes if empty
+                except OSError:
+                    pass  # Not empty, that's fine
+        except Exception:
+            pass  # Best effort cleanup
+
+    background_tasks = BackgroundTasks()
+    background_tasks.add_task(cleanup_export_file)
+
+    return FileResponse(
+        zip_file_path,
+        media_type="application/zip",
+        filename=file_name,
+        background=background_tasks,
+    )
 
 
 @router.get(
@@ -631,11 +632,8 @@ async def update_layer_dataset(
         orig_filename = os.path.basename(s3_key)
         file_ext = os.path.splitext(orig_filename)[-1].lower().lstrip(".")
 
-        if file_ext in TableUploadType.__members__:
-            layer_type = LayerType.table
-        elif file_ext in FeatureUploadType.__members__:
-            layer_type = LayerType.feature
-        else:
+        # Validate file type is allowed
+        if file_ext not in FileUploadType.__members__:
             raise HTTPException(
                 415,
                 f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
@@ -653,11 +651,12 @@ async def update_layer_dataset(
             )
             with open(tmp_path, "rb") as f:
                 upload = UploadFile(filename=orig_filename, file=f)
+                # Layer type is auto-detected based on geometry presence
                 file_metadata = await crud_layer.upload_file(
                     async_session=async_session,
                     user_id=user_id,
                     source=upload,
-                    layer_type=layer_type,
+                    layer_type=LayerType.feature,  # Default for validation
                 )
         except Exception as e:
             raise HTTPException(500, f"Error handling file from S3: {e}")
@@ -732,6 +731,20 @@ async def delete_layer(
     """Delete a layer and its data in case of an internal layer."""
 
     with HTTPErrorHandler():
+        # Get layer first to check type and get user_id
+        layer = await crud_layer.get_internal(
+            async_session=async_session,
+            id=layer_id,
+        )
+
+        # Delete DuckLake data for feature/table layers
+        if layer.type in (LayerType.feature, LayerType.table):
+            await delete_layer_ducklake(
+                async_session=async_session,
+                layer=layer,
+            )
+
+        # Delete layer metadata from PostgreSQL
         await crud_layer.delete(
             async_session=async_session,
             id=layer_id,
@@ -739,212 +752,11 @@ async def delete_layer(
     return
 
 
-@router.get(
-    "/{layer_id}/feature-count",
-    summary="Get feature count",
-    response_class=JSONResponse,
-    status_code=200,
-    dependencies=[Depends(auth_z)],
-)
-async def get_feature_count(
-    async_session: AsyncSession = Depends(get_db),
-    layer_id: UUID4 = Path(
-        ...,
-        description="The ID of the layer to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example='{"op": "=", "args": [{"property": "category"}, "bus_stop"]}',
-    ),
-) -> Dict[str, Any]:
-    """Get feature count. Based on the passed CQL-filter."""
-
-    with HTTPErrorHandler():
-        # Get layer
-        layer = await crud_layer.get_internal(
-            async_session=async_session,
-            id=layer_id,
-        )
-        where_query = build_where(
-            layer.id, layer.table_name, query, layer.attribute_mapping
-        )
-        count = await crud_layer_project.get_feature_cnt(
-            async_session=async_session,
-            layer_project=layer,
-            where_query=where_query,
-        )
-
-    # Return result
-    return count
-
-
-@router.get(
-    "/{layer_id}/area/{operation}",
-    summary="Get area statistics of a layer",
-    response_class=JSONResponse,
-    status_code=200,
-    dependencies=[Depends(auth_z)],
-)
-async def get_area_statistics(
-    async_session: AsyncSession = Depends(get_db),
-    layer_id: UUID4 = Path(
-        ...,
-        description="The ID of the layer to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    operation: AreaStatisticsOperation = Path(
-        ...,
-        description="The operation to perform",
-        example="sum",
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example='{"op": ">", "args": [{"property": "id"}, "10"]}',
-    ),
-) -> Dict[str, Any]:
-    """Get statistics on the area size of a polygon layer. The area is computed using geography datatype and the unit is m²."""
-
-    with HTTPErrorHandler():
-        statistics = await crud_layer.get_area_statistics(
-            async_session=async_session,
-            id=layer_id,
-            operation=operation,
-            query=query,
-        )
-
-    # Return result
-    return statistics
-
-
-@router.get(
-    "/{layer_id}/unique-values/{column_name}",
-    summary="Get unique values of a column",
-    response_model=Page[IUniqueValue],
-    status_code=200,
-    # dependencies=[Depends(auth_z)],
-)
-async def get_unique_values(
-    request: Request,
-    async_session: AsyncSession = Depends(get_db),
-    page_params: PaginationParams = Depends(),
-    layer_id: UUID4 = Path(
-        ...,
-        description="The ID of the layer to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    column_name: str = Path(
-        ...,
-        description="The column name to get the unique values from",
-        example="name",
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    order: OrderEnum = Query(
-        "descendent",
-        description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="descendent",
-    ),
-) -> Page[IUniqueValue]:
-    """Get unique values of a column. Based on the passed CQL-filter and order."""
-
-    # Check authorization status
-    try:
-        await auth_z_lite(request, async_session)
-    except HTTPException:
-        public_layer_query = (
-            select(LayerProjectLink)
-            .join(
-                ProjectPublic,
-                LayerProjectLink.project_id == ProjectPublic.project_id,
-            )
-            .where(
-                LayerProjectLink.layer_id == layer_id,
-            )
-            .limit(1)
-        )
-        result = await async_session.execute(public_layer_query)
-
-        # Check if layer is public
-        if not result.scalars().first():
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-
-    with HTTPErrorHandler():
-        values = await crud_layer.get_unique_values(
-            async_session=async_session,
-            id=layer_id,
-            column_name=column_name,
-            query=query,
-            page_params=page_params,
-            order=order,
-        )
-
-    # Return result
-    return values
-
-
-@router.get(
-    "/{layer_id}/class-breaks/{operation}/{column_name}",
-    summary="Get statistics of a column",
-    response_class=JSONResponse,
-    status_code=200,
-    dependencies=[Depends(auth_z)],
-)
-async def class_breaks(
-    async_session: AsyncSession = Depends(get_db),
-    layer_id: UUID4 = Path(
-        ...,
-        description="The ID of the layer to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    operation: ComputeBreakOperation = Path(
-        ...,
-        description="The operation to perform",
-        example="quantile",
-    ),
-    column_name: str = Path(
-        ...,
-        description="The column name to get the statistics from. It needs to be a number column.",
-        example="name",
-    ),
-    breaks: int | None = Query(
-        None,
-        description="Number of class breaks to create",
-        example=5,
-    ),
-    query: str | None = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    stripe_zeros: bool | None = Query(
-        True,
-        description="Stripe zeros from the column before performing the operation",
-        example=True,
-    ),
-) -> Dict[str, Any] | None:
-    """Get statistics of a column. Based on the saved layer filter in the project."""
-
-    with HTTPErrorHandler():
-        statistics = await crud_layer.get_class_breaks(
-            async_session=async_session,
-            id=layer_id,
-            operation=operation,
-            column_name=column_name,
-            breaks=breaks,
-            query=query,
-            stripe_zeros=stripe_zeros,
-        )
-
-    # Return result
-    return statistics
+# NOTE: The following analytics endpoints have been moved to GeoAPI OGC API Processes:
+# - GET /{layer_id}/feature-count -> POST /processes/feature-count/execution
+# - GET /{layer_id}/area/{operation} -> POST /processes/area-statistics/execution
+# - GET /{layer_id}/unique-values/{column_name} -> POST /processes/unique-values/execution
+# - GET /{layer_id}/class-breaks/{operation}/{column_name} -> POST /processes/class-breaks/execution
 
 
 @router.post(
