@@ -226,6 +226,20 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
             async_session=async_session, project_id=project_id
         )
 
+        # Import here to avoid circular imports
+        from core.crud.crud_layer_project_group import layer_project_group
+        from core.schemas.project import ILayerProjectGroupRead
+
+        project_layer_groups_db = await layer_project_group.get_groups_by_project(
+            async_session=async_session, project_id=project_id
+        )
+
+        # Convert to schema objects
+        project_layer_groups = [
+            ILayerProjectGroupRead(**group.model_dump())
+            for group in project_layer_groups_db
+        ]
+
         new_project_public_project_config = ProjectPublicProjectConfig(
             id=project.id,
             name=project.name,
@@ -241,10 +255,12 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
         )
         new_project_public_config = ProjectPublicConfig(
             layers=project_layers,
+            layer_groups=project_layer_groups,
             project=new_project_public_project_config,
         )
         new_project_public = ProjectPublic(
-            project_id=project_id, config=json.loads(new_project_public_config.model_dump_json())
+            project_id=project_id,
+            config=json.loads(new_project_public_config.model_dump_json()),
         )
 
         async_session.add(new_project_public)

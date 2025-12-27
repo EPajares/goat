@@ -20,7 +20,7 @@ import { toast } from "react-toastify";
 import { mutate } from "swr";
 
 import { LAYERS_API_BASE_URL, deleteLayer, useDataset } from "@/lib/api/layers";
-import { deleteProjectLayer } from "@/lib/api/projects";
+import { deleteProjectLayer, useProjectLayers } from "@/lib/api/projects";
 import type { ProjectLayer } from "@/lib/validations/project";
 
 interface ProjectLayerDeleteDialogProps {
@@ -40,22 +40,31 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
   const { projectId } = useParams() as { projectId: string };
   const [isLoading, setIsLoading] = useState(false);
   const { dataset } = useDataset(projectLayer?.layer_id);
+  const { mutate: mutateProjectLayers } = useProjectLayers(projectId);
   const [deleteSourceLayer, setDeleteSourceLayer] = useState(false);
 
   async function handleDelete() {
     try {
       setIsLoading(true);
       if (!projectLayer) return;
+
       if (deleteSourceLayer && dataset) {
         await deleteLayer(dataset.id);
-        // Revalidates the dataset layers cache
-        mutate((key) => Array.isArray(key) && key[0] === LAYERS_API_BASE_URL);
+        // Invalidate dataset layers cache
+        mutate(`${LAYERS_API_BASE_URL}`);
       } else {
         await deleteProjectLayer(projectId, projectLayer.id);
       }
+
+      // Always refresh project layers after deletion
+      mutateProjectLayers();
+
       if (deleteSourceLayer && dataset) {
         toast.success(t("delete_layer_success"));
+      } else {
+        toast.success(t("layer_removed_from_project"));
       }
+
       onDelete?.();
     } catch (error) {
       toast.error(t("error_removing_layer_from_project"));

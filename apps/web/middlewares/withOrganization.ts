@@ -1,17 +1,43 @@
 import { getToken } from "next-auth/jwt";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import type { MiddlewareFactory } from "@/middlewares/types";
-import type { InvitationPaginated } from "@/lib/validations/invitation";
-import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
 
-export const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL!).href;
+import type { InvitationPaginated } from "@/lib/validations/invitation";
+
+import { refreshAccessToken } from "@/app/api/auth/[...nextauth]/options";
+import type { MiddlewareFactory } from "@/middlewares/types";
 
 const protectedPaths = ["/home", "/projects", "/datasets", "/settings", "/map"];
 const publicPaths = ["/map/public"];
 
 export const withOrganization: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
+    // Check if auth/accounts are disabled - handle both actual values and unreplaced placeholders
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED;
+    const accountsDisabled = process.env.NEXT_PUBLIC_ACCOUNTS_DISABLED;
+
+    const isAuthDisabled =
+      authDisabled &&
+      authDisabled !== "APP_NEXT_PUBLIC_AUTH_DISABLED" &&
+      authDisabled.toLowerCase() === "true";
+
+    const isAccountsDisabled =
+      accountsDisabled &&
+      accountsDisabled !== "APP_NEXT_PUBLIC_ACCOUNTS_DISABLED" &&
+      accountsDisabled.toLowerCase() === "true";
+
+    if (
+      isAuthDisabled ||
+      isAccountsDisabled ||
+      !process.env.NEXTAUTH_URL ||
+      !process.env.NEXTAUTH_SECRET ||
+      !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL
+    ) {
+      return next(request, _next);
+    }
+
+    const USERS_API_BASE_URL = new URL("api/v1/users", process.env.NEXT_PUBLIC_ACCOUNTS_API_URL).href;
+
     const { pathname, origin, basePath } = request.nextUrl;
 
     // Skip public paths
@@ -30,6 +56,7 @@ export const withOrganization: MiddlewareFactory = (next) => {
 
     try {
       let _token = token;
+
       // Refresh expired token
       if (Date.now() >= token.expires_at * 1000) {
         _token = await refreshAccessToken(token);
@@ -77,7 +104,6 @@ export const withOrganization: MiddlewareFactory = (next) => {
           );
         }
       }
-
     } catch (error) {
       console.error("Error while fetching organization", error);
     }

@@ -1,0 +1,12 @@
+{
+  "extends": "@p4b/tsconfig/react-library.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "lib": ["ES2015", "DOM"],
+    "esModuleInterop": true,
+    "target": "ES6"
+  },
+  "include": ["."],
+  "exclude": ["node_modules", "dist"]
+}

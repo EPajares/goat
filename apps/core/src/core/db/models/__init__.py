@@ -14,6 +14,7 @@ from .job import Job
 from .layer import Layer
 from .organization import Organization
 from .project import Project
+from .report_layout import ReportLayout
 from .role import Role
 from .scenario import Scenario
 from .scenario_feature import ScenarioFeature

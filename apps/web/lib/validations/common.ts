@@ -24,7 +24,6 @@ export const contentMetadataSchema = z.object({
   thumbnail_url: z.string().url().optional(),
 });
 
-
 export const dataLicense = z.enum([
   "DDN2",
   "DDZ2",
@@ -62,11 +61,10 @@ export const featureDataExchangeCRS = z.enum(["4326", "3857", "4258"]);
 export const featureLayerGeometryType = z.enum(["point", "line", "polygon"]);
 
 export const vectorDataType = z.enum(["mvt", "wfs"]);
-export const imageryDataType = z.enum(["xyz", "wms", "wmts"]);
+export const imageryDataType = z.enum(["xyz", "wms", "wmts", "cog"]);
 export const dataType = z.union([vectorDataType, imageryDataType]);
 export const sortTypes = z.enum(["asc", "desc"]);
 export const statisticOperationEnum = z.enum(["count", "sum", "mean", "median", "min", "max", "expression"]);
-
 
 export type SortType = z.infer<typeof sortTypes>;
 export type StatisticOperation = z.infer<typeof statisticOperationEnum>;

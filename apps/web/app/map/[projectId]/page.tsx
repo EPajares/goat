@@ -17,10 +17,12 @@ import {
   updateProjectInitialViewState,
   useProject,
   useProjectInitialViewState,
+  useProjectLayerGroups,
   useProjectScenarioFeatures,
 } from "@/lib/api/projects";
 import { PATTERN_IMAGES } from "@/lib/constants/pattern-images";
 import { DrawProvider } from "@/lib/providers/DrawProvider";
+import { MeasureProvider } from "@/lib/providers/MeasureProvider";
 import { setSelectedBuilderItem } from "@/lib/store/map/slice";
 import { addOrUpdateMarkerImages, addPatternImages } from "@/lib/transformers/map-image";
 import { createSnapToCursorModifier } from "@/lib/utils/dnd-modifier";
@@ -41,6 +43,7 @@ import Header from "@/components/header/Header";
 import MapViewer from "@/components/map/MapViewer";
 import DataProjectLayout from "@/components/map/layouts/desktop/DataProjectLayout";
 import PublicProjectLayout from "@/components/map/layouts/desktop/PublicProjectLayout";
+import { ReportsLayout } from "@/components/reports";
 
 const UPDATE_VIEW_STATE_DEBOUNCE_TIME = 200;
 
@@ -66,9 +69,16 @@ export default function MapPage({ params: { projectId } }) {
   const {
     isLoading: areProjectLayersLoading,
     isError: projectLayersError,
-    layers: projectLayers,
+    layers: allProjectLayers,
     mutate: mutateProjectLayers,
   } = useFilteredProjectLayers(projectId, ["table"], []);
+
+  const {
+    layerGroups: projectLayerGroups,
+    isLoading: areProjectLayerGroupsLoading,
+    isError: projectLayerGroupsError,
+    mutate: mutateProjectLayerGroups,
+  } = useProjectLayerGroups(projectId);
 
   const project = useMemo(() => {
     if (!_project) return undefined;
@@ -81,19 +91,69 @@ export default function MapPage({ params: { projectId } }) {
     }
   }, [_project]);
 
+  // Filter out layers that are in invisible layer groups
+  const projectLayers = useMemo(() => {
+    if (!allProjectLayers || !projectLayerGroups) {
+      return allProjectLayers || [];
+    }
+
+    // Create a set of invisible group IDs (including nested invisible groups)
+    const invisibleGroupIds = new Set<number>();
+
+    const findInvisibleGroups = (groups: typeof projectLayerGroups) => {
+      groups.forEach((group) => {
+        // Get visibility from properties (default to true if not set)
+        const groupVisibility = group.properties?.visibility ?? true;
+        if (!groupVisibility) {
+          invisibleGroupIds.add(group.id);
+        }
+        // Also check if parent group is invisible
+        if (group.parent_id && invisibleGroupIds.has(group.parent_id)) {
+          invisibleGroupIds.add(group.id);
+        }
+      });
+    };
+
+    // Run multiple times to catch nested invisible groups
+    let previousSize = -1;
+    while (invisibleGroupIds.size !== previousSize) {
+      previousSize = invisibleGroupIds.size;
+      findInvisibleGroups(projectLayerGroups);
+    }
+
+    // Filter out layers that belong to invisible groups
+    return allProjectLayers.filter((layer) => {
+      if (!layer.layer_project_group_id) {
+        return true; // Layer not in any group, so it's visible
+      }
+      return !invisibleGroupIds.has(layer.layer_project_group_id);
+    });
+  }, [allProjectLayers, projectLayerGroups]);
+
   const { activeBasemap } = useBasemap(project);
 
   const { isProjectEditor, isLoading: isAuthZLoading } = useAuthZ();
 
   const { scenarioFeatures } = useProjectScenarioFeatures(projectId, project?.active_scenario_id);
   const isLoading = useMemo(
-    () => isProjectLoading || isInitialViewLoading || areProjectLayersLoading || isAuthZLoading,
-    [isProjectLoading, isInitialViewLoading, areProjectLayersLoading, isAuthZLoading]
+    () =>
+      isProjectLoading ||
+      isInitialViewLoading ||
+      areProjectLayersLoading ||
+      areProjectLayerGroupsLoading ||
+      isAuthZLoading,
+    [
+      isProjectLoading,
+      isInitialViewLoading,
+      areProjectLayersLoading,
+      areProjectLayerGroupsLoading,
+      isAuthZLoading,
+    ]
   );
 
   const hasError = useMemo(
-    () => projectError || projectInitialViewError || projectLayersError,
-    [projectError, projectInitialViewError, projectLayersError]
+    () => projectError || projectInitialViewError || projectLayersError || projectLayerGroupsError,
+    [projectError, projectInitialViewError, projectLayersError, projectLayerGroupsError]
   );
 
   const updateViewState = useMemo(
@@ -128,15 +188,20 @@ export default function MapPage({ params: { projectId } }) {
   }, [projectLayers]);
 
   useEffect(() => {
+    // Skip map image loading when in reports mode (no map is rendered)
+    if (mapMode === "reports") {
+      return;
+    }
     // icons are added to the style, so if the basestyle changes we have to reload icons to the style
     // it takes forever for certain styles to load so we have to wait a bit.
     // Couldn't find an event that catches the basemap change
     const debouncedHandleMapLoad = debounce(handleMapLoad, 200);
     debouncedHandleMapLoad();
-  }, [activeBasemap.url, handleMapLoad]);
+  }, [activeBasemap.url, handleMapLoad, mapMode]);
 
   useJobStatus(() => {
     mutateProjectLayers();
+    mutateProjectLayerGroups();
     mutateProject();
   });
 
@@ -360,86 +425,98 @@ export default function MapPage({ params: { projectId } }) {
       {!isLoading && !hasError && project && (
         <MapProvider>
           <DrawProvider>
-            <Stack component="div" width="100%" height="100%" overflow="hidden">
-              <Header
-                showHambugerMenu={false}
-                mapHeader={true}
-                project={project}
-                onProjectUpdate={handleProjectUpdate}
-              />
-              <Box
-                sx={{
-                  display: "flex",
-                  height: "100%",
-                  width: "100%",
-                  [theme.breakpoints.down("sm")]: {
-                    marginLeft: "0",
-                    width: `100%`,
-                  },
-                }}>
-                <DndContext
-                  onDragOver={handleDragOver}
-                  onDragStart={handleDragStart}
-                  onDragEnd={handleDragEnd}
-                  autoScroll>
-                  {mapMode === "data" && (
-                    <DataProjectLayout project={project} onProjectUpdate={handleProjectUpdate} />
-                  )}
-                  <Box
-                    sx={{
-                      padding: mapMode === "builder" ? "20px" : "0",
-                      width: "100%",
-                      height: "100%",
-                      position: "relative",
-                    }}>
-                    {mapMode === "builder" && (
+            <MeasureProvider>
+              <Stack component="div" width="100%" height="100%" overflow="hidden">
+                <Header
+                  showHambugerMenu={false}
+                  mapHeader={true}
+                  project={project}
+                  onProjectUpdate={handleProjectUpdate}
+                />
+                <Box
+                  sx={{
+                    display: "flex",
+                    flex: 1,
+                    minHeight: 0,
+                    width: "100%",
+                    [theme.breakpoints.down("sm")]: {
+                      marginLeft: "0",
+                      width: `100%`,
+                    },
+                  }}>
+                  <DndContext
+                    onDragOver={handleDragOver}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                    autoScroll>
+                    {mapMode === "data" && (
+                      <DataProjectLayout project={project} onProjectUpdate={handleProjectUpdate} />
+                    )}
+                    {mapMode === "reports" && (
+                      <ReportsLayout
+                        project={project}
+                        projectLayers={projectLayers}
+                        onProjectUpdate={handleProjectUpdate}
+                      />
+                    )}
+                    {mapMode !== "reports" && (
                       <Box
                         sx={{
-                          position: "absolute",
-                          inset: "20px",
+                          padding: mapMode === "builder" ? "20px" : "0",
+                          width: "100%",
+                          height: "100%",
+                          position: "relative",
                         }}>
-                        <PublicProjectLayout
-                          projectLayers={projectLayers}
-                          project={project}
-                          onProjectUpdate={handleProjectUpdate}
+                        {mapMode === "builder" && (
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              inset: "20px",
+                            }}>
+                            <PublicProjectLayout
+                              projectLayers={projectLayers}
+                              project={project}
+                              onProjectUpdate={handleProjectUpdate}
+                            />
+                          </Box>
+                        )}
+                        <MapViewer
+                          layers={projectLayers}
+                          mapRef={mapRef}
+                          scenarioFeatures={scenarioFeatures}
+                          maxExtent={project?.max_extent || undefined}
+                          initialViewState={{
+                            zoom: initialView?.zoom ?? 3,
+                            latitude: initialView?.latitude ?? 48.13,
+                            longitude: initialView?.longitude ?? 11.57,
+                            pitch: initialView?.pitch ?? 0,
+                            bearing: initialView?.bearing ?? 0,
+                            fitBoundsOptions: {
+                              minZoom: initialView?.min_zoom ?? 0,
+                              maxZoom: initialView?.max_zoom ?? 24,
+                            },
+                          }}
+                          mapStyle={activeBasemap?.url}
+                          {...(isProjectEditor ? { onMoveEnd: updateViewState } : {})}
+                          isEditor={isProjectEditor}
                         />
                       </Box>
                     )}
-                    <MapViewer
-                      layers={projectLayers}
-                      mapRef={mapRef}
-                      scenarioFeatures={scenarioFeatures}
-                      maxExtent={project?.max_extent || undefined}
-                      initialViewState={{
-                        zoom: initialView?.zoom ?? 3,
-                        latitude: initialView?.latitude ?? 48.13,
-                        longitude: initialView?.longitude ?? 11.57,
-                        pitch: initialView?.pitch ?? 0,
-                        bearing: initialView?.bearing ?? 0,
-                        fitBoundsOptions: {
-                          minZoom: initialView?.min_zoom ?? 0,
-                          maxZoom: initialView?.max_zoom ?? 24,
-                        },
-                      }}
-                      mapStyle={activeBasemap?.url}
-                      {...(isProjectEditor ? { onMoveEnd: updateViewState } : {})}
-                      isEditor={isProjectEditor}
-                    />
-                  </Box>
-                  {mapMode === "builder" && (
-                    <BuilderConfigPanel project={project} onProjectUpdate={handleProjectUpdate} />
-                  )}
+                    {mapMode === "builder" && (
+                      <BuilderConfigPanel project={project} onProjectUpdate={handleProjectUpdate} />
+                    )}
 
-                  {mapMode === "builder" && (
-                    <DragOverlay dropAnimation={null} modifiers={[createSnapToCursorModifier("topCenter")]}>
-                      {activeWidget?.config?.type ? (
-                        <DraggableItem widgetType={activeWidget?.config?.type} isDragging={true} />
-                      ) : null}
-                    </DragOverlay>
-                  )}
-                </DndContext>
-              </Box>
-            </Stack>
+                    {mapMode === "builder" && (
+                      <DragOverlay dropAnimation={null} modifiers={[createSnapToCursorModifier("topCenter")]}>
+                        {activeWidget?.config?.type ? (
+                          <DraggableItem widgetType={activeWidget?.config?.type} isDragging={true} />
+                        ) : null}
+                      </DragOverlay>
+                    )}
+                  </DndContext>
+                </Box>
+              </Stack>
+            </MeasureProvider>
           </DrawProvider>
         </MapProvider>
       )}

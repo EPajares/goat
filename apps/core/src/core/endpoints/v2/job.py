@@ -75,8 +75,8 @@ async def read_jobs(
         description="Specify the end date to filter the jobs. If not specified, all jobs will be returned.",
     ),
     read: bool | None = Query(
-        False,
-        description="Specify if the job should be read. If not specified, all jobs will be returned.",
+        None,
+        description="Specify if the job should be read (true for read only, false for unread only). If not specified, all jobs will be returned.",
     ),
     order_by: str = Query(
         default="created_at",

@@ -1,6 +1,8 @@
+import { cogProtocol } from "@geomatico/maplibre-cog-protocol";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import type { Theme } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
+import maplibregl from "maplibre-gl";
 import { useCallback, useMemo } from "react";
 import { Map, type MapLayerMouseEvent, type MapRef, type ViewState } from "react-map-gl/maplibre";
 import type { ViewStateChangeEvent } from "react-map-gl/maplibre";
@@ -27,9 +29,12 @@ import Layers from "@/components/map/Layers";
 import ScenarioLayer from "@/components/map/ScenarioLayer";
 import ToolboxLayers from "@/components/map/ToolboxLayers";
 import UserLocationLayer from "@/components/map/UserLocationLayer";
+import DrawControl from "@/components/map/controls/Draw";
 import { MapPopoverInfo } from "@/components/map/controls/LayerInfo";
 import MapPopoverEditor from "@/components/map/controls/PopoverEditor";
-import DrawControl from "@/components/map/controls/draw/Draw";
+import { MeasureLabels } from "@/components/map/controls/measure";
+
+maplibregl.addProtocol("cog", cogProtocol);
 
 interface MapProps {
   mapRef: React.RefObject<MapRef> | null;
@@ -283,6 +288,20 @@ const MapViewer: React.FC<MapProps> = ({
           ".maplibregl-popup-anchor-right .maplibregl-popup-tip": {
             borderLeftColor: theme.palette.background.paper,
           },
+          // Measure label popup styles (chip-like, no arrow, no pointer events)
+          ".measure-label-popup": {
+            pointerEvents: "none",
+          },
+          ".measure-label-popup .maplibregl-popup-content": {
+            padding: 0,
+            background: "transparent",
+            boxShadow: "none",
+            borderRadius: "16px",
+            pointerEvents: "none",
+          },
+          ".measure-label-popup .maplibregl-popup-tip": {
+            display: "none",
+          },
           ...containerSx,
         }}>
         <Map
@@ -301,13 +320,11 @@ const MapViewer: React.FC<MapProps> = ({
           onMove={_onMove}
           maxBounds={maxExtent}
           onLoad={handleMapLoad}>
-          {isEditor && (
-            <DrawControl
-              position="top-right"
-              displayControlsDefault={false}
-              defaultMode={MapboxDraw.constants.modes.SIMPLE_SELECT}
-            />
-          )}
+          <DrawControl
+            position="top-right"
+            displayControlsDefault={false}
+            defaultMode={MapboxDraw.constants.modes.SIMPLE_SELECT}
+          />
           <Layers
             layers={layers}
             highlightFeature={highlightedFeature}
@@ -318,6 +335,7 @@ const MapViewer: React.FC<MapProps> = ({
           <GeocoderLayer />
           <UserLocationLayer />
           <ToolboxLayers />
+          <MeasureLabels />
           {!isMobile && popupInfo && <MapPopoverInfo key={highlightedFeature?.id ?? v4()} {...popupInfo} />}
           {!isMobile && popupEditor && isEditor && (
             <MapPopoverEditor

@@ -23,6 +23,23 @@ import type {
 
 export const LAYERS_API_BASE_URL = new URL("api/v2/layer", process.env.NEXT_PUBLIC_API_URL).href;
 export const COLLECTIONS_API_BASE_URL = new URL("collections", process.env.NEXT_PUBLIC_GEOAPI_URL).href;
+export const PROCESSES_API_BASE_URL = new URL("processes", process.env.NEXT_PUBLIC_GEOAPI_URL).href;
+
+/**
+ * Fetcher for OGC API Processes execution endpoints (POST requests)
+ */
+const processExecuteFetcher = async ([url, body]: [string, object]) => {
+  const response = await apiRequestAuth(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail?.detail || error.detail || "Process execution failed");
+  }
+  return response.json();
+};
 
 export const useLayers = (queryParams?: PaginatedQueryParams, payload: GetDatasetSchema = {}) => {
   const { data, isLoading, error, mutate, isValidating } = useSWR<LayerPaginated>(
@@ -77,7 +94,7 @@ export const getDataset = async (datasetId: string): Promise<Layer> => {
     throw new Error("Failed to get dataset");
   }
   return await response.json();
-}
+};
 
 export const updateDataset = async (datasetId: string, payload: PostDataset) => {
   const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${datasetId}`, {
@@ -96,10 +113,10 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
 export const updateLayerDataset = async (layerId: string, datasetId?: string, s3_key?: string) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
   if (datasetId) {
-    url.searchParams.append('dataset_id', datasetId);
+    url.searchParams.append("dataset_id", datasetId);
   }
   if (s3_key) {
-    url.searchParams.append('s3_key', s3_key);
+    url.searchParams.append("s3_key", s3_key);
   }
   const response = await apiRequestAuth(url.toString(), {
     method: "PUT",
@@ -108,22 +125,19 @@ export const updateLayerDataset = async (layerId: string, datasetId?: string, s3
     throw new Error("Failed to update layer dataset");
   }
   return await response.json();
-}
+};
 
 export const useDatasetCollectionItems = (datasetId: string, queryParams?: GetCollectionItemsQueryParams) => {
-  const collectionId = `user_data.${datasetId.replace(/-/g, "")}`;
   const { data, isLoading, error, mutate } = useSWR<DatasetCollectionItems>(
-    () => (datasetId ? [`${COLLECTIONS_API_BASE_URL}/${collectionId}/items`, queryParams] : null),
+    () => (datasetId ? [`${COLLECTIONS_API_BASE_URL}/${datasetId}/items`, queryParams] : null),
     fetcher
   );
   return { data, isLoading, isError: error, mutate };
 };
 
 export const useLayerQueryables = (layerId: string) => {
-  // remove dashes from layerId UUID
-  const _layerId = `user_data.${layerId.replace(/-/g, "")}`;
   const { data, isLoading, error } = useSWR<LayerQueryables>(
-    () => (layerId ? [`${COLLECTIONS_API_BASE_URL}/${_layerId}/queryables`] : null),
+    () => (layerId ? [`${COLLECTIONS_API_BASE_URL}/${layerId}/queryables`] : null),
     fetcher
   );
   return { queryables: data, isLoading, isError: error };
@@ -147,9 +161,19 @@ export const useLayerClassBreaks = (
   const { data, isLoading, error } = useSWR<LayerClassBreaks>(
     () =>
       operation && column && breaks
-        ? [`${LAYERS_API_BASE_URL}/${layerId}/class-breaks/${operation}/${column}?breaks=${breaks}`]
+        ? [
+            `${PROCESSES_API_BASE_URL}/class-breaks/execution`,
+            {
+              inputs: {
+                collection: layerId,
+                attribute: column,
+                method: operation,
+                breaks: breaks,
+              },
+            },
+          ]
         : null,
-    fetcher
+    processExecuteFetcher
   );
   return { classBreaks: data, isLoading, isError: error };
 };
@@ -165,8 +189,13 @@ export const deleteLayer = async (id: string) => {
   }
 };
 
-export const createFeatureLayer = async (payload: CreateLayerFromDataset, projectId?: string) => {
-  const url = new URL(`${LAYERS_API_BASE_URL}/feature-standard`);
+/**
+ * Create a new layer from a dataset.
+ * Layer type (feature or table) is auto-detected based on geometry presence.
+ * CSV/Excel with WKT geometry columns will become feature layers.
+ */
+export const createLayer = async (payload: CreateLayerFromDataset, projectId?: string) => {
+  const url = new URL(`${LAYERS_API_BASE_URL}/internal`);
   if (projectId) {
     url.searchParams.append("project_id", projectId);
   }
@@ -178,25 +207,7 @@ export const createFeatureLayer = async (payload: CreateLayerFromDataset, projec
     },
   });
   if (!response.ok) {
-    throw new Error("Failed to create feature layer");
-  }
-  return await response.json();
-};
-
-export const createTableLayer = async (payload: CreateLayerFromDataset, projectId?: string) => {
-  const url = new URL(`${LAYERS_API_BASE_URL}/table`);
-  if (projectId) {
-    url.searchParams.append("project_id", projectId);
-  }
-  const response = await apiRequestAuth(url.toString(), {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error("Failed to create table layer");
+    throw new Error("Failed to create layer");
   }
   return await response.json();
 };
@@ -217,8 +228,7 @@ export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: 
     throw new Error("Failed to create raster layer");
   }
   return await response.json();
-}
-
+};
 
 export const layerFeatureUrlUpload = async (payload: ExternalDatasetFeatureUrl) => {
   const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/file-upload-external-service`, {
@@ -240,12 +250,18 @@ export const getLayerClassBreaks = async (
   column: string,
   breaks: number
 ): Promise<LayerClassBreaks> => {
-  const response = await apiRequestAuth(
-    `${LAYERS_API_BASE_URL}/${layerId}/class-breaks/${operation}/${column}?breaks=${breaks}`,
-    {
-      method: "GET",
-    }
-  );
+  const response = await apiRequestAuth(`${PROCESSES_API_BASE_URL}/class-breaks/execution`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      inputs: {
+        collection: layerId,
+        attribute: column,
+        method: operation,
+        breaks: breaks,
+      },
+    }),
+  });
   if (!response.ok) {
     throw new Error("Failed to get class breaks");
   }
@@ -257,22 +273,77 @@ export const getLayerUniqueValues = async (
   column: string,
   size?: number
 ): Promise<LayerUniqueValuesPaginated> => {
-  const response = await apiRequestAuth(
-    `${LAYERS_API_BASE_URL}/${layerId}/unique-values/${column}${size ? `?size=${size}` : ""}`,
-    {
-      method: "GET",
-    }
-  );
+  const response = await apiRequestAuth(`${PROCESSES_API_BASE_URL}/unique-values/execution`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      inputs: {
+        collection: layerId,
+        attribute: column,
+        limit: size || 100,
+      },
+    }),
+  });
   if (!response.ok) {
     throw new Error("Failed to get unique values");
   }
-  return await response.json();
+  // Transform OGC Processes response to legacy paginated format
+  const result = await response.json();
+  return {
+    items: result.values.map((v: { value: string | number; count: number }) => ({
+      value: String(v.value),
+      count: v.count,
+    })),
+    total: result.total,
+    page: 1,
+    size: result.values.length,
+    pages: 1,
+  };
 };
 
+/**
+ * Transform OGC Processes unique-values response to legacy paginated format
+ */
+const transformUniqueValuesResponse = (result: {
+  values: { value: string | number | null; count: number }[];
+  total: number;
+}): LayerUniqueValuesPaginated => ({
+  items: result.values.map((v) => ({
+    value: String(v.value ?? ""),
+    count: v.count,
+  })),
+  total: result.total,
+  page: 1,
+  size: result.values.length,
+  pages: 1,
+});
+
 export const useUniqueValues = (layerId: string, column: string, page?: number) => {
+  const offset = page ? (page - 1) * 50 : 0;
   const { data, isLoading, error } = useSWR<LayerUniqueValuesPaginated>(
-    [`${LAYERS_API_BASE_URL}/${layerId}/unique-values/${column}${page ? `?page=${page}` : ""}`],
-    fetcher
+    layerId && column
+      ? [
+          `${PROCESSES_API_BASE_URL}/unique-values/execution`,
+          {
+            inputs: {
+              collection: layerId,
+              attribute: column,
+              limit: 50,
+              offset: offset,
+            },
+          },
+        ]
+      : null,
+    async ([url, body]: [string, object]) => {
+      const response = await apiRequestAuth(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error("Failed to get unique values");
+      const result = await response.json();
+      return transformUniqueValuesResponse(result);
+    }
   );
   return { data, isLoading, error };
 };
@@ -282,9 +353,38 @@ export const useLayerUniqueValues = (
   column: string,
   queryParams?: GetLayerUniqueValuesQueryParams
 ) => {
+  const limit = queryParams?.size || 50;
+  const offset = queryParams?.page ? (queryParams.page - 1) * limit : 0;
   const { data, isLoading, error, mutate, isValidating } = useSWR<LayerUniqueValuesPaginated>(
-    [`${LAYERS_API_BASE_URL}/${layerId}/unique-values/${column}`, queryParams],
-    fetcher
+    layerId && column
+      ? [
+          `${PROCESSES_API_BASE_URL}/unique-values/execution`,
+          {
+            inputs: {
+              collection: layerId,
+              attribute: column,
+              order: queryParams?.order || "descendent",
+              limit: limit,
+              offset: offset,
+            },
+          },
+        ]
+      : null,
+    async ([url, body]: [string, object]) => {
+      const response = await apiRequestAuth(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error("Failed to get unique values");
+      const result = await response.json();
+      const transformed = transformUniqueValuesResponse(result);
+      // Add proper pagination info
+      transformed.page = queryParams?.page || 1;
+      transformed.size = limit;
+      transformed.pages = Math.ceil(transformed.total / limit);
+      return transformed;
+    }
   );
   return { data, isLoading, error, mutate, isValidating };
 };
@@ -302,10 +402,23 @@ export const downloadDataset = async (payload: DatasetDownloadRequest) => {
   }
   return await response.blob();
 };
+
 export const useClassBreak = (layerId: string, operation: string, column: string, breaks: number) => {
-  const { data, isLoading, error } = useSWR<Record<string, number>>(
-    [`${LAYERS_API_BASE_URL}/${layerId}/class-breaks/${operation}/${column}?breaks=${breaks}`],
-    fetcher
+  const { data, isLoading, error } = useSWR<LayerClassBreaks>(
+    layerId && operation && column && breaks
+      ? [
+          `${PROCESSES_API_BASE_URL}/class-breaks/execution`,
+          {
+            inputs: {
+              collection: layerId,
+              attribute: column,
+              method: operation,
+              breaks: breaks,
+            },
+          },
+        ]
+      : null,
+    processExecuteFetcher
   );
   return { data, isLoading, error };
 };

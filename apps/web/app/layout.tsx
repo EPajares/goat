@@ -30,6 +30,8 @@ const mulish = Mulish({
   subsets: ["latin"],
 });
 
+export const dynamic = "force-dynamic";
+
 // --- Layout ---
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { lang, theme } = await getUserPreferencesForLayout();

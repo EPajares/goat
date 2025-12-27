@@ -8,15 +8,17 @@ interface Option {
 }
 
 interface SlidingToggleProps {
-  options: [Option, Option]; // A tuple containing two options
+  options: Option[]; // Array of 2-4 options
   activeOption: string; // The currently active option
   onToggle: (selected: string) => void; // Callback for when the toggle changes
 }
 
-const SwitchContainer = styled(Box)(({ theme }) => ({
+const SwitchContainer = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "optionCount",
+})<{ optionCount: number }>(({ theme, optionCount }) => ({
   position: "relative",
   display: "flex",
-  width: "200px",
+  width: optionCount === 2 ? "200px" : optionCount === 3 ? "300px" : "400px",
   height: "30px",
   backgroundColor: "transparent",
   border: `1px solid ${alpha(theme.palette.primary.main, 0.5)}`,
@@ -25,9 +27,11 @@ const SwitchContainer = styled(Box)(({ theme }) => ({
   cursor: "pointer",
 }));
 
-const SlidingIndicator = styled(Box)(({ theme }) => ({
+const SlidingIndicator = styled(Box, {
+  shouldForwardProp: (prop) => prop !== "optionCount",
+})<{ optionCount: number }>(({ theme, optionCount }) => ({
   position: "absolute",
-  width: "50%",
+  width: `${100 / optionCount}%`,
   height: "100%",
   backgroundColor: theme.palette.primary.main,
   borderRadius: "25px",
@@ -46,35 +50,33 @@ const ToggleItem = styled(Box)(({ theme }) => ({
 
 const SlidingToggle: React.FC<SlidingToggleProps> = ({ options, activeOption, onToggle }) => {
   const handleSwitchClick = (option: Option) => {
-    onToggle(option.value); // Call the onToggle callback
+    onToggle(option.value);
   };
 
+  // Calculate the active index
+  const activeIndex = options.findIndex((opt) => opt.value === activeOption);
+  const translatePercentage = activeIndex * 100;
+
   return (
-    <SwitchContainer>
+    <SwitchContainer optionCount={options.length}>
       {/* Sliding Indicator */}
       <SlidingIndicator
+        optionCount={options.length}
         style={{
-          transform: activeOption === options[0].value ? "translateX(0)" : "translateX(100%)",
+          transform: `translateX(${translatePercentage}%)`,
         }}
       />
-      {/* Option 1 */}
-      <ToggleItem onClick={() => handleSwitchClick(options[0])}>
-        <Typography
-          color={activeOption === options[0].value ? "inherit" : "primary"}
-          variant="body2"
-          sx={{ fontWeight: "bold", transition: "color 0.3s ease-in-out" }}>
-          {options[0].label}
-        </Typography>
-      </ToggleItem>
-      {/* Option 2 */}
-      <ToggleItem onClick={() => handleSwitchClick(options[1])}>
-        <Typography
-          color={activeOption === options[1].value ? "inherit" : "primary"}
-          variant="body2"
-          sx={{ fontWeight: "bold", transition: "color 0.3s ease-in-out" }}>
-          {options[1].label}
-        </Typography>
-      </ToggleItem>
+      {/* Render all options dynamically */}
+      {options.map((option) => (
+        <ToggleItem key={option.value} onClick={() => handleSwitchClick(option)}>
+          <Typography
+            color={activeOption === option.value ? "inherit" : "primary"}
+            variant="body2"
+            sx={{ fontWeight: "bold", transition: "color 0.3s ease-in-out" }}>
+            {option.label}
+          </Typography>
+        </ToggleItem>
+      ))}
     </SwitchContainer>
   );
 };

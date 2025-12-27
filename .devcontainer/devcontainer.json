@@ -1,6 +1,6 @@
 {
   "name": "GOAT",
-  "dockerComposeFile": ["../docker-compose.yml","docker-compose.extend.yml"],
+  "dockerComposeFile": ["compose.dev.yaml"],
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "service": "goat-dev",

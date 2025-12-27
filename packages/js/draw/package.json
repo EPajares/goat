@@ -1,0 +1,28 @@
+{
+    "name": "@p4b/draw",
+    "version": "0.0.1",
+    "private": true,
+    "main": "./index.ts",
+    "types": "./index.ts",
+    "license": "MIT",
+    "scripts": {
+        "clean": "rimraf .turbo node_modules dist",
+        "lint": "eslint . --ext .ts,.tsx",
+        "typecheck": "tsc --noEmit"
+    },
+    "peerDependencies": {
+        "@mapbox/mapbox-gl-draw": "^1.4.3"
+    },
+    "dependencies": {
+        "@turf/bearing": "^7.0.0",
+        "@turf/circle": "^7.0.0",
+        "@turf/distance": "^7.0.0",
+        "@turf/great-circle": "^7.3.1",
+        "@turf/helpers": "^6.5.0"
+    },
+    "devDependencies": {
+        "@p4b/tsconfig": "workspace:*",
+        "@types/mapbox__mapbox-gl-draw": "^1.4.6",
+        "eslint-config-p4b": "workspace:*"
+    }
+}

@@ -381,22 +381,44 @@ class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
     ) -> Dict[str, Any]:
         """Get feature count for a layer or a layer project."""
 
-        # Get feature count total
         feature_cnt = {}
         table_name = layer_project.table_name
-        sql_query = f"SELECT COUNT(*) FROM {table_name} WHERE layer_id = '{str(layer_project.layer_id)}'"
-        result = await async_session.execute(text(sql_query))
-        feature_cnt["total_count"] = result.scalar_one()
 
-        # Get feature count filtered
-        if not where_query:
-            where_query = build_where_clause([layer_project.where_query])
+        # Check if this is a DuckLake table (starts with 'lake.')
+        if table_name.startswith("lake."):
+            # DuckLake tables must be queried via DuckDB, not PostgreSQL
+            from core.storage.ducklake import ducklake_manager
+
+            # Get total count - DuckLake has one table per layer, no layer_id filter needed
+            query = f"SELECT COUNT(*) FROM {table_name}"
+            result = ducklake_manager.execute_one(query)
+            feature_cnt["total_count"] = result[0] if result else 0
+
+            # Get filtered count if there's a where clause
+            if not where_query:
+                where_query = build_where_clause([layer_project.where_query])
+            else:
+                where_query = build_where_clause([where_query])
+            if where_query:
+                query = f"SELECT COUNT(*) FROM {table_name} {where_query}"
+                result = ducklake_manager.execute_one(query)
+                feature_cnt["filtered_count"] = result[0] if result else 0
         else:
-            where_query = build_where_clause([where_query])
-        if where_query:
-            sql_query = f"SELECT COUNT(*) FROM {table_name} {where_query}"
+            # PostgreSQL table - use async session with layer_id filter
+            sql_query = f"SELECT COUNT(*) FROM {table_name} WHERE layer_id = '{str(layer_project.layer_id)}'"
             result = await async_session.execute(text(sql_query))
-            feature_cnt["filtered_count"] = result.scalar_one()
+            feature_cnt["total_count"] = result.scalar_one()
+
+            # Get feature count filtered
+            if not where_query:
+                where_query = build_where_clause([layer_project.where_query])
+            else:
+                where_query = build_where_clause([where_query])
+            if where_query:
+                sql_query = f"SELECT COUNT(*) FROM {table_name} {where_query}"
+                result = await async_session.execute(text(sql_query))
+                feature_cnt["filtered_count"] = result.scalar_one()
+
         return feature_cnt
 
     async def check_exceed_feature_cnt(

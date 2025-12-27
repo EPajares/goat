@@ -23,12 +23,14 @@ from core.db.models.layer import ContentBaseAttributes
 
 if TYPE_CHECKING:
     from core.db.models._link_model import (
+        LayerProjectGroup,
         LayerProjectLink,
         ProjectOrganizationLink,
         ProjectTeamLink,
         UserProjectLink,
     )
 
+    from .report_layout import ReportLayout
     from .scenario import Scenario
 
 
@@ -130,10 +132,21 @@ class Project(ContentBaseAttributes, DateTimeBase, table=True):
         back_populates="project",
         sa_relationship_kwargs={"cascade": "all, delete-orphan", "uselist": False},
     )
+    layer_groups: List["LayerProjectGroup"] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
+
+    report_layouts: List["ReportLayout"] = Relationship(
+        back_populates="project",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
 
     @field_validator("thumbnail_url", mode="before")
     @classmethod
-    def convert_httpurl_to_str(cls: type["Project"], value: str | HttpUrl | None) -> str | None:
+    def convert_httpurl_to_str(
+        cls: type["Project"], value: str | HttpUrl | None
+    ) -> str | None:
         if value is None:
             return value
         elif isinstance(value, HttpUrl):
@@ -174,7 +187,6 @@ class ProjectPublic(DateTimeBase, table=True, extend_existing=True):
     )
 
     project: Project = Relationship(back_populates="project_public")
-
 
     # Constraints
     UniqueConstraint("folder_id", "name")

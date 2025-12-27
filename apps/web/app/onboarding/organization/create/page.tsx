@@ -16,7 +16,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -307,6 +307,16 @@ export default function OrganizationOnBoarding() {
                       {t("common:back")}
                     </Button>
                   )}
+                  <Button
+                    sx={{
+                      mt: theme.spacing(4),
+                    }}
+                    fullWidth
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    variant="text"
+                    color="error">
+                    {t("common:logout")}
+                  </Button>
                 </Stack>
               </Box>
             </>

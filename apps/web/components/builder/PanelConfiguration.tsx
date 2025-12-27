@@ -1,4 +1,4 @@
-import { Button, Stack, Typography } from "@mui/material";
+import { Button, Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -79,30 +79,45 @@ const PanelConfiguration = ({ panel, onDelete, onChange }: PanelContainerProps) 
   const [backgroundBlur, setBackgroundBlur] = useState(panel.config?.appearance?.backgroundBlur ?? 0);
   const [shadow, setShadow] = useState(panel.config?.appearance?.shadow ?? 0);
   const [spacing, setSpacing] = useState(panel.config?.position?.spacing ?? 0);
+  const [collapsible, setCollapsible] = useState(panel.config?.options?.collapsible ?? false);
 
   useEffect(() => {
     setOpacity(panel.config?.appearance?.opacity ?? 1);
     setBackgroundBlur(panel.config?.appearance?.backgroundBlur ?? 0);
     setShadow(panel.config?.appearance?.shadow ?? 0);
     setSpacing(panel.config?.position?.spacing ?? 0);
+    setCollapsible(panel.config?.options?.collapsible ?? false);
   }, [panel]);
 
   // Handlers
   const updateConfig = (path: string, value: unknown) => {
     const [root, ...rest] = path.split(".");
+
+    // Base config
+    const newConfig = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...((panel.config || {}) as any),
+      [root]: rest.reduce(
+        (acc, key, index) => ({
+          ...acc,
+          [key]: index === rest.length - 1 ? value : acc?.[key],
+        }),
+        panel.config?.[root] || {}
+      ),
+    };
+
+    // Special logic: if changing style to floated, reset collapsible
+    if (path === "options.style" && value === "floated") {
+      setCollapsible(false);
+      newConfig.options = {
+        ...newConfig.options,
+        collapsible: false,
+      };
+    }
+
     onChange({
       ...panel,
-      config: {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ...((panel.config || {}) as any),
-        [root]: rest.reduce(
-          (acc, key, index) => ({
-            ...acc,
-            [key]: index === rest.length - 1 ? value : acc?.[key],
-          }),
-          panel.config?.[root] || {}
-        ),
-      },
+      config: newConfig,
     });
   };
 
@@ -114,10 +129,38 @@ const PanelConfiguration = ({ panel, onDelete, onChange }: PanelContainerProps) 
   ) => (
     <Selector
       selectedItems={selectedItem}
-      setSelectedItems={(item) => updateConfig(configPath, (item as SelectorItem).value)}
       items={options}
       label={label}
+      setSelectedItems={(item) => {
+        const newValue = (item as SelectorItem).value;
+        updateConfig(configPath, newValue);
+      }}
     />
+  );
+
+  const renderCheckbox = (label: string, checked: boolean, configPath: string, disabled: boolean = false) => (
+    <Stack>
+      <FormControlLabel
+        control={
+          <Checkbox
+            size="small"
+            color="primary"
+            checked={checked}
+            disabled={disabled}
+            onChange={(e) => {
+              const newValue = e.target.checked;
+              switch (configPath.split(".")[1]) {
+                case "collapsible":
+                  setCollapsible(newValue);
+                  break;
+              }
+              updateConfig(configPath, newValue);
+            }}
+          />
+        }
+        label={<Typography variant="body2">{label}</Typography>}
+      />
+    </Stack>
   );
 
   const renderSlider = (
@@ -165,6 +208,12 @@ const PanelConfiguration = ({ panel, onDelete, onChange }: PanelContainerProps) 
       <Stack direction="column" spacing={3}>
         <ConfigSection title={t("options")} icon={ICON_NAME.SLIDERS}>
           {renderSelector(panelStyle, panelStyleOptions, t("select_panel_style"), "options.style")}
+          {renderCheckbox(
+            t("collapsible_panel"),
+            collapsible,
+            "options.collapsible",
+            panelStyle.value === "floated"
+          )}
         </ConfigSection>
 
         <ConfigSection title={t("appearance")} icon={ICON_NAME.PANEL_APPERANCE}>

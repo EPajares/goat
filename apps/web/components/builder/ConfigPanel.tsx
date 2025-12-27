@@ -1,5 +1,4 @@
-import { Box, Divider, Stack, Tab, Tabs, Typography } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { Divider, Tab, Tabs, Typography } from "@mui/material";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -14,6 +13,7 @@ import PanelConfiguration from "@/components/builder/PanelConfiguration";
 import SettingsTab from "@/components/builder/SettingsTab";
 import WidgetConfiguration from "@/components/builder/WidgetConfiguration";
 import WidgetsTab from "@/components/builder/WidgetsTab";
+import { SidePanelContainer, SidePanelStack, SidePanelTabPanel } from "@/components/common/SidePanel";
 import SelectedItemContainer from "@/components/map/panels/Container";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
 
@@ -22,33 +22,6 @@ interface ConfigPanelProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProjectUpdate?: (key: string, value: any, refresh?: boolean) => void;
 }
-
-const Container = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.background.default,
-  boxShadow: `0px 0px 10px 0px ${
-    theme.palette.mode === "dark" ? "rgba(0, 0, 0, 0.7)" : "rgba(58, 53, 65, 0.1)"
-  }`,
-}));
-
-const PanelStack = styled(Stack)({
-  width: "300px",
-  height: "calc(100% - 40px)",
-});
-
-const TabPanel = (props: { children?: React.ReactNode; index: number; value: number }) => {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      style={{ height: "100%", overflowY: "auto" }}
-      aria-labelledby={`tab-${index}`}
-      {...other}>
-      {value === index && <>{children}</>}
-    </div>
-  );
-};
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) => {
   const dispatch = useAppDispatch();
@@ -185,9 +158,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
   }, [selectedBuilderItem]);
 
   return (
-    <Container>
+    <SidePanelContainer>
       {!showConfiguration && (
-        <PanelStack>
+        <SidePanelStack>
           <Tabs
             sx={{ minHeight: "40px" }}
             value={value}
@@ -216,20 +189,20 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
             />
           </Tabs>
           <Divider sx={{ mt: 0 }} />
-          <TabPanel value={value} index={0}>
+          <SidePanelTabPanel value={value} index={0} id="builder">
             <WidgetsTab />
-          </TabPanel>
-          <TabPanel value={value} index={1}>
+          </SidePanelTabPanel>
+          <SidePanelTabPanel value={value} index={1} id="builder">
             <SettingsTab
               settings={builderConfig?.settings || {}}
               onChange={handleMapSettingsChange}
               onReset={handleMapSettingsReset}
             />
-          </TabPanel>
-        </PanelStack>
+          </SidePanelTabPanel>
+        </SidePanelStack>
       )}
       {showConfiguration && (
-        <PanelStack>
+        <SidePanelStack>
           <SelectedItemContainer
             disableClose
             header={
@@ -247,9 +220,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
             body={renderConfiguration()}
             close={() => {}}
           />
-        </PanelStack>
+        </SidePanelStack>
       )}
-    </Container>
+    </SidePanelContainer>
   );
 };
 

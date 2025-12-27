@@ -20,6 +20,33 @@ export const useJobs = (queryParams?: GetJobsQueryParam) => {
   };
 };
 
+/**
+ * Hook to fetch and poll a single job by ID
+ */
+export const useJob = (id?: string, refreshInterval = 2000) => {
+  const { data, isLoading, error, mutate } = useSWR<Job>(
+    id ? [`${JOBS_API_BASE_URL}/${id}`] : null,
+    fetcher,
+    {
+      // Poll while job is running
+      refreshInterval: (data) => {
+        if (!data) return refreshInterval;
+        // Stop polling when job is finished or failed
+        if (data.status_simple === "finished" || data.status_simple === "failed") {
+          return 0;
+        }
+        return refreshInterval;
+      },
+    }
+  );
+  return {
+    job: data,
+    isLoading,
+    isError: error,
+    mutate,
+  };
+};
+
 export const getJob = async (id: string): Promise<Job> => {
   const response = await apiRequestAuth(`${JOBS_API_BASE_URL}/${id}`, {
     method: "GET",

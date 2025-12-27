@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useTranslation } from 'react-i18next'
-
-import { useProject, useProjectLayers } from "@/lib/api/projects";
+import { useProjectLayers } from "@/lib/api/projects";
 import { SYSTEM_LAYERS_IDS } from "@/lib/constants";
 import type { LayerType } from "@/lib/validations/layer";
 import {
   featureLayerLinePropertiesSchema,
   featureLayerPointPropertiesSchema,
   featureLayerPolygonPropertiesSchema,
+  rasterLayerPropertiesSchema,
 } from "@/lib/validations/layer";
 import { type ProjectLayer, projectLayerSchema } from "@/lib/validations/project";
 
@@ -29,23 +29,35 @@ export const useLayerSettingsMoreMenu = () => {
     inCatalog?: ProjectLayer["in_catalog"],
     readOnly?: boolean
   ): PopperMenuItem[] {
-
     if (readOnly) {
       const readOnlyOptions: PopperMenuItem[] = [
-        ...(layerType !== "table" ? [
-          {
-            id: MapLayerActions.ZOOM_TO,
-            label: t("zoom_to"),
-            icon: ICON_NAME.ZOOM_IN,
-          },
-        ] : []),
-        ...(layerType !== "feature" || !inCatalog ? [
-          {
-            id: ContentActions.DOWNLOAD,
-            label: t("download"),
-            icon: ICON_NAME.DOWNLOAD,
-          },
-        ] : []),
+        ...(layerType !== "table"
+          ? [
+              {
+                id: MapLayerActions.ZOOM_TO,
+                label: t("zoom_to"),
+                icon: ICON_NAME.ZOOM_IN,
+              },
+            ]
+          : []),
+        ...(layerType !== "table"
+          ? [
+              {
+                id: MapLayerActions.STYLE,
+                label: t("style"),
+                icon: ICON_NAME.STYLE,
+              },
+            ]
+          : []),
+        ...(layerType !== "feature" || !inCatalog
+          ? [
+              {
+                id: ContentActions.DOWNLOAD,
+                label: t("download"),
+                icon: ICON_NAME.DOWNLOAD,
+              },
+            ]
+          : []),
         {
           id: ContentActions.INFO,
           label: t("data_source_info"),
@@ -63,6 +75,11 @@ export const useLayerSettingsMoreMenu = () => {
           icon: ICON_NAME.CIRCLEINFO,
         },
         {
+          id: MapLayerActions.STYLE,
+          label: t("style"),
+          icon: ICON_NAME.STYLE,
+        },
+        {
           id: MapLayerActions.ZOOM_TO,
           label: t("zoom_to"),
           icon: ICON_NAME.ZOOM_IN,
@@ -74,12 +91,12 @@ export const useLayerSettingsMoreMenu = () => {
         },
         ...(viewChart
           ? [
-            {
-              id: MapLayerActions.CHART,
-              label: t("view_chart"),
-              icon: ICON_NAME.CHART,
-            },
-          ]
+              {
+                id: MapLayerActions.CHART,
+                label: t("view_chart"),
+                icon: ICON_NAME.CHART,
+              },
+            ]
           : []),
         {
           id: MapLayerActions.DUPLICATE,
@@ -94,12 +111,12 @@ export const useLayerSettingsMoreMenu = () => {
         ...(inCatalog
           ? []
           : [
-            {
-              id: ContentActions.DOWNLOAD,
-              label: t("download"),
-              icon: ICON_NAME.DOWNLOAD,
-            },
-          ]),
+              {
+                id: ContentActions.DOWNLOAD,
+                label: t("download"),
+                icon: ICON_NAME.DOWNLOAD,
+              },
+            ]),
         {
           id: ContentActions.DELETE,
           label: t("delete"),
@@ -123,12 +140,12 @@ export const useLayerSettingsMoreMenu = () => {
         },
         ...(viewChart
           ? [
-            {
-              id: MapLayerActions.CHART,
-              label: t("view_chart"),
-              icon: ICON_NAME.CHART,
-            },
-          ]
+              {
+                id: MapLayerActions.CHART,
+                label: t("view_chart"),
+                icon: ICON_NAME.CHART,
+              },
+            ]
           : []),
         {
           id: MapLayerActions.RENAME,
@@ -156,6 +173,11 @@ export const useLayerSettingsMoreMenu = () => {
           id: MapLayerActions.PROPERTIES,
           label: t("properties"),
           icon: ICON_NAME.CIRCLEINFO,
+        },
+        {
+          id: MapLayerActions.STYLE,
+          label: t("style"),
+          icon: ICON_NAME.STYLE,
         },
         {
           id: MapLayerActions.ZOOM_TO,
@@ -227,10 +249,8 @@ export const useLayerActions = (projectLayers: ProjectLayer[]) => {
 
   return {
     toggleLayerVisibility,
-  }
-
+  };
 };
-
 
 export const useActiveLayer = (projectId: string) => {
   const { layers: projectLayers, mutate } = useProjectLayers(projectId);
@@ -249,6 +269,10 @@ export const useActiveLayer = (projectId: string) => {
 
     if (parsedActiveLayer.feature_layer_geometry_type === "polygon") {
       parsedActiveLayer.properties = featureLayerPolygonPropertiesSchema.parse(properties);
+    }
+
+    if (parsedActiveLayer.type === "raster") {
+      parsedActiveLayer.properties = rasterLayerPropertiesSchema.parse(properties);
     }
 
     return parsedActiveLayer;
@@ -270,17 +294,15 @@ export const useFilteredProjectLayers = (
   excludeLayerIds: string[] = [...SYSTEM_LAYERS_IDS]
 ) => {
   const { layers: projectLayers, mutate, isLoading, isError, isValidating } = useProjectLayers(projectId);
-  const { project } = useProject(projectId);
   const sortedLayers = useMemo(() => {
-    if (!projectLayers || !project) return [];
-    if (!project.layer_order) return projectLayers;
+    if (!projectLayers) return [];
+
     const filteredLayers = projectLayers.filter(
       (layer) => !excludeLayerTypes.includes(layer.type) && !excludeLayerIds.includes(layer.layer_id)
     );
 
-    return filteredLayers.sort(
-      (a, b) => project?.layer_order.indexOf(a.id) - project.layer_order.indexOf(b.id)
-    );
-  }, [projectLayers, project, excludeLayerTypes, excludeLayerIds]);
+    return filteredLayers.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [projectLayers, excludeLayerTypes, excludeLayerIds]);
+
   return { layers: sortedLayers, mutate, isLoading, isError, isValidating };
 };
