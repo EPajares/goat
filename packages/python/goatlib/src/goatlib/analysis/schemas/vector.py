@@ -567,3 +567,42 @@ class MergeParams(BaseModel):
             "Required when merging layers with mixed single/multi geometries."
         ),
     )
+
+
+class OriginDestinationParams(BaseModel):
+    """
+    Parameters for performing origin-destination analysis.
+    """
+
+    geometry_path: str = Field(
+        ...,
+        description="Path to the geometry layer (points or polygons) containing origins and destinations.",
+    )
+    matrix_path: str = Field(
+        ...,
+        description="Path to the origin-destination matrix file (parquet/csv).",
+    )
+    unique_id_column: str = Field(
+        ...,
+        description="The column that contains the unique IDs in geometry layer.",
+    )
+    origin_column: str = Field(
+        ...,
+        description="The column that contains the origins in the origin destination matrix.",
+    )
+    destination_column: str = Field(
+        ...,
+        description="The column that contains the destinations in the origin destination matrix.",
+    )
+    weight_column: str = Field(
+        ...,
+        description="The column that contains the weights in the origin destination matrix.",
+    )
+    output_path_lines: Optional[str] = Field(
+        None,
+        description="Destination file path for the lines output. If not provided, will be auto-generated.",
+    )
+    output_path_points: Optional[str] = Field(
+        None,
+        description="Destination file path for the points output. If not provided, will be auto-generated.",
+    )
