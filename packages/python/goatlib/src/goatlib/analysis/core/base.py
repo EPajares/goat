@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Self, Tuple, final
 
 import duckdb
+from goatlib.analysis.schemas.base import GeometryType
 from goatlib.io.utils import Metadata, download_if_remote, get_metadata
 from goatlib.models.io import DatasetMetadata
 
@@ -78,6 +79,11 @@ class AnalysisTool:
     ) -> Tuple[Metadata, str]:
         """
         Imports any supported vector or tabular dataset into DuckDB directly.
+        Automatically adds bbox columns for spatial indexing if geometry exists but bbox doesn't.
+
+        Args:
+            input_path: Path to the input dataset
+            table_name: Name for the created table/view
 
         Returns:
         - Metadata about the imported dataset.
@@ -86,21 +92,117 @@ class AnalysisTool:
         path = Path(download_if_remote(input_path))
         suffix = path.suffix.lower()
 
-        # --- Get unified metadata for both parquet and other spatial formats
+        # First create the basic view
         if suffix == ".parquet":
             logger.info("Registering parquet dataset as table: %s", path)
             self.con.execute(
-                f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM read_parquet('{path}')"
+                f"CREATE OR REPLACE VIEW {table_name}_base AS SELECT * FROM read_parquet('{path}')"
             )
+            base_view = f"{table_name}_base"
         else:
             logger.info("Reading dataset into DuckDB via ST_Read: %s", path)
             self.con.execute(
-                f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM ST_Read('{path}')"
+                f"CREATE OR REPLACE VIEW {table_name}_base AS SELECT * FROM ST_Read('{path}')"
+            )
+            base_view = f"{table_name}_base"
+
+        # Get metadata to determine geometry column
+        meta = get_metadata(self.con, str(path))
+        geom_column = meta.geometry_column
+
+        # Handle bbox column creation if geometry column exists
+        if geom_column:
+            # Check if bbox column already exists
+            bbox_check = self.con.execute(f"""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = '{base_view}' AND column_name = 'bbox'
+            """).fetchall()
+
+            if bbox_check:
+                logger.info("Bbox columns already exist in %s", path)
+                # Just create final view referencing base
+                self.con.execute(
+                    f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM {base_view}"
+                )
+            else:
+                logger.info("Adding bbox columns to %s", path)
+                # Create view with bbox columns
+                self.con.execute(f"""
+                    CREATE OR REPLACE VIEW {table_name} AS
+                    SELECT *,
+                        {{
+                            'minx': ST_XMin({geom_column}),
+                            'maxx': ST_XMax({geom_column}),
+                            'miny': ST_YMin({geom_column}),
+                            'maxy': ST_YMax({geom_column})
+                        }} AS bbox
+                    FROM {base_view}
+                """)
+        else:
+            # No geometry column, just create final view
+            self.con.execute(
+                f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM {base_view}"
             )
 
-        meta = get_metadata(self.con, str(path))
-
         return meta, table_name
+
+    def validate_geometry_types(
+        self: Self,
+        view_name: str,
+        geom_column: str,
+        accepted_types: List[GeometryType],
+        layer_name: str = "layer",
+    ) -> None:
+        """
+        Validates that all geometries in the view match one of the accepted types.
+
+        Args:
+            view_name: Name of the DuckDB view/table to validate
+            geom_column: Name of the geometry column
+            accepted_types: List of accepted GeometryType values
+            layer_name: Descriptive name for the layer (for error messages)
+
+        Raises:
+            ValueError: If geometries don't match accepted types
+        """
+        if not accepted_types:
+            return  # No validation needed if no types specified
+
+        # Get unique geometry types from the dataset
+        actual_types = self.con.execute(f"""
+            SELECT DISTINCT ST_GeometryType({geom_column}) as geom_type
+            FROM {view_name}
+            WHERE {geom_column} IS NOT NULL
+            LIMIT 1
+        """).fetchall()
+
+        if not actual_types:
+            logger.warning(f"No geometries found in {layer_name}")
+            return
+
+        # Convert accepted types to uppercase strings for comparison
+        accepted_type_names = [t.value.upper() for t in accepted_types]
+
+        # Check each actual type
+        invalid_types = []
+        for (geom_type,) in actual_types:
+            # ST_GeometryType returns format like "POLYGON", "MULTIPOLYGON", etc.
+            geom_type_upper = geom_type.upper()
+            if geom_type_upper not in accepted_type_names:
+                invalid_types.append(geom_type)
+
+        if invalid_types:
+            raise ValueError(
+                f"Invalid geometry types found in {layer_name}. "
+                f"Found: {', '.join(invalid_types)}. "
+                f"Accepted: {', '.join(accepted_type_names)}"
+            )
+
+        logger.info(
+            f"Geometry type validation passed for {layer_name}: "
+            f"{', '.join(t[0] for t in actual_types)}"
+        )
 
     def _run_implementation(
         self: Self, *args: Any, **kwargs: Any
