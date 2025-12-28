@@ -1,11 +1,12 @@
 import json
 import logging
 import tempfile
+import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
 
-import requests
 from duckdb import DuckDBPyConnection
 from pydantic import BaseModel, Field
 from pyproj import CRS
@@ -42,16 +43,20 @@ def download_if_remote(src_path: str, timeout: int | None = None) -> str:
     effective_timeout = timeout if timeout is not None else 120
     logger.info("Downloading remote file: %s", src_path)
 
-    response = requests.get(src_path, stream=True, timeout=effective_timeout)
-    response.raise_for_status()
+    try:
+        req = urllib.request.Request(src_path, headers={"User-Agent": "goatlib/1.0"})
+        with urllib.request.urlopen(req, timeout=effective_timeout) as response:
+            tmp_dir = Path(tempfile.mkdtemp(prefix="goatlib_http_"))
+            filename = Path(urlparse(src_path).path).name or "downloaded_file"
+            tmp_file = tmp_dir / filename
 
-    tmp_dir = Path(tempfile.mkdtemp(prefix="goatlib_http_"))
-    filename = Path(urlparse(src_path).path).name or "downloaded_file"
-    tmp_file = tmp_dir / filename
-
-    with open(tmp_file, "wb") as f:
-        for chunk in response.iter_content(8192):
-            f.write(chunk)
+            with open(tmp_file, "wb") as f:
+                while chunk := response.read(8192):
+                    f.write(chunk)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP error {e.code}: {e.reason}") from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"URL error: {e.reason}") from e
 
     logger.info("Downloaded %s → %s", src_path, tmp_file)
     return str(tmp_file)
