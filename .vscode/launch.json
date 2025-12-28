@@ -3,14 +3,10 @@
   "configurations": [
     {
       "name": "Motia Debug",
-      "type": "node",
+      "type": "node-terminal",
       "request": "launch",
-      "runtimeExecutable": "/usr/local/nvm/versions/node/v22.21.1/bin/node",
-      "args": ["node_modules/motia/dist/cli.mjs", "dev", "--port", "3001"],
-      "cwd": "${workspaceFolder}/apps/motia",
+      "command": "pnpm run motia",
       "envFile": "${workspaceFolder}/apps/motia/.env",
-      "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"],
       "presentation": {
         "hidden": false,
         "group": "backend",

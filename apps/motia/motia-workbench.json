@@ -1,0 +1,27 @@
+[
+  {
+    "id": "analysis-flow",
+    "config": {
+      "src/analysis/get-job-api.step.ts": {
+        "x": 17,
+        "y": 0
+      },
+      "src/analysis/analysis-api.step.ts": {
+        "x": 0,
+        "y": 204
+      },
+      "src/analysis/process_analysis_step.py": {
+        "x": 350,
+        "y": 238
+      },
+      "src/analysis/log_analysis_result_step.py": {
+        "x": 700,
+        "y": 248
+      },
+      "src/analysis/list_tools_api_step.py": {
+        "x": 0,
+        "y": 428
+      }
+    }
+  }
+]
