@@ -1154,6 +1154,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pygeofilter" },
+    { name = "pyproj" },
 ]
 
 [package.metadata]
@@ -1162,6 +1163,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pygeofilter", specifier = ">=0.2.4" },
+    { name = "pyproj", specifier = ">=3.6.0" },
 ]
 
 [[package]]
