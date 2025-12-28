@@ -70,7 +70,8 @@ apps/core/data/*
 
 # Rust packages (experimental)
 packages/rust/fast-routing/target/
-
+packages/python/goatlib/tests/result/*
+!packages/python/goatlib/tests/result/.gitkeep
 # Test
 .coverage
 

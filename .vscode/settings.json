@@ -68,4 +68,5 @@
   "mypy-type-checker.importStrategy": "fromEnvironment",
   "mypy-type-checker.reportingScope": "workspace",
   "mypy-type-checker.preferDaemon": false,
+  "python-envs.pythonProjects": [],
 }
