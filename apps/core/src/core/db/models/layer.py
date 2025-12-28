@@ -5,7 +5,7 @@ from uuid import UUID
 import pycountry
 from geoalchemy2 import Geometry, WKBElement
 from geoalchemy2.shape import to_shape
-from pydantic import BaseModel, EmailStr, HttpUrl, computed_field, field_validator
+from pydantic import EmailStr, HttpUrl, computed_field, field_validator
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as UUID_PG
@@ -382,59 +382,6 @@ layer_base_example = {
 }
 
 
-def internal_layer_table_name(values: SQLModel | BaseModel) -> str:
-    """Get the table name for the internal layer in DuckLake.
-
-    With DuckLake, each layer has its own table in a per-user schema:
-    - Schema: lake.user_{user_id}
-    - Table: t_{layer_id}
-
-    This ensures isolation between users and simple 1:1 mapping between
-    layers and tables.
-    """
-    # Ensure required attributes exist
-    if not hasattr(values, "user_id") or not hasattr(values, "id"):
-        raise ValueError("A valid layer with user_id and id must be provided.")
-
-    if values.id is None:
-        raise ValueError("Layer id must be set to get table name.")
-
-    # Build DuckLake table reference
-    user_id_clean = str(values.user_id).replace("-", "")
-    layer_id_clean = str(values.id).replace("-", "")
-
-    return f"lake.user_{user_id_clean}.t_{layer_id_clean}"
-
-
-def legacy_postgres_table_name(values: SQLModel | BaseModel) -> str:
-    """Get the legacy PostgreSQL table name for the internal layer.
-
-    DEPRECATED: This is kept for backward compatibility during migration.
-    New code should use internal_layer_table_name() which returns DuckLake paths.
-    """
-    # Ensure the layer type is correct by validating available attributes
-    if not hasattr(values, "type") or not hasattr(values, "user_id"):
-        raise ValueError("A valid layer must be provided.")
-
-    # Get table name
-    if values.type == LayerType.feature.value:
-        # If of type enum return value
-        if isinstance(values.feature_layer_geometry_type, Enum):
-            feature_layer_geometry_type = values.feature_layer_geometry_type.value
-        else:
-            if not values.feature_layer_geometry_type:
-                raise ValueError(
-                    "Feature layer geometry type must be set for feature layers."
-                )
-            feature_layer_geometry_type = values.feature_layer_geometry_type
-    elif values.type == LayerType.table.value or values.type == LayerType.raster.value:
-        feature_layer_geometry_type = "no_geometry"
-    else:
-        raise ValueError(f"The passed layer type {values.type} is not supported.")
-
-    return f"{settings.USER_DATA_SCHEMA}.{feature_layer_geometry_type}_{str(values.user_id).replace('-', '')}"
-
-
 class Layer(LayerBase, GeospatialAttributes, DateTimeBase, table=True):
     """Layer model."""
 
@@ -576,10 +523,6 @@ class Layer(LayerBase, GeospatialAttributes, DateTimeBase, table=True):
             return str(value)
         assert HttpUrl(value)
         return value
-
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
 
     @computed_field
     def layer_id(self) -> UUID | None:

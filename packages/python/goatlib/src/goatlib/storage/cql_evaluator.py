@@ -127,6 +127,14 @@ class DuckDBCQLEvaluator(Evaluator):
     def attribute(self, node):
         """Handle attribute (column) reference."""
         name = node.name
+
+        # Normalize common geometry column aliases to the actual geometry column
+        # This handles cases where the CQL filter uses "geom" but the actual column is "geometry"
+        geom_aliases = ["geom", "geometry", "the_geom", "wkb_geometry"]
+        if name.lower() in geom_aliases:
+            # Use the actual geometry column name
+            return self._quote_identifier(self.geometry_column)
+
         # Validate column name
         if name.lower() not in self.field_names:
             raise ValueError(f"Unknown field: {name}. Valid fields: {self.field_names}")
@@ -193,16 +201,33 @@ class DuckDBCQLEvaluator(Evaluator):
 
     @handle(values.Geometry)
     def geometry(self, node):
-        """Handle geometry literals."""
-        # Get WKT representation
-        wkt = node.wkt if hasattr(node, "wkt") else str(node)
-        return f"ST_GeomFromText({self._add_param(wkt)})"
+        """Handle geometry literals.
+
+        pygeofilter's Geometry object has a .geometry attribute containing
+        a GeoJSON dict. We use ST_GeomFromGeoJSON for proper parsing.
+        """
+        import json
+
+        # node.geometry is a GeoJSON dict
+        if hasattr(node, "geometry") and isinstance(node.geometry, dict):
+            geojson_str = json.dumps(node.geometry)
+            return f"ST_GeomFromGeoJSON({self._add_param(geojson_str)})"
+
+        # Fallback: try WKT if available
+        if hasattr(node, "wkt"):
+            return f"ST_GeomFromText({self._add_param(node.wkt)})"
+
+        # Last resort: stringify (probably won't work)
+        return f"ST_GeomFromText({self._add_param(str(node))})"
 
     @handle(values.Envelope)
     def envelope(self, node):
         """Handle envelope/bbox values."""
         # Create WKT from envelope
-        wkt = f"POLYGON(({node.x1} {node.y1}, {node.x1} {node.y2}, {node.x2} {node.y2}, {node.x2} {node.y1}, {node.x1} {node.y1}))"
+        wkt = (
+            f"POLYGON(({node.x1} {node.y1}, {node.x1} {node.y2}, "
+            f"{node.x2} {node.y2}, {node.x2} {node.y1}, {node.x1} {node.y1}))"
+        )
         return f"ST_GeomFromText({self._add_param(wkt)})"
 
     # Spatial operators - DuckDB Spatial compatible
@@ -241,7 +266,11 @@ class DuckDBCQLEvaluator(Evaluator):
     @handle(ast.BBox)
     def bbox(self, node, lhs):
         """Handle BBOX predicate."""
-        wkt = f"POLYGON(({node.minx} {node.miny}, {node.minx} {node.maxy}, {node.maxx} {node.maxy}, {node.maxx} {node.miny}, {node.minx} {node.miny}))"
+        wkt = (
+            f"POLYGON(({node.minx} {node.miny}, {node.minx} {node.maxy}, "
+            f"{node.maxx} {node.maxy}, {node.maxx} {node.miny}, "
+            f"{node.minx} {node.miny}))"
+        )
         return f"ST_Intersects({lhs}, ST_GeomFromText({self._add_param(wkt)}))"
 
     # Temporal operators

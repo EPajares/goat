@@ -85,7 +85,7 @@ class DuckLakeManager(BaseDuckLakeManager):
         # Core app uses different field names, so create a wrapper
         # that maps to what BaseDuckLakeManager expects
         class DuckLakeSettings:
-            def __init__(self, base_settings: "Settings"):
+            def __init__(self: "DuckLakeSettings", base_settings: "Settings") -> None:
                 # BaseDuckLakeManager.init() expects these fields:
                 self.POSTGRES_DATABASE_URI = base_settings.POSTGRES_DATABASE_URI
                 self.DUCKLAKE_CATALOG_SCHEMA = base_settings.DUCKLAKE_CATALOG_SCHEMA
@@ -127,7 +127,7 @@ class DuckLakeManager(BaseDuckLakeManager):
         interrupted = threading.Event()
         timer = None
 
-        def interrupt_query():
+        def interrupt_query() -> None:
             """Called by timer to interrupt the query."""
             logger.warning(
                 "Query timeout reached (%ds), interrupting...",
@@ -202,7 +202,7 @@ class DuckLakeManager(BaseDuckLakeManager):
         interrupted = threading.Event()
         timer = None
 
-        def interrupt_query():
+        def interrupt_query() -> None:
             """Called by timer to interrupt the query."""
             logger.warning(
                 "Operation timeout reached (%ds), interrupting...",
@@ -330,8 +330,11 @@ class DuckLakeManager(BaseDuckLakeManager):
             con.execute(f"DROP SCHEMA IF EXISTS lake.{schema_name} CASCADE")
             logger.info("Deleted DuckLake user schema: lake.%s", schema_name)
 
-    def user_schema_exists(self: "DuckLakeManager", user_id: UUID) -> bool:
-        """Check if user schema exists in DuckLake."""
+        # Manually delete all parquet files for this schema
+        schema_data_path = os.path.join(self._storage_path, schema_name)
+        if os.path.isdir(schema_data_path):
+            shutil.rmtree(schema_data_path)
+            logger.info("Deleted schema parquet files: %s", schema_data_path)
         schema_name = self.get_user_schema_name(user_id)
         with self.connection() as con:
             result = con.execute(f"""
@@ -529,8 +532,12 @@ class DuckLakeManager(BaseDuckLakeManager):
     ) -> bool:
         """Delete a layer table from DuckLake.
 
-        Called when a layer is deleted. Removes both the DuckLake table
-        (metadata) and the underlying parquet files from disk.
+        Called when a layer is deleted. Drops the table from DuckLake catalog
+        and manually removes the parquet files from disk.
+
+        Note: This uses manual file deletion instead of DuckLake's cleanup functions
+        because ducklake_expire_snapshots affects all tables in the catalog.
+        A separate periodic maintenance job should handle general cleanup.
 
         Returns:
             True if table was deleted, False if it didn't exist
@@ -541,20 +548,22 @@ class DuckLakeManager(BaseDuckLakeManager):
 
         with self.connection() as con:
             # Check if exists first
-            if not self.layer_table_exists(user_id, layer_id):
+            if not self._layer_table_exists(con, user_id, layer_id):
                 logger.warning("Layer table does not exist: %s", table_name)
                 return False
 
+            # Drop table from DuckLake catalog
             con.execute(f"DROP TABLE IF EXISTS {table_name}")
             logger.info("Deleted DuckLake layer table: %s", table_name)
 
-        # Delete parquet files from disk
+        # Manually delete parquet files from disk
+        # This is safer than expire_snapshots which affects all tables
         layer_data_path = os.path.join(self._storage_path, schema_name, table_only)
         if os.path.isdir(layer_data_path):
             shutil.rmtree(layer_data_path)
             logger.info("Deleted layer parquet files: %s", layer_data_path)
 
-            # Also try to remove parent user schema folder if empty
+            # Try to remove parent user schema folder if empty
             user_schema_path = os.path.join(self._storage_path, schema_name)
             try:
                 os.rmdir(user_schema_path)  # Only removes if empty
@@ -640,7 +649,7 @@ class DuckLakeManager(BaseDuckLakeManager):
             # Step 2: Drop old table and rename new one
             try:
                 # Check if old table exists
-                old_exists = self.layer_table_exists(user_id, layer_id)
+                old_exists = self._layer_table_exists(con, user_id, layer_id)
                 if old_exists:
                     con.execute(f"DROP TABLE {table_name}")
                     logger.info("Dropped old table: %s", table_name)
@@ -657,19 +666,19 @@ class DuckLakeManager(BaseDuckLakeManager):
                     pass
                 raise
 
-            # Step 3: Rename physical folders on disk
-            # DuckLake's ALTER RENAME only updates catalog, not physical files
+            # Step 3: Manually clean up old table's files
+            # Delete old data folder if it exists (from dropped table)
             old_data_path = os.path.join(self._storage_path, schema_name, table_only)
             new_data_path = os.path.join(
                 self._storage_path, schema_name, temp_table_only
             )
 
-            # Remove old data folder if it exists (from dropped table)
             if os.path.isdir(old_data_path):
                 shutil.rmtree(old_data_path)
-                logger.info("Removed old data folder: %s", old_data_path)
+                logger.info("Deleted old table files: %s", old_data_path)
 
-            # Rename new data folder to final name
+            # Step 4: Rename physical folder on disk for new table
+            # DuckLake's ALTER RENAME only updates catalog, not physical files
             if os.path.isdir(new_data_path):
                 os.rename(new_data_path, old_data_path)
                 logger.info(
@@ -717,21 +726,39 @@ class DuckLakeManager(BaseDuckLakeManager):
             target_crs,
         )
 
+    def _layer_table_exists(
+        self: "DuckLakeManager",
+        con: "duckdb.DuckDBPyConnection",
+        user_id: UUID,
+        layer_id: UUID,
+    ) -> bool:
+        """Internal check if a layer table exists using existing connection.
+
+        Args:
+            con: Existing DuckDB connection
+            user_id: User UUID
+            layer_id: Layer UUID
+
+        Returns:
+            True if table exists, False otherwise
+        """
+        schema_name = self.get_user_schema_name(user_id)
+        table_only = f"t_{str(layer_id).replace('-', '')}"
+
+        result = con.execute(f"""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_catalog = 'lake'
+            AND table_schema = '{schema_name}'
+            AND table_name = '{table_only}'
+        """).fetchone()
+        return result[0] > 0 if result else False
+
     def layer_table_exists(
         self: "DuckLakeManager", user_id: UUID, layer_id: UUID
     ) -> bool:
         """Check if a layer table exists in DuckLake."""
-        schema_name = self.get_user_schema_name(user_id)
-        table_only = f"t_{str(layer_id).replace('-', '')}"
-
         with self.connection() as con:
-            result = con.execute(f"""
-                SELECT COUNT(*) FROM information_schema.tables
-                WHERE table_catalog = 'lake'
-                AND table_schema = '{schema_name}'
-                AND table_name = '{table_only}'
-            """).fetchone()
-            return result[0] > 0 if result else False
+            return self._layer_table_exists(con, user_id, layer_id)
 
     def get_layer_info(
         self: "DuckLakeManager", user_id: UUID, layer_id: UUID

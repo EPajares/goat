@@ -64,7 +64,7 @@ async def get_tile(
         raise HTTPException(status_code=400, detail="Collection has no geometry column")
 
     columns = metadata.columns
-    geometry_column = metadata.geometry_column
+    geometry_column = metadata.geometry_column or "geometry"
 
     # Run synchronous DuckDB tile generation in thread pool to avoid blocking event loop
     tile_data = await asyncio.to_thread(

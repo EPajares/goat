@@ -11,7 +11,8 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
+from goatlib.storage import cql2_to_duckdb_sql, parse_cql2_filter
+
 from geoapi.ducklake import ducklake_manager
 from geoapi.ducklake_pool import execute_query_with_retry
 from geoapi.models import (

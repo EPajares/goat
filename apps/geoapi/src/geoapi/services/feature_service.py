@@ -7,7 +7,8 @@ import json
 import logging
 from typing import Any, Optional
 
-from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
+from goatlib.storage import build_filters, build_order_clause
+
 from geoapi.dependencies import LayerInfo
 from geoapi.ducklake import ducklake_manager
 from geoapi.ducklake_pool import execute_with_retry
@@ -101,47 +102,20 @@ class FeatureService:
             else:
                 select_clause = "*"
 
-        # Build WHERE clause
-        where_clauses: list[str] = []
-        params: list[Any] = []
-
-        # ID filter
-        if ids:
-            placeholders = ", ".join("?" for _ in ids)
-            where_clauses.append(f'"id" IN ({placeholders})')
-            params.extend(ids)
-
-        # Bbox filter (only for layers with geometry)
-        if bbox and has_geometry and geom_col:
-            minx, miny, maxx, maxy = bbox
-            bbox_wkt = f"POLYGON(({minx} {miny}, {minx} {maxy}, {maxx} {maxy}, {maxx} {miny}, {minx} {miny}))"
-            where_clauses.append(f'ST_Intersects("{geom_col}", ST_GeomFromText(?))')
-            params.append(bbox_wkt)
-
-        # CQL filter
-        if cql_filter and column_names:
-            try:
-                ast = parse_cql2_filter(
-                    cql_filter["filter"],
-                    cql_filter.get("lang", "cql2-json"),
-                )
-                cql_sql, cql_params = cql2_to_duckdb_sql(ast, column_names, geom_col)
-                where_clauses.append(f"({cql_sql})")
-                params.extend(cql_params)
-            except Exception as e:
-                logger.warning(f"CQL2 parse error: {e}")
-
-        where_sql = " AND ".join(where_clauses) if where_clauses else "TRUE"
+        # Build WHERE clause using shared query builder
+        filters = build_filters(
+            bbox=bbox,
+            cql_filter=cql_filter,
+            ids=ids,
+            geometry_column=geom_col or "geometry",
+            column_names=column_names,
+            has_geometry=has_geometry,
+        )
+        where_sql = filters.to_full_where()
+        params = filters.params
 
         # Build ORDER BY clause
-        order_clause = ""
-        if sortby:
-            if sortby.startswith("-"):
-                order_clause = f'ORDER BY "{sortby[1:]}" DESC'
-            elif sortby.startswith("+"):
-                order_clause = f'ORDER BY "{sortby[1:]}" ASC'
-            else:
-                order_clause = f'ORDER BY "{sortby}" ASC'
+        order_clause = build_order_clause(sortby)
 
         # Get total count
         count_query = f"SELECT COUNT(*) FROM {table} WHERE {where_sql}"

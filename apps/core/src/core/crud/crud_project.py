@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_
 
-from core.core.config import settings
 from core.core.content import (
     build_shared_with_object,
     create_query_shared_content,
@@ -73,13 +72,13 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
             ).model_dump(),
         )
         # If not in testing environment add default layers to project
-        if not settings.TESTING:
-            # Add network layer to project
-            await crud_layer_project.create(
-                async_session=async_session,
-                project_id=project.id,
-                layer_ids=[settings.BASE_STREET_NETWORK],
-            )
+        # if not settings.TESTING:
+        #     # Add network layer to project
+        #     await crud_layer_project.create(
+        #         async_session=async_session,
+        #         project_id=project.id,
+        #         layer_ids=[settings.BASE_STREET_NETWORK],
+        #     )
         # Doing unneeded type conversion to make sure the relations of project are not loaded
         return IProjectRead(**project.model_dump())
 

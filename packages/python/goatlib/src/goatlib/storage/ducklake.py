@@ -388,6 +388,9 @@ class DuckLakePool:
     This is useful for high-concurrency read scenarios like tile serving,
     where a single-connection-with-lock model would be a bottleneck.
 
+    Connection health is validated before returning from the pool, and
+    stale connections are automatically recreated.
+
     Example:
         pool = DuckLakePool(pool_size=4)
         pool.init(settings)
@@ -535,34 +538,119 @@ class DuckLakePool:
 
         return con
 
+    def _validate_connection(self, con: duckdb.DuckDBPyConnection) -> bool:
+        """Check if a connection is still valid.
+
+        Returns True if connection is healthy, False if it should be recreated.
+        """
+        try:
+            # Simple query to validate both DuckDB and postgres connection
+            con.execute("SELECT 1").fetchone()
+            return True
+        except Exception as e:
+            logger.debug("Connection validation failed: %s", e)
+            return False
+
+    def _get_healthy_connection(self) -> duckdb.DuckDBPyConnection:
+        """Get a healthy connection from the pool, recreating if stale.
+
+        Returns a validated connection, creating a new one if the pooled
+        connection is no longer valid.
+        """
+        con = self._pool.get()  # Blocks until available
+
+        # Validate connection health
+        if not self._validate_connection(con):
+            logger.warning("Stale connection detected, recreating")
+            try:
+                con.close()
+            except Exception:
+                pass
+            con = self._create_connection_with_retry()
+
+        return con
+
     @contextmanager
     def connection(self) -> Generator[duckdb.DuckDBPyConnection, None, None]:
         """Get a connection from the pool.
 
-        Blocks if no connections are available.
+        Validates the connection before returning it.
+        On connection errors during use, recreates the connection.
         Returns the connection to the pool when done.
-        On connection errors, recreates the connection.
         """
         if not self._initialized:
             raise RuntimeError("DuckLakePool not initialized")
 
-        con = self._pool.get()  # Blocks until available
+        con = self._get_healthy_connection()
+        connection_failed = False
         try:
             yield con
         except Exception as e:
-            # On connection errors, recreate the connection
+            # On connection errors, mark for recreation
             if is_connection_error(e):
-                logger.warning(
-                    "Connection error detected, recreating connection: %s", e
-                )
+                logger.warning("Connection error during query, will recreate: %s", e)
+                connection_failed = True
                 try:
                     con.close()
                 except Exception:
                     pass
-                con = self._create_connection()
             raise
         finally:
+            # Only recreate if connection failed during use
+            if connection_failed:
+                try:
+                    con = self._create_connection_with_retry()
+                except Exception as create_err:
+                    logger.error("Failed to recreate connection: %s", create_err)
+                    # Put back a placeholder - will be recreated on next get
+                    con = self._create_connection_with_retry(max_retries=5)
             self._pool.put(con)
+
+    def execute_with_retry(
+        self,
+        query: str,
+        params: list | tuple | None = None,
+        max_retries: int = 2,
+        fetch_all: bool = True,
+    ) -> Any:
+        """Execute a query with automatic retry on connection errors.
+
+        This method handles the full retry logic internally, getting fresh
+        connections from the pool on each attempt.
+
+        Args:
+            query: SQL query to execute
+            params: Query parameters
+            max_retries: Number of retry attempts
+            fetch_all: If True, fetchall(); if False, fetchone()
+
+        Returns:
+            Query result (fetchall or fetchone)
+        """
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                with self.connection() as con:
+                    if params:
+                        cursor = con.execute(query, params)
+                    else:
+                        cursor = con.execute(query)
+                    return cursor.fetchall() if fetch_all else cursor.fetchone()
+            except Exception as e:
+                last_error = e
+                if is_connection_error(e) and attempt < max_retries - 1:
+                    logger.warning(
+                        "Query failed (attempt %d/%d), will retry: %s",
+                        attempt + 1,
+                        max_retries,
+                        e,
+                    )
+                    continue
+                raise
+
+        # Should not reach here
+        if last_error:
+            raise last_error
 
     def reconnect(self) -> None:
         """Reconnect all connections in the pool.
