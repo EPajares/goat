@@ -131,6 +131,39 @@ def test_missing_path_fails(tmp_path: Path) -> None:
 
 
 # =====================================================================
+#  CSV WITH WKT GEOMETRY TESTS
+# =====================================================================
+
+
+def test_csv_wkt_geometry_wgs84_valid(
+    tmp_path: Path, tabular_valid_csv_wkt_wgs84: Path
+) -> None:
+    """CSV with valid WKT geometry in WGS84 should convert successfully."""
+    results = convert_any(str(tabular_valid_csv_wkt_wgs84), tmp_path)
+    assert results, "convert_any() returned empty list"
+    out, meta = results[0]
+    assert out.exists() and out.suffix == ".parquet"
+    assert isinstance(meta, DatasetMetadata)
+    assert meta.source_type == "vector"
+    assert meta.crs == "EPSG:4326"
+
+
+def test_csv_wkt_geometry_epsg3857_fails(
+    tmp_path: Path, tabular_invalid_csv_wkt_epsg3857: Path
+) -> None:
+    """CSV with WKT geometry in EPSG:3857 coordinates should fail validation.
+
+    CSV files with WKT geometry are assumed to be WGS84 (EPSG:4326).
+    Coordinates outside WGS84 bounds indicate the data is in a projected
+    coordinate system and should be rejected.
+    """
+    with pytest.raises(ValueError) as exc_info:
+        convert_any(str(tabular_invalid_csv_wkt_epsg3857), tmp_path)
+    assert "outside WGS84 bounds" in str(exc_info.value)
+    assert "EPSG:4326" in str(exc_info.value)
+
+
+# =====================================================================
 #  MIXED CONTENT INPUT TESTS
 # =====================================================================
 

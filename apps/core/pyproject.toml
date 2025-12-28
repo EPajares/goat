@@ -48,7 +48,7 @@ dependencies = [
     "boto3==1.38.23",
     "playwright>=1.49.0",
     "pypdf>=5.1.0",
-    "duckdb>=1.2.0",
+    "duckdb>=1.4.3",
     "goatlib",
 ]
 

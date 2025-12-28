@@ -61,6 +61,7 @@ per-file-ignores = { "*/__init__.py" = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = ["--import-mode=importlib", "--log-cli-level=INFO"]
+pythonpath = ["apps/core", "apps/geoapi", "apps/routing", "apps/accounts"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*", "*Tests"]
 python_functions = ["test_*"]

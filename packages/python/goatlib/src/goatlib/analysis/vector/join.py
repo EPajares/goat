@@ -274,7 +274,6 @@ class JoinTool(AnalysisTool):
         WHERE rn = 1 OR rn IS NULL  -- Keep first match or unmatched targets (for LEFT JOIN)
         """)
 
-        # Export results
         con.execute(
             f"COPY ranked_joins TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )

@@ -32,16 +32,23 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-from typing import TYPE_CHECKING, Any
+import threading
+from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any, Callable, Generator, TypeVar
 from uuid import UUID
 
 import duckdb
-from goatlib.storage import BaseDuckLakeManager
+from goatlib.storage import BaseDuckLakeManager, is_connection_error
 
 if TYPE_CHECKING:
     from core.core.config import Settings
 
 logger = logging.getLogger(__name__)
+
+# Default timeout for DuckDB operations (30 seconds)
+DEFAULT_QUERY_TIMEOUT = 30
+
+T = TypeVar("T")
 
 
 class DuckLakeManager(BaseDuckLakeManager):
@@ -59,6 +66,10 @@ class DuckLakeManager(BaseDuckLakeManager):
         # In request handlers
         with ducklake_manager.connection() as con:
             con.execute("SELECT * FROM lake.user_xxx.t_yyy LIMIT 10")
+
+        # With timeout (for long operations):
+        with ducklake_manager.connection_with_timeout(30) as con:
+            con.execute("SELECT * FROM large_table")
 
         # At shutdown
         ducklake_manager.close()
@@ -85,6 +96,197 @@ class DuckLakeManager(BaseDuckLakeManager):
 
         ducklake_settings = DuckLakeSettings(settings)
         super().init(ducklake_settings)
+
+    # =========================================================================
+    # Timeout support for long-running operations
+    # =========================================================================
+
+    @contextmanager
+    def connection_with_timeout(
+        self: "DuckLakeManager",
+        timeout_seconds: int = DEFAULT_QUERY_TIMEOUT,
+    ) -> Generator[duckdb.DuckDBPyConnection, None, None]:
+        """Get DuckDB connection with automatic timeout.
+
+        Uses DuckDB's interrupt() to cancel queries that exceed timeout.
+        This is useful for long-running operations like exports and imports.
+
+        Args:
+            timeout_seconds: Timeout in seconds (default 30)
+
+        Yields:
+            DuckDB connection
+
+        Raises:
+            TimeoutError: If operation exceeds timeout
+
+        Example:
+            with ducklake_manager.connection_with_timeout(60) as con:
+                con.execute("SELECT * FROM large_table")
+        """
+        interrupted = threading.Event()
+        timer = None
+
+        def interrupt_query():
+            """Called by timer to interrupt the query."""
+            logger.warning(
+                "Query timeout reached (%ds), interrupting...",
+                timeout_seconds,
+            )
+            interrupted.set()
+            if self._connection:
+                try:
+                    self._connection.interrupt()
+                    logger.info("DuckDB interrupt() called successfully")
+                except Exception as e:
+                    logger.error("Failed to interrupt query: %s", e)
+
+        try:
+            # Schedule interrupt
+            timer = threading.Timer(timeout_seconds, interrupt_query)
+            timer.start()
+
+            # Yield connection
+            with self.connection() as con:
+                yield con
+
+            # Cancel timer if we finished in time
+            timer.cancel()
+
+        except Exception as e:
+            # Cancel timer if still running
+            if timer:
+                timer.cancel()
+
+            # Check if this was due to our interrupt
+            if interrupted.is_set() or "interrupt" in str(e).lower():
+                raise TimeoutError(
+                    f"Operation timed out after {timeout_seconds} seconds. "
+                    "The dataset may be too large."
+                ) from e
+            raise
+
+    def run_with_timeout(
+        self: "DuckLakeManager",
+        func: Callable[..., T],
+        timeout_seconds: int = DEFAULT_QUERY_TIMEOUT,
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """Run a function with timeout support.
+
+        Wraps any function that uses the DuckDB connection with a timeout.
+        If the function exceeds the timeout, DuckDB's interrupt() is called.
+
+        Args:
+            func: Function to run (should use self.connection() internally)
+            timeout_seconds: Timeout in seconds (default 30)
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+
+        Returns:
+            Result from func
+
+        Raises:
+            TimeoutError: If operation exceeds timeout
+
+        Example:
+            result = ducklake_manager.run_with_timeout(
+                self.create_layer_from_parquet,
+                timeout_seconds=60,
+                user_id=user_id,
+                layer_id=layer_id,
+                parquet_path=path,
+            )
+        """
+        interrupted = threading.Event()
+        timer = None
+
+        def interrupt_query():
+            """Called by timer to interrupt the query."""
+            logger.warning(
+                "Operation timeout reached (%ds), interrupting...",
+                timeout_seconds,
+            )
+            interrupted.set()
+            if self._connection:
+                try:
+                    self._connection.interrupt()
+                    logger.info("DuckDB interrupt() called successfully")
+                except Exception as e:
+                    logger.error("Failed to interrupt query: %s", e)
+
+        try:
+            # Schedule interrupt
+            timer = threading.Timer(timeout_seconds, interrupt_query)
+            timer.start()
+
+            # Run function
+            result = func(*args, **kwargs)
+
+            # Cancel timer if we finished in time
+            timer.cancel()
+
+            return result
+
+        except Exception as e:
+            # Cancel timer if still running
+            if timer:
+                timer.cancel()
+
+            # Check if this was due to our interrupt
+            if interrupted.is_set() or "interrupt" in str(e).lower():
+                raise TimeoutError(
+                    f"Operation timed out after {timeout_seconds} seconds. "
+                    "The dataset may be too large."
+                ) from e
+            raise
+
+    def run_with_retry(
+        self: "DuckLakeManager",
+        func: Callable[..., T],
+        max_retries: int = 2,
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        """Run a function with automatic retry on connection errors.
+
+        Retries on SSL EOF, connection lost, and similar transient errors.
+        Reconnects DuckDB before each retry.
+
+        Args:
+            func: Function to run
+            max_retries: Maximum number of retries (default 2)
+            *args: Positional arguments for func
+            **kwargs: Keyword arguments for func
+
+        Returns:
+            Result from func
+        """
+        last_error = None
+        for attempt in range(max_retries + 1):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                if is_connection_error(e) and attempt < max_retries:
+                    logger.warning(
+                        "DuckDB operation failed (attempt %d/%d), reconnecting: %s",
+                        attempt + 1,
+                        max_retries + 1,
+                        e,
+                    )
+                    try:
+                        self.reconnect()
+                    except Exception as reconnect_error:
+                        logger.error("Failed to reconnect: %s", reconnect_error)
+                    last_error = e
+                    continue
+                raise
+        raise last_error
+
+    # =========================================================================
+    # Static helpers
+    # =========================================================================
 
     @staticmethod
     def get_user_schema_name(user_id: UUID) -> str:
@@ -152,7 +354,7 @@ class DuckLakeManager(BaseDuckLakeManager):
         """Create a DuckLake table from a GeoParquet file.
 
         This is the main ingestion method. Takes output from goatlib IOConverter
-        and creates a DuckLake table.
+        and creates a DuckLake table. Includes automatic retry on connection errors.
 
         Args:
             user_id: User UUID (determines schema)
@@ -163,6 +365,23 @@ class DuckLakeManager(BaseDuckLakeManager):
         Returns:
             Dict with table info: table_name, columns, feature_count, extent, geometry_type
         """
+        return self.run_with_retry(
+            self._create_layer_from_parquet_impl,
+            2,  # max_retries
+            user_id,
+            layer_id,
+            parquet_path,
+            target_crs,
+        )
+
+    def _create_layer_from_parquet_impl(
+        self: "DuckLakeManager",
+        user_id: UUID,
+        layer_id: UUID,
+        parquet_path: str,
+        target_crs: str = "EPSG:4326",
+    ) -> dict[str, Any]:
+        """Internal implementation of create_layer_from_parquet."""
         table_name = self.get_layer_table_name(user_id, layer_id)
         schema_name = self.get_user_schema_name(user_id)
 
@@ -186,6 +405,41 @@ class DuckLakeManager(BaseDuckLakeManager):
             info["table_name"] = table_name
 
             return info
+
+    def create_layer_from_parquet_with_timeout(
+        self: "DuckLakeManager",
+        user_id: UUID,
+        layer_id: UUID,
+        parquet_path: str,
+        target_crs: str = "EPSG:4326",
+        timeout_seconds: int = DEFAULT_QUERY_TIMEOUT,
+    ) -> dict[str, Any]:
+        """Create a DuckLake table from a GeoParquet file with timeout.
+
+        Same as create_layer_from_parquet but with timeout support.
+
+        Args:
+            user_id: User UUID (determines schema)
+            layer_id: Layer UUID (determines table name)
+            parquet_path: Path to parquet file (local or S3)
+            target_crs: Target CRS (default EPSG:4326)
+            timeout_seconds: Timeout in seconds (default from DEFAULT_QUERY_TIMEOUT)
+
+        Returns:
+            Dict with table info
+
+        Raises:
+            TimeoutError: If import exceeds timeout
+        """
+        logger.info("Starting layer import with %ds timeout", timeout_seconds)
+        return self.run_with_timeout(
+            self.create_layer_from_parquet,
+            timeout_seconds,
+            user_id,
+            layer_id,
+            parquet_path,
+            target_crs,
+        )
 
     def _get_table_info(
         self: "DuckLakeManager", con: "duckdb.DuckDBPyConnection", table_name: str
@@ -258,11 +512,12 @@ class DuckLakeManager(BaseDuckLakeManager):
                     WHERE {geom_col} IS NOT NULL
                 """).fetchone()
                 if extent_result and extent_result[0] is not None:
+                    xmin, ymin, xmax, ymax = extent_result
                     info["extent"] = {
-                        "xmin": extent_result[0],
-                        "ymin": extent_result[1],
-                        "xmax": extent_result[2],
-                        "ymax": extent_result[3],
+                        "xmin": xmin,
+                        "ymin": ymin,
+                        "xmax": xmax,
+                        "ymax": ymax,
                     }
             except Exception as e:
                 logger.warning("Could not get geometry info: %s", e)
@@ -318,7 +573,7 @@ class DuckLakeManager(BaseDuckLakeManager):
     ) -> dict[str, Any]:
         """Atomically replace a DuckLake table from a new GeoParquet file.
 
-        Uses a safe swap approach:
+        Uses a safe swap approach with automatic retry on connection errors:
         1. Create new table with temp name
         2. If successful: DROP old table, RENAME new table
         3. If failed: DROP temp table, original intact
@@ -332,6 +587,23 @@ class DuckLakeManager(BaseDuckLakeManager):
         Returns:
             Dict with table info: table_name, columns, feature_count, extent, geometry_type
         """
+        return self.run_with_retry(
+            self._replace_layer_from_parquet_impl,
+            2,  # max_retries
+            user_id,
+            layer_id,
+            parquet_path,
+            target_crs,
+        )
+
+    def _replace_layer_from_parquet_impl(
+        self: "DuckLakeManager",
+        user_id: UUID,
+        layer_id: UUID,
+        parquet_path: str,
+        target_crs: str = "EPSG:4326",
+    ) -> dict[str, Any]:
+        """Internal implementation of replace_layer_from_parquet."""
         schema_name = self.get_user_schema_name(user_id)
         table_only = f"t_{str(layer_id).replace('-', '')}"
         table_name = f"lake.{schema_name}.{table_only}"
@@ -409,6 +681,41 @@ class DuckLakeManager(BaseDuckLakeManager):
             info["table_name"] = table_name
 
             return info
+
+    def replace_layer_from_parquet_with_timeout(
+        self: "DuckLakeManager",
+        user_id: UUID,
+        layer_id: UUID,
+        parquet_path: str,
+        target_crs: str = "EPSG:4326",
+        timeout_seconds: int = DEFAULT_QUERY_TIMEOUT,
+    ) -> dict[str, Any]:
+        """Atomically replace a DuckLake table with timeout support.
+
+        Same as replace_layer_from_parquet but with timeout support.
+
+        Args:
+            user_id: User UUID (determines schema)
+            layer_id: Layer UUID (determines table name)
+            parquet_path: Path to new parquet file
+            target_crs: Target CRS (default EPSG:4326)
+            timeout_seconds: Timeout in seconds (default from DEFAULT_QUERY_TIMEOUT)
+
+        Returns:
+            Dict with table info
+
+        Raises:
+            TimeoutError: If replace exceeds timeout
+        """
+        logger.info("Starting layer replace with %ds timeout", timeout_seconds)
+        return self.run_with_timeout(
+            self.replace_layer_from_parquet,
+            timeout_seconds,
+            user_id,
+            layer_id,
+            parquet_path,
+            target_crs,
+        )
 
     def layer_table_exists(
         self: "DuckLakeManager", user_id: UUID, layer_id: UUID
@@ -521,6 +828,48 @@ class DuckLakeManager(BaseDuckLakeManager):
         """
         return self._export_to_format_impl(
             user_id, layer_id, output_path, output_format, target_crs, where, retry=True
+        )
+
+    def export_to_format_with_timeout(
+        self: "DuckLakeManager",
+        user_id: UUID,
+        layer_id: UUID,
+        output_path: str,
+        output_format: str = "GPKG",
+        target_crs: str | None = None,
+        where: str | None = None,
+        timeout_seconds: int = DEFAULT_QUERY_TIMEOUT,
+    ) -> str:
+        """Export a layer with timeout support.
+
+        Uses DuckDB's interrupt() method to cancel queries that exceed timeout.
+
+        Args:
+            user_id: User UUID
+            layer_id: Layer UUID
+            output_path: Output file path
+            output_format: Output format (PARQUET, GPKG, GEOJSON, CSV, etc.)
+            target_crs: Optional target CRS for reprojection
+            where: Optional WHERE clause for filtering
+            timeout_seconds: Timeout in seconds (default from DEFAULT_QUERY_TIMEOUT)
+
+        Returns:
+            Path to the exported file
+
+        Raises:
+            TimeoutError: If export exceeds timeout
+        """
+        logger.info("Starting export with %ds timeout", timeout_seconds)
+        return self.run_with_timeout(
+            self._export_to_format_impl,
+            timeout_seconds,
+            user_id,
+            layer_id,
+            output_path,
+            output_format,
+            target_crs,
+            where,
+            True,  # retry
         )
 
     def _export_to_format_impl(
@@ -720,11 +1069,8 @@ class DuckLakeManager(BaseDuckLakeManager):
                 logger.info("Exported layer to %s: %s", output_format, output_path)
 
         except Exception as e:
-            error_msg = str(e).lower()
             # Retry on connection-related errors (SSL EOF, connection lost)
-            if retry and (
-                "ssl" in error_msg or "eof" in error_msg or "connection" in error_msg
-            ):
+            if retry and is_connection_error(e):
                 logger.warning("Export failed due to connection error, retrying: %s", e)
                 # Force reconnection
                 self.reconnect()

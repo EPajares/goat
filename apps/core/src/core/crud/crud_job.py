@@ -109,11 +109,16 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
         # If error is not None population msg_simple
         if status == JobStatusType.failed:
             if error is None:
-                error = UnknownError("Unknown error occurred.")
+                error = UnknownError(
+                    "Unknown error occurred (no error details provided)."
+                )
             else:
                 # Define msg_simple
                 if error.__class__ not in ERROR_MAPPING:
-                    error = UnknownError("Unknown error occurred.")
+                    # Preserve original error details for debugging
+                    error = UnknownError(
+                        f"Unknown error: {error.__class__.__name__}: {str(error)}"
+                    )
             error_name = error.__class__.__name__
             error_message = str(error)
             job.msg_simple = f"{error_name}: {error_message}"

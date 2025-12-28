@@ -23,6 +23,10 @@ class DatabaseSessionManager:
         self._engine = create_async_engine(
             host,
             isolation_level="AUTOCOMMIT",
+            pool_pre_ping=True,  # Check connection health before using
+            pool_recycle=300,  # Recycle connections every 5 minutes
+            pool_size=5,
+            max_overflow=10,
         )
         self._session_maker = async_sessionmaker(
             bind=self._engine,

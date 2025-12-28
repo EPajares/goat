@@ -1,5 +1,8 @@
 """Tiles router for OGC Tiles API endpoints."""
 
+import asyncio
+import logging
+
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 
 from geoapi.dependencies import (
@@ -19,6 +22,8 @@ from geoapi.models import (
 )
 from geoapi.services.layer_service import layer_service
 from geoapi.services.tile_service import tile_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Tiles"])
 
@@ -51,6 +56,7 @@ async def get_tile(
     """Get a vector tile for the specified collection and tile coordinates."""
     # Get layer metadata for column validation
     metadata = await layer_service.get_layer_metadata(layer_info)
+
     if not metadata:
         raise HTTPException(status_code=404, detail="Collection not found")
 
@@ -60,7 +66,9 @@ async def get_tile(
     columns = metadata.columns
     geometry_column = metadata.geometry_column
 
-    tile_data = tile_service.get_tile(
+    # Run synchronous DuckDB tile generation in thread pool to avoid blocking event loop
+    tile_data = await asyncio.to_thread(
+        tile_service.get_tile,
         layer_info=layer_info,
         z=z,
         x=x,

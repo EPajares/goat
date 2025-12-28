@@ -205,7 +205,7 @@ class Settings(BaseSettings):
     S3_FORCE_PATH_STYLE: bool = False  # needed for MinIO
     S3_BUCKET_PATH: Optional[str] = ""  # will be set depending on ENVIRONMENT
     S3_BUCKET_NAME: Optional[str] = "goat"
-    MAX_UPLOAD_DATASET_FILE_SIZE: int = 1000 * 1024 * 1024  # 1000MB
+    MAX_UPLOAD_DATASET_FILE_SIZE: int = 5 * 1024 * 1024 * 1024  # 5GB
 
     # Print service settings
     PRINT_FRONTEND_URL: Optional[str] = "http://localhost:3000"  # Next.js frontend URL

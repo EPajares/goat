@@ -495,7 +495,10 @@ class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
         mapped_statistics_field = None
 
         # For expression-based operations, validate columns and attribute mapping
-        if operation_type == ColumnStatisticsOperation.expression and operation_value is not None:
+        if (
+            operation_type == ColumnStatisticsOperation.expression
+            and operation_value is not None
+        ):
             converter = QgsExpressionToSqlConverter(operation_value)
             column_names = converter.extract_field_names()
             for column in column_names:
@@ -516,7 +519,6 @@ class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
             # Convert expression to SQL
             statistics_column_query, mapped_group_by_field = converter.translate()
         else:
-
             # Check if mapped statistics field is float, integer or biginteger
             mapped_statistics_field = (
                 await self.check_column_statistics(

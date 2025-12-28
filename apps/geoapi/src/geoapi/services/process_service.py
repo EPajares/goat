@@ -13,6 +13,7 @@ from uuid import UUID
 
 from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
 from geoapi.ducklake import ducklake_manager
+from geoapi.ducklake_pool import execute_query_with_retry
 from geoapi.models import (
     AreaStatisticsInput,
     AreaStatisticsOutput,
@@ -386,12 +387,10 @@ class ProcessService:
         logger.debug("Feature count query: %s with params: %s", query, params)
 
         try:
-            with ducklake_manager.connection() as con:
-                if params:
-                    result = con.execute(query, params).fetchone()
-                else:
-                    result = con.execute(query).fetchone()
-                count = result[0] if result else 0
+            result = execute_query_with_retry(
+                ducklake_manager, query, params if params else None, fetch_all=False
+            )
+            count = result[0] if result else 0
         except Exception as e:
             logger.error("Feature count query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
@@ -435,25 +434,23 @@ class ProcessService:
         logger.debug("Area statistics query: %s with params: %s", query, params)
 
         try:
-            with ducklake_manager.connection() as con:
-                if params:
-                    result = con.execute(query, params).fetchone()
-                else:
-                    result = con.execute(query).fetchone()
+            result = execute_query_with_retry(
+                ducklake_manager, query, params if params else None, fetch_all=False
+            )
 
-                if result:
-                    return AreaStatisticsOutput(
-                        result=result[0],
-                        total_area=result[1],
-                        feature_count=result[2],
-                        unit="m²",
-                    ).model_dump()
-                else:
-                    return AreaStatisticsOutput(
-                        result=None,
-                        total_area=None,
-                        feature_count=0,
-                    ).model_dump()
+            if result:
+                return AreaStatisticsOutput(
+                    result=result[0],
+                    total_area=result[1],
+                    feature_count=result[2],
+                    unit="m²",
+                ).model_dump()
+            else:
+                return AreaStatisticsOutput(
+                    result=None,
+                    total_area=None,
+                    feature_count=0,
+                ).model_dump()
         except Exception as e:
             logger.error("Area statistics query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
@@ -500,27 +497,27 @@ class ProcessService:
         logger.debug("Unique values query: %s with params: %s", data_query, params)
 
         try:
-            with ducklake_manager.connection() as con:
-                # Get total
-                if params:
-                    total_result = con.execute(count_query, params).fetchone()
-                else:
-                    total_result = con.execute(count_query).fetchone()
-                total = total_result[0] if total_result else 0
+            # Get total
+            total_result = execute_query_with_retry(
+                ducklake_manager,
+                count_query,
+                params if params else None,
+                fetch_all=False,
+            )
+            total = total_result[0] if total_result else 0
 
-                # Get values
-                if params:
-                    result = con.execute(data_query, params).fetchall()
-                else:
-                    result = con.execute(data_query).fetchall()
+            # Get values
+            result = execute_query_with_retry(
+                ducklake_manager, data_query, params if params else None, fetch_all=True
+            )
 
-                values = [UniqueValue(value=row[0], count=row[1]) for row in result]
+            values = [UniqueValue(value=row[0], count=row[1]) for row in result]
 
-                return UniqueValuesOutput(
-                    attribute=inp.attribute,
-                    total=total,
-                    values=values,
-                ).model_dump()
+            return UniqueValuesOutput(
+                attribute=inp.attribute,
+                total=total,
+                values=values,
+            ).model_dump()
         except Exception as e:
             logger.error("Unique values query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
@@ -571,26 +568,29 @@ class ProcessService:
         logger.debug("Class breaks stats query: %s", stats_query)
 
         try:
+            stats_result = execute_query_with_retry(
+                ducklake_manager,
+                stats_query,
+                params if params else None,
+                fetch_all=False,
+            )
+
+            if not stats_result or stats_result[0] is None:
+                return ClassBreaksOutput(
+                    attribute=inp.attribute,
+                    method=inp.method.value,
+                    breaks=[],
+                    min=None,
+                    max=None,
+                    mean=None,
+                    std_dev=None,
+                ).model_dump()
+
+            min_val, max_val, mean_val, std_dev = stats_result
+
+            # Calculate breaks based on method
+            # Use connection with retry for methods that need DB access
             with ducklake_manager.connection() as con:
-                if params:
-                    stats_result = con.execute(stats_query, params).fetchone()
-                else:
-                    stats_result = con.execute(stats_query).fetchone()
-
-                if not stats_result or stats_result[0] is None:
-                    return ClassBreaksOutput(
-                        attribute=inp.attribute,
-                        method=inp.method.value,
-                        breaks=[],
-                        min=None,
-                        max=None,
-                        mean=None,
-                        std_dev=None,
-                    ).model_dump()
-
-                min_val, max_val, mean_val, std_dev = stats_result
-
-                # Calculate breaks based on method
                 if inp.method.value == "quantile":
                     breaks = await self._calculate_quantile_breaks(
                         con, table_name, attr_col, where_sql, params, inp.breaks
@@ -616,15 +616,15 @@ class ProcessService:
                 else:
                     breaks = []
 
-                return ClassBreaksOutput(
-                    attribute=inp.attribute,
-                    method=inp.method.value,
-                    breaks=breaks,
-                    min=float(min_val) if min_val is not None else None,
-                    max=float(max_val) if max_val is not None else None,
-                    mean=float(mean_val) if mean_val is not None else None,
-                    std_dev=float(std_dev) if std_dev is not None else None,
-                ).model_dump()
+            return ClassBreaksOutput(
+                attribute=inp.attribute,
+                method=inp.method.value,
+                breaks=breaks,
+                min=float(min_val) if min_val is not None else None,
+                max=float(max_val) if max_val is not None else None,
+                mean=float(mean_val) if mean_val is not None else None,
+                std_dev=float(std_dev) if std_dev is not None else None,
+            ).model_dump()
         except Exception as e:
             logger.error("Class breaks query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")

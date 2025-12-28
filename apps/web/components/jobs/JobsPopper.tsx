@@ -1,3 +1,4 @@
+import DownloadIcon from "@mui/icons-material/Download";
 import {
   Badge,
   Box,
@@ -16,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { setJobsReadStatus, useJobs } from "@/lib/api/jobs";
+import type { Job } from "@/lib/validations/jobs";
 
 import { ArrowPopper as JobStatusMenu } from "@/components/ArrowPoper";
 import JobProgressItem from "@/components/jobs/JobProgressItem";
@@ -57,14 +59,15 @@ export default function JobsPopper() {
   });
 
   const runningJobs = useMemo(() => {
-    return jobs?.items?.filter((job) => job.status_simple === "running");
+    return jobs?.items?.filter((job) => job.status_simple === "running" || job.status_simple === "pending");
   }, [jobs?.items]);
 
+  // Poll faster (every 2 seconds) when there are pending/running jobs
   const [intervalId, setIntervalId] = useState<number | null>(null);
   useEffect(() => {
     if (!runningJobs) return;
-    const runningJobsCount = runningJobs.length;
-    if (runningJobsCount === 0) {
+    const activeJobsCount = runningJobs.length;
+    if (activeJobsCount === 0) {
       // no running jobs, clear interval and return
       if (intervalId) {
         clearInterval(intervalId);
@@ -77,7 +80,7 @@ export default function JobsPopper() {
     if (!intervalId) {
       const id = setInterval(() => {
         mutate();
-      }, 5000) as unknown as number;
+      }, 2000) as unknown as number;
       setIntervalId(id);
     }
 
@@ -106,6 +109,47 @@ export default function JobsPopper() {
       setIsBusy(false);
     }
   };
+
+  // Handle download for file_export jobs
+  const handleExportDownload = async (payload: Record<string, unknown> | undefined) => {
+    if (!payload) return;
+    try {
+      const downloadUrl = payload.download_url as string;
+      const fileName = (payload.file_name as string) || "export.zip";
+      if (!downloadUrl) {
+        throw new Error("No download_url in job payload");
+      }
+      // Trigger download
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed:", error);
+    }
+  };
+
+  // Helper to render download button for export jobs
+  const renderExportDownloadButton = (job: Job) => {
+    const payload = job.payload as Record<string, unknown> | undefined;
+    const canDownload = job.status_simple === "finished" && payload?.download_url;
+
+    if (!canDownload) return undefined;
+
+    return (
+      <Tooltip title={t("download")}>
+        <IconButton
+          size="small"
+          onClick={() => handleExportDownload(payload)}
+          sx={{ fontSize: "1.2rem", color: "success.main" }}>
+          <DownloadIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
   return (
     <>
       {jobs?.items && jobs.items.length > 0 && (
@@ -132,19 +176,26 @@ export default function JobsPopper() {
                   py: 2,
                 }}>
                 <Stack direction="column">
-                  {jobs?.items?.map((job, index) => (
-                    <Box key={job.id}>
-                      <JobProgressItem
-                        id={job.id}
-                        type={job.type}
-                        status={job.status_simple}
-                        name={job.id}
-                        date={job.updated_at}
-                        errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
-                      />
-                      {index < jobs.items.length - 1 && <Divider />}
-                    </Box>
-                  ))}
+                  {jobs?.items?.map((job, index) => {
+                    // Add download button for file_export jobs
+                    const actionButton =
+                      job.type === "file_export" ? renderExportDownloadButton(job) : undefined;
+
+                    return (
+                      <Box key={job.id}>
+                        <JobProgressItem
+                          id={job.id}
+                          type={job.type}
+                          status={job.status_simple}
+                          name={job.id}
+                          date={job.updated_at}
+                          errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
+                          actionButton={actionButton}
+                        />
+                        {index < jobs.items.length - 1 && <Divider />}
+                      </Box>
+                    );
+                  })}
                 </Stack>
               </Box>
               <Divider sx={{ mt: 0 }} />

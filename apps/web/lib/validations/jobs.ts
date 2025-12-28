@@ -6,6 +6,7 @@ import { responseSchema } from "@/lib/validations/response";
 export const msgTypeEnum = z.enum(["info", "warning", "error"]);
 export const jobTypeEnum = z.enum([
   "file_import",
+  "file_export",
   "join",
   "catchment_area_active_mobility",
   "catchment_area_pt",
@@ -58,6 +59,15 @@ export const printReportPayloadSchema = z.object({
   layout_id: z.string().uuid().optional(),
 });
 
+// Payload schema for file_export jobs
+export const exportDatasetPayloadSchema = z.object({
+  s3_key: z.string().optional(),
+  file_name: z.string().optional(),
+  layer_id: z.string().uuid().optional(),
+  output_format: z.string().optional(),
+  feature_count: z.number().optional(),
+});
+
 export const jobSchema = z.object({
   updated_at: z.string(),
   created_at: z.string(),
@@ -90,3 +100,4 @@ export type Job = z.infer<typeof jobSchema>;
 export type JobPaginated = z.infer<typeof jobResponseSchema>;
 export type GetJobsQueryParam = z.infer<typeof getJobsQueryParamsSchema>;
 export type PrintReportPayload = z.infer<typeof printReportPayloadSchema>;
+export type ExportDatasetPayload = z.infer<typeof exportDatasetPayloadSchema>;

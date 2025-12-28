@@ -409,6 +409,10 @@ class IOConverter:
 
         Looks for columns named 'geometry', 'geom', 'wkt', 'wkt_geom', 'the_geom'
         that contain WKT text representations.
+
+        Raises:
+            ValueError: If geometry coordinates are outside WGS84 bounds
+                (longitude: -180 to 180, latitude: -90 to 90).
         """
         geom_info = GeometryInfo()
 
@@ -455,19 +459,101 @@ class IOConverter:
                         "GEOMETRYCOLLECTION",
                     )
                     if val.startswith(wkt_prefixes):
+                        # Validate coordinates are within WGS84 bounds
+                        self._validate_wgs84_bounds(st_read, geom_col)
+
                         geom_info.has_geometry = True
                         geom_info.source_column = geom_col
                         geom_info.output_column = "geometry"
                         geom_info.srid = "EPSG:4326"  # Assume WGS84 for WKT
                         geom_info.is_wkt = True  # Mark as WKT for conversion
                         logger.info("Detected WKT geometry column: %s", geom_col)
+            except ValueError:
+                # Re-raise validation errors
+                raise
             except Exception as e:
                 logger.debug("Could not verify WKT column %s: %s", geom_col, e)
 
+        except ValueError:
+            # Re-raise validation errors from bounds check
+            raise
         except Exception as e:
             logger.debug("Tabular geometry detection failed: %s", e)
 
         return geom_info
+
+    def _validate_wgs84_bounds(self: Self, st_read: str, geom_col: str) -> None:
+        """Validate that WKT geometry coordinates are within WGS84 bounds.
+
+        For CSV/tabular files, we assume coordinates should be in WGS84
+        (EPSG:4326). This validation rejects files with coordinates outside
+        valid WGS84 bounds which likely indicates the data is in a projected
+        coordinate system (e.g., EPSG:3857).
+
+        Args:
+            st_read: The DuckDB source reader expression
+            geom_col: Name of the WKT geometry column
+
+        Raises:
+            ValueError: If coordinates are outside WGS84 bounds
+                (longitude: -180 to 180, latitude: -90 to 90)
+        """
+        # WGS84 bounds
+        MIN_LON, MAX_LON = -180.0, 180.0
+        MIN_LAT, MAX_LAT = -90.0, 90.0
+
+        try:
+            # Calculate bounding box of all geometries
+            # ST_GeomFromText converts WKT to geometry, ST_Extent gets bbox
+            bbox = self.con.execute(
+                f"""
+                SELECT
+                    ST_XMin(ST_Extent_Agg(geom)) as min_x,
+                    ST_YMin(ST_Extent_Agg(geom)) as min_y,
+                    ST_XMax(ST_Extent_Agg(geom)) as max_x,
+                    ST_YMax(ST_Extent_Agg(geom)) as max_y
+                FROM (
+                    SELECT ST_GeomFromText("{geom_col}") as geom
+                    FROM {st_read}
+                    WHERE "{geom_col}" IS NOT NULL
+                )
+                """
+            ).fetchone()
+
+            if bbox and all(v is not None for v in bbox):
+                min_x, min_y, max_x, max_y = bbox
+
+                # Check if any coordinate is outside WGS84 bounds
+                out_of_bounds = (
+                    min_x < MIN_LON
+                    or max_x > MAX_LON
+                    or min_y < MIN_LAT
+                    or max_y > MAX_LAT
+                )
+
+                if out_of_bounds:
+                    raise ValueError(
+                        f"CSV geometry coordinates are outside WGS84 bounds. "
+                        f"Detected extent: [{min_x:.2f}, {min_y:.2f}, {max_x:.2f}, {max_y:.2f}]. "
+                        f"WGS84 bounds are [{MIN_LON}, {MIN_LAT}, {MAX_LON}, {MAX_LAT}]. "
+                        f"CSV files must contain coordinates in WGS84 (EPSG:4326). "
+                        f"Please convert your data to WGS84 before uploading."
+                    )
+
+                logger.debug(
+                    "WGS84 bounds validation passed. Extent: [%.2f, %.2f, %.2f, %.2f]",
+                    min_x,
+                    min_y,
+                    max_x,
+                    max_y,
+                )
+
+        except ValueError:
+            # Re-raise validation errors
+            raise
+        except Exception as e:
+            logger.warning("Could not validate WGS84 bounds: %s", e)
+            # Don't fail if we can't validate - let conversion proceed
 
     def _build_conversion_query(
         self: Self,

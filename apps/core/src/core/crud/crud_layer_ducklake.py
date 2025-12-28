@@ -33,11 +33,7 @@ from core.db.models.layer import (
     Layer,
     LayerType,
 )
-from core.schemas.layer import (
-    IFeatureStandardCreateAdditionalAttributes,
-    ILayerFromDatasetCreate,
-    ITableCreateAdditionalAttributes,
-)
+from core.schemas.layer import ILayerFromDatasetCreate
 from core.schemas.style import get_base_style
 from core.services.layer_import import LayerImportResult, layer_importer
 from core.utils import async_delete_dir, async_zip_directory
@@ -144,7 +140,6 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
         self: "CRUDLayerImportDuckLake",
         file_path: str,
         layer_in: ILayerFromDatasetCreate,
-        file_metadata: dict[str, Any] | None = None,
         project_id: UUID | None = None,
     ) -> tuple[dict[str, Any], UUID]:
         """Import a file into DuckLake and create layer metadata.
@@ -155,7 +150,6 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
         Args:
             file_path: Path to source file
             layer_in: Layer creation schema with name, folder_id, etc.
-            file_metadata: Optional metadata from file validation
             project_id: Optional project to associate layer with
 
         Returns:
@@ -180,30 +174,13 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
                 target_crs="EPSG:4326",
             )
 
-            # Step 2: Create layer metadata in PostgreSQL
-            layer_id = await self._create_layer_metadata(
+            layer_id = await self._create_layer(
                 layer_in=layer_in,
                 import_result=import_result,
-                file_metadata=file_metadata,
                 project_id=project_id,
             )
         except Exception as e:
-            # Cleanup: delete DuckLake table if it was created
-            if import_result is not None:
-                try:
-                    from core.storage.ducklake import ducklake_manager
-
-                    ducklake_manager.delete_layer_table(self.user_id, layer_in.id)
-                    logger.info(
-                        "Cleaned up DuckLake table after failed import: %s",
-                        layer_in.id,
-                    )
-                except Exception as cleanup_err:
-                    logger.warning(
-                        "Failed to cleanup DuckLake table %s: %s",
-                        layer_in.id,
-                        cleanup_err,
-                    )
+            self._cleanup_on_failure(layer_in.id, import_result, "file")
             raise RuntimeError(f"Layer import failed: {e}") from e
 
         # Step 3: Cleanup uploaded file directory
@@ -240,20 +217,117 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
         self: "CRUDLayerImportDuckLake",
         file_path: str,
         layer_in: ILayerFromDatasetCreate,
-        file_metadata: dict[str, Any] | None = None,
         project_id: UUID | None = None,
     ) -> dict[str, Any]:
         """Import file as a background job.
 
         Same as import_file but runs in background with job tracking.
         """
+        from core.schemas.job import JobStatusType
+
         result, _ = await self.import_file(
             file_path=file_path,
             layer_in=layer_in,
-            file_metadata=file_metadata,
             project_id=project_id,
         )
-        return result
+        return {
+            "status": JobStatusType.finished.value,
+            "result": result,
+        }
+
+    @run_background_or_immediately(settings)
+    @job_init()
+    async def import_from_s3_job(
+        self: "CRUDLayerImportDuckLake",
+        s3_key: str,
+        layer_in: ILayerFromDatasetCreate,
+        project_id: UUID | None = None,
+    ) -> dict[str, Any]:
+        """Import file from S3 as a background job.
+
+        Downloads file from S3 and imports using goatlib + DuckLake.
+
+        Args:
+            s3_key: S3 key for the file to import
+            layer_in: Layer creation schema
+            project_id: Optional project to link to
+
+        Returns:
+            Job result dict with status and layer info
+        """
+        from core.schemas.job import JobStatusType
+
+        logger.info(
+            "Importing from S3: %s for user=%s",
+            s3_key,
+            self.user_id,
+        )
+
+        import_result = None
+        try:
+            # Import directly from S3 using LayerImporter
+            import_result = layer_importer.import_from_s3(
+                user_id=self.user_id,
+                layer_id=layer_in.id,
+                s3_key=s3_key,
+                target_crs="EPSG:4326",
+            )
+
+            layer_id = await self._create_layer(
+                layer_in=layer_in,
+                import_result=import_result,
+                project_id=project_id,
+            )
+        except Exception as e:
+            self._cleanup_on_failure(layer_in.id, import_result, "S3")
+            raise RuntimeError(f"S3 import failed: {e}") from e
+
+        result = {
+            "msg": "Layer imported successfully from S3",
+            "layer_id": str(layer_id),
+            "table_name": import_result.table_name,
+            "feature_count": import_result.feature_count,
+            "geometry_type": import_result.geometry_type,
+        }
+
+        logger.info("S3 layer import complete: %s", result)
+        return {
+            "status": JobStatusType.finished.value,
+            "result": result,
+        }
+
+    @run_background_or_immediately(settings)
+    @job_init()
+    async def import_from_wfs_job(
+        self: "CRUDLayerImportDuckLake",
+        wfs_url: str,
+        layer_in: ILayerFromDatasetCreate,
+        wfs_layer_name: str | None = None,
+        project_id: UUID | None = None,
+    ) -> dict[str, Any]:
+        """Import from WFS as a background job.
+
+        Args:
+            wfs_url: WFS service URL
+            layer_in: Layer creation schema
+            wfs_layer_name: Specific layer to import (None = first layer)
+            project_id: Optional project to link to
+
+        Returns:
+            Job result dict with status and layer info
+        """
+        from core.schemas.job import JobStatusType
+
+        result, _ = await self.import_from_wfs(
+            wfs_url=wfs_url,
+            layer_in=layer_in,
+            wfs_layer_name=wfs_layer_name,
+            project_id=project_id,
+        )
+        return {
+            "status": JobStatusType.finished.value,
+            "result": result,
+        }
 
     async def import_from_wfs(
         self: "CRUDLayerImportDuckLake",
@@ -291,29 +365,13 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
                 target_crs="EPSG:4326",
             )
 
-            layer_id = await self._create_layer_metadata(
+            layer_id = await self._create_layer(
                 layer_in=layer_in,
                 import_result=import_result,
-                file_metadata=None,
                 project_id=project_id,
             )
         except Exception as e:
-            # Cleanup: delete DuckLake table if it was created
-            if import_result is not None:
-                try:
-                    from core.storage.ducklake import ducklake_manager
-
-                    ducklake_manager.delete_layer_table(self.user_id, layer_in.id)
-                    logger.info(
-                        "Cleaned up DuckLake table after failed WFS import: %s",
-                        layer_in.id,
-                    )
-                except Exception as cleanup_err:
-                    logger.warning(
-                        "Failed to cleanup DuckLake table %s: %s",
-                        layer_in.id,
-                        cleanup_err,
-                    )
+            self._cleanup_on_failure(layer_in.id, import_result, "WFS")
             raise RuntimeError(f"WFS import failed: {e}") from e
 
         return {
@@ -323,60 +381,83 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
             "feature_count": import_result.feature_count,
         }, layer_id
 
-    # -------------------------------------------------------------------------
-    # Internal methods
-    # -------------------------------------------------------------------------
+    def _cleanup_on_failure(
+        self: "CRUDLayerImportDuckLake",
+        layer_id: UUID,
+        import_result: LayerImportResult | None,
+        source: str,
+    ) -> None:
+        """Delete DuckLake table if import failed after table creation."""
+        if import_result is None:
+            return
+        try:
+            from core.storage.ducklake import ducklake_manager
 
-    async def _create_layer_metadata(
+            ducklake_manager.delete_layer_table(self.user_id, layer_id)
+            logger.info(
+                "Cleaned up DuckLake table after failed %s import: %s", source, layer_id
+            )
+        except Exception as err:
+            logger.warning("Failed to cleanup DuckLake table %s: %s", layer_id, err)
+
+    async def _create_layer(
         self: "CRUDLayerImportDuckLake",
         layer_in: ILayerFromDatasetCreate,
         import_result: LayerImportResult,
-        file_metadata: dict[str, Any] | None,
         project_id: UUID | None,
     ) -> UUID:
-        """Create layer metadata record in PostgreSQL.
+        """Create Layer row in PostgreSQL after successful goatlib import."""
+        from core.crud.crud_layer import CRUDLayer
+        from core.db.models.layer import FileUploadType
 
-        Args:
-            layer_in: Layer creation input
-            import_result: Result from DuckLake import
-            file_metadata: Optional file validation metadata
-            project_id: Optional project to link to
-
-        Returns:
-            Created layer UUID
-        """
-        # Build columns info from import result
-        columns_info = {col["name"]: col["type"] for col in import_result.columns}
-
-        # Build additional attributes based on layer type
-        attrs = self._build_layer_attributes(
-            import_result=import_result,
-            columns_info=columns_info,
-            file_metadata=file_metadata,
-        )
-
-        # Check/alter layer name if duplicate
-        layer_in.name = await self._check_layer_name(
-            layer_in=layer_in,
+        # Check/alter layer name if duplicate exists
+        layer_name = await CRUDLayer(Layer).check_and_alter_layer_name(
+            async_session=self.async_session,
+            folder_id=layer_in.folder_id,
+            layer_name=layer_in.name,
             project_id=project_id,
         )
 
-        # Create layer model
-        layer_model = Layer(
+        # Validate upload_file_type against enum, fallback to None if not valid
+        source_format = import_result.source_format
+        try:
+            upload_file_type = FileUploadType(source_format) if source_format else None
+        except ValueError:
+            logger.warning(
+                "Unknown upload_file_type '%s', setting to None", source_format
+            )
+            upload_file_type = None
+
+        # Build layer data from import result
+        layer_data = {
             **layer_in.model_dump(exclude_none=True),
-            **attrs,
-            job_id=self.job_id,
+            "name": layer_name,
+            "user_id": self.user_id,
+            "job_id": self.job_id,
+            "upload_file_type": upload_file_type,
+        }
+
+        # Set type based on geometry
+        if import_result.geometry_type:
+            geom_type = map_geometry_type(import_result.geometry_type)
+            layer_data["type"] = LayerType.feature
+            layer_data["feature_layer_type"] = FeatureType.standard
+            layer_data["feature_layer_geometry_type"] = geom_type
+            layer_data["properties"] = get_base_style(FeatureGeometryType(geom_type))
+            if import_result.extent:
+                layer_data["extent"] = build_extent_wkt(import_result.extent)
+        else:
+            layer_data["type"] = LayerType.table
+
+        # Get size from DuckLake
+        layer_data["size"] = await self._get_layer_size(
+            self.async_session, import_result
         )
 
-        # Get size from DuckLake metadata
-        layer_model.size = await self._get_layer_size(self.async_session, import_result)
-
-        # Persist to database
-        from core.crud.crud_layer import CRUDLayer
-
+        # Create layer row
         layer: Layer = await CRUDLayer(Layer).create(
             db=self.async_session,
-            obj_in=layer_model.model_dump(),
+            obj_in=layer_data,
         )
         assert layer.id is not None
 
@@ -388,65 +469,8 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
                 project_id=project_id,
             )
 
-        logger.info("Created layer metadata: id=%s name=%s", layer.id, layer.name)
+        logger.info("Created layer: id=%s name=%s", layer.id, layer_name)
         return layer.id
-
-    def _build_layer_attributes(
-        self: "CRUDLayerImportDuckLake",
-        import_result: LayerImportResult,
-        columns_info: dict[str, str],
-        file_metadata: dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        """Build additional layer attributes from import result."""
-        attrs: dict[str, Any] = {
-            "user_id": self.user_id,
-            "attribute_mapping": {},  # Empty - not used for DuckLake layers
-            "properties": {},  # Will be set with style below if feature layer
-        }
-
-        # Get file type from metadata if available
-        if file_metadata and "file_ending" in file_metadata:
-            attrs["upload_file_type"] = file_metadata["file_ending"]
-        elif import_result.source_format:
-            attrs["upload_file_type"] = import_result.source_format
-
-        # Determine if feature or table layer
-        if import_result.geometry_type:
-            geom_type = map_geometry_type(import_result.geometry_type)
-            attrs["type"] = LayerType.feature
-            attrs["feature_layer_type"] = FeatureType.standard
-            attrs["feature_layer_geometry_type"] = geom_type
-
-            # Set default style based on geometry type
-            geom_type_enum = FeatureGeometryType(geom_type)
-            attrs["properties"] = get_base_style(geom_type_enum)
-
-            # Set extent
-            if import_result.extent:
-                attrs["extent"] = build_extent_wkt(import_result.extent)
-
-            # Validate with schema
-            attrs = IFeatureStandardCreateAdditionalAttributes(**attrs).model_dump()
-        else:
-            attrs["type"] = LayerType.table
-            attrs = ITableCreateAdditionalAttributes(**attrs).model_dump()
-
-        return attrs
-
-    async def _check_layer_name(
-        self: "CRUDLayerImportDuckLake",
-        layer_in: ILayerFromDatasetCreate,
-        project_id: UUID | None,
-    ) -> str:
-        """Check and alter layer name if duplicate exists."""
-        from core.crud.crud_layer import CRUDLayer
-
-        return await CRUDLayer(Layer).check_and_alter_layer_name(
-            async_session=self.async_session,
-            folder_id=layer_in.folder_id,
-            layer_name=layer_in.name,
-            project_id=project_id,
-        )
 
     async def _get_layer_size(
         self: "CRUDLayerImportDuckLake",
@@ -485,42 +509,50 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
 # =============================================================================
 
 
-class CRUDLayerExportDuckLake:
+class CRUDLayerExportDuckLake(CRUDFailedJob):
     """CRUD for exporting layers from DuckLake storage.
 
     Exports layer data from DuckLake to various formats.
+    Supports both sync exports and background job exports with S3 upload.
     """
 
     def __init__(
         self: "CRUDLayerExportDuckLake",
-        layer_id: UUID,
+        job_id: UUID | None,
+        background_tasks: BackgroundTasks,
         async_session: "AsyncSession",
         user_id: UUID,
+        layer_id: UUID,
     ) -> None:
         """Initialize the export CRUD.
 
         Args:
-            layer_id: Layer UUID to export
+            job_id: Job UUID for tracking (None for sync exports)
+            background_tasks: FastAPI background tasks
             async_session: SQLAlchemy async session
             user_id: User UUID (for permissions/paths)
+            layer_id: Layer UUID to export
         """
+        super().__init__(job_id, background_tasks, async_session, user_id)
         self.layer_id = layer_id
-        self.user_id = user_id
-        self.async_session = async_session
         self.export_dir = os.path.join(
             settings.DATA_DIR,
             str(self.user_id),
             str(self.layer_id),
         )
 
-    async def export_to_file(
+    @run_background_or_immediately(settings)
+    @job_init()
+    async def export_to_file_job(
         self: "CRUDLayerExportDuckLake",
         output_format: str,
         file_name: str,
         target_crs: str | None = None,
         where_clause: str | None = None,
-    ) -> str:
-        """Export layer to a file.
+    ) -> dict[str, Any]:
+        """Export layer as a background job with S3 upload.
+
+        Runs the export in background and uploads result to S3.
 
         Args:
             output_format: Output format (geojson, gpkg, csv, etc.)
@@ -529,12 +561,176 @@ class CRUDLayerExportDuckLake:
             where_clause: Optional filter
 
         Returns:
-            Path to exported file (or zip if multiple files)
+            Job result dict with s3_key for download
         """
+        from core.schemas.job import JobStatusType
+        from core.services.s3 import s3_service
+
+        MAX_RETRIES = 3
+        RETRY_DELAY_SECONDS = 1
+
         logger.info(
-            "Exporting layer %s to %s format",
+            "Starting export job for layer %s to %s format",
             self.layer_id,
             output_format,
+        )
+
+        zip_path = None
+        last_error = None
+
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                # Perform the export (creates zip file locally)
+                zip_path = await self._export_to_file_internal(
+                    output_format=output_format,
+                    file_name=file_name,
+                    target_crs=target_crs,
+                    where_clause=where_clause,
+                )
+                # Success - break out of retry loop
+                break
+
+            except Exception as e:
+                last_error = e
+                error_str = str(e).lower()
+                # Check if this is a retryable connection error
+                is_retryable = any(
+                    keyword in error_str
+                    for keyword in ["ssl", "eof", "connection", "timeout", "network"]
+                )
+
+                if is_retryable and attempt < MAX_RETRIES:
+                    import asyncio
+
+                    logger.warning(
+                        "Export attempt %d/%d failed with retryable error: %s. Retrying in %ds...",
+                        attempt,
+                        MAX_RETRIES,
+                        str(e)[:200],
+                        RETRY_DELAY_SECONDS,
+                    )
+                    await asyncio.sleep(RETRY_DELAY_SECONDS)
+                    continue
+                else:
+                    # Non-retryable error or max retries reached
+                    raise
+
+        if zip_path is None:
+            raise RuntimeError(
+                f"Export failed after {MAX_RETRIES} attempts: {last_error}"
+            )
+
+        # Generate S3 key for the export
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            s3_key = s3_service.build_s3_key(
+                settings.S3_BUCKET_PATH or "",
+                "exports",
+                str(self.user_id),
+                f"{file_name}_{timestamp}.zip",
+            )
+
+            # Upload to S3
+            import io
+
+            with open(zip_path, "rb") as f:
+                file_content = f.read()
+                file_size = len(file_content)
+
+            s3_service.upload_file(
+                file_content=io.BytesIO(file_content),
+                bucket_name=settings.S3_BUCKET_NAME or "goat",
+                s3_key=s3_key,
+                content_type="application/zip",
+            )
+
+            # Cleanup local file
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+            # Remove parent dir if empty
+            parent_dir = os.path.dirname(zip_path)
+            if parent_dir and os.path.isdir(parent_dir):
+                try:
+                    os.rmdir(parent_dir)
+                except OSError:
+                    pass
+
+            # Generate presigned download URL (valid for 24 hours)
+            download_url = s3_service.generate_presigned_download_url(
+                bucket_name=settings.S3_BUCKET_NAME or "goat",
+                s3_key=s3_key,
+                expires_in=86400,  # 24 hours
+                filename=f"{file_name}.zip",
+            )
+
+            result_payload = {
+                "s3_key": s3_key,
+                "download_url": download_url,
+                "file_name": f"{file_name}.zip",
+                "file_size_bytes": file_size,
+                "format": output_format,
+                "layer_id": str(self.layer_id),
+            }
+
+            logger.info(
+                "Export job completed. S3 key: %s, file_name: %s.zip",
+                s3_key,
+                file_name,
+            )
+
+            return {"status": JobStatusType.finished.value, "result": result_payload}
+
+        except asyncio.TimeoutError:
+            # Cleanup on timeout
+            if zip_path and os.path.exists(zip_path):
+                try:
+                    os.remove(zip_path)
+                except Exception:
+                    pass
+            raise RuntimeError(
+                f"Export timed out after {EXPORT_TIMEOUT_SECONDS} seconds. "
+                "The dataset may be too large for export."
+            )
+        except Exception as e:
+            # Cleanup on failure
+            if zip_path and os.path.exists(zip_path):
+                try:
+                    os.remove(zip_path)
+                except Exception:
+                    pass
+            raise RuntimeError(f"Export failed: {e}") from e
+
+    async def _export_to_file_internal(
+        self: "CRUDLayerExportDuckLake",
+        output_format: str,
+        file_name: str,
+        target_crs: str | None = None,
+        where_clause: str | None = None,
+    ) -> str:
+        """Internal export logic - creates local zip file.
+
+        The blocking DuckDB/GDAL export is run in a thread pool to avoid
+        blocking the event loop. Uses DuckDB's interrupt() for timeout.
+
+        Args:
+            output_format: Output format (geojson, gpkg, csv, etc.)
+            file_name: Base name for output file
+            target_crs: Optional target CRS for reprojection
+            where_clause: Optional filter
+
+        Returns:
+            Path to exported zip file
+        """
+        import asyncio
+
+        # Export timeout: 30 seconds for testing
+        EXPORT_TIMEOUT_SECONDS = 30
+
+        logger.info(
+            "Exporting layer %s to %s format (timeout: %ds)",
+            self.layer_id,
+            output_format,
+            EXPORT_TIMEOUT_SECONDS,
         )
 
         # Get layer metadata
@@ -556,14 +752,17 @@ class CRUDLayerExportDuckLake:
         )
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Export via LayerImporter
-        layer_importer.export_layer(
+        # Run the blocking export in a thread pool to avoid blocking the event loop
+        # Timeout is handled at the DuckDB level via con.interrupt()
+        await asyncio.to_thread(
+            layer_importer.export_layer,
             user_id=owner_user_id,
             layer_id=self.layer_id,
             output_path=output_path,
             output_format=output_format.upper(),
             target_crs=target_crs,
             query=where_clause,
+            timeout_seconds=EXPORT_TIMEOUT_SECONDS,
         )
 
         # Create metadata file
@@ -580,7 +779,7 @@ class CRUDLayerExportDuckLake:
             os.path.join(self.export_dir, file_name),
         )
 
-        # Cleanup
+        # Cleanup export directory
         await async_delete_dir(self.export_dir)
 
         return zip_path

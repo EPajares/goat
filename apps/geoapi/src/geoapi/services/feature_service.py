@@ -10,8 +10,40 @@ from typing import Any, Optional
 from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
 from geoapi.dependencies import LayerInfo
 from geoapi.ducklake import ducklake_manager
+from geoapi.ducklake_pool import execute_with_retry
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_string(value: Any) -> Any:
+    """Sanitize string values to ensure valid UTF-8.
+
+    Some data may contain invalid UTF-8 bytes (e.g., Latin-1 or Windows-1252).
+    This function attempts to fix encoding issues.
+    """
+    if isinstance(value, bytes):
+        # Try UTF-8 first, then fallback to latin-1
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return value.decode("latin-1", errors="replace")
+    elif isinstance(value, str):
+        # Re-encode and decode to fix any invalid sequences
+        try:
+            # Encode to bytes and back to ensure valid UTF-8
+            return value.encode("utf-8", errors="surrogatepass").decode(
+                "utf-8", errors="replace"
+            )
+        except (UnicodeDecodeError, UnicodeEncodeError):
+            return value.encode("latin-1", errors="replace").decode(
+                "utf-8", errors="replace"
+            )
+    return value
+
+
+def sanitize_properties(properties: dict[str, Any]) -> dict[str, Any]:
+    """Sanitize all string values in properties dict."""
+    return {k: sanitize_string(v) for k, v in properties.items()}
 
 
 class FeatureService:
@@ -115,12 +147,13 @@ class FeatureService:
         count_query = f"SELECT COUNT(*) FROM {table} WHERE {where_sql}"
         logger.debug("Count query: %s with params: %s", count_query, params)
         try:
-            with ducklake_manager.connection() as con:
-                if params:
-                    count_result = con.execute(count_query, params).fetchone()
-                else:
-                    count_result = con.execute(count_query).fetchone()
-                total_count = count_result[0] if count_result else 0
+            count_result, _ = execute_with_retry(
+                ducklake_manager,
+                count_query,
+                params if params else None,
+                fetch_all=False,
+            )
+            total_count = count_result[0] if count_result else 0
         except Exception as e:
             logger.warning("Count query failed: %s", e)
             total_count = 0
@@ -137,38 +170,38 @@ class FeatureService:
 
         features = []
         try:
-            with ducklake_manager.connection() as con:
-                if params:
-                    result = con.execute(query, params).fetchall()
-                else:
-                    result = con.execute(query).fetchall()
+            result, description = execute_with_retry(
+                ducklake_manager, query, params if params else None, fetch_all=True
+            )
 
-                # Get column names from description
-                description = con.description
-                col_names = [desc[0] for desc in description]
+            # Get column names from description
+            col_names = [desc[0] for desc in description]
 
-                for row in result:
-                    row_dict = dict(zip(col_names, row))
+            for row in result:
+                row_dict = dict(zip(col_names, row))
 
-                    # Extract geometry (only if layer has geometry)
-                    geometry = None
-                    if has_geometry and geom_col:
-                        geom_json = row_dict.pop("geom_json", None)
-                        geometry = json.loads(geom_json) if geom_json else None
-                        # Remove raw geometry column if present
-                        row_dict.pop(geom_col, None)
+                # Extract geometry (only if layer has geometry)
+                geometry = None
+                if has_geometry and geom_col:
+                    geom_json = row_dict.pop("geom_json", None)
+                    geometry = json.loads(geom_json) if geom_json else None
+                    # Remove raw geometry column if present
+                    row_dict.pop(geom_col, None)
 
-                    # Get ID
-                    feature_id = row_dict.pop("id", None)
+                # Get ID
+                feature_id = row_dict.pop("id", None)
 
-                    features.append(
-                        {
-                            "type": "Feature",
-                            "id": str(feature_id) if feature_id else None,
-                            "geometry": geometry,
-                            "properties": row_dict,
-                        }
-                    )
+                # Sanitize string values to ensure valid UTF-8
+                sanitized_props = sanitize_properties(row_dict)
+
+                features.append(
+                    {
+                        "type": "Feature",
+                        "id": str(feature_id) if feature_id else None,
+                        "geometry": geometry,
+                        "properties": sanitized_props,
+                    }
+                )
         except Exception as e:
             logger.error(f"Feature query error: {e}", exc_info=True)
             raise
@@ -222,34 +255,37 @@ class FeatureService:
         """
 
         try:
-            with ducklake_manager.connection() as con:
-                result = con.execute(query, [feature_id]).fetchone()
+            result, description = execute_with_retry(
+                ducklake_manager, query, [feature_id], fetch_all=False
+            )
 
-                if not result:
-                    return None
+            if not result:
+                return None
 
-                # Get column names
-                description = con.description
-                col_names = [desc[0] for desc in description]
-                row_dict = dict(zip(col_names, result))
+            # Get column names
+            col_names = [desc[0] for desc in description]
+            row_dict = dict(zip(col_names, result))
 
-                # Extract geometry (only if layer has geometry)
-                geometry = None
-                if has_geometry and geom_col:
-                    geom_json = row_dict.pop("geom_json", None)
-                    geometry = json.loads(geom_json) if geom_json else None
-                    # Remove raw geometry column
-                    row_dict.pop(geom_col, None)
+            # Extract geometry (only if layer has geometry)
+            geometry = None
+            if has_geometry and geom_col:
+                geom_json = row_dict.pop("geom_json", None)
+                geometry = json.loads(geom_json) if geom_json else None
+                # Remove raw geometry column
+                row_dict.pop(geom_col, None)
 
-                # Get ID
-                fid = row_dict.pop("id", None)
+            # Get ID
+            fid = row_dict.pop("id", None)
 
-                return {
-                    "type": "Feature",
-                    "id": str(fid) if fid else None,
-                    "geometry": geometry,
-                    "properties": row_dict,
-                }
+            # Sanitize string values to ensure valid UTF-8
+            sanitized_props = sanitize_properties(row_dict)
+
+            return {
+                "type": "Feature",
+                "id": str(fid) if fid else None,
+                "geometry": geometry,
+                "properties": sanitized_props,
+            }
         except Exception as e:
             logger.error(f"Feature by ID error: {e}", exc_info=True)
             return None
