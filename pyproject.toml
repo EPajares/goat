@@ -36,6 +36,7 @@ geoapi = { workspace = true }
 routing = { workspace = true }
 accounts = { workspace = true }
 goatlib = { workspace = true }
+motia = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -43,6 +44,7 @@ members = [
     "apps/routing",
     "apps/accounts",
     "apps/core",
+    "apps/motia",
     "packages/python/goatlib",
 ]
 

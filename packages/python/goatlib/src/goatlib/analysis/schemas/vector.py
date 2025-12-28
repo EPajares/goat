@@ -494,3 +494,115 @@ class DifferenceParams(BaseModel):
     def accepted_overlay_geometry_types(self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in difference operation (typically polygon)."""
         return POLYGON_TYPES
+
+
+class CentroidParams(BaseModel):
+    """
+    Parameters for computing centroid of features.
+    """
+
+    input_path: str = Field(..., description="Path to the input dataset.")
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for centroid output. If not provided, will be auto-generated.",
+    )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )
+
+    @property
+    def accepted_input_geometry_types(self) -> List[GeometryType]:
+        """Geometry types accepted for input layer."""
+        return ALL_GEOMETRY_TYPES
+
+
+class MergeParams(BaseModel):
+    """Parameters for merging multiple vector layers."""
+
+    input_paths: List[str] = Field(
+        ...,
+        min_length=2,
+        description="List of paths to vector layers to merge. Must be at least 2 layers.",
+    )
+
+    output_path: Optional[str] = Field(
+        None,
+        description="Output path for merged layer. If None, generates based on first input.",
+    )
+
+    output_crs: Optional[str] = Field(
+        None,
+        description=(
+            "Target CRS for output (e.g., 'EPSG:4326'). "
+            "If None, uses CRS of first input layer. All layers reprojected to match."
+        ),
+    )
+
+    add_source_field: bool = Field(
+        True,
+        description=(
+            "If True, adds a 'layer_source' field indicating which input layer "
+            "each feature came from (0, 1, 2, etc.)."
+        ),
+    )
+
+    validate_geometry_types: bool = Field(
+        True,
+        description=(
+            "If True, validates all inputs have compatible geometry types:\n"
+            "- All Point/MultiPoint (compatible)\n"
+            "- All LineString/MultiLineString (compatible)\n"
+            "- All Polygon/MultiPolygon (compatible)\n"
+            "If False, allows mixing different types (e.g., Point + Polygon)."
+        ),
+    )
+
+    promote_to_multi: bool = Field(
+        True,
+        description=(
+            "If True, promotes single-part to multi-part geometries:\n"
+            "- Point → MultiPoint\n"
+            "- LineString → MultiLineString\n"
+            "- Polygon → MultiPolygon\n"
+            "Required when merging layers with mixed single/multi geometries."
+        ),
+    )
+
+
+class OriginDestinationParams(BaseModel):
+    """
+    Parameters for performing origin-destination analysis.
+    """
+
+    geometry_path: str = Field(
+        ...,
+        description="Path to the geometry layer (points or polygons) containing origins and destinations.",
+    )
+    matrix_path: str = Field(
+        ...,
+        description="Path to the origin-destination matrix file (parquet/csv).",
+    )
+    unique_id_column: str = Field(
+        ...,
+        description="The column that contains the unique IDs in geometry layer.",
+    )
+    origin_column: str = Field(
+        ...,
+        description="The column that contains the origins in the origin destination matrix.",
+    )
+    destination_column: str = Field(
+        ...,
+        description="The column that contains the destinations in the origin destination matrix.",
+    )
+    weight_column: str = Field(
+        ...,
+        description="The column that contains the weights in the origin destination matrix.",
+    )
+    output_path_lines: Optional[str] = Field(
+        None,
+        description="Destination file path for the lines output. If not provided, will be auto-generated.",
+    )
+    output_path_points: Optional[str] = Field(
+        None,
+        description="Destination file path for the points output. If not provided, will be auto-generated.",
+    )

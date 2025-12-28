@@ -48,7 +48,8 @@
     "-p", "no:cacheprovider",
     "packages/python/goatlib/tests",
     "apps/geoapi/tests",
-    "apps/core/tests"
+    "apps/core/tests",
+    "apps/motia/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   
