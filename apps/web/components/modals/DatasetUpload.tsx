@@ -90,7 +90,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   };
 
   const acceptedFileTypes = useMemo(() => {
-    return [".gpkg", ".geojson", ".zip", ".kml", ".csv", ".xlsx"];
+    return [".gpkg", ".geojson", ".zip", ".kml", ".csv", ".xlsx", ".parquet"];
   }, []);
 
   const handleChange = (file) => {
@@ -108,7 +108,8 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         file.name.endsWith(".gpkg") ||
         file.name.endsWith(".geojson") ||
         file.name.endsWith(".shp") ||
-        file.name.endsWith(".kml");
+        file.name.endsWith(".kml") ||
+        file.name.endsWith(".parquet");
       const isTable = file.name.endsWith(".csv") || file.name.endsWith(".xlsx");
       if (!isFeatureLayer && !isTable) {
         setFileUploadError("Invalid file type");
@@ -209,7 +210,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
               value={fileValue}
               multiple={false}
               onChange={handleChange}
-              placeholder={`${t("eg")} file.gpkg, file.geojson, shapefile.zip`}
+              placeholder={`${t("eg")} file.gpkg, file.geojson, file.parquet, shapefile.zip`}
             />
             <Typography variant="caption">
               {t("supported")} <b>GeoPackage</b>, <b>GeoJSON</b>, <b>Shapefile (.zip)</b>, <b>KML</b>,{" "}

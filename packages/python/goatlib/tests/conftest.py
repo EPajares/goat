@@ -42,6 +42,18 @@ def tabular_valid_csv(data_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
+def tabular_valid_csv_wkt_wgs84(data_root: Path) -> Path:
+    """CSV with valid WKT geometry in WGS84."""
+    return data_root / "io" / "tabular" / "valid" / "wkt_geometry_wgs84.csv"
+
+
+@pytest.fixture(scope="session")
+def tabular_invalid_csv_wkt_epsg3857(data_root: Path) -> Path:
+    """CSV with WKT geometry in EPSG:3857 (outside WGS84 bounds)."""
+    return data_root / "io" / "tabular" / "invalid" / "wkt_geometry_epsg3857.csv"
+
+
+@pytest.fixture(scope="session")
 def tabular_valid_xlsx(data_root: Path) -> Path:
     return data_root / "io" / "tabular" / "valid" / "table.xlsx"
 

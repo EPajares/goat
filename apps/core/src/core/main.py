@@ -16,11 +16,7 @@ from starlette.responses import HTMLResponse
 import core._dotenv  # noqa: E402, F401, I001
 from core.core.config import settings
 from core.db.session import session_manager
-from core.endpoints.deps import (
-    close_http_client,
-    close_qgis_application,
-    initialize_qgis_application,
-)
+from core.endpoints.deps import close_http_client
 from core.endpoints.v2.api import router as api_router_v2
 from core.storage.ducklake import ducklake_manager
 
@@ -41,13 +37,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(handler)
-    qgis_application = initialize_qgis_application()
     yield
     print("Shutting down...")
     await session_manager.close()
     ducklake_manager.close()
     await close_http_client()
-    close_qgis_application(qgis_application)
 
 
 app = FastAPI(

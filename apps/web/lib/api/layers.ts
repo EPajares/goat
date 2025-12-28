@@ -9,7 +9,6 @@ import type {
   DatasetCollectionItems,
   DatasetDownloadRequest,
   DatasetMetadataAggregated,
-  ExternalDatasetFeatureUrl,
   GetCollectionItemsQueryParams,
   GetDatasetSchema,
   GetLayerUniqueValuesQueryParams,
@@ -110,13 +109,16 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
   return response;
 };
 
-export const updateLayerDataset = async (layerId: string, datasetId?: string, s3_key?: string) => {
+export const updateLayerDataset = async (
+  layerId: string,
+  options?: { s3_key?: string; refresh_wfs?: boolean }
+) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
-  if (datasetId) {
-    url.searchParams.append("dataset_id", datasetId);
+  if (options?.s3_key) {
+    url.searchParams.append("s3_key", options.s3_key);
   }
-  if (s3_key) {
-    url.searchParams.append("s3_key", s3_key);
+  if (options?.refresh_wfs) {
+    url.searchParams.append("refresh_wfs", "true");
   }
   const response = await apiRequestAuth(url.toString(), {
     method: "PUT",
@@ -226,20 +228,6 @@ export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: 
   });
   if (!response.ok) {
     throw new Error("Failed to create raster layer");
-  }
-  return await response.json();
-};
-
-export const layerFeatureUrlUpload = async (payload: ExternalDatasetFeatureUrl) => {
-  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/file-upload-external-service`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error("Failed to upload external dataset feature url");
   }
   return await response.json();
 };
@@ -389,7 +377,11 @@ export const useLayerUniqueValues = (
   return { data, isLoading, error, mutate, isValidating };
 };
 
-export const downloadDataset = async (payload: DatasetDownloadRequest) => {
+/**
+ * Start a dataset export job. Returns a job_id that can be polled for completion.
+ * When job is finished, use getExportDownloadUrl to get the download URL.
+ */
+export const startDatasetExport = async (payload: DatasetDownloadRequest): Promise<{ job_id: string }> => {
   const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${payload.id}/export`, {
     method: "POST",
     body: JSON.stringify(payload),
@@ -398,9 +390,9 @@ export const downloadDataset = async (payload: DatasetDownloadRequest) => {
     },
   });
   if (!response.ok) {
-    throw new Error("Failed to download layer");
+    throw new Error("Failed to start export job");
   }
-  return await response.blob();
+  return await response.json();
 };
 
 export const useClassBreak = (layerId: string, operation: string, column: string, breaks: number) => {

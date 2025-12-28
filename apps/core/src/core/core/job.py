@@ -191,6 +191,14 @@ def job_init() -> Callable[[Any], Any]:
             try:
                 result = await func(*args, **kwargs)
             except Exception as e:
+                # Log the full exception for debugging
+                import traceback
+
+                background_logger.error(
+                    f"Job {str(job_id)} failed with exception: {e.__class__.__name__}: {str(e)}"
+                )
+                background_logger.error(f"Full traceback:\n{traceback.format_exc()}")
+
                 # Roll back the transaction
                 await async_session.rollback()
                 # Run failure functions for cleanup
@@ -199,7 +207,10 @@ def job_init() -> Callable[[Any], Any]:
                 if e.__class__ in ERROR_MAPPING:
                     error = e
                 else:
-                    error = UnknownError("Unknown error occurred.")
+                    # Preserve original error details for debugging
+                    error = UnknownError(
+                        f"Unknown error: {e.__class__.__name__}: {str(e)}"
+                    )
                 msg_simple = f"{error.__class__.__name__}: {str(error)}"
                 # Update job status simple to failed
                 job = await crud_job.update(

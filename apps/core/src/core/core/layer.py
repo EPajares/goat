@@ -18,11 +18,6 @@ from openpyxl import load_workbook
 from osgeo import ogr, osr
 from pydantic import BaseModel, HttpUrl
 from pyproj import CRS
-from qgis.core import (
-    QgsProject,
-    QgsVectorFileWriter,
-    QgsVectorLayer,
-)
 from shapely import wkb
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select, text
@@ -58,7 +53,6 @@ from core.utils import (
     async_delete_dir,
     async_run_command,
     async_scandir,
-    print_warning,
     sanitize_error_message,
 )
 
@@ -268,46 +262,7 @@ class FetchLayerExternalService:
         self.output_driver_type = OgrDriverType.geojson.value
 
     def fetch_wfs(self, layer_name: str) -> None:
-        """Fetch data from WFS service and save to disk."""
-
-        # First, attempt to fetch data using QGIS
-        try:
-            # Create vector layer containing features from the WFS source
-            uri = f"typename='{layer_name}' url='{self.url}'"
-            layer = QgsVectorLayer(uri, layer_name, "WFS")
-
-            if not layer.isValid():
-                raise ValueError(f"Unable to open layer: {layer_name}")
-
-            # Ensure layer is not too large
-            feature_count = layer.featureCount()
-            if feature_count > self.MAX_FEATURE_COUNT:
-                raise ValueError(
-                    f"Layer {layer_name} contains too many features ({feature_count})."
-                )
-
-            # Add layer to project and write to GeoJSON file
-            QgsProject.instance().addMapLayer(layer)
-            options = QgsVectorFileWriter.SaveVectorOptions()
-            options.driverName = self.output_driver_type
-            error = QgsVectorFileWriter.writeAsVectorFormatV2(
-                layer,
-                self.output_file,
-                QgsProject.instance().transformContext(),
-                options,
-            )
-            # Remove layer from project
-            QgsProject.instance().removeMapLayer(layer)
-
-            if error[0] != QgsVectorFileWriter.NoError:
-                raise Exception(f"Unable to write GeoJSON file: {error[1]}")
-
-            return
-        except Exception as e:
-            print_warning("QGIS failed to fetch WFS data, falling back to OGR.")
-            print_warning(f"QGIS error: {e}")
-
-        # Second, attempt to fetch data using OGR
+        """Fetch data from WFS service and save to disk using OGR."""
         ogr.UseExceptions()
 
         # Initialize output GeoJSON driver

@@ -1,3 +1,4 @@
+import asyncio
 import os
 import zipfile
 
@@ -11,6 +12,18 @@ from core.schemas.layer import (
 from core.utils import delete_dir, delete_file
 from httpx import AsyncClient
 from tests.utils import get_with_wrong_id
+
+
+async def wait_for_export_job(client: AsyncClient, job_id: str, max_wait: int = 60):
+    """Wait for an export job to complete and return the job data."""
+    for _ in range(max_wait):
+        response = await client.get(f"{settings.API_V2_STR}/job/{job_id}")
+        assert response.status_code == 200
+        job = response.json()
+        if job["status_simple"] in ("finished", "failed"):
+            return job
+        await asyncio.sleep(1)
+    raise TimeoutError(f"Export job {job_id} did not complete in {max_wait} seconds")
 
 
 @pytest.mark.asyncio

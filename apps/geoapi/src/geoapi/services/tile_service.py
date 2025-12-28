@@ -10,7 +10,9 @@ from typing import Any, Optional
 from geoapi.config import settings
 from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
 from geoapi.dependencies import LayerInfo
-from geoapi.ducklake import ducklake_manager
+from geoapi.ducklake_pool import ducklake_pool, is_connection_error
+
+logger = logging.getLogger(__name__)
 
 
 class TileService:
@@ -149,7 +151,7 @@ class TileService:
         # 1. bounds CTE: compute tile envelope in both projections
         # 2. candidates CTE: filter data using bbox (no ST_AsMVTGeom here)
         # 3. Final SELECT: ST_AsMVT with ST_AsMVTGeom inside struct_pack
-        # Use QUALIFY for random sampling instead of LIMIT for better distribution
+        # Use simple LIMIT instead of QUALIFY+random for better performance
         select_clause = f'"{geom_col}"'
         if select_props:
             select_clause += f", {select_props}"
@@ -174,17 +176,40 @@ class TileService:
         """
 
         try:
-            with ducklake_manager.connection() as con:
-                if params:
-                    result = con.execute(query, params).fetchone()
-                else:
-                    result = con.execute(query).fetchone()
+            # Retry once on connection errors (SSL, EOF, etc.)
+            max_retries = 2
+            last_error = None
 
-                if result and result[0]:
-                    return bytes(result[0])
-                return None
+            for attempt in range(max_retries):
+                try:
+                    with ducklake_pool.connection() as con:
+                        if params:
+                            result = con.execute(query, params).fetchone()
+                        else:
+                            result = con.execute(query).fetchone()
+
+                        if result and result[0]:
+                            return bytes(result[0])
+                        return None
+                except Exception as e:
+                    last_error = e
+                    if is_connection_error(e) and attempt < max_retries - 1:
+                        logger.warning(
+                            "Connection error on tile z=%d x=%d y=%d (attempt %d), retrying: %s",
+                            z,
+                            x,
+                            y,
+                            attempt + 1,
+                            e,
+                        )
+                        continue
+                    raise
+
+            # Should not reach here, but raise last error if we do
+            if last_error:
+                raise last_error
         except Exception as e:
-            logging.error("Tile generation error: %s", e)
+            logger.error("Tile generation error: %s", e)
             raise
 
 

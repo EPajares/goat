@@ -20,6 +20,7 @@ from typing import Any
 from uuid import UUID
 
 from core.core.config import settings
+from core.schemas.job import Msg, MsgType
 from core.storage.ducklake import ducklake_manager
 from goatlib.io.converter import IOConverter
 from goatlib.io.remote_source.wfs import from_wfs
@@ -42,6 +43,18 @@ class LayerImportResult:
     extent: dict[str, float] | None
     source_format: str
     source_path: str
+
+
+@dataclass
+class FileValidationResult:
+    """Result of file validation using goatlib."""
+
+    file_path: str
+    data_types: dict[str, Any]
+    msg: Msg
+    feature_count: int | None = None
+    geometry_type: str | None = None
+    format: str | None = None
 
 
 class LayerImporter:
@@ -138,6 +151,8 @@ class LayerImporter:
     ) -> LayerImportResult:
         """Import a file from S3 into DuckLake storage.
 
+        Uses a presigned URL so goatlib can read via HTTP without S3 credentials.
+
         Args:
             user_id: User UUID
             layer_id: Layer UUID
@@ -147,16 +162,36 @@ class LayerImporter:
         Returns:
             LayerImportResult with table info
         """
-        # Build S3 URL that goatlib/duckdb can read
-        s3_url = f"s3://{settings.S3_BUCKET_NAME}/{s3_key}"
-        logger.info("Importing from S3: %s", s3_url)
+        import os
 
-        return self.import_file(
+        from core.services.s3 import s3_service
+
+        # Extract original file extension from S3 key
+        original_filename = os.path.basename(s3_key)
+        source_format = os.path.splitext(original_filename)[1].lstrip(".").lower()
+        logger.info("S3 import: key=%s original_format=%s", s3_key, source_format)
+
+        # Generate presigned URL - goatlib reads as HTTP, no S3 creds needed
+        logger.info("Generating presigned URL for: %s", s3_key)
+        presigned_url = s3_service.generate_presigned_download_url(
+            bucket_name=settings.S3_BUCKET_NAME,
+            s3_key=s3_key,
+            expires_in=3600,  # 1 hour should be enough for import
+        )
+        logger.info("Presigned URL generated, starting import...")
+
+        result = self.import_file(
             user_id=user_id,
             layer_id=layer_id,
-            file_path=s3_url,
+            file_path=presigned_url,
             target_crs=target_crs,
         )
+
+        # Override source_format with original file extension (not "parquet")
+        result.source_format = source_format
+
+        logger.info("S3 import complete for: %s", s3_key)
+        return result
 
     def import_from_wfs(
         self: "LayerImporter",
@@ -271,6 +306,55 @@ class LayerImporter:
             )
             return metadata
 
+    def validate_file_with_metadata(
+        self: "LayerImporter",
+        file_path: str,
+    ) -> FileValidationResult:
+        """Validate a file and return metadata using goatlib.
+
+        Args:
+            file_path: Path to file to validate (local or remote)
+
+        Returns:
+            FileValidationResult with validation info
+
+        Raises:
+            ValueError: If file format is not supported or validation fails
+        """
+        logger.info("Validating file: %s", file_path)
+
+        with tempfile.TemporaryDirectory(prefix="goat_validate_") as temp_dir:
+            temp_parquet = Path(temp_dir) / "validate.parquet"
+
+            # Convert to parquet to validate
+            metadata = self.converter.to_parquet(
+                src_path=file_path,
+                out_path=str(temp_parquet),
+            )
+
+            # Read schema from parquet
+            import duckdb
+
+            con = duckdb.connect(":memory:")
+            con.execute("INSTALL spatial; LOAD spatial;")
+
+            schema_result = con.execute(
+                f"DESCRIBE SELECT * FROM read_parquet('{temp_parquet}')"
+            ).fetchall()
+            con.close()
+
+            # Build simple data_types dict with column names and types
+            columns = {col_name: col_type for col_name, col_type, *_ in schema_result}
+
+            return FileValidationResult(
+                file_path=file_path,
+                data_types={"columns": columns},
+                msg=Msg(type=MsgType.info, text="File is valid."),
+                feature_count=metadata.feature_count,
+                geometry_type=metadata.geometry_type,
+                format=metadata.format,
+            )
+
     def export_layer_to_parquet(
         self: "LayerImporter",
         user_id: UUID,
@@ -317,10 +401,12 @@ class LayerImporter:
         output_format: str = "GPKG",
         target_crs: str | None = None,
         query: str | None = None,
+        timeout_seconds: int = 300,
     ) -> str:
         """Export a layer from DuckLake to any supported format.
 
         Uses DuckDB spatial extension for format conversion from DuckLake.
+        Supports timeout to prevent very long exports.
 
         Args:
             user_id: User UUID
@@ -329,28 +415,32 @@ class LayerImporter:
             output_format: Output format (GPKG, GEOJSON, CSV, etc.)
             target_crs: Optional target CRS for reprojection
             query: Optional WHERE clause for filtering
+            timeout_seconds: Timeout in seconds (default 300 = 5 minutes)
 
         Returns:
             Path to the exported file
 
         Raises:
             ValueError: If layer doesn't exist or export fails
+            TimeoutError: If export exceeds timeout
         """
         logger.info(
-            "Exporting layer: user=%s layer=%s format=%s",
+            "Exporting layer: user=%s layer=%s format=%s timeout=%ds",
             user_id,
             layer_id,
             output_format,
+            timeout_seconds,
         )
 
-        # Export from DuckLake using DuckDB's ST_Write
-        self.ducklake.export_to_format(
+        # Export from DuckLake using DuckDB's ST_Write with timeout support
+        self.ducklake.export_to_format_with_timeout(
             user_id=user_id,
             layer_id=layer_id,
             output_path=output_path,
             output_format=output_format,
             target_crs=target_crs,
             where=query,
+            timeout_seconds=timeout_seconds,
         )
 
         return output_path

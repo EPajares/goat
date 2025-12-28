@@ -4,18 +4,22 @@ A clean FastAPI implementation for serving vector tiles, features,
 and analytical processes from DuckLake/DuckDB storage.
 """
 
+import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import sentry_sdk
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.responses import JSONResponse
 
 from geoapi.config import settings
 from geoapi.ducklake import ducklake_manager
+from geoapi.ducklake_pool import ducklake_pool
 from geoapi.models import HealthCheck
 from geoapi.routers import (
     features_router,
@@ -31,6 +35,38 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    """Middleware to enforce request timeouts based on endpoint type."""
+
+    async def dispatch(self, request: Request, call_next):
+        """Process request with timeout based on path."""
+        # Determine timeout based on endpoint
+        path = request.url.path
+
+        if "/tiles/" in path:
+            timeout = settings.TILE_TIMEOUT
+        elif "/items" in path or "/features" in path:
+            timeout = settings.FEATURE_TIMEOUT
+        elif "/processes/" in path:
+            timeout = settings.PROCESS_TIMEOUT
+        else:
+            timeout = settings.REQUEST_TIMEOUT
+
+        try:
+            response = await asyncio.wait_for(call_next(request), timeout=timeout)
+            return response
+        except asyncio.TimeoutError:
+            logger.error(f"Request timeout ({timeout}s) exceeded for {path}")
+            return JSONResponse(
+                status_code=504,
+                content={
+                    "error": "Gateway Timeout",
+                    "message": f"Request exceeded {timeout} second timeout",
+                    "path": path,
+                },
+            )
 
 
 # Initialize Sentry if configured
@@ -51,7 +87,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     logger.info("Starting GeoAPI...")
 
-    # Initialize DuckLake connection pool (creates all connections upfront)
+    # Initialize DuckLake connection pool for tiles (4 concurrent connections)
+    ducklake_pool.init()
+
+    # Initialize single DuckLake connection for features/other queries
     ducklake_manager.init(settings)
 
     # Initialize layer service (PostgreSQL pool for metadata)
@@ -64,6 +103,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Cleanup
     logger.info("Shutting down GeoAPI...")
     await layer_service.close()
+    ducklake_pool.close()
     ducklake_manager.close()
     logger.info("GeoAPI shutdown complete")
 
@@ -79,6 +119,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
+# Add timeout middleware (first, so it wraps all other middleware)
+app.add_middleware(TimeoutMiddleware)
 
 # Add CORS middleware
 app.add_middleware(

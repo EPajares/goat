@@ -1,7 +1,5 @@
 # Standard Libraries
-import json
 import os
-import tempfile
 from typing import Any, Dict, Optional
 from uuid import UUID
 
@@ -15,11 +13,9 @@ from fastapi import (
     Path,
     Query,
     Request,
-    UploadFile,
-    logger,
     status,
 )
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi_pagination import Page
 from fastapi_pagination import Params as PaginationParams
 from pydantic import UUID4, BaseModel
@@ -32,9 +28,6 @@ from core.core.content import (
     read_content_by_id,
 )
 from core.crud.crud_job import job as crud_job
-from core.crud.crud_layer import (
-    CRUDLayerDatasetUpdate,
-)
 from core.crud.crud_layer import layer as crud_layer
 from core.crud.crud_layer_ducklake import (
     CRUDLayerExportDuckLake,
@@ -59,8 +52,6 @@ from core.schemas.layer import (
     IFeatureStandardLayerRead,
     IFeatureStreetNetworkLayerRead,
     IFeatureToolLayerRead,
-    IFileUploadExternalService,
-    IFileUploadMetadata,
     ILayerExport,
     ILayerFromDatasetCreate,
     ILayerGet,
@@ -79,198 +70,103 @@ from core.services.s3 import s3_service
 router = APIRouter()
 
 
-@router.post(
-    "/file-upload-external-service",
-    summary="Fetch data from external service into a file, upload file to S3 and validate",
-    response_model=IFileUploadMetadata,
-    status_code=201,
-    dependencies=[Depends(auth_z)],
-)
-async def file_upload_external_service(
-    *,
-    async_session: AsyncSession = Depends(get_db),
-    user_id: UUID = Depends(get_user_id),
-    external_service: IFileUploadExternalService = Body(
-        ...,
-        description="External service to fetch data from.",
-    ),
-) -> IFileUploadMetadata:
-    """
-    Fetch data from an external service, save to disk, upload to S3, then validate.
-    """
-    layer_type = LayerType.feature
-
-    # 1. Run validation pipeline (fetch external → save locally → validate)
-    metadata = await crud_layer.upload_file(
-        async_session=async_session,
-        user_id=user_id,
-        source=external_service,
-        layer_type=layer_type,
-    )
-
-    # 2. Upload validated file to S3
-    try:
-        # Open the validated local file
-        with open(metadata.file_path, "rb") as f:
-            s3_key = s3_service.build_s3_key(
-                settings.S3_BUCKET_PATH,
-                "users",
-                str(user_id),
-                "imports",
-                "external",
-                f"{metadata.dataset_id}_{os.path.basename(metadata.file_path)}",
-            )
-            s3_service.upload_file(
-                file_content=f,
-                bucket_name=settings.S3_BUCKET_NAME,
-                s3_key=s3_key,
-                content_type="application/octet-stream",
-            )
-            # 3. Add s3_key to metadata
-            metadata.s3_key = s3_key
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to upload external service file to S3: {e}",
-        )
-
-    return metadata
-
-
-def _validate_and_fetch_metadata(
-    user_id: UUID,
-    dataset_id: UUID,
-) -> Dict[str, Any]:
-    # Check if user owns folder by checking if it exists
-    folder_path = os.path.join(settings.DATA_DIR, str(user_id), str(dataset_id))
-    if os.path.exists(folder_path) is False:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dataset not found or not owned by user.",
-        )
-
-    # Get metadata from file in folder
-    metadata_path = None
-    for root, _dirs, files in os.walk(folder_path):
-        if "metadata.json" in files:
-            metadata_path = os.path.join(root, "metadata.json")
-
-    if metadata_path is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Metadata file not found.",
-        )
-
-    with open(os.path.join(metadata_path)) as f:
-        file_metadata = dict(json.loads(json.load(f)))
-
-    return file_metadata
-
-
 async def _create_layer_from_dataset(
     background_tasks: BackgroundTasks,
     async_session: AsyncSession,
     user_id: UUID,
     project_id: Optional[UUID] = None,
     layer_in: ILayerFromDatasetCreate = Body(...),
-) -> Dict[str, UUID]:
-    """Create a feature or table layer from a dataset uploaded to S3.
+) -> Dict[str, Any]:
+    """Create a feature or table layer from S3 file or WFS service.
 
     The layer type (feature vs table) is auto-detected based on whether
-    the data contains geometry. CSV/Excel with WKT geometry columns will
-    automatically become feature layers.
+    the data contains geometry.
+
+    Supports two import modes:
+    - S3: Import from a file previously uploaded to S3 (s3_key required)
+    - WFS: Import directly from a WFS service (data_type=wfs, other_properties.url required)
+
+    Returns a job_id that can be used to track the import progress.
     """
+    from core.db.models.layer import FeatureDataType
 
-    # --- ensure s3 key belongs to this user
-    expected_prefix = s3_service.build_s3_key(
-        settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
+    # Determine import mode: WFS or S3
+    is_wfs = (
+        layer_in.data_type == FeatureDataType.wfs
+        and layer_in.other_properties is not None
+        and layer_in.other_properties.url is not None
     )
-    if layer_in.s3_key is None:
-        raise HTTPException(400, "Missing required s3_key")
 
-    if not layer_in.s3_key.startswith(expected_prefix):
-        raise HTTPException(403, "Invalid s3_key (not owned by user)")
+    # --- Create job for tracking import progress
+    job = await crud_job.check_and_create(
+        async_session=async_session,
+        user_id=user_id,
+        job_type=JobType.file_import,
+        project_id=project_id,
+    )
 
-    # --- original filename from S3 key
-    orig_filename = os.path.basename(layer_in.s3_key)
-    file_ext = os.path.splitext(orig_filename)[-1].lower()
-    ext_trimmed = file_ext.lstrip(".")
-
-    # --- Validate file type is allowed (but don't pre-determine layer type)
-    if ext_trimmed not in FileUploadType.__members__:
-        raise HTTPException(
-            415,
-            f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
-        )
-
-    # --- Tmp directory for this user
-    tmp_dir = os.path.join(tempfile.gettempdir(), str(user_id))
-    os.makedirs(tmp_dir, exist_ok=True)
-    tmp_path = os.path.join(tmp_dir, orig_filename)
-
-    try:
-        # --- Download from S3 to /tmp/{user_id}/{filename}
-        s3_service.s3_client.download_file(
-            settings.S3_BUCKET_NAME,
-            layer_in.s3_key,
-            tmp_path,
-        )
-
-        # --- Wrap downloaded file as UploadFile
-        # Note: layer_type is not pre-determined here anymore
-        # The actual type will be detected after goatlib conversion based on geometry
-        with open(tmp_path, "rb") as f:
-            upload = UploadFile(filename=orig_filename, file=f)
-
-            # Use feature type for validation - goatlib will handle both
-            # The actual layer type is determined during import based on geometry presence
-            file_metadata = await crud_layer.upload_file(
-                async_session=async_session,
-                user_id=user_id,
-                source=upload,
-                layer_type=LayerType.feature,  # Default for validation, actual type determined by geometry
-            )
-
-    except Exception as e:
-        raise HTTPException(500, f"Error handling file from S3: {e}")
-    finally:
-        # --- Always cleanup
-        try:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        except Exception as cleanup_err:
-            # log, but don’t swallow main exception
-            logger.warning(f"Could not delete temp file {tmp_path}: {cleanup_err}")
-
-    # --- Run import directly (layer type auto-detected based on geometry)
-    from uuid import uuid4
-
-    job_id = uuid4()  # Dummy job_id for now
     crud_import = CRUDLayerImportDuckLake(
-        job_id=job_id,
+        job_id=job.id,
         background_tasks=background_tasks,
         async_session=async_session,
         user_id=user_id,
     )
-    result, layer_id = await crud_import.import_file(
-        file_path=file_metadata.file_path,
-        layer_in=layer_in,
-        file_metadata=file_metadata.model_dump(),
-        project_id=project_id,
-    )
 
-    return {"layer_id": str(layer_id), **result}
+    if is_wfs:
+        # --- WFS import: fetch directly from WFS service
+        wfs_url = layer_in.other_properties.url
+        wfs_layer_name = (
+            layer_in.other_properties.layers[0]
+            if layer_in.other_properties.layers
+            else None
+        )
+
+        await crud_import.import_from_wfs_job(
+            wfs_url=wfs_url,
+            layer_in=layer_in,
+            wfs_layer_name=wfs_layer_name,
+            project_id=project_id,
+        )
+    else:
+        # --- S3 import: read from previously uploaded file
+        if layer_in.s3_key is None:
+            raise HTTPException(400, "Missing required s3_key for file import")
+
+        # Validate S3 key belongs to this user
+        expected_prefix = s3_service.build_s3_key(
+            settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
+        )
+        if not layer_in.s3_key.startswith(expected_prefix):
+            raise HTTPException(403, "Invalid s3_key (not owned by user)")
+
+        # Validate file type
+        orig_filename = os.path.basename(layer_in.s3_key)
+        file_ext = os.path.splitext(orig_filename)[-1].lower()
+        ext_trimmed = file_ext.lstrip(".")
+
+        if ext_trimmed not in FileUploadType.__members__:
+            raise HTTPException(
+                415,
+                f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
+            )
+
+        await crud_import.import_from_s3_job(
+            s3_key=layer_in.s3_key,
+            layer_in=layer_in,
+            project_id=project_id,
+        )
+
+    return {"job_id": str(job.id)}
 
 
 @router.post(
     "/internal",
     summary="Create a new layer (auto-detects feature vs table)",
     response_class=JSONResponse,
-    status_code=201,
-    description="Create a new layer from a previously uploaded dataset. "
-    "The layer type (feature or table) is automatically detected based on "
-    "whether the data contains geometry. CSV/Excel files with WKT geometry "
-    "columns will be imported as feature layers.",
+    status_code=202,
+    description="Create a new layer from S3 file or WFS service. "
+    "The layer type (feature or table) is automatically detected based on geometry. "
+    "For S3: provide s3_key. For WFS: set data_type='wfs' and provide URL in other_properties.",
     dependencies=[Depends(auth_z)],
 )
 async def create_layer(
@@ -288,11 +184,15 @@ async def create_layer(
         description="Layer to create",
     ),
 ) -> Dict[str, Any]:
-    """Create a new layer from a previously uploaded dataset.
+    """Create a new layer from S3 file or WFS service.
 
-    The layer type is auto-detected:
-    - Files with geometry (GeoJSON, GPKG, SHP, KML, or CSV/Excel with WKT column) → feature layer
-    - Files without geometry (plain CSV, Excel) → table layer
+    Supports two import modes:
+    - **S3 file**: Provide `s3_key` pointing to a previously uploaded file
+    - **WFS service**: Set `data_type="wfs"` and provide WFS URL in `other_properties.url`
+
+    The layer type is auto-detected based on geometry presence.
+
+    Returns a job_id that can be used to track the import progress.
     """
     return await _create_layer_from_dataset(
         background_tasks=background_tasks,
@@ -335,12 +235,14 @@ async def create_layer_raster(
 
 @router.post(
     "/{layer_id}/export",
-    summary="Export a layer to a file",
-    response_class=FileResponse,
-    status_code=201,
-    description="Export a layer to a zip file.",
+    summary="Export a layer to a file (async)",
+    response_class=JSONResponse,
+    status_code=202,
+    description="Start an async export job. Returns a job_id to track progress. "
+    "Once complete, use the job result's s3_key with the download endpoint.",
 )
 async def export_layer(
+    background_tasks: BackgroundTasks,
     request: Request,
     async_session: AsyncSession = Depends(get_db),
     user_id: UUID4 = Depends(get_user_id),
@@ -354,8 +256,21 @@ async def export_layer(
         example=layer_request_examples["export"],
         description="Layer to export",
     ),
-) -> FileResponse:
-    # Check authorization statusAdd commentMore actions
+) -> Dict[str, Any]:
+    """Export a layer to a file asynchronously.
+
+    This endpoint starts a background export job and returns immediately with a job_id.
+    The export runs asynchronously to avoid blocking the API.
+
+    To get the exported file:
+    1. Poll the job status endpoint with the returned job_id
+    2. Once status is 'finished', get the s3_key from the job result
+    3. Use the download endpoint with the s3_key to get a presigned URL
+
+    Returns:
+        job_id: UUID to track the export progress
+    """
+    # Check authorization status
     try:
         await auth_z_lite(request, async_session)
     except HTTPException:
@@ -377,47 +292,32 @@ async def export_layer(
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
             )
-    # Run the export using DuckLake CRUD
-    crud_export = CRUDLayerExportDuckLake(
-        layer_id=layer_id,
+
+    # Create job for tracking export progress
+    job = await crud_job.check_and_create(
         async_session=async_session,
         user_id=user_id,
+        job_type=JobType.file_export,
     )
+
+    # Run the export using DuckLake CRUD as background job
+    crud_export = CRUDLayerExportDuckLake(
+        job_id=job.id,
+        background_tasks=background_tasks,
+        async_session=async_session,
+        user_id=user_id,
+        layer_id=layer_id,
+    )
+
     with HTTPErrorHandler():
-        zip_file_path = await crud_export.export_to_file(
+        await crud_export.export_to_file_job(
             output_format=layer_in.file_type.value,
             file_name=layer_in.file_name,
             target_crs=layer_in.crs,
             where_clause=layer_in.query,
         )
 
-    # Return file with cleanup after download
-    file_name = os.path.basename(zip_file_path)
-    user_export_dir = os.path.dirname(zip_file_path)  # data/{user_id}
-
-    # Background task to delete the zip file and empty user folder after response
-    async def cleanup_export_file() -> None:
-        try:
-            if os.path.exists(zip_file_path):
-                os.remove(zip_file_path)
-            # Also remove parent user folder if empty
-            if user_export_dir and os.path.isdir(user_export_dir):
-                try:
-                    os.rmdir(user_export_dir)  # Only removes if empty
-                except OSError:
-                    pass  # Not empty, that's fine
-        except Exception:
-            pass  # Best effort cleanup
-
-    background_tasks = BackgroundTasks()
-    background_tasks.add_task(cleanup_export_file)
-
-    return FileResponse(
-        zip_file_path,
-        media_type="application/zip",
-        filename=file_name,
-        background=background_tasks,
-    )
+    return {"job_id": str(job.id)}
 
 
 @router.get(
@@ -594,14 +494,20 @@ async def update_layer_dataset(
         description="The ID of the layer to update",
         example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ),
-    dataset_id: UUID | None = Query(
-        None, description="The ID of the dataset to update the layer with"
-    ),
     s3_key: str | None = Query(
         None, description="The S3 key of the dataset to update the layer with"
     ),
+    refresh_wfs: bool = Query(
+        False, description="If true, refresh WFS layer from its source URL"
+    ),
 ) -> Dict[str, UUID]:
-    """Update the dataset of a layer. Either by dataset_id (legacy/external service) or by s3_key (S3 uploaded file)."""
+    """Update the dataset of a layer.
+
+    Supports two modes:
+    - **WFS refresh**: Set refresh_wfs=true to re-fetch from original WFS source
+    - **S3 file**: Provide s3_key for a new file upload
+    """
+    from core.db.models.layer import FeatureDataType
 
     # Retrieve existing layer and authorize
     existing_layer = await crud_layer.get_internal(
@@ -614,69 +520,6 @@ async def update_layer_dataset(
             detail="User does not have permission to update this layer.",
         )
 
-    # 1Legacy / external service flow: dataset_id used
-    if dataset_id and not s3_key:
-        file_metadata = _validate_and_fetch_metadata(
-            user_id=user_id,
-            dataset_id=dataset_id,
-        )
-
-    # New S3 flow: s3_key provided
-    elif s3_key and not dataset_id:
-        expected_prefix = s3_service.build_s3_key(
-            settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
-        )
-        if not s3_key.startswith(expected_prefix):
-            raise HTTPException(403, "Invalid s3_key (not owned by user)")
-
-        orig_filename = os.path.basename(s3_key)
-        file_ext = os.path.splitext(orig_filename)[-1].lower().lstrip(".")
-
-        # Validate file type is allowed
-        if file_ext not in FileUploadType.__members__:
-            raise HTTPException(
-                415,
-                f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
-            )
-
-        # Download to tmp
-        tmp_dir = os.path.join(tempfile.gettempdir(), str(user_id))
-        os.makedirs(tmp_dir, exist_ok=True)
-        tmp_path = os.path.join(tmp_dir, orig_filename)
-        try:
-            s3_service.s3_client.download_file(
-                settings.S3_BUCKET_NAME,
-                s3_key,
-                tmp_path,
-            )
-            with open(tmp_path, "rb") as f:
-                upload = UploadFile(filename=orig_filename, file=f)
-                # Layer type is auto-detected based on geometry presence
-                file_metadata = await crud_layer.upload_file(
-                    async_session=async_session,
-                    user_id=user_id,
-                    source=upload,
-                    layer_type=LayerType.feature,  # Default for validation
-                )
-        except Exception as e:
-            raise HTTPException(500, f"Error handling file from S3: {e}")
-        finally:
-            try:
-                if os.path.exists(tmp_path):
-                    os.remove(tmp_path)
-            except Exception as cleanup_err:
-                logger.warning(f"Could not delete temp file {tmp_path}: {cleanup_err}")
-
-        # If crud_layer.upload_file returns a Pydantic model, ensure dict
-        if not isinstance(file_metadata, dict):
-            file_metadata = file_metadata.model_dump()
-
-    else:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            "You must pass either dataset_id or s3_key, but not both.",
-        )
-
     # Create job
     job = await crud_job.check_and_create(
         async_session=async_session,
@@ -684,8 +527,9 @@ async def update_layer_dataset(
         job_type=JobType.update_layer_dataset,
     )
 
-    # Prepare new layer_in
+    # Prepare layer_in for update
     layer_in = ILayerFromDatasetCreate(
+        id=existing_layer.id,  # Keep same ID
         name=existing_layer.name,
         description=existing_layer.description,
         folder_id=existing_layer.folder_id,
@@ -693,22 +537,74 @@ async def update_layer_dataset(
         data_type=existing_layer.data_type,
         url=existing_layer.url,
         other_properties=existing_layer.other_properties,
-        dataset_id=dataset_id,
         s3_key=s3_key,
-        # s3_key could also be added to schema if you extend it
     )
 
-    # Run dataset update
-    await CRUDLayerDatasetUpdate(
+    crud_import = CRUDLayerImportDuckLake(
+        job_id=job.id,
         background_tasks=background_tasks,
         async_session=async_session,
         user_id=user_id,
-        job_id=job.id,
-    ).update(
-        existing_layer_id=existing_layer.id,
-        file_metadata=file_metadata,
-        layer_in=layer_in,
     )
+
+    # WFS refresh: re-fetch from original WFS URL
+    if refresh_wfs:
+        if existing_layer.data_type != FeatureDataType.wfs:
+            raise HTTPException(400, "Layer is not a WFS layer")
+        if (
+            not existing_layer.other_properties
+            or not existing_layer.other_properties.get("url")
+        ):
+            raise HTTPException(400, "WFS layer has no source URL")
+
+        wfs_url = existing_layer.other_properties["url"]
+        wfs_layer_name = (
+            existing_layer.other_properties.get("layers", [None])[0]
+            if existing_layer.other_properties.get("layers")
+            else None
+        )
+
+        # Delete old data first, then import fresh
+        await delete_layer_ducklake(async_session, existing_layer)
+
+        await crud_import.import_from_wfs_job(
+            wfs_url=wfs_url,
+            layer_in=layer_in,
+            wfs_layer_name=wfs_layer_name,
+            project_id=None,
+        )
+
+    # S3 file update
+    elif s3_key:
+        expected_prefix = s3_service.build_s3_key(
+            settings.S3_BUCKET_PATH, "users", str(user_id), "imports"
+        )
+        if not s3_key.startswith(expected_prefix):
+            raise HTTPException(403, "Invalid s3_key (not owned by user)")
+
+        # Validate file type
+        orig_filename = os.path.basename(s3_key)
+        file_ext = os.path.splitext(orig_filename)[-1].lower().lstrip(".")
+        if file_ext not in FileUploadType.__members__:
+            raise HTTPException(
+                415,
+                f"File type not allowed. Allowed: {', '.join(FileUploadType.__members__.keys())}",
+            )
+
+        # Delete old data first, then import fresh
+        await delete_layer_ducklake(async_session, existing_layer)
+
+        await crud_import.import_from_s3_job(
+            s3_key=s3_key,
+            layer_in=layer_in,
+            project_id=None,
+        )
+
+    else:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "You must provide one of: refresh_wfs=true or s3_key",
+        )
 
     return {"job_id": job.id}
 
@@ -750,13 +646,6 @@ async def delete_layer(
             id=layer_id,
         )
     return
-
-
-# NOTE: The following analytics endpoints have been moved to GeoAPI OGC API Processes:
-# - GET /{layer_id}/feature-count -> POST /processes/feature-count/execution
-# - GET /{layer_id}/area/{operation} -> POST /processes/area-statistics/execution
-# - GET /{layer_id}/unique-values/{column_name} -> POST /processes/unique-values/execution
-# - GET /{layer_id}/class-breaks/{operation}/{column_name} -> POST /processes/class-breaks/execution
 
 
 @router.post(

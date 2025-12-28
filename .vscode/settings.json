@@ -44,7 +44,11 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": [
-    "packages/python/goatlib/tests"
+    "--import-mode=importlib",
+    "-p", "no:cacheprovider",
+    "packages/python/goatlib/tests",
+    "apps/geoapi/tests",
+    "apps/core/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   

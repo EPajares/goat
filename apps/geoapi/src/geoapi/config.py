@@ -36,6 +36,17 @@ class Settings(BaseSettings):
     DEFAULT_TILE_BUFFER: int = 256
     DEFAULT_EXTENT: int = 4096
 
+    # Connection pool size for concurrent tile requests
+    DUCKLAKE_POOL_SIZE: int = int(os.getenv("GEOAPI_DUCKLAKE_POOL_SIZE", "8"))
+
+    # Timeout Settings (in seconds)
+    REQUEST_TIMEOUT: int = int(os.getenv("GEOAPI_REQUEST_TIMEOUT", "30"))
+    TILE_TIMEOUT: int = int(
+        os.getenv("GEOAPI_TILE_TIMEOUT", "30")
+    )  # Increased for large datasets
+    FEATURE_TIMEOUT: int = int(os.getenv("GEOAPI_FEATURE_TIMEOUT", "30"))
+    PROCESS_TIMEOUT: int = int(os.getenv("GEOAPI_PROCESS_TIMEOUT", "60"))
+
     # CORS settings
     CORS_ORIGINS: list[str] = ["*"]
 

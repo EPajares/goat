@@ -93,6 +93,7 @@ class FileUploadType(str, Enum):
     gpkg = "gpkg"
     kml = "kml"
     zip = "zip"  # Commonly used for shapefiles
+    parquet = "parquet"  # GeoParquet files
 
 
 class FeatureLayerExportType(str, Enum):
