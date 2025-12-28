@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 import shutil
 import tempfile
+import urllib.request
+import urllib.error
 import zipfile
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,7 +14,6 @@ from urllib.parse import urlparse
 
 import boto3
 import duckdb
-import requests
 
 from goatlib.io.formats import ALL_EXTS, FileFormat
 from goatlib.io.utils import detect_path_type
@@ -45,12 +46,11 @@ def temporary_download(url: str, timeout: int = 300) -> Iterator[Path]:
         logger.info("Downloading %s → %s", url, local_path)
         path_type = detect_path_type(url)
         if path_type == "http":
-            response = requests.get(url, stream=True, timeout=timeout)
-            response.raise_for_status()
-
-            with open(local_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            req = urllib.request.Request(url, headers={"User-Agent": "goatlib/1.0"})
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                with open(local_path, "wb") as f:
+                    while chunk := response.read(8192):
+                        f.write(chunk)
 
         elif path_type == "s3":
             parts = url.split("/", 3)
