@@ -12,6 +12,7 @@ import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useLayerByGeomType } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 
 import Selector from "@/components/map/panels/common/Selector";
 import HeatmapContainer from "@/components/map/panels/toolbox/common/HeatmapContainer";
@@ -32,6 +33,11 @@ const HeatmapConnectivity = ({ onBack, onClose }: IndicatorBaseProps) => {
   const referenceLayer = useMemo(() => {
     return projectLayers?.find((layer) => layer.id === referenceLayerItem?.value);
   }, [projectLayers, referenceLayerItem?.value]);
+
+  // Fetch reference layer feature count on-demand
+  const { featureCount: referenceLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: referenceLayer,
+  });
 
   const isValid = useMemo(() => {
     return maxTravelTime !== undefined && referenceLayerItem !== undefined;
@@ -67,7 +73,7 @@ const HeatmapConnectivity = ({ onBack, onClose }: IndicatorBaseProps) => {
       handleRun={handleRun}
       isConfigurationValid={isValid}
       disableScenario
-      currentNumberOfFeatures={referenceLayer?.filtered_count}
+      currentNumberOfFeatures={referenceLayerFeatureCount}
       configChildren={
         <>
           {/* MAX TRAVEL TIME */}

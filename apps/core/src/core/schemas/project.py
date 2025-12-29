@@ -8,7 +8,6 @@ from pydantic import (
     BaseModel,
     HttpUrl,
     ValidationInfo,
-    computed_field,
     field_validator,
 )
 from sqlmodel import ARRAY, Column, Field, ForeignKey, SQLModel, Text
@@ -16,7 +15,6 @@ from sqlmodel import UUID as UUID_PG
 
 from core.core.config import settings
 from core.db.models._base_class import ContentBaseAttributes, DateTimeBase
-from core.db.models.layer import internal_layer_table_name
 from core.schemas.common import CQLQuery
 from core.schemas.layer import (
     ExternalServiceOtherProperties,
@@ -26,7 +24,7 @@ from core.schemas.layer import (
     RasterRead,
     TableRead,
 )
-from core.utils import build_where, optional
+from core.utils import optional
 
 
 ################################################################################
@@ -189,37 +187,19 @@ class IFeatureBaseProjectRead(IFeatureBaseProject):
 class IFeatureStandardProjectRead(
     LayerProjectIds, FeatureStandardRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureToolProjectRead(
     LayerProjectIds, FeatureToolRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureStreetNetworkProjectRead(
     LayerProjectIds, FeatureStreetNetworkRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureStandardProjectUpdate(IFeatureBaseProject):
@@ -256,15 +236,6 @@ class ITableProjectRead(LayerProjectIds, TableRead, CQLQuery):
     )
     order: int = Field(0, description="Visual sorting order")
     layer_project_group_id: int | None = Field(None, description="Parent group ID")
-
-    # Compute table_name and where_query
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
 
 
 @optional
@@ -353,22 +324,6 @@ class ProjectPublicRead(BaseModel):
     updated_at: datetime = Field(..., description="Updated at")
     project_id: UUID
     config: ProjectPublicConfig
-
-
-def where_query(
-    values: IFeatureStandardProjectRead
-    | IFeatureToolProjectRead
-    | IFeatureStreetNetworkProjectRead
-    | ITableProjectRead,
-) -> str | None:
-    table_name = internal_layer_table_name(values)
-    # Check if query exists then build where query
-    return build_where(
-        id=values.layer_id,
-        table_name=table_name,
-        query=values.query,
-        attribute_mapping=values.attribute_mapping,
-    )
 
 
 # --- Schemas for Tree Structure Updates (Drag & Drop) ---

@@ -43,6 +43,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Export timeout in seconds
+EXPORT_TIMEOUT_SECONDS = 30
+
 
 # =============================================================================
 # Geometry type mapping
@@ -722,9 +725,6 @@ class CRUDLayerExportDuckLake(CRUDFailedJob):
             Path to exported zip file
         """
         import asyncio
-
-        # Export timeout: 30 seconds for testing
-        EXPORT_TIMEOUT_SECONDS = 30
 
         logger.info(
             "Exporting layer %s to %s format (timeout: %ds)",

@@ -8,7 +8,6 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
-    Request,
     status,
 )
 from fastapi.responses import JSONResponse
@@ -18,7 +17,6 @@ from pydantic import UUID4
 from sqlalchemy import select
 from sqlmodel import update
 
-from core.core.chart import read_chart_data
 from core.crud.crud_layer_project import layer_project as crud_layer_project
 from core.crud.crud_layer_project_group import (
     layer_project_group as crud_layer_project_group,
@@ -29,17 +27,14 @@ from core.crud.crud_user_project import user_project as crud_user_project
 from core.db.models._link_model import (
     LayerProjectGroup,
     LayerProjectLink,
-    ScenarioScenarioFeatureLink,
     UserProjectLink,
 )
 from core.db.models.project import Project
 from core.db.models.scenario import Scenario
-from core.db.models.scenario_feature import ScenarioFeature
 from core.db.session import AsyncSession
-from core.deps.auth import auth_z, auth_z_lite
+from core.deps.auth import auth_z
 from core.endpoints.deps import get_db, get_scenario, get_user_id
 from core.schemas.common import OrderEnum
-from core.schemas.error import HTTPErrorHandler
 from core.schemas.project import (
     IFeatureStandardProjectRead,
     IFeatureStreetNetworkProjectRead,
@@ -68,8 +63,7 @@ from core.schemas.scenario import (
 from core.schemas.scenario import (
     request_examples as scenario_request_examples,
 )
-from core.schemas.toolbox_base import ColumnStatisticsOperation
-from core.utils import delete_orphans, to_feature_collection
+from core.utils import to_feature_collection
 
 router = APIRouter()
 
@@ -549,227 +543,6 @@ async def delete_layer_from_project(
     return None
 
 
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/chart-data",
-    response_model=dict,
-    response_model_exclude_none=True,
-    status_code=200,
-    dependencies=[Depends(auth_z)],
-)
-async def get_chart_data(
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    cumsum: bool = Query(
-        False,
-        description="Specify if the data should be cumulated. This only works if the x-axis is a number.",
-        example=False,
-    ),
-) -> Dict[str, Any]:
-    """Get chart data from a layer in a project by its ID."""
-
-    # Get chart data
-    with HTTPErrorHandler():
-        return await read_chart_data(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            cumsum=cumsum,
-        )
-
-
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/statistic-aggregation",
-    summary="Get aggregated statistics for a column",
-    response_model=dict,
-    status_code=200,
-)
-async def get_statistic_aggregation(
-    request: Request,
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    operation_type: ColumnStatisticsOperation | None = Query(
-        None,
-        description="The operation to perform",
-        example="sum",
-    ),
-    operation_value: str | None = Query(
-        None,
-        description="The value to use for the operation. Column name for operations like sum, avg or QGIS expression for expression operations.",
-        example="population",
-    ),
-    group_by_column_name: str | None = Query(
-        None,
-        description="The name of the column to group by",
-        example="name",
-    ),
-    size: int = Query(
-        100, description="The number of grouped values to return", example=5
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    order: OrderEnum = Query(
-        "descendent",
-        description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="descendent",
-    ),
-) -> Dict[str, Any]:
-    """Get aggregated statistics for a numeric column based on the supplied group-by column and CQL-filter."""
-
-    # Check authorization status
-    try:
-        await auth_z_lite(request, async_session)
-    except HTTPException:
-        # Check publication status if unauthorized
-        public_project = await crud_project.get_public_project(
-            async_session=async_session,
-            project_id=str(project_id),
-        )
-        if not public_project:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-
-    # Ensure an operation or expression is specified
-    if operation_type is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An operation must be specified.",
-        )
-
-    # Ensure a column name is specified for all operations except count
-    if (
-        operation_type
-        and operation_type != ColumnStatisticsOperation.count
-        and operation_value is None
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A column name or expression must be specified for the operation except for count.",
-        )
-
-    # Ensure the size is not excessively large
-    if size > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The size is limited to 100.",
-        )
-
-    with HTTPErrorHandler():
-        values = await crud_layer_project.get_statistic_aggregation(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            operation_type=operation_type,
-            group_by_column_name=group_by_column_name,
-            operation_value=operation_value,
-            size=size,
-            query=query,
-            order=order,
-        )
-
-    # Return result
-    return values
-
-
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/statistic-histogram",
-    summary="Get histogram statistics for a column",
-    response_model=dict,
-    status_code=200,
-)
-async def get_statistic_histogram(
-    request: Request,
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    column_name: str = Query(
-        ...,
-        description="The column name to get the unique values from",
-        example="name",
-    ),
-    num_bins: int = Query(
-        ...,
-        description="The number of bins / classes the histogram should have",
-        example=5,
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    order: OrderEnum = Query(
-        "ascendent",
-        description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="ascendent",
-    ),
-) -> Dict[str, Any]:
-    """Get histogram statistics for a numeric column based on the specified number of bins and CQL-filter."""
-
-    # Check authorization status
-    try:
-        await auth_z_lite(request, async_session)
-    except HTTPException:
-        # Check publication status if unauthorized
-        public_project = await crud_project.get_public_project(
-            async_session=async_session,
-            project_id=str(project_id),
-        )
-        if not public_project:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-
-    # Ensure the number of bins is not excessively large
-    if num_bins > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The number of bins is limited to 100.",
-        )
-
-    with HTTPErrorHandler():
-        values = await crud_layer_project.get_statistic_histogram(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            column_name=column_name,
-            num_bins=num_bins,
-            query=query,
-            order=order,
-        )
-
-    # Return result
-    return values
-
-
 ##############################################
 ### Scenario endpoints
 ##############################################
@@ -894,15 +667,7 @@ async def delete_scenario(
     """Delete scenario."""
 
     await crud_scenario.remove(db=async_session, id=scenario.id)
-    # Deletes scenario features that are not linked to any scenario (orphans).
-    # This can't be achieved using CASCADE because the relationship is many-to-many.
-    await delete_orphans(
-        async_session,
-        ScenarioFeature,
-        ScenarioFeature.id.key,
-        ScenarioScenarioFeatureLink,
-        ScenarioScenarioFeatureLink.scenario_feature_id.key,
-    )
+
     return None
 
 

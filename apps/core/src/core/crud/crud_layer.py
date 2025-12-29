@@ -32,7 +32,6 @@ from core.core.layer import (
     delete_layer_data,
 )
 from core.crud.base import CRUDBase
-from core.crud.crud_layer_project import layer_project as crud_layer_project
 from core.db.models._link_model import (
     LayerOrganizationLink,
     LayerTeamLink,
@@ -64,7 +63,6 @@ from core.schemas.layer import (
     get_layer_schema,
     layer_update_class,
 )
-from core.schemas.toolbox_base import MaxFeatureCnt
 from core.utils import (
     async_delete_dir,
     build_where,
@@ -447,13 +445,7 @@ class CRUDLayer(CRUDLayerBase):
                 "Operation not supported. The layer does not contain polygon geometries. Pick a layer with polygon geometries."
             )
 
-        # Check if feature count is exceeding the defined limit
-        await crud_layer_project.check_exceed_feature_cnt(
-            async_session=async_session,
-            max_feature_cnt=MaxFeatureCnt.area_statistics.value,
-            layer=layer,
-            where_query=where_query,
-        )
+        # TODO: Feature count validation moved to geoapi - consider adding limit check there
         where_query = "WHERE " + where_query
 
         # Call SQL function

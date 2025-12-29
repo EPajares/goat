@@ -73,9 +73,17 @@ class LayerService:
 
     def __init__(self) -> None:
         self._pool: Optional[asyncpg.Pool] = None
+        self._pool_lock = None  # Will be asyncio.Lock
 
     async def init(self) -> None:
         """Initialize connection pool."""
+        import asyncio
+
+        self._pool_lock = asyncio.Lock()
+        await self._create_pool()
+
+    async def _create_pool(self) -> None:
+        """Create the connection pool with health-check settings."""
         self._pool = await asyncpg.create_pool(
             host=settings.POSTGRES_SERVER,
             port=settings.POSTGRES_PORT,
@@ -84,12 +92,93 @@ class LayerService:
             database=settings.POSTGRES_DB,
             min_size=2,
             max_size=10,
+            # Connection health settings
+            command_timeout=60,
+            # Server settings for keepalive (PostgreSQL)
+            server_settings={
+                "tcp_keepalives_idle": "30",
+                "tcp_keepalives_interval": "5",
+                "tcp_keepalives_count": "5",
+            },
         )
+
+    async def _get_connection(self, max_retries: int = 2):
+        """Get a connection with retry on connection errors.
+
+        Recreates the pool if connections are broken.
+        """
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                return self._pool.acquire()
+            except (
+                asyncpg.exceptions.ConnectionDoesNotExistError,
+                asyncpg.exceptions.InterfaceError,
+                OSError,
+            ) as e:
+                last_error = e
+                logger.warning(
+                    "Connection pool error (attempt %d/%d): %s",
+                    attempt + 1,
+                    max_retries,
+                    e,
+                )
+                # Recreate pool on connection errors
+                async with self._pool_lock:
+                    try:
+                        await self._pool.close()
+                    except Exception:
+                        pass
+                    await self._create_pool()
+        raise last_error
 
     async def close(self) -> None:
         """Close connection pool."""
         if self._pool:
             await self._pool.close()
+
+    async def _execute_with_retry(
+        self,
+        query: str,
+        *args,
+        fetch_one: bool = False,
+        max_retries: int = 2,
+    ):
+        """Execute a query with retry on connection errors.
+
+        Args:
+            query: SQL query
+            *args: Query arguments
+            fetch_one: If True, use fetchrow; else fetchall
+            max_retries: Number of retry attempts
+        """
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                async with self._pool.acquire() as conn:
+                    if fetch_one:
+                        return await conn.fetchrow(query, *args)
+                    return await conn.fetch(query, *args)
+            except (
+                asyncpg.exceptions.ConnectionDoesNotExistError,
+                asyncpg.exceptions.InterfaceError,
+                OSError,
+            ) as e:
+                last_error = e
+                logger.warning(
+                    "Query failed (attempt %d/%d): %s",
+                    attempt + 1,
+                    max_retries,
+                    e,
+                )
+                # Recreate pool on connection errors
+                async with self._pool_lock:
+                    try:
+                        await self._pool.close()
+                    except Exception:
+                        pass
+                    await self._create_pool()
+        raise last_error
 
     async def get_metadata_by_id(self, layer_id: UUID) -> Optional[LayerMetadata]:
         """Get layer metadata by UUID.
@@ -109,25 +198,25 @@ class LayerService:
         if layer_id_str in _metadata_cache:
             return _metadata_cache[layer_id_str]
 
-        async with self._pool.acquire() as conn:
-            # Query layer metadata from customer.layer table
-            row = await conn.fetchrow(
-                """
-                SELECT
-                    l.id,
-                    l.user_id,
-                    l.name,
-                    l.feature_layer_geometry_type,
-                    ST_XMin(e.e) AS xmin,
-                    ST_YMin(e.e) AS ymin,
-                    ST_XMax(e.e) AS xmax,
-                    ST_YMax(e.e) AS ymax
-                FROM customer.layer l
-                LEFT JOIN LATERAL ST_Envelope(l.extent) e ON TRUE
-                WHERE l.id = $1
-                """,
-                layer_id,
-            )
+        # Query with retry
+        row = await self._execute_with_retry(
+            """
+            SELECT
+                l.id,
+                l.user_id,
+                l.name,
+                l.feature_layer_geometry_type,
+                ST_XMin(e.e) AS xmin,
+                ST_YMin(e.e) AS ymin,
+                ST_XMax(e.e) AS xmax,
+                ST_YMax(e.e) AS ymax
+            FROM customer.layer l
+            LEFT JOIN LATERAL ST_Envelope(l.extent) e ON TRUE
+            WHERE l.id = $1
+            """,
+            layer_id,
+            fetch_one=True,
+        )
 
         if not row:
             return None
@@ -205,25 +294,25 @@ class LayerService:
             f"{layer_info.layer_id[20:]}"
         )
 
-        async with self._pool.acquire() as conn:
-            # Query layer metadata from customer.layer table
-            row = await conn.fetchrow(
-                """
-                SELECT
-                    l.id,
-                    l.user_id,
-                    l.name,
-                    l.feature_layer_geometry_type,
-                    ST_XMin(e.e) AS xmin,
-                    ST_YMin(e.e) AS ymin,
-                    ST_XMax(e.e) AS xmax,
-                    ST_YMax(e.e) AS ymax
-                FROM customer.layer l
-                LEFT JOIN LATERAL ST_Envelope(l.extent) e ON TRUE
-                WHERE l.id = $1
-                """,
-                UUID(layer_id_uuid),
-            )
+        # Query with retry
+        row = await self._execute_with_retry(
+            """
+            SELECT
+                l.id,
+                l.user_id,
+                l.name,
+                l.feature_layer_geometry_type,
+                ST_XMin(e.e) AS xmin,
+                ST_YMin(e.e) AS ymin,
+                ST_XMax(e.e) AS xmax,
+                ST_YMax(e.e) AS ymax
+            FROM customer.layer l
+            LEFT JOIN LATERAL ST_Envelope(l.extent) e ON TRUE
+            WHERE l.id = $1
+            """,
+            UUID(layer_id_uuid),
+            fetch_one=True,
+        )
 
         if not row:
             return None
