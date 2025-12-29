@@ -22,7 +22,7 @@ from uuid import uuid4
 
 # Add paths for imports
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 from lib.ogc_process_generator import get_process, get_process_list
 from lib.ogc_schemas import (

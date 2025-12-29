@@ -2,11 +2,12 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Motia Debug",
+      "name": "Processes Debug",
       "type": "node-terminal",
       "request": "launch",
-      "command": "pnpm run motia",
-      "envFile": "${workspaceFolder}/apps/motia/.env",
+      "command": "pnpm run dev",
+      "envFile": "${workspaceFolder}/apps/processes/.env",
+      "cwd": "${workspaceFolder}/apps/processes",
       "presentation": {
         "hidden": false,
         "group": "backend",

@@ -8,7 +8,7 @@ Returns list of all available processes with summaries.
 import sys
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 from lib.ogc_process_generator import get_process_list
 from lib.ogc_schemas import Link, ProcessList
@@ -23,11 +23,19 @@ config = {
 }
 
 
+import os
+
+# Default host and port from env (fallback when headers missing)
+DEFAULT_HOST = os.environ.get("PROCESSES_HOST", "localhost")
+DEFAULT_PORT = os.environ.get("PROCESSES_PORT", "8200")
+DEFAULT_HOST_PORT = f"{DEFAULT_HOST}:{DEFAULT_PORT}"
+
+
 async def handler(req, context):
     """Handle GET /processes request."""
     # Build base URL from request headers
     proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", "localhost")
+    host = req.get("headers", {}).get("host", DEFAULT_HOST_PORT)
     base_url = f"{proto}://{host}"
 
     context.logger.info("OGC Process list requested", {"base_url": base_url})

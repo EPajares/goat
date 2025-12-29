@@ -32,7 +32,10 @@ export const config: ApiRouteConfig = {
 };
 
 export const handler: Handlers["OGCLandingPage"] = async (req, { logger }) => {
-  const baseUrl = `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host || "localhost"}`;
+  const defaultHost = process.env.PROCESSES_HOST || "localhost";
+  const defaultPort = process.env.PROCESSES_PORT || "8200";
+  const defaultHostPort = `${defaultHost}:${defaultPort}`;
+  const baseUrl = `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host || defaultHostPort}`;
 
   logger.info("OGC Landing page requested", { baseUrl });
 

@@ -19,7 +19,7 @@
     "build-storybook": "turbo run build --filter=storybook",
     "docs": "turbo run dev --filter=docs",
     "build-docs": "turbo run build --filter=docs",
-    "motia": "turbo run dev --filter=@goat/motia -- --port 3001",
+    "processes": "turbo run dev --filter=@goat/processes",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",

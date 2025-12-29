@@ -14,6 +14,18 @@
         "x": -521,
         "y": 189
       },
+      "src/analysis/ogc_job_status_step.py": {
+        "x": 31,
+        "y": 428
+      },
+      "src/analysis/ogc_job_results_step.py": {
+        "x": 29,
+        "y": 632
+      },
+      "src/analysis/ogc_job_dismiss_step.py": {
+        "x": 10,
+        "y": 836
+      },
       "src/analysis/ogc_execute_step.py": {
         "x": -1042,
         "y": 341

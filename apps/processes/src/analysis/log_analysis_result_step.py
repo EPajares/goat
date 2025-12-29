@@ -10,7 +10,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 
 class AnalysisLogInput(BaseModel):

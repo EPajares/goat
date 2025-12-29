@@ -13,7 +13,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 
 config = {

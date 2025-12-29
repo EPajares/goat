@@ -9,7 +9,7 @@ Query params:
 
 import sys
 
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 from lib.tool_registry import get_tool_schema, get_tools_metadata
 
