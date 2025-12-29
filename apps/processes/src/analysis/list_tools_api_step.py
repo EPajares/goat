@@ -13,7 +13,6 @@ sys.path.insert(0, "/app/apps/motia/src")
 
 from lib.tool_registry import get_tool_schema, get_tools_metadata
 
-
 config = {
     "name": "ListToolsPython",
     "type": "api",

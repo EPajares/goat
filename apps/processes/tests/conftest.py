@@ -8,20 +8,21 @@ from uuid import uuid4
 
 # Import Env variables from Core
 import core._dotenv  # noqa: E402, F401, I001
-
 import pytest
 import pytest_asyncio
-from sqlalchemy import text
-from jose import jwt
 
 # Reuse Core's test infrastructure
 from core.core.config import settings
-from core.endpoints.deps import session_manager
-from core.storage.ducklake import ducklake_manager
-from core.services.layer_import import layer_importer
 from core.crud.base import CRUDBase
 from core.db.models import User
 from core.db.models.folder import Folder
+from core.db.models.project import Project
+from core.db.models.scenario import Scenario
+from core.endpoints.deps import session_manager
+from core.services.layer_import import layer_importer
+from core.storage.ducklake import ducklake_manager
+from jose import jwt
+from sqlalchemy import text
 
 # ============================================================================
 # Test Settings - Unique schema per test run to avoid conflicts
@@ -29,7 +30,7 @@ from core.db.models.folder import Folder
 
 # Generate unique schema name for this test run (avoids conflicts with coworkers)
 TEST_RUN_ID = uuid.uuid4().hex[:8]
-TEST_CUSTOMER_SCHEMA = f"test_motia_{TEST_RUN_ID}"
+TEST_CUSTOMER_SCHEMA = f"test_processes_{TEST_RUN_ID}"
 TEST_ACCOUNTS_SCHEMA = f"test_accounts_{TEST_RUN_ID}"
 TEST_DUCKLAKE_CATALOG = f"test_ducklake_{TEST_RUN_ID}"
 
@@ -205,7 +206,7 @@ async def polygon_layer(test_user):
     }
 
     # Cleanup: delete layer from DuckLake
-    #ducklake_manager.delete_layer_table(test_user.id, layer_id)
+    # ducklake_manager.delete_layer_table(test_user.id, layer_id)
 
 
 @pytest_asyncio.fixture
@@ -229,4 +230,47 @@ async def boundary_layer(test_user):
     }
 
     # Cleanup: delete layer from DuckLake
-    #ducklake_manager.delete_layer_table(test_user.id, layer_id)
+    # ducklake_manager.delete_layer_table(test_user.id, layer_id)
+
+
+# ============================================================================
+# Project & Scenario Fixtures
+# ============================================================================
+
+
+@pytest_asyncio.fixture
+async def test_project(db_session, test_user, test_folder):
+    """Create test project for analysis results."""
+    project = Project(
+        id=uuid4(),
+        user_id=test_user.id,
+        folder_id=test_folder.id,
+        name="Test Analysis Project",
+        description="Project for testing analysis tools",
+        tags=["test", "analysis"],
+    )
+    db_session.add(project)
+    await db_session.commit()
+    await db_session.refresh(project)
+
+    yield project
+
+    await CRUDBase(Project).delete(db_session, id=project.id)
+
+
+@pytest_asyncio.fixture
+async def test_scenario(db_session, test_user, test_project):
+    """Create test scenario for analysis with layer edits."""
+    scenario = Scenario(
+        id=uuid4(),
+        user_id=test_user.id,
+        project_id=test_project.id,
+        name="Test Scenario",
+    )
+    db_session.add(scenario)
+    await db_session.commit()
+    await db_session.refresh(scenario)
+
+    yield scenario
+
+    await CRUDBase(Scenario).delete(db_session, id=scenario.id)
