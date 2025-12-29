@@ -4,8 +4,8 @@ from goatlib.analysis.statistics import (
     AreaOperation,
     ClassBreakMethod,
     SortOrder,
+    UniqueValue,
 )
-from goatlib.analysis.statistics.schemas import UniqueValue
 
 from geoapi.models.ogc import (
     Collection,
