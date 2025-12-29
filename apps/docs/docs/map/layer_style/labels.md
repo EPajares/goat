@@ -19,7 +19,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> and find the <code>Labels section</code></div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> and find the <code>Labels section</code></div>
 </div>
 
 <div class="step">
@@ -50,7 +50,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Click the <code>Advanced settings</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> button to access <strong>additional options</strong></div>
+  <div class="content">Click the <code>Advanced settings</code> <img src={require('/img/icons/options.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> button to access <strong>additional options</strong></div>
 </div>
 
 <div class="step">

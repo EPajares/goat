@@ -4,7 +4,6 @@ sidebar_position: 3
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import MathJax from 'react-mathjax';
 
 # Heatmap - Closest Average
@@ -66,7 +65,7 @@ If you would like to perform analyses beyond this geofence, feel free to [contac
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> .</div>
 </div>
 
 <div class="step">

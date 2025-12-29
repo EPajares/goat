@@ -22,7 +22,7 @@ Dieser Abschnitt **enthält Widgets, die Informationen über Ihre Projektlayer**
 <div class="step">
   <div class="step-number">3</div>
   <div class="content">
-    Durch Klicken auf das <img src={require('/img/scenarios/3dots.png').default} alt="More options" style={{ maxHeight: "18px", maxWidth: "18px", verticalAlign: "middle", marginRight: "4px" }}/> <code>Weitere Optionen</code> Symbol neben dem Layernamen können Benutzer auf folgende Optionen klicken kann: <code>Zum Layer zoomen</code>, <code>Datenquelleninfo</code>, und <code>Layer ausblenden/anzeigen</code>. Es gibt auch die Option zum <code>Herunterladen</code>, aber diese ist nicht für alle Betrachter verfügbar.
+    Durch Klicken auf das <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: "20px", maxWidth: "20px", verticalAlign: "middle", marginRight: "4px" }}/> <code>Weitere Optionen</code> Symbol neben dem Layernamen können Benutzer auf folgende Optionen klicken kann: <code>Zum Layer zoomen</code>, <code>Datenquelleninfo</code>, und <code>Layer ausblenden/anzeigen</code>. Es gibt auch die Option zum <code>Herunterladen</code>, aber diese ist nicht für alle Betrachter verfügbar.
   </div>
 </div>
 

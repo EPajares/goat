@@ -12,7 +12,7 @@ sidebar_position: 2
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, and open the <code>Style section</code></div>
+  <div class="content">Click <code>Layer Design <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code>, and open the <code>Style section</code></div>
 </div>
 
 import Tabs from '@theme/Tabs';
@@ -23,7 +23,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">On <code>Fill color</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
+  <div class="content">On <code>Fill color</code>, click <code>Options <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code> and more settings will appear </div>
 </div>
 
 <div class="step">
@@ -52,7 +52,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">On <code>Stroke color</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
+  <div class="content">On <code>Stroke color</code>, click <code>Options <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code> and more settings will appear </div>
 </div>
 
 <div class="step">
@@ -81,7 +81,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">On <code>Custom Marker</code>, click <code>Options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> and more settings will appear </div>
+  <div class="content">On <code>Custom Marker</code>, click <code>Options <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code> and more settings will appear </div>
 </div>
 
 <div class="step">

@@ -23,7 +23,7 @@ Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Szenarien</code> <img src={require('/img/scenarios/compass-drafting.png').default} alt="Szenarien" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Szenarien</code> <img src={require('/img/icons/compass-drafting.png').default} alt="Szenarien" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
 </div>
 
 <div class="step">
@@ -33,12 +33,12 @@ Nur **geografische Layer** können in Szenarien modifiziert werden. Tabellen und
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Klicken Sie auf <code>Weitere Optionen</code> <img src={require('/img/scenarios/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> neben Ihrem Szenarionamen und wählen Sie dann <code>Bearbeiten</code>.</div>
+  <div class="content">Klicken Sie auf <code>Weitere Optionen</code> <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> neben Ihrem Szenarionamen und wählen Sie dann <code>Bearbeiten</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie einen Layer in <code>Layer auswählen</code>, dann wählen Sie aus **Bearbeitungswerkzeuge**: <code>Zeichnen</code> <img src={require('/img/scenarios/add.png').default} alt="Zeichnen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, <code>Modifizieren</code> <img src={require('/img/scenarios/edit.png').default} alt="Modifizieren" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, oder <code>Löschen</code> <img src={require('/img/scenarios/trash-solid.png').default} alt="Löschen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> von Features.
+  <div class="content">Wählen Sie einen Layer in <code>Layer auswählen</code>, dann wählen Sie aus **Bearbeitungswerkzeuge**: <code>Zeichnen</code> <img src={require('/img/icons/plus.png').default} alt="Zeichnen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, <code>Modifizieren</code> <img src={require('/img/icons/edit.png').default} alt="Modifizieren" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, oder <code>Löschen</code> <img src={require('/img/icons/trash.png').default} alt="Löschen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> von Features.
   </div>
 </div>
 
@@ -93,7 +93,7 @@ Abhängig vom Layer-Typ können Sie verschiedene geografische Formen zeichnen:
 Erstellen Sie mehrere Szenarien, um verschiedene Konfigurationen zu testen:
 
 - **Auswählen**: Klicken Sie auf ein Szenario, um dessen Änderungen anzuzeigen
-- **Modifizieren**: Verwenden Sie das Optionsmenü <img src={require('/img/scenarios/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, um umzubenennen, zu löschen oder zu bearbeiten
+- **Modifizieren**: Verwenden Sie das Optionsmenü <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, um umzubenennen, zu löschen oder zu bearbeiten
 - **Änderungen verfolgen**: Modifizierte Layer zeigen <img src={require('/img/scenarios/compass-drafting.png').default} alt="Szenario-Indikator" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> mit einer Zahl
 - **Abwählen**: Klicken Sie erneut auf das aktive Szenario, um zur ursprünglichen Karte zurückzukehren
 

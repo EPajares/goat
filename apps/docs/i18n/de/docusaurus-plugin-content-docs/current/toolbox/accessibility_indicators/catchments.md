@@ -4,7 +4,7 @@ sidebar_position: 1
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
+
 
 
 # Einzugsgebiet
@@ -85,7 +85,7 @@ Wenn Sie Analysen außerhalb dieser Regionen durchführen möchten, [kontaktiere
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
 </div>
 
 <div class="step">
@@ -280,7 +280,7 @@ Für geeignete Reisezeitgrenzen je Annehmlichkeitstyp siehe das [Location Tool](
 
   <div class="step">
     <div class="step-number">6</div>
-    <div class="content">Klicken Sie auf <code>Erweiterte Konfiguration</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Hier können Sie die <code>Einzugsgebietsform</code> auswählen. Sie können zwischen <b>Polygon</b>, <b>Netzwerk</b> und <b>Rechteckiges Gitter</b> wählen.</div>
+    <div class="content">Klicken Sie auf <code>Erweiterte Konfiguration</code> <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. Hier können Sie die <code>Einzugsgebietsform</code> auswählen. Sie können zwischen <b>Polygon</b>, <b>Netzwerk</b> und <b>Rechteckiges Gitter</b> wählen.</div>
   </div>
 
 <Tabs>

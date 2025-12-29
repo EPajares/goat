@@ -1,7 +1,6 @@
 ---
 sidebar_position: 5
 ---
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 
 # ÖV-Güteklassen
 
@@ -51,7 +50,7 @@ In case you need to perform analysis beyond this geofence, feel free to contact 
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">

@@ -19,7 +19,7 @@ import TabItem from '@theme/TabItem';
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select the layer to filter and click on the <code>Filter</code> <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> icon on the <b>tools bar</b> on the right.</div>
+  <div class="content">Select the layer to filter and click on the <code>Filter</code> <img src={require('/img/icons/filter.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> icon on the <b>tools bar</b> on the right.</div>
 </div>
 
 <div class="step">
@@ -125,7 +125,7 @@ This feature is currently under development. 🧑🏻‍💻
 
 ### Delete Expressions and Filters
 
-**Remove single expressions**: Click on the <code>more options</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> menu next to the expression, then click <code>Delete</code> to **remove the expression**.
+**Remove single expressions**: Click on the <code>more options</code> <img src={require('/img/icons/3dots-horizontal.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> menu next to the expression, then click <code>Delete</code> to **remove the expression**.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/filter/filter_delete.png').default} alt="Delete" style={{ maxHeight: "auto", maxWidth: "30%", objectFit: "cover"}}/>

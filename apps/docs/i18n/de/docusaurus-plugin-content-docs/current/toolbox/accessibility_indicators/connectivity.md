@@ -5,7 +5,7 @@ sidebar_position: 2
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
+
 import MathJax from 'react-mathjax';
 
 # Heatmap - Connectivity
@@ -57,7 +57,7 @@ Wenn Sie Analysen über diesen Geofence hinaus durchführen möchten, wenden Sie
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
 </div>
 
 <div class="step">

@@ -40,7 +40,7 @@ You can easily check the data types of your layer attributes:
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> button on your layer</div>
+  <div class="content">Click on <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>More Options</code> button on your layer</div>
 </div>
 
 <div class="step">

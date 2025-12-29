@@ -50,7 +50,7 @@ Folgen Sie diesen einfachen Schritten, um ein neues **Projekt** zu erstellen:
 
 ## Projekte verwalten
 
-Greifen Sie auf zusätzliche **Projekt**-Optionen zu, indem Sie auf das <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü neben jedem **Projekt** klicken. Dies ermöglicht Ihnen:
+Greifen Sie auf zusätzliche **Projekt**-Optionen zu, indem Sie auf das <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü neben jedem **Projekt** klicken. Dies ermöglicht Ihnen:
 
 - **Metadaten anzeigen und bearbeiten** - **Projekt**-Titel, Beschreibungen und andere Details aktualisieren
 - **In verschiedene Ordner verschieben** - Ihre **Projekt**-Struktur neu organisieren

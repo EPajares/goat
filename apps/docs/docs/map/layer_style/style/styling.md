@@ -12,7 +12,7 @@ sidebar_position: 1
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> and find the <code>Style section</code></div>
+  <div class="content">Select your layer and navigate to <code>Layer design</code> <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> and find the <code>Style section</code></div>
 </div>
 
 <div class="step">
@@ -99,7 +99,7 @@ When you have created a style you like, you can save it as the default for futur
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on the <code> More options </code> <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> next to <code> Active layer </code></div>
+  <div class="content">Click on the <code> More options </code> <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> next to <code> Active layer </code></div>
 </div>
 
 <div class="step">

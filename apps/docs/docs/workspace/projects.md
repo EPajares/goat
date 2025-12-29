@@ -50,7 +50,7 @@ Follow these simple steps to create a new project:
 
 ## Managing Projects
 
-Access additional project options by clicking the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to any project. You have the following options:
+Access additional project options by clicking the <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>More Options</code> menu next to any project. You have the following options:
 
 - <code> Edit metadata </code> - Access and edit project metadata
 - <code>Move to folder</code> - Reorganize your project location

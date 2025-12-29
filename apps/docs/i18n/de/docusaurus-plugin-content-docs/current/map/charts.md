@@ -14,7 +14,7 @@ Die Diagramm-Funktion ermöglicht es Ihnen, **aggregierte Daten schnell zu visua
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Finden Sie Ihren aggregierten Layer im <code>Layer</code>-Panel und klicken Sie auf das <img src={require('/img/icons/3dots.png').default} alt="Weitere Optionen" style={{ maxHeight: "18px", maxWidth: "18px", verticalAlign: "middle", marginRight: "4px" }}/> <b>Weitere Optionen</b>-Menü neben dem Layer-Namen.</div>
+  <div class="content">Finden Sie Ihren aggregierten Layer im <code>Layer</code>-Panel und klicken Sie auf das <img src={require('/img/icons/3dots.png').default} alt="Weitere Optionen" style={{ maxHeight: "20px", maxWidth: "20px", verticalAlign: "middle", marginRight: "4px" }}/> <b>Weitere Optionen</b>-Menü neben dem Layer-Namen.</div>
 </div>
 
 <div class="step">

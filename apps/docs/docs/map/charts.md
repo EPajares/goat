@@ -14,7 +14,7 @@ The Charts feature allows you to **quickly visualize aggregated data**, result  
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Locate your aggregated layer in the <code>Layers</code> panel and click on the <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: "18px", maxWidth: "18px", verticalAlign: "middle", marginRight: "4px" }}/> <b>more options</b> menu next to the layer name.</div>
+  <div class="content">Locate your aggregated layer in the <code>Layers</code> panel and click on the <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: "20px", maxWidth: "20px", verticalAlign: "middle", marginRight: "4px" }}/> <b>more options</b> menu next to the layer name.</div>
 </div>
 
 <div class="step">

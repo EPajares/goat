@@ -130,7 +130,7 @@ Sobald Sie die Layer zu Ihrer Karte hinzugefügt und die Analyse berechnet haben
 
 <div class="step">
   <div class="step-number">9</div>
-  <div class="content">Klicken Sie auf <code>Layer Design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, öffnen Sie das <code>Stil</code>-Menü, wählen Sie die gewünschte Farbe aus, oder wenn Sie nach Attribut gestalten möchten, klicken Sie auf <code>Optionen <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code> und setzen Sie das gewünschte Feld im <code>Farbe basierend auf</code>-Menü.</div>
+  <div class="content">Klicken Sie auf <code>Layer Design <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code>, öffnen Sie das <code>Stil</code>-Menü, wählen Sie die gewünschte Farbe aus, oder wenn Sie nach Attribut gestalten möchten, klicken Sie auf <code>Optionen <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code> und setzen Sie das gewünschte Feld im <code>Farbe basierend auf</code>-Menü.</div>
 </div>
 
 <div class="step">

@@ -2,9 +2,6 @@
 sidebar_position: 1
 ---
 
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
-
-
 # Join & Group
 
 This tool allows you to **combine and summarize data from two layers by matching an attribute in both**. This is essential for spatial analysis, data enrichment, and creating comprehensive datasets.
@@ -33,7 +30,7 @@ This tool allows you to combine two datasets by linking their features through a
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">

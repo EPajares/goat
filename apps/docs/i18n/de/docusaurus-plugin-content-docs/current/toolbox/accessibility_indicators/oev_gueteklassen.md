@@ -1,7 +1,7 @@
 ---
 sidebar_position: 5
 ---
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
+
 
 # ÖV-Güteklassen
 
@@ -51,7 +51,7 @@ Falls Sie eine Analyse außerhalb dieses Geofence durchführen müssen, kontakti
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeugleiste</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Klicken Sie auf <code>Werkzeugleiste</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">

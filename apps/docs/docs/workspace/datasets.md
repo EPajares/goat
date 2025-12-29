@@ -113,7 +113,7 @@ Easily filter your datasets by [dataset type](../data/dataset_types "What are th
 - **External Imagery** - Raster data from external sources  
 - **External Vector Tiles** - Vector tiles from external services
 
-Click the filter icon <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> to select your desired dataset type.
+Click the filter icon <img src={require('/img/icons/filter.png').default} alt="Filter Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> to select your desired dataset type.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/datasets/dataset_filter.gif').default} alt="Datasets filtering in Workspace of GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -127,7 +127,7 @@ Organize your datasets into folders for better structure and easier navigation.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click the <img src={require('/img/workspace/datasets/folder_icon.png').default} alt="Folder Icon" style={{ maxHeight: "25px", maxWidth: "25px"}}/> folder icon.</div>
+  <div class="content">Click the <img src={require('/img/icons/folder.png').default} alt="Folder Icon" style={{ maxHeight: "20px", maxWidth: "20px"}}/> folder icon.</div>
 </div>
 
 <div class="step">
@@ -150,7 +150,7 @@ Organize your datasets into folders for better structure and easier navigation.
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px"}}/> <code>more options</code> button next to your dataset</div>
+  <div class="content">Click the <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px"}}/> <code>more options</code> button next to your dataset</div>
 </div>
 
 <div class="step">
@@ -169,7 +169,7 @@ Organize your datasets into folders for better structure and easier navigation.
 
 ## Dataset management
 
-Access comprehensive dataset management options through the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>More Options</code> menu next to each dataset. Available actions include:
+Access comprehensive dataset management options through the <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>More Options</code> menu next to each dataset. Available actions include:
 
 - <code>Edit metadata</code> - Access and edit dataset metadata
 - <code>Move to folder</code> - Reorganize your dataset location

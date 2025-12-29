@@ -1,7 +1,7 @@
 ---
 sidebar_position: 6
 ---
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
+
 
 # Abfahrten ÖPNV
 
@@ -51,7 +51,7 @@ Falls Sie Analysen außerhalb dieses Geofences durchführen müssen, kontaktiere
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
 </div>
 
 <div class="step">

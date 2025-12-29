@@ -132,7 +132,7 @@ Once you have added the layers to your map and computed the analysis, you can cu
 
 <div class="step">
   <div class="step-number">9</div>
-  <div class="content">Click on <code>Layer design <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "21px", objectFit: "cover"}}/></code>, open the <code> Style</code> menu, select the color you want or if you want to style by attribute, click on <code>options <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/></code>, and set the field you want on the <code>Color based on </code> menu.</div>
+  <div class="content">Click on <code>Layer design <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code>, open the <code> Style</code> menu, select the color you want or if you want to style by attribute, click on <code>options <img src={require('/img/icons/styling.png').default} alt="Options Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/></code>, and set the field you want on the <code>Color based on </code> menu.</div>
 </div>
 
 <div class="step">

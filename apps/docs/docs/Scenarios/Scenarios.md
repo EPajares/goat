@@ -21,7 +21,7 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Scenarios</code> <img src={require('/img/scenarios/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Click on <code>Scenarios</code> <img src={require('/img/icons/compass-drafting.png').default} alt="Scenarios" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
 </div>
 
 <div class="step">
@@ -31,12 +31,12 @@ Only **geographical layers** can be modified in scenarios. Tables and rasters ca
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Click on <code>More Options</code> <img src={require('/img/scenarios/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> next to your scenario name, then select <code>Edit</code>.</div>
+  <div class="content">Click on <code>More Options</code> <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> next to your scenario name, then select <code>Edit</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Choose a layer in <code>Select layer</code>, then pick from <b>Edit tools</b>: <code>draw</code> <img src={require('/img/scenarios/add.png').default} alt="Draw" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, <code>modify</code> <img src={require('/img/scenarios/edit.png').default} alt="Modify" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, or <code>delete</code> <img src={require('/img/scenarios/trash-solid.png').default} alt="Delete" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> features.</div>
+  <div class="content">Choose a layer in <code>Select layer</code>, then pick from <b>Edit tools</b>: <code>draw</code> <img src={require('/img/icons/plus.png').default} alt="Draw" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, <code>modify</code> <img src={require('/img/icons/edit.png').default} alt="Modify" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>, or <code>delete</code> <img src={require('/img/icons/trash.png').default} alt="Delete" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> features.</div>
 </div>
 
 <Tabs>
@@ -94,8 +94,8 @@ Depending on the layer type, you can draw different geographical shapes:
 Create multiple scenarios to test different configurations:
 
 - **Select**: Click a scenario to view its changes
-- **Modify**: Use the options menu <img src={require('/img/scenarios/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> to rename, delete, or edit
-- **Track changes**: Modified layers show <img src={require('/img/scenarios/compass-drafting.png').default} alt="Scenario indicator" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> with a number
+- **Modify**: Use the options menu <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> to rename, delete, or edit
+- **Track changes**: Modified layers show <img src={require('/img/icons/compass-drafting.png').default} alt="Scenario indicator" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> with a number
 - **Deselect**: Click the active scenario again to return to the original map
 
 ## 3. Street Network - Edges

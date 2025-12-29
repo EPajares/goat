@@ -128,7 +128,7 @@ Diese Funktion wird derzeit entwickelt. 🧑🏻‍💻
   
 ### Ausdrücke und Filter löschen
 
-<strong>Einzelne Ausdrücke entfernen</strong>: Klicken Sie auf das <code>Weitere Optionen</code> <img src={require('/img/map/filter/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> Menü neben dem Ausdruck, dann klicken Sie auf <code>Löschen</code>, um <strong>den Ausdruck zu entfernen</strong>.
+<strong>Einzelne Ausdrücke entfernen</strong>: Klicken Sie auf das <code>Weitere Optionen</code> <img src={require('/img/icons/3dots_horizontal.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> Menü neben dem Ausdruck, dann klicken Sie auf <code>Löschen</code>, um <strong>den Ausdruck zu entfernen</strong>.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
   <img src={require('/img/map/filter/filter_delete.png').default} alt="Delete" style={{ maxHeight: "300px", maxWidth: "300px", objectFit: "cover"}}/>

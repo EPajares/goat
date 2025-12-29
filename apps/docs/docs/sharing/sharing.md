@@ -33,7 +33,7 @@ Sharing **does not duplicate** your data, only grants access to it.
    <div class="content">If you are the <b>Owner</b> of the Organization, you can:
       <ul>
          <li>Click <code>+ New Member</code> to add a new member.</li>
-         <li>Click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '18px', maxWidth: '18px', verticalAlign: 'middle'}}/> menu and then on <code>Delete</code> to remove a member</li>
+         <li>Click the <code>More options</code> <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: '20px', maxWidth: '20px', verticalAlign: 'middle'}}/> menu and then on <code>Delete</code> to remove a member</li>
       </ul>
    </div>
 </div>
@@ -53,7 +53,7 @@ When you share a dataset/project with a Team/Organization, all members will have
 
 <div class="step">
    <div class="step-number">1</div>
-   <div class="content">Click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> menu on your dataset or project.</div>
+   <div class="content">Click the <code>More options</code> <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: '20px', maxWidth: '20px'}}/> menu on your dataset or project.</div>
 </div>
 <div class="step">
    <div class="step-number">2</div>
@@ -72,7 +72,7 @@ When you share a dataset/project with a Team/Organization, all members will have
 
 <div class="step">
    <div class="step-number">4</div>
-   <div class="content">If you want to withdraw access, click the <code>More options</code> <img src={require('/img/map/filter/3dots.png').default} alt="More options" style={{ maxHeight: '25px', maxWidth: '25px'}}/> menu on your dataset or project and select <code>no access</code>.</div>
+   <div class="content">If you want to withdraw access, click the <code>More options</code> <img src={require('/img/icons/3dots.png').default} alt="More options" style={{ maxHeight: '20px', maxWidth: '20px'}}/> menu on your dataset or project and select <code>no access</code>.</div>
 </div>
 
 ### Accessing Shared Items

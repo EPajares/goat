@@ -4,8 +4,6 @@ sidebar_position: 1
 
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
-
 
 # Catchment Area
 
@@ -81,7 +79,7 @@ If you need analyses beyond these regions, feel free to [contact us](https://pla
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>.</div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> .</div>
 </div>
 
 <div class="step">
@@ -276,7 +274,7 @@ For suitable travel time limits by amenity type, see the [Location Tool](https:/
 
   <div class="step">
     <div class="step-number">6</div>
-    <div class="content">Click on <code>Advanced Configurations</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> button. Here you can select the <code>Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
+    <div class="content">Click on <code>Advanced Configurations</code> <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> button. Here you can select the <code>Catchment area shape</code>. You can choose between <b>Polygon</b>, <b>Network</b> and <b>Rectangular Grid</b>.</div>
   </div>
 
 <Tabs>

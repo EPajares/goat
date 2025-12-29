@@ -18,7 +18,7 @@ Wenn Sie eine Analyse in einem Projekt ausführen, wird die Aufgabe in der Softw
 * Jobs dürfen eine Dauer von zwei Minuten nicht überschreiten. Es gibt außerdem eine Begrenzung für die Anzahl der Features, die für jeden Indikator analysiert werden können.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -33,7 +33,7 @@ Wenn Sie eine Analyse in einem Projekt ausführen, wird die Aufgabe in der Softw
  * Wenn Sie einen Indikator berechnen, das Ergebnis jedoch leer ist, wird kein Output generiert und ein Job-Fehler tritt auf. Beispiel: Wenn Sie den Indikator Abfahrten ÖPNV in einem Gebiet und einem Zeitraum verwenden, in dem keine Fahrten stattfinden, schlägt der Job mit dem Fehler fehl: **The Layer is None**.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -48,7 +48,7 @@ Wenn Sie eine Analyse in einem Projekt ausführen, wird die Aufgabe in der Softw
 * Die Sensitivität einer Gaußschen Impedanzfunktion darf 1.000.000 nicht überschreiten.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -61,7 +61,7 @@ Wenn Sie eine Analyse in einem Projekt ausführen, wird die Aufgabe in der Softw
 * Die Startpunkte des Indikators müssen sich innerhalb von 100 m vom Straßennetz befinden.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />

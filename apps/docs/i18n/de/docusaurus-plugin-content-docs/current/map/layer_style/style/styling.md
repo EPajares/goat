@@ -14,7 +14,7 @@ sidebar_position: 1
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Wählen Sie Ihren Layer aus und navigieren Sie zu <code>Layer-Design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling-Symbol" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> und finden Sie den <code>Stil-Bereich</code></div>
+  <div class="content">Wählen Sie Ihren Layer aus und navigieren Sie zu <code>Layer-Design</code> <img src={require('/img/icons/styling.png').default} alt="Styling-Symbol" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> und finden Sie den <code>Stil-Bereich</code></div>
 </div>
 
 <div class="step">
@@ -112,7 +112,7 @@ Wenn Sie einen Stil erstellt haben, der Ihnen gefällt, können Sie ihn als Stan
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf die <code>Weitere Optionen</code> <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> neben <code>Aktiver Layer</code>.</div>
+  <div class="content">Klicken Sie auf die <code>Weitere Optionen</code> <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> neben <code>Aktiver Layer</code>.</div>
 </div>
 
 

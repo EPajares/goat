@@ -155,7 +155,7 @@ Hover over the <strong>left border</strong> of the layer in the layer list until
 
 #### Show / Hide Layers
 
-Click the <img src={require('/img/icons/eye.png').default} alt="Add layers in GOAT" style={{ maxHeight: "flex", maxWidth: "flex", objectFit: "cover"}}/> icon next to the layer name to  <strong>temporarily hide</strong> a layer from the map view. Clicking the eye again will <strong>make the layer visible</strong> again.
+Click the <img src={require('/img/icons/eye.png').default} alt="Add layers in GOAT" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> icon next to the layer name to  <strong>temporarily hide</strong> a layer from the map view. Clicking the eye again will <strong>make the layer visible</strong> again.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/map/layers/hide_layers.gif').default} alt="Hide Layer" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
@@ -163,7 +163,7 @@ Click the <img src={require('/img/icons/eye.png').default} alt="Add layers in GO
 
 #### Options
 
-By clicking on <code>more options</code> <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> icon you have further options to <strong>manage and organize</strong> the selected layer.
+By clicking on <code>more options</code> <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> icon you have further options to <strong>manage and organize</strong> the selected layer.
 
 <div style={{ display: 'flex', justifyContent: 'center' }}>
 <img src={require('/img/map/layers/layer_options.png').default} alt="Layer Options" style={{ maxHeight: "250px", maxWidth: "250px", objectFit: "cover", alignItems: 'center'}}/>

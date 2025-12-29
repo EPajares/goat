@@ -53,7 +53,7 @@ If you scroll down to the Danger zone on the Profile Tab, you also find an optio
 Under the Organization Settings, **you can adjust the profile of your organization and manage the organization members**:
 
 - In the <code>Profile</code> tab, you can **change your organization's name and upload a logo or picture**. 
-- In the <code>Members</code> tab, you can **view the members list of your organization**. By clicking on the <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>more options</code> button you can **manage their roles and personal information**. Furthermore, you can **invite new members** to join your organization by email.
+- In the <code>Members</code> tab, you can **view the members list of your organization**. By clicking on the <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>more options</code> button you can **manage their roles and personal information**. Furthermore, you can **invite new members** to join your organization by email.
 
 :::info
 

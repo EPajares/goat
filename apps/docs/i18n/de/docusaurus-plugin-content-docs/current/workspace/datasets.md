@@ -111,7 +111,7 @@ Filtern Sie Ihre **Datensätze** einfach nach [Datensatz-Typ](../data/dataset_ty
 - **Externe Bilder** - Raster-**Daten** aus externen Quellen  
 - **Externe Vektor-Kacheln** - Vektor-Kacheln aus externen Diensten
 
-Klicken Sie auf das Filter-Symbol <img src={require('/img/map/filter/filter_icon.png').default} alt="Filter-Symbol" style={{ maxHeight: "20px", maxWidth: "20px"}}/>, um Ihren gewünschten **Datensatz**-Typ auszuwählen.
+Klicken Sie auf das Filter-Symbol <img src={require('/img/icons/filter.png').default} alt="Filter-Symbol" style={{ maxHeight: "20px", maxWidth: "20px"}}/>, um Ihren gewünschten **Datensatz**-Typ auszuwählen.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/workspace/datasets/dataset_filter.gif').default} alt="Datensätze-Filterung im Workspace von GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
@@ -125,7 +125,7 @@ Organisieren Sie Ihre **Datensätze** in Ordnern für bessere Struktur und einfa
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf das <img src={require('/img/workspace/datasets/folder_icon.png').default} alt="Ordner-Symbol" style={{ maxHeight: "25px", maxWidth: "25px"}}/> Ordner-Symbol.</div>
+  <div class="content">Klicken Sie auf das <img src={require('/img/icons/folder.png').default} alt="Ordner-Symbol" style={{ maxHeight: "20px", maxWidth: "20px"}}/> Ordner-Symbol.</div>
 </div>
 
 <div class="step">
@@ -148,7 +148,7 @@ Organisieren Sie Ihre **Datensätze** in Ordnern für bessere Struktur und einfa
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf die drei Punkte <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px"}}/> neben Ihrem **Datensatz**</div>
+  <div class="content">Klicken Sie auf die drei Punkte <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px"}}/> neben Ihrem **Datensatz**</div>
 </div>
 
 <div class="step">
@@ -167,7 +167,7 @@ Organisieren Sie Ihre **Datensätze** in Ordnern für bessere Struktur und einfa
 
 ## Datensatz-Verwaltung
 
-Greifen Sie auf umfassende **Datensatz**-Verwaltungsoptionen über das <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü neben jedem **Datensatz** zu. Verfügbare Aktionen umfassen:
+Greifen Sie auf umfassende **Datensatz**-Verwaltungsoptionen über das <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü neben jedem **Datensatz** zu. Verfügbare Aktionen umfassen:
 
 - **Info anzeigen/bearbeiten** - Zugriff und Änderung von **Datensatz**-Metadaten
 - **In Ordner verschieben** - Ihre **Datensatz**-Struktur neu organisieren  
@@ -183,7 +183,7 @@ Greifen Sie auf umfassende **Datensatz**-Verwaltungsoptionen über das <img src=
 
 Zeigen Sie detaillierte Informationen über Ihre **Datensätze** an, um deren Inhalt und Struktur besser zu verstehen. Greifen Sie auf zwei Arten auf Metadaten zu:
 
-- Klicken Sie auf **Info** aus dem <img src={require('/img/map/filter/3dots.png').default} alt="Optionen" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü 
+- Klicken Sie auf **Info** aus dem <img src={require('/img/icons/3dots.png').default} alt="Optionen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Weitere Optionen</code>-Menü 
 - Klicken Sie direkt auf den **Datensatz**-Namen
 
 Die Metadaten-Ansicht bietet:

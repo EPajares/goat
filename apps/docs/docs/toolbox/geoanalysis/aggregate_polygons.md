@@ -2,7 +2,6 @@
 sidebar_position: 3
 ---
 
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
@@ -32,7 +31,7 @@ The example below shows the geometry of the *Source Layer* remains unchanged, wh
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
@@ -101,7 +100,7 @@ Available **Statistics Methods** are listed in the following. The available meth
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">If you want, you can enable the <code>Weighted by Intersection Area</code> by clicking on the <code>options button</code> <img src={require('/img/map/styling/options_icon.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/>. Therewith, <b>aggregated values are weighted by the share of the intersection area between the <i>Source Layer</i> and the <i>Aggregation Layer</i></b>.</div>
+  <div class="content">If you want, you can enable the <code>Weighted by Intersection Area</code> by clicking on the <code>options button</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. Therewith, <b>aggregated values are weighted by the share of the intersection area between the <i>Source Layer</i> and the <i>Aggregation Layer</i></b>.</div>
 </div>
 
 <div class="step">

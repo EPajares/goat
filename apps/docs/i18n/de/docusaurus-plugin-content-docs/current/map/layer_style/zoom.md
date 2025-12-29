@@ -34,7 +34,7 @@ Alle Layer sind über die Zoom-Stufen 1-22 sichtbar, sofern nicht anders konfigu
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Wählen Sie Ihren Layer und navigieren Sie zu <code>Layer Design</code> <img src={require('/img/map/styling/styling_icon.webp').default} alt="Styling Icon" style={{ maxHeight: "15px", maxWidth: "15px", objectFit: "cover"}}/> und finden Sie den <code>Zoom-Sichtbarkeitsbereich</code></div>
+  <div class="content">Wählen Sie Ihren Layer und navigieren Sie zu <code>Layer Design</code> <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> und finden Sie den <code>Zoom-Sichtbarkeitsbereich</code></div>
 </div>
 
 <div class="step">
