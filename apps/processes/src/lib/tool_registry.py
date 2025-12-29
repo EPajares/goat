@@ -116,7 +116,7 @@ def _has_path_fields(cls: Type[BaseModel]) -> bool:
     return False
 
 
-def _discover_tools():
+def _discover_tools() -> None:
     """Auto-discover all *Params/*Tool pairs from goatlib and generate LayerParams."""
     global _registry, _initialized
 

@@ -1,0 +1,14 @@
+node_modules
+python_modules
+.venv
+venv
+.motia
+.mermaid
+dist
+*.pyc
+__pycache__
+*.egg-info
+.DS_Store
+.pytest_cache
+.claude
+.cursor
