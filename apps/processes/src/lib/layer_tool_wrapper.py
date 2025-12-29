@@ -16,6 +16,7 @@ Filter format:
 - Also supports simple SQL WHERE clauses for backward compatibility
 """
 
+# Import path configuration first
 import logging
 import tempfile
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Type
 from uuid import UUID, uuid4
 
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from goatlib.analysis.core.base import AnalysisTool
 from pydantic import BaseModel
 
@@ -153,7 +155,9 @@ class GenericLayerTool:
             seconds=PRESIGNED_URL_EXPIRY_SECONDS
         )
 
-        logger.info(f"Uploaded result to S3: bucket={settings.S3_BUCKET_NAME}, key={s3_key}")
+        logger.info(
+            f"Uploaded result to S3: bucket={settings.S3_BUCKET_NAME}, key={s3_key}"
+        )
         logger.info(f"Presigned download URL (expires {expires_at}): {download_url}")
         return download_url, expires_at
 

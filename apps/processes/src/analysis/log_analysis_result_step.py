@@ -8,9 +8,9 @@ to store job status in a database, send notifications, etc.
 import sys
 from typing import Optional
 
-from pydantic import BaseModel
-
 sys.path.insert(0, "/app/apps/processes/src")
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+from pydantic import BaseModel
 
 
 class AnalysisLogInput(BaseModel):

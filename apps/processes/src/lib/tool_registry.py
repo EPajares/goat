@@ -29,17 +29,15 @@ Usage:
     tools = get_all_tools()
 """
 
+# Import path configuration first
 import inspect
 import logging
 import re
-import sys
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type
 
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from pydantic import BaseModel
-
-# Add GOAT Core to path for imports
-sys.path.insert(0, "/app/apps/core/src")
 
 logger = logging.getLogger(__name__)
 
