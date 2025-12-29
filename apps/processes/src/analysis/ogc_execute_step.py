@@ -5,12 +5,13 @@ POST /processes/{processId}/execution
 Executes a process asynchronously and returns job status.
 """
 
+import os
 import sys
 from datetime import datetime, timezone
 from uuid import uuid4
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,
@@ -45,18 +46,24 @@ async def handler(req, context):
         }
 
     # Build base URL from request headers
+    default_host = os.environ.get("PROCESSES_HOST", "localhost")
+    default_port = os.environ.get("PROCESSES_PORT", "8200")
+    default_host_port = f"{default_host}:{default_port}"
     proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", "localhost")
+    host = req.get("headers", {}).get("host", default_host_port)
     base_url = f"{proto}://{host}"
 
     # Get inputs from request body
     body = req.get("body", {})
     inputs = body.get("inputs", body)  # Support both {inputs: {...}} and direct {...}
 
-    context.logger.info("OGC Execute process requested", {
-        "process_id": process_id,
-        "base_url": base_url,
-    })
+    context.logger.info(
+        "OGC Execute process requested",
+        {
+            "process_id": process_id,
+            "base_url": base_url,
+        },
+    )
 
     # Validate process exists
     tool_info = get_tool(process_id)
@@ -91,11 +98,14 @@ async def handler(req, context):
     output_layer_id = inputs.get("output_layer_id") or str(uuid4())
     timestamp = datetime.now(timezone.utc).isoformat()
 
-    context.logger.info("Executing process", {
-        "process_id": process_id,
-        "job_id": job_id,
-        "user_id": user_id,
-    })
+    context.logger.info(
+        "Executing process",
+        {
+            "process_id": process_id,
+            "job_id": job_id,
+            "user_id": user_id,
+        },
+    )
 
     # Build event data for Motia
     event_data = {
@@ -107,10 +117,12 @@ async def handler(req, context):
     }
 
     # Emit event for background processing
-    await context.emit({
-        "topic": "analysis-requested",
-        "data": event_data,
-    })
+    await context.emit(
+        {
+            "topic": "analysis-requested",
+            "data": event_data,
+        }
+    )
 
     # Return 201 Created with job status
     status_info = StatusInfo(

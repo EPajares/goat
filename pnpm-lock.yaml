@@ -122,7 +122,7 @@ importers:
         specifier: ^4.9.5
         version: 4.9.5
 
-  apps/motia:
+  apps/processes:
     dependencies:
       '@motiadev/adapter-bullmq-events':
         specifier: ^0.17.11-beta.193
@@ -21492,7 +21492,7 @@ snapshots:
   '@jridgewell/trace-mapping@0.3.9':
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
-      '@jridgewell/sourcemap-codec': 1.5.0
+      '@jridgewell/sourcemap-codec': 1.5.5
 
   '@juggle/resize-observer@3.4.0': {}
 
@@ -22160,7 +22160,7 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.25.0
       '@emotion/cache': 11.11.0
-      csstype: 3.1.3
+      csstype: 3.2.3
       prop-types: 15.8.1
       react: 18.3.1
     optionalDependencies:
@@ -22335,7 +22335,7 @@ snapshots:
 
   '@npmcli/fs@3.1.1':
     dependencies:
-      semver: 7.6.3
+      semver: 7.7.3
 
   '@octokit/auth-token@2.5.0':
     dependencies:
@@ -26491,7 +26491,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.50.1
       debug: 4.3.6(supports-color@5.5.0)
       minimatch: 9.0.5
-      semver: 7.6.3
+      semver: 7.7.3
       tinyglobby: 0.2.15
       ts-api-utils: 2.3.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -29159,7 +29159,7 @@ snapshots:
   dom-helpers@5.2.1:
     dependencies:
       '@babel/runtime': 7.25.0
-      csstype: 3.1.3
+      csstype: 3.2.3
 
   dom-serializer@0.2.2:
     dependencies:
@@ -30199,7 +30199,7 @@ snapshots:
       etag: 1.8.1
       finalhandler: 1.3.2
       fresh: 0.5.2
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       merge-descriptors: 1.0.3
       methods: 1.1.2
       on-finished: 2.4.1
@@ -30212,7 +30212,7 @@ snapshots:
       send: 0.19.2
       serve-static: 1.16.3
       setprototypeof: 1.2.0
-      statuses: 2.0.1
+      statuses: 2.0.2
       type-is: 1.6.18
       utils-merge: 1.0.1
       vary: 1.1.2
@@ -32952,7 +32952,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.6.3
+      semver: 7.7.3
 
   make-error@1.3.6: {}
 
@@ -36340,7 +36340,7 @@ snapshots:
   redis-memory-server@0.14.1:
     dependencies:
       camelcase: 6.3.0
-      cross-spawn: 7.0.3
+      cross-spawn: 7.0.6
       debug: 4.3.6(supports-color@5.5.0)
       extract-zip: 2.0.1
       find-cache-dir: 3.3.2
@@ -36350,7 +36350,7 @@ snapshots:
       lockfile: 1.0.4
       lodash.defaultsdeep: 4.6.1
       rimraf: 5.0.10
-      semver: 7.6.3
+      semver: 7.7.3
       tar: 6.2.1
       tmp: 0.2.5
       uuid: 8.3.2

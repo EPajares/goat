@@ -5,10 +5,11 @@ GET /processes/{processId}
 Returns full description of a process including inputs/outputs and geometry constraints.
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 from lib.ogc_process_generator import get_process
 from lib.ogc_schemas import OGC_EXCEPTION_NO_SUCH_PROCESS, OGCException
@@ -35,8 +36,11 @@ async def handler(req, context):
         }
 
     # Build base URL from request headers
+    default_host = os.environ.get("PROCESSES_HOST", "localhost")
+    default_port = os.environ.get("PROCESSES_PORT", "8200")
+    default_host_port = f"{default_host}:{default_port}"
     proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", "localhost")
+    host = req.get("headers", {}).get("host", default_host_port)
     base_url = f"{proto}://{host}"
 
     context.logger.info(

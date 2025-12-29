@@ -1,16 +1,18 @@
 {
-  "name": "@goat/motia",
-  "description": "",
+  "name": "@goat/processes",
+  "description": "OGC API Processes service using Motia framework",
   "type": "module",
   "scripts": {
     "postinstall": "motia install",
-    "dev": "motia dev",
-    "start": "motia start",
+    "dev": "motia dev -p ${PROCESSES_PORT:-8200}",
+    "start": "motia start -p ${PROCESSES_PORT:-8200}",
     "generate-types": "motia generate-types",
     "build": "motia build",
     "clean": "rm -rf dist node_modules python_modules .motia .mermaid"
   },
   "keywords": [
+    "ogc",
+    "processes",
     "motia"
   ],
   "dependencies": {
