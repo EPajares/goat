@@ -354,6 +354,7 @@ export const useLayerUniqueValues = (
               order: queryParams?.order || "descendent",
               limit: limit,
               offset: offset,
+              ...(queryParams?.query && { filter: queryParams.query }),
             },
           },
         ]
