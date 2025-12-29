@@ -5,12 +5,13 @@ Returns job results from GOAT Core jobs table.
 GET /jobs/{jobId}/results
 """
 
+import os
 import sys
 from typing import Any, Dict
 from uuid import UUID
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 
 config = {
@@ -34,8 +35,11 @@ async def handler(req: Dict[str, Any], context):
     job_id = req.get("pathParams", {}).get("jobId")
 
     # Build base URL from request headers
+    default_host = os.environ.get("PROCESSES_HOST", "localhost")
+    default_port = os.environ.get("PROCESSES_PORT", "8200")
+    default_host_port = f"{default_host}:{default_port}"
     proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", "localhost:3002")
+    host = req.get("headers", {}).get("host", default_host_port)
     base_url = f"{proto}://{host}"
 
     context.logger.info("OGC Job results requested", {"job_id": job_id})

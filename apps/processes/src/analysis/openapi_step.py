@@ -4,11 +4,12 @@ OpenAPI/Swagger UI endpoint for OGC API Processes.
 Serves OpenAPI 3.0 spec for OGC-compliant endpoints only.
 """
 
+import os
 import sys
 from typing import Any, Dict
 
 sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/motia/src")
+sys.path.insert(0, "/app/apps/processes/src")
 
 
 config = {
@@ -484,8 +485,11 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
 
 async def handler(req, context):
     """Handle GET /openapi.json request."""
+    default_host = os.environ.get("PROCESSES_HOST", "localhost")
+    default_port = os.environ.get("PROCESSES_PORT", "8200")
+    default_host_port = f"{default_host}:{default_port}"
     proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", "localhost:3002")
+    host = req.get("headers", {}).get("host", default_host_port)
     base_url = f"{proto}://{host}"
 
     context.logger.info("OpenAPI spec requested")
