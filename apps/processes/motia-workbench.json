@@ -3,24 +3,32 @@
     "id": "analysis-flow",
     "config": {
       "src/analysis/get-job-api.step.ts": {
-        "x": 17,
-        "y": 0
+        "x": -8,
+        "y": -22
       },
       "src/analysis/analysis-api.step.ts": {
         "x": 0,
         "y": 204
       },
       "src/analysis/process_analysis_step.py": {
-        "x": 350,
-        "y": 238
+        "x": -521,
+        "y": 189
+      },
+      "src/analysis/ogc_execute_step.py": {
+        "x": -1042,
+        "y": 341
+      },
+      "src/analysis/log_job_status_step.py": {
+        "x": 335,
+        "y": 420
       },
       "src/analysis/log_analysis_result_step.py": {
-        "x": 700,
-        "y": 248
+        "x": 755,
+        "y": 8
       },
       "src/analysis/list_tools_api_step.py": {
-        "x": 0,
-        "y": 428
+        "x": 892,
+        "y": 298
       }
     }
   }

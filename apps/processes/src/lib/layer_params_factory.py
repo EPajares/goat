@@ -70,10 +70,41 @@ def create_layer_params_class(
     # Get all fields from the original class
     field_definitions: Dict[str, Any] = {}
 
-    # Add user_id as first field
+    # ========================================================================
+    # Common fields added to ALL LayerParams (required for GOAT integration)
+    # ========================================================================
+
+    # Required: user context
     field_definitions["user_id"] = (
         str,
         Field(..., description="UUID of the user who owns the layers."),
+    )
+
+    # Optional: project context (for saving results, layer styling, etc.)
+    field_definitions["project_id"] = (
+        Optional[str],
+        Field(
+            None,
+            description="UUID of the project. Required if save_results=True to associate output layer with project.",
+        ),
+    )
+
+    # Optional: scenario context (for analyzing changes/edits to layers)
+    field_definitions["scenario_id"] = (
+        Optional[str],
+        Field(
+            None,
+            description="UUID of the scenario. If provided, layer edits from this scenario are applied before analysis.",
+        ),
+    )
+
+    # Optional: whether to persist results to GOAT
+    field_definitions["save_results"] = (
+        Optional[bool],
+        Field(
+            True,
+            description="Whether to save results to GOAT. If False, returns a pre-signed URL to download results.",
+        ),
     )
 
     # Get type hints and field info from original class
@@ -151,21 +182,26 @@ def create_layer_params_class(
                 )
 
         else:
-            # Keep non-path fields as-is
+            # Keep non-path fields as-is, preserving their required/optional status
+            is_required = field_info.is_required()
             default_value = field_info.default
-            if default_value is None and not field_info.is_required():
-                default_value = None
-
-            # Recreate the field with its original configuration
-            new_field = Field(
-                default=default_value if default_value is not None else ...,
-                description=field_info.description,
-            )
 
             # Handle the default_factory case
             if field_info.default_factory is not None:
                 new_field = Field(
                     default_factory=field_info.default_factory,
+                    description=field_info.description,
+                )
+            elif is_required:
+                # Field is required (no default)
+                new_field = Field(
+                    ...,
+                    description=field_info.description,
+                )
+            else:
+                # Field is optional with a default value (which could be None)
+                new_field = Field(
+                    default=default_value,
                     description=field_info.description,
                 )
 

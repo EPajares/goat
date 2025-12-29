@@ -28,6 +28,7 @@ from pydantic import BaseModel
 sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/motia/src")
 
+from lib.ogc_exception_handler import format_ogc_error_response
 from lib.tool_registry import get_combined_input_schema, get_tool, get_tool_names
 
 
@@ -41,6 +42,7 @@ class AnalysisResult(BaseModel):
     feature_count: Optional[int] = None
     geometry_type: Optional[str] = None
     error: Optional[str] = None
+    ogc_error: Optional[Dict[str, Any]] = None  # OGC formatted error
     processedAt: str
 
 
@@ -49,9 +51,17 @@ config = {
     "type": "event",
     "description": "Processes any goatlib analysis tool on DuckLake layers (auto-discovered)",
     "subscribes": ["analysis-requested"],
-    "emits": ["analysis-completed", "analysis-failed"],
+    "emits": ["analysis-completed", "analysis-failed", "job.completed", "job.failed"],
     "flows": ["analysis-flow"],
     "input": get_combined_input_schema(),
+    "infrastructure": {
+        "handler": {
+            "timeout": 120  # 120 seconds max execution time
+        },
+        "queue": {
+            "visibilityTimeout": 150  # 120 + 30s buffer
+        },
+    },
 }
 
 
@@ -99,7 +109,6 @@ async def handler(input_data: Dict[str, Any], context):
             )
 
         # Import GOAT Core components (lazy import to avoid startup issues)
-        import core._dotenv  # noqa: Load env vars
         from core.core.config import settings
         from core.storage.ducklake import ducklake_manager
 
@@ -145,6 +154,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "job_id": job_id,
                 "output_layer_id": analysis_result.output_layer_id,
                 "feature_count": analysis_result.feature_count,
+                "download_url": result.download_url is not None,
             },
         )
 
@@ -155,16 +165,51 @@ async def handler(input_data: Dict[str, Any], context):
             }
         )
 
+        # Emit job.completed event for job status persistence
+        job_data = {
+            "job_id": job_id,
+            "user_id": user_id,
+            "tool_name": tool_name,
+            "status": "successful",  # OGC StatusCode
+            "project_id": input_data.get("project_id"),
+            "scenario_id": input_data.get("scenario_id"),
+            "result_layer_id": analysis_result.output_layer_id,
+            "feature_count": analysis_result.feature_count,
+            "input_params": {
+                k: v for k, v in input_data.items() if k not in ("jobId", "timestamp")
+            },
+        }
+
+        # Add presigned URL info if save_results=False
+        if result.download_url:
+            job_data["download_url"] = result.download_url
+            job_data["download_expires_at"] = (
+                result.download_expires_at.isoformat()
+                if result.download_expires_at
+                else None
+            )
+
+        await context.emit(
+            {
+                "topic": "job.completed",
+                "data": job_data,
+            }
+        )
+
         return analysis_result.model_dump()
 
     except Exception as e:
         context.logger.error(f"{tool_name} failed", {"error": str(e)})
+
+        # Format error as OGC exception
+        ogc_error = format_ogc_error_response(e)
 
         error_result = AnalysisResult(
             jobId=job_id,
             tool_name=tool_name or "unknown",
             status="failed",
             error=str(e),
+            ogc_error=ogc_error,
             processedAt=datetime.now(timezone.utc).isoformat(),
         )
 
@@ -172,6 +217,28 @@ async def handler(input_data: Dict[str, Any], context):
             {
                 "topic": "analysis-failed",
                 "data": error_result.model_dump(),
+            }
+        )
+
+        # Emit job.failed event for job status persistence
+        await context.emit(
+            {
+                "topic": "job.failed",
+                "data": {
+                    "job_id": job_id,
+                    "user_id": user_id,
+                    "tool_name": tool_name or "unknown",
+                    "status": "failed",  # OGC StatusCode
+                    "project_id": input_data.get("project_id"),
+                    "scenario_id": input_data.get("scenario_id"),
+                    "error_message": str(e),
+                    "ogc_error": ogc_error,
+                    "input_params": {
+                        k: v
+                        for k, v in input_data.items()
+                        if k not in ("jobId", "timestamp")
+                    },
+                },
             }
         )
 

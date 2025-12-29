@@ -15,6 +15,9 @@ import { z } from "zod";
  * - *Tool (execution)
  *
  * will be automatically available at /{tool_name}
+ *
+ * The request body is passed through to Python where the tool registry
+ * validates it against the dynamically generated LayerParams schema.
  */
 
 export const config: ApiRouteConfig = {
@@ -25,27 +28,9 @@ export const config: ApiRouteConfig = {
   description: "Triggers any goatlib analysis tool as a background task",
   emits: ["analysis-requested"],
   flows: ["analysis-flow"],
+  // Flexible schema - actual validation happens in Python against the tool's LayerParams
   bodySchema: z.object({
-    // Required: user context
-    user_id: z.string().uuid().describe("UUID of the user who owns the layers"),
-
-    // Required for most tools: input layer
-    input_layer_id: z.string().uuid().describe("UUID of the primary input layer"),
-
-    // Optional: overlay layer (for clip, intersection, etc.)
-    overlay_layer_id: z.string().uuid().optional().describe("UUID of the overlay layer"),
-
-    // Optional: filters
-    input_filter: z.string().optional().describe("SQL WHERE clause to filter input layer"),
-    overlay_filter: z.string().optional().describe("SQL WHERE clause to filter overlay layer"),
-
-    // Optional: output
-    output_layer_id: z
-      .string()
-      .uuid()
-      .optional()
-      .describe("UUID for output layer (auto-generated if not provided)"),
-    output_crs: z.string().optional().describe("Target CRS for output (e.g., EPSG:4326)"),
+    user_id: z.string().describe("UUID of the user who owns the layers"),
   }),
   responseSchema: {
     200: z.object({
@@ -64,33 +49,14 @@ export const config: ApiRouteConfig = {
 export const handler: Handlers["AnalysisAPI"] = async (req, { emit, logger }) => {
   // Get tool_name from URL path parameter
   const tool_name = req.pathParams?.tool_name;
-
-  const {
-    user_id,
-    input_layer_id,
-    overlay_layer_id,
-    input_filter,
-    overlay_filter,
-    output_layer_id,
-    output_crs,
-  } = req.body;
+  const { user_id, ...toolParams } = req.body;
 
   // Validate required fields
-  if (!tool_name || !user_id || !input_layer_id) {
+  if (!tool_name || !user_id) {
     return {
       status: 400,
       body: {
-        error: "tool_name (in URL), user_id, and input_layer_id are required",
-      },
-    };
-  }
-
-  // Tool-specific validation
-  if (tool_name === "clip" && !overlay_layer_id) {
-    return {
-      status: 400,
-      body: {
-        error: "overlay_layer_id is required for clip tool",
+        error: "tool_name (in URL) and user_id are required",
       },
     };
   }
@@ -99,28 +65,22 @@ export const handler: Handlers["AnalysisAPI"] = async (req, { emit, logger }) =>
   const timestamp = new Date().toISOString();
 
   // Generate output layer ID if not provided
-  const finalOutputLayerId = output_layer_id || crypto.randomUUID();
+  const output_layer_id = toolParams.output_layer_id || crypto.randomUUID();
 
   logger.info("Analysis API endpoint called", {
     jobId,
     tool_name,
     user_id,
-    input_layer_id,
-    overlay_layer_id,
   });
 
-  // Build event payload with all params
+  // Build event payload - pass all params through for Python validation
   const eventData: Record<string, unknown> = {
     jobId,
     timestamp,
     tool_name,
     user_id,
-    input_layer_id,
-    overlay_layer_id: overlay_layer_id || null,
-    input_filter: input_filter || null,
-    overlay_filter: overlay_filter || null,
-    output_layer_id: finalOutputLayerId,
-    output_crs: output_crs || "EPSG:4326",
+    output_layer_id,
+    ...toolParams, // Pass all tool-specific params through
   };
 
   // Emit event for background processing in Python
@@ -136,7 +96,7 @@ export const handler: Handlers["AnalysisAPI"] = async (req, { emit, logger }) =>
       status: "processing",
       jobId,
       tool_name,
-      output_layer_id: finalOutputLayerId,
+      output_layer_id,
     },
   };
 };

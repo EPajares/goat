@@ -16,7 +16,7 @@ Usage:
     zod_schema = pydantic_to_zod_schema(MyPydanticModel)
 """
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, Optional, Type
 
 from pydantic import BaseModel
 
