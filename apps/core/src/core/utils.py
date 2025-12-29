@@ -12,7 +12,7 @@ import subprocess
 import time
 import zipfile
 from functools import wraps
-from typing import Any, AsyncIterator, Callable, Type, TypeVar, cast
+from typing import Any, AsyncIterator, Callable, TypeVar, cast
 from uuid import UUID
 
 import aiohttp
@@ -33,7 +33,6 @@ from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.core.config import settings
-from core.db.models import Scenario, ScenarioScenarioFeatureLink
 from core.schemas.common import CQLQuery, CQLQueryObject
 
 
@@ -169,7 +168,9 @@ def decode_r5_grid(grid_data_buffer: bytes) -> dict[str, Any]:
     return dict(header | metadata | {"data": data, "errors": [], "warnings": []})
 
 
-def compute_r5_surface(grid: dict[str, Any], percentile: int) -> NDArray[np.uint16] | None:
+def compute_r5_surface(
+    grid: dict[str, Any], percentile: int
+) -> NDArray[np.uint16] | None:
     """
     Compute single value surface from the grid
     """
@@ -226,11 +227,15 @@ def pixel_x_to_web_mercator_x(x: float, zoom: int) -> float:
 
 @njit(cache=True)
 def pixel_y_to_web_mercator_y(y: float, zoom: int) -> float:
-    return float(y * (40075016.68557849 / (-1 * z_scale(zoom))) + (40075016.68557849 / 2.0))
+    return float(
+        y * (40075016.68557849 / (-1 * z_scale(zoom))) + (40075016.68557849 / 2.0)
+    )
 
 
 @njit(cache=True)
-def coordinate_from_pixel(input: list[float], zoom: int, round_int: bool = False, web_mercator: bool = False) -> list[float]:
+def coordinate_from_pixel(
+    input: list[float], zoom: int, round_int: bool = False, web_mercator: bool = False
+) -> list[float]:
     """
     Convert pixel coordinate to longitude and latitude
     """
@@ -283,6 +288,7 @@ def print_warning(message: str) -> None:
 
 F = TypeVar("F", bound=Callable[..., Any])
 
+
 def timing(f: F) -> F:
     @wraps(f)
     def wrap(*args: Any, **kw: Any) -> Any:
@@ -310,7 +316,9 @@ def get_random_string(length: int) -> str:
     return "".join(random.choice(letters) for i in range(length))
 
 
-def get_layer_columns(attribute_mapping: dict[str, Any], base_columns: list[str]) -> list[str]:
+def get_layer_columns(
+    attribute_mapping: dict[str, Any], base_columns: list[str]
+) -> list[str]:
     """Get the columns for the layer table and the original table. Add the base columns geom and layer_id"""
 
     original_columns = ", ".join(attribute_mapping.keys())
@@ -415,7 +423,9 @@ def next_column_name(attribute_mapping: dict[str, Any], data_type: str) -> str:
     return f"{data_type}_attr{next_number}"
 
 
-def get_result_column(attribute_mapping: dict[str, Any], base_column_name: str, datatype: str) -> dict[str, str]:
+def get_result_column(
+    attribute_mapping: dict[str, Any], base_column_name: str, datatype: str
+) -> dict[str, str]:
     # Initialize the highest number found for the column name
     highest_num = 0
     base_name_exists = False
@@ -474,9 +484,7 @@ def build_where(
         attribute_mapping["geom"] = "geom"
         where = f"{table_name}.layer_id = '{str(id)}' AND "
         converted_cql = to_sql_where(ast, attribute_mapping)
-        converted_cql = re.sub(
-            r'(?<=\(|\s|,)"', f'{table_name}."', converted_cql
-        )
+        converted_cql = re.sub(r'(?<=\(|\s|,)"', f'{table_name}."', converted_cql)
         # Fixing issue with pygeofilter https://github.com/geopython/pygeofilter/pull/54
         converted_cql = converted_cql.replace(
             "ST_GeomFromWKB(x'", "ST_GeomFromWKB(E'\\\\x"
@@ -489,7 +497,7 @@ def build_where(
         # Cast all columns subject to a likeliness check to TEXT, ensuring it succeeds
         where = re.sub(
             r'("([^"]*)")(?=\s+LIKE)',
-            r'\1::TEXT',
+            r"\1::TEXT",
             where,
         )
         where = where.replace("LIKE", "ILIKE")
@@ -553,27 +561,6 @@ async def async_get_with_retry(
 def hex_to_rgb(hex: str) -> tuple[int, ...]:
     hex = hex.lstrip("#")
     return tuple(int(hex[i : i + 2], 16) for i in (0, 2, 4))
-
-
-async def delete_orphans(
-    db: AsyncSession,
-    child_table_model: Type[Scenario],
-    column_name: str,
-    link_table_model: Type[ScenarioScenarioFeatureLink],
-    link_column_name: str,
-) -> None:
-    child_table_name = f"{child_table_model.__table_args__['schema']}.{child_table_model.__tablename__}"
-    link_table_name = (
-        f"{link_table_model.__table_args__['schema']}.{link_table_model.__tablename__}"
-    )
-    sql = text(f"""
-        DELETE FROM {child_table_name}
-        WHERE {column_name} NOT IN (
-            SELECT {link_column_name}
-            FROM {link_table_name}
-        )
-    """)
-    await db.execute(sql)
 
 
 def without_keys(d: dict[str, Any], keys: list[str]) -> dict[str, Any]:

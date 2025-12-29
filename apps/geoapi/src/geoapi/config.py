@@ -37,7 +37,8 @@ class Settings(BaseSettings):
     DEFAULT_EXTENT: int = 4096
 
     # Connection pool size for concurrent tile requests
-    DUCKLAKE_POOL_SIZE: int = int(os.getenv("GEOAPI_DUCKLAKE_POOL_SIZE", "8"))
+    # Lower values reduce idle connections that can go stale
+    DUCKLAKE_POOL_SIZE: int = int(os.getenv("GEOAPI_DUCKLAKE_POOL_SIZE", "4"))
 
     # Timeout Settings (in seconds)
     REQUEST_TIMEOUT: int = int(os.getenv("GEOAPI_REQUEST_TIMEOUT", "30"))

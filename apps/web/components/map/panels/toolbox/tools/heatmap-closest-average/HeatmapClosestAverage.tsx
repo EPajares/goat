@@ -8,6 +8,7 @@ import { heatmapClosestAverageSchema } from "@/lib/validations/tools";
 import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
+import { useTotalProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 
 import HeatmapContainer from "@/components/map/panels/toolbox/common/HeatmapContainer";
 import type { Opportunity } from "@/components/map/panels/toolbox/common/HeatmapOpportunitiesSelector";
@@ -32,13 +33,18 @@ const HeatmapClosestAverage = ({ onBack, onClose }: IndicatorBaseProps) => {
     },
   ];
   const [opportunities, setOpportunities] = useState<Opportunity[]>(defaultOpportunities);
-  const numberOfSelectedOpportunityFeatures = useMemo(() => {
-    return opportunities.reduce((acc, opportunity) => {
-      if (!opportunity.layer) return acc;
-      const layer = layers?.find((layer) => layer.id === opportunity.layer?.value);
-      return acc + (layer?.filtered_count || 0);
-    }, 0);
+
+  // Get the selected opportunity layers for feature count
+  const opportunityLayers = useMemo(() => {
+    return opportunities.map((opportunity) => {
+      if (!opportunity.layer) return undefined;
+      return layers?.find((layer) => layer.id === opportunity.layer?.value);
+    });
   }, [opportunities, layers]);
+
+  // Fetch feature counts on-demand for all opportunity layers
+  const { totalCount: numberOfSelectedOpportunityFeatures } =
+    useTotalProjectLayerFeatureCount(opportunityLayers);
 
   const handleReset = () => {
     setOpportunities(defaultOpportunities);

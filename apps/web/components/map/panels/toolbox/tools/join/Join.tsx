@@ -20,6 +20,7 @@ import type { IndicatorBaseProps } from "@/types/map/toolbox";
 import useLayerFields from "@/hooks/map/CommonHooks";
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useLayerByGeomType, useLayerDatasetId, useStatisticValues } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import LayerFieldSelector from "@/components/map/common/LayerFieldSelector";
@@ -51,6 +52,11 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
     return projectLayers.find((layer) => layer.id === targetLayerItem?.value);
   }, [targetLayerItem, projectLayers]);
 
+  // Fetch target layer feature count on-demand
+  const { featureCount: targetLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: targetLayer,
+  });
+
   const [targetSelectedField, setTargetSelectedField] = useState<LayerFieldType | undefined>(undefined);
 
   const targetLayerDatasetId = useLayerDatasetId(
@@ -64,6 +70,11 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
   const joinLayer = useMemo(() => {
     return projectLayers.find((layer) => layer.id === joinLayerItem?.value);
   }, [joinLayerItem, projectLayers]);
+
+  // Fetch join layer feature count on-demand
+  const { featureCount: joinLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: joinLayer,
+  });
 
   const [joinSelectedField, setJoinSelectedField] = useState<LayerFieldType | undefined>(undefined);
 
@@ -142,12 +153,16 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
     }
     if (
       maxFeatureCnt.join &&
-      targetLayer?.filtered_count &&
-      targetLayer.filtered_count > maxFeatureCnt.join
+      targetLayerFeatureCount !== undefined &&
+      targetLayerFeatureCount > maxFeatureCnt.join
     ) {
       return false;
     }
-    if (maxFeatureCnt.join && joinLayer?.filtered_count && joinLayer.filtered_count > maxFeatureCnt.join) {
+    if (
+      maxFeatureCnt.join &&
+      joinLayerFeatureCount !== undefined &&
+      joinLayerFeatureCount > maxFeatureCnt.join
+    ) {
       return false;
     }
 
@@ -158,8 +173,8 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
     targetSelectedField,
     joinSelectedField,
     statisticMethodSelected,
-    joinLayer?.filtered_count,
-    targetLayer?.filtered_count,
+    joinLayerFeatureCount,
+    targetLayerFeatureCount,
   ]);
 
   const handleRun = async () => {
@@ -241,10 +256,10 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
                   />
 
                   {!!maxFeatureCnt.join &&
-                    !!targetLayer?.filtered_count &&
-                    targetLayer.filtered_count > maxFeatureCnt.join && (
+                    targetLayerFeatureCount !== undefined &&
+                    targetLayerFeatureCount > maxFeatureCnt.join && (
                       <LayerNumberOfFeaturesAlert
-                        currentFeatures={targetLayer.filtered_count}
+                        currentFeatures={targetLayerFeatureCount}
                         maxFeatures={maxFeatureCnt.join}
                         texts={{
                           maxFeaturesText: t("maximum_number_of_features"),
@@ -266,10 +281,10 @@ const Join = ({ onBack, onClose }: IndicatorBaseProps) => {
                   />
 
                   {!!maxFeatureCnt.join &&
-                    !!joinLayer?.filtered_count &&
-                    joinLayer.filtered_count > maxFeatureCnt.join && (
+                    joinLayerFeatureCount !== undefined &&
+                    joinLayerFeatureCount > maxFeatureCnt.join && (
                       <LayerNumberOfFeaturesAlert
-                        currentFeatures={joinLayer.filtered_count}
+                        currentFeatures={joinLayerFeatureCount}
                         maxFeatures={maxFeatureCnt.join}
                         texts={{
                           maxFeaturesText: t("maximum_number_of_features"),

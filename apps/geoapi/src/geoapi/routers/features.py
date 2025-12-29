@@ -57,7 +57,7 @@ async def get_features(
         raise HTTPException(status_code=404, detail="Collection not found")
 
     column_names = metadata.column_names
-    geometry_column = metadata.geometry_column
+    geometry_column = metadata.geometry_column or "geometry"
     has_geometry = metadata.has_geometry
     logger.debug(
         "Layer %s: columns=%s, geometry_column=%s, has_geometry=%s",
@@ -176,7 +176,7 @@ async def get_feature(
     if not metadata:
         raise HTTPException(status_code=404, detail="Collection not found")
 
-    geometry_column = metadata.geometry_column
+    geometry_column = metadata.geometry_column or "geometry"
     has_geometry = metadata.has_geometry
 
     # Get feature

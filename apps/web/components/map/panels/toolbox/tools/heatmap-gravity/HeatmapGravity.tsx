@@ -10,6 +10,7 @@ import type { SelectorItem } from "@/types/map/common";
 import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
+import { useTotalProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 
 import Selector from "@/components/map/panels/common/Selector";
 import HeatmapContainer from "@/components/map/panels/toolbox/common/HeatmapContainer";
@@ -56,13 +57,17 @@ const HeatmapGravity = ({ onBack, onClose }: IndicatorBaseProps) => {
   ];
   const [opportunities, setOpportunities] = useState<Opportunity[]>(defaultOpportunities);
 
-  const numberOfSelectedOpportunityFeatures = useMemo(() => {
-    return opportunities.reduce((acc, opportunity) => {
-      if (!opportunity.layer) return acc;
-      const layer = layers?.find((layer) => layer.id === opportunity.layer?.value);
-      return acc + (layer?.filtered_count || 0);
-    }, 0);
+  // Get the selected opportunity layers for feature count
+  const opportunityLayers = useMemo(() => {
+    return opportunities.map((opportunity) => {
+      if (!opportunity.layer) return undefined;
+      return layers?.find((layer) => layer.id === opportunity.layer?.value);
+    });
   }, [opportunities, layers]);
+
+  // Fetch feature counts on-demand for all opportunity layers
+  const { totalCount: numberOfSelectedOpportunityFeatures } =
+    useTotalProjectLayerFeatureCount(opportunityLayers);
 
   const isValid = useMemo(() => {
     return (

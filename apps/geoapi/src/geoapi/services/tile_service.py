@@ -5,12 +5,13 @@ native ST_AsMVT function.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Optional
+
+from goatlib.storage import build_filters
 
 from geoapi.config import settings
-from geoapi.cql_evaluator import cql2_to_duckdb_sql, parse_cql2_filter
 from geoapi.dependencies import LayerInfo
-from geoapi.ducklake_pool import ducklake_pool, is_connection_error
+from geoapi.ducklake_pool import ducklake_pool
 
 logger = logging.getLogger(__name__)
 
@@ -107,36 +108,16 @@ class TileService:
         select_props = ", ".join(select_parts) if select_parts else None
 
         # Build WHERE clause (additional filters beyond tile bounds)
-        extra_where_clauses = []
-        params: list[Any] = []
-
-        # Additional bbox filter
-        if bbox:
-            minx, miny, maxx, maxy = bbox
-            bbox_wkt = f"POLYGON(({minx} {miny}, {minx} {maxy}, {maxx} {maxy}, {maxx} {miny}, {minx} {miny}))"
-            extra_where_clauses.append(
-                f'ST_Intersects("{geom_col}", ST_GeomFromText(?))'
-            )
-            params.append(bbox_wkt)
-
-        # CQL2 filter
-        if cql_filter and column_names:
-            try:
-                ast = parse_cql2_filter(
-                    cql_filter["filter"],
-                    cql_filter.get("lang", "cql2-json"),
-                )
-                cql_sql, cql_params = cql2_to_duckdb_sql(ast, column_names)
-                extra_where_clauses.append(f"({cql_sql})")
-                params.extend(cql_params)
-            except Exception as e:
-                # Log but don't fail on CQL parse errors
-                logging.warning("CQL2 parse error: %s", e)
-
-        # Combine tile bounds filter with extra filters
-        extra_where_sql = (
-            " AND " + " AND ".join(extra_where_clauses) if extra_where_clauses else ""
+        # Uses shared query builder for bbox and CQL filters
+        filters = build_filters(
+            bbox=bbox,
+            cql_filter=cql_filter,
+            geometry_column=geom_col,
+            column_names=column_names,
+            has_geometry=True,
         )
+        extra_where_sql = filters.to_where_sql()
+        params = filters.params
 
         # Build struct_pack arguments for ST_AsMVT
         # geometry is handled separately via ST_AsMVTGeom
@@ -176,38 +157,17 @@ class TileService:
         """
 
         try:
-            # Retry once on connection errors (SSL, EOF, etc.)
-            max_retries = 2
-            last_error = None
+            # Use pool's execute_with_retry for automatic connection handling
+            result = ducklake_pool.execute_with_retry(
+                query,
+                params=params if params else None,
+                max_retries=3,
+                fetch_all=False,
+            )
 
-            for attempt in range(max_retries):
-                try:
-                    with ducklake_pool.connection() as con:
-                        if params:
-                            result = con.execute(query, params).fetchone()
-                        else:
-                            result = con.execute(query).fetchone()
-
-                        if result and result[0]:
-                            return bytes(result[0])
-                        return None
-                except Exception as e:
-                    last_error = e
-                    if is_connection_error(e) and attempt < max_retries - 1:
-                        logger.warning(
-                            "Connection error on tile z=%d x=%d y=%d (attempt %d), retrying: %s",
-                            z,
-                            x,
-                            y,
-                            attempt + 1,
-                            e,
-                        )
-                        continue
-                    raise
-
-            # Should not reach here, but raise last error if we do
-            if last_error:
-                raise last_error
+            if result and result[0]:
+                return bytes(result[0])
+            return None
         except Exception as e:
             logger.error("Tile generation error: %s", e)
             raise
