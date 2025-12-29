@@ -7,6 +7,24 @@ https://docs.ogc.org/is/18-062r2/18-062r2.html
 from enum import Enum
 from typing import Any
 
+from goatlib.analysis.statistics import (
+    AreaStatisticsInput as AreaStatisticsInputBase,
+)
+from goatlib.analysis.statistics import (
+    AreaStatisticsResult,
+    ClassBreaksResult,
+    FeatureCountResult,
+    UniqueValuesResult,
+)
+from goatlib.analysis.statistics import (
+    ClassBreaksInput as ClassBreaksInputBase,
+)
+from goatlib.analysis.statistics import (
+    FeatureCountInput as FeatureCountInputBase,
+)
+from goatlib.analysis.statistics import (
+    UniqueValuesInput as UniqueValuesInputBase,
+)
 from pydantic import BaseModel, Field
 
 from geoapi.models.ogc import Link
@@ -158,113 +176,41 @@ class ResultDocument(BaseModel):
 # === Process-Specific Input/Output Models ===
 
 
-class FeatureCountInput(BaseModel):
+class FeatureCountInput(FeatureCountInputBase):
     """Input for feature-count process."""
 
     collection: str = Field(description="Collection/layer ID (UUID)")
-    filter: str | None = Field(default=None, description="CQL2 filter expression")
 
 
-class FeatureCountOutput(BaseModel):
-    """Output for feature-count process."""
-
-    count: int = Field(description="Number of features matching the criteria")
+# Use FeatureCountResult from goatlib as output
+FeatureCountOutput = FeatureCountResult
 
 
-class AreaStatisticsOperation(str, Enum):
-    """Operations for area statistics."""
-
-    sum = "sum"
-    mean = "mean"
-    min = "min"
-    max = "max"
-
-
-class AreaStatisticsInput(BaseModel):
+class AreaStatisticsInput(AreaStatisticsInputBase):
     """Input for area-statistics process."""
 
     collection: str = Field(description="Collection/layer ID (UUID)")
-    operation: AreaStatisticsOperation = Field(description="Statistical operation")
-    filter: str | None = Field(default=None, description="CQL2 filter expression")
 
 
-class AreaStatisticsOutput(BaseModel):
-    """Output for area-statistics process."""
-
-    total_area: float | None = Field(
-        default=None, description="Total area in square meters"
-    )
-    feature_count: int | None = Field(default=None, description="Number of features")
-    result: float | None = Field(default=None, description="Result of the operation")
-    unit: str = Field(default="m²", description="Unit of measurement")
+# Use AreaStatisticsResult from goatlib as output
+AreaStatisticsOutput = AreaStatisticsResult
 
 
-class UniqueValuesOrder(str, Enum):
-    """Order for unique values."""
-
-    ascendent = "ascendent"
-    descendent = "descendent"
-
-
-class UniqueValuesInput(BaseModel):
+class UniqueValuesInput(UniqueValuesInputBase):
     """Input for unique-values process."""
 
     collection: str = Field(description="Collection/layer ID (UUID)")
-    attribute: str = Field(description="Attribute/column name")
-    order: UniqueValuesOrder = Field(
-        default=UniqueValuesOrder.descendent, description="Sort order by count"
-    )
-    filter: str | None = Field(default=None, description="CQL2 filter expression")
-    limit: int = Field(
-        default=100, ge=1, le=1000, description="Maximum values to return"
-    )
-    offset: int = Field(default=0, ge=0, description="Offset for pagination")
 
 
-class UniqueValue(BaseModel):
-    """A unique value with its count."""
-
-    value: Any
-    count: int
+# Use UniqueValuesResult from goatlib as output (UniqueValue is also from goatlib)
+UniqueValuesOutput = UniqueValuesResult
 
 
-class UniqueValuesOutput(BaseModel):
-    """Output for unique-values process."""
-
-    attribute: str
-    total: int = Field(description="Total number of unique values")
-    values: list[UniqueValue]
-
-
-class ClassBreaksMethod(str, Enum):
-    """Classification methods for class breaks."""
-
-    quantile = "quantile"
-    equal_interval = "equal_interval"
-    standard_deviation = "standard_deviation"
-    heads_and_tails = "heads_and_tails"
-
-
-class ClassBreaksInput(BaseModel):
+class ClassBreaksInput(ClassBreaksInputBase):
     """Input for class-breaks process."""
 
     collection: str = Field(description="Collection/layer ID (UUID)")
-    attribute: str = Field(description="Numeric attribute/column name")
-    method: ClassBreaksMethod = Field(
-        default=ClassBreaksMethod.quantile, description="Classification method"
-    )
-    breaks: int = Field(default=5, ge=2, le=20, description="Number of classes")
-    filter: str | None = Field(default=None, description="CQL2 filter expression")
-    strip_zeros: bool = Field(default=False, description="Exclude zero values")
 
 
-class ClassBreaksOutput(BaseModel):
-    """Output for class-breaks process."""
-
-    attribute: str
-    method: str
-    breaks: list[float] = Field(description="Break values defining class boundaries")
-    min: float | None = Field(default=None, description="Minimum value")
-    max: float | None = Field(default=None, description="Maximum value")
-    mean: float | None = Field(default=None, description="Mean value")
-    std_dev: float | None = Field(default=None, description="Standard deviation")
+# Use ClassBreaksResult from goatlib as output
+ClassBreaksOutput = ClassBreaksResult

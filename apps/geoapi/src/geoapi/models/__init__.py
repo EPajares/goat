@@ -1,5 +1,12 @@
 """Models package for GeoAPI."""
 
+from goatlib.analysis.statistics import (
+    AreaOperation,
+    ClassBreakMethod,
+    SortOrder,
+)
+from goatlib.analysis.statistics.schemas import UniqueValue
+
 from geoapi.models.ogc import (
     Collection,
     CollectionsResponse,
@@ -22,10 +29,8 @@ from geoapi.models.ogc import (
 )
 from geoapi.models.processes import (
     AreaStatisticsInput,
-    AreaStatisticsOperation,
     AreaStatisticsOutput,
     ClassBreaksInput,
-    ClassBreaksMethod,
     ClassBreaksOutput,
     ExecuteRequest,
     FeatureCountInput,
@@ -42,9 +47,7 @@ from geoapi.models.processes import (
     StatusCode,
     StatusInfo,
     TransmissionMode,
-    UniqueValue,
     UniqueValuesInput,
-    UniqueValuesOrder,
     UniqueValuesOutput,
 )
 
@@ -70,10 +73,8 @@ __all__ = [
     "TileSet",
     # Process Models
     "AreaStatisticsInput",
-    "AreaStatisticsOperation",
     "AreaStatisticsOutput",
     "ClassBreaksInput",
-    "ClassBreaksMethod",
     "ClassBreaksOutput",
     "ExecuteRequest",
     "FeatureCountInput",
@@ -92,6 +93,9 @@ __all__ = [
     "TransmissionMode",
     "UniqueValue",
     "UniqueValuesInput",
-    "UniqueValuesOrder",
     "UniqueValuesOutput",
+    # Enums from goatlib (re-exported for convenience)
+    "AreaOperation",
+    "ClassBreakMethod",
+    "SortOrder",
 ]

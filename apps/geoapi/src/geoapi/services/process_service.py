@@ -11,17 +11,19 @@ import logging
 from typing import Any
 from uuid import UUID
 
+from goatlib.analysis.statistics import (
+    calculate_area_statistics,
+    calculate_class_breaks,
+    calculate_feature_count,
+    calculate_unique_values,
+)
 from goatlib.storage import cql2_to_duckdb_sql, parse_cql2_filter
 
 from geoapi.ducklake import ducklake_manager
-from geoapi.ducklake_pool import execute_query_with_retry
 from geoapi.models import (
     AreaStatisticsInput,
-    AreaStatisticsOutput,
     ClassBreaksInput,
-    ClassBreaksOutput,
     FeatureCountInput,
-    FeatureCountOutput,
     InputDescription,
     JobControlOptions,
     Link,
@@ -29,9 +31,7 @@ from geoapi.models import (
     ProcessDescription,
     ProcessSummary,
     TransmissionMode,
-    UniqueValue,
     UniqueValuesInput,
-    UniqueValuesOutput,
 )
 from geoapi.services.layer_service import layer_service
 
@@ -383,20 +383,18 @@ class ProcessService:
         # Build WHERE clause
         where_sql, params = self._build_where_clause(inp.filter, columns, geom_col)
 
-        # Execute count query
-        query = f"SELECT COUNT(*) FROM lake.{table_name} WHERE {where_sql}"
-        logger.debug("Feature count query: %s with params: %s", query, params)
-
         try:
-            result = execute_query_with_retry(
-                ducklake_manager, query, params if params else None, fetch_all=False
-            )
-            count = result[0] if result else 0
+            with ducklake_manager.connection() as con:
+                result = calculate_feature_count(
+                    con,
+                    f"lake.{table_name}",
+                    where_sql,
+                    params if params else None,
+                )
+            return result.model_dump()
         except Exception as e:
             logger.error("Feature count query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
-
-        return FeatureCountOutput(count=count).model_dump()
 
     async def _execute_area_statistics(self, inputs: dict[str, Any]) -> dict[str, Any]:
         """Execute area-statistics process."""
@@ -408,50 +406,17 @@ class ProcessService:
         # Build WHERE clause
         where_sql, params = self._build_where_clause(inp.filter, columns, geom_col)
 
-        # Calculate area statistics using DuckDB spatial functions
-        # Transform to a projected CRS (Web Mercator) for area calculation
-        area_expr = f"ST_Area(ST_Transform(\"{geom_col}\", 'EPSG:4326', 'EPSG:3857'))"
-
-        # Build aggregation based on operation
-        if inp.operation.value == "sum":
-            agg_expr = f"SUM({area_expr})"
-        elif inp.operation.value == "mean":
-            agg_expr = f"AVG({area_expr})"
-        elif inp.operation.value == "min":
-            agg_expr = f"MIN({area_expr})"
-        elif inp.operation.value == "max":
-            agg_expr = f"MAX({area_expr})"
-        else:
-            agg_expr = f"SUM({area_expr})"
-
-        query = f"""
-            SELECT
-                {agg_expr} AS result,
-                SUM({area_expr}) AS total_area,
-                COUNT(*) AS feature_count
-            FROM lake.{table_name}
-            WHERE {where_sql}
-        """
-        logger.debug("Area statistics query: %s with params: %s", query, params)
-
         try:
-            result = execute_query_with_retry(
-                ducklake_manager, query, params if params else None, fetch_all=False
-            )
-
-            if result:
-                return AreaStatisticsOutput(
-                    result=result[0],
-                    total_area=result[1],
-                    feature_count=result[2],
-                    unit="m²",
-                ).model_dump()
-            else:
-                return AreaStatisticsOutput(
-                    result=None,
-                    total_area=None,
-                    feature_count=0,
-                ).model_dump()
+            with ducklake_manager.connection() as con:
+                result = calculate_area_statistics(
+                    con,
+                    f"lake.{table_name}",
+                    geom_col,
+                    operation=inp.operation,
+                    where_clause=where_sql,
+                    params=params if params else None,
+                )
+            return result.model_dump()
         except Exception as e:
             logger.error("Area statistics query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
@@ -471,54 +436,19 @@ class ProcessService:
         # Build WHERE clause
         where_sql, params = self._build_where_clause(inp.filter, columns, geom_col)
 
-        # Add null check
-        attr_col = f'"{inp.attribute}"'
-        where_sql = f"({where_sql}) AND {attr_col} IS NOT NULL"
-
-        # Map order
-        order_dir = "DESC" if inp.order.value == "descendent" else "ASC"
-
-        # Get total count of unique values
-        count_query = f"""
-            SELECT COUNT(DISTINCT {attr_col})
-            FROM lake.{table_name}
-            WHERE {where_sql}
-        """
-
-        # Get unique values with counts
-        data_query = f"""
-            SELECT {attr_col} AS value, COUNT(*) AS cnt
-            FROM lake.{table_name}
-            WHERE {where_sql}
-            GROUP BY {attr_col}
-            ORDER BY cnt {order_dir}, {attr_col}
-            LIMIT {inp.limit} OFFSET {inp.offset}
-        """
-
-        logger.debug("Unique values query: %s with params: %s", data_query, params)
-
         try:
-            # Get total
-            total_result = execute_query_with_retry(
-                ducklake_manager,
-                count_query,
-                params if params else None,
-                fetch_all=False,
-            )
-            total = total_result[0] if total_result else 0
-
-            # Get values
-            result = execute_query_with_retry(
-                ducklake_manager, data_query, params if params else None, fetch_all=True
-            )
-
-            values = [UniqueValue(value=row[0], count=row[1]) for row in result]
-
-            return UniqueValuesOutput(
-                attribute=inp.attribute,
-                total=total,
-                values=values,
-            ).model_dump()
+            with ducklake_manager.connection() as con:
+                result = calculate_unique_values(
+                    con,
+                    f"lake.{table_name}",
+                    inp.attribute,
+                    where_clause=where_sql,
+                    params=params if params else None,
+                    order=inp.order,
+                    limit=inp.limit,
+                    offset=inp.offset,
+                )
+            return result.model_dump()
         except Exception as e:
             logger.error("Unique values query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
@@ -549,198 +479,22 @@ class ProcessService:
         # Build WHERE clause
         where_sql, params = self._build_where_clause(inp.filter, columns, geom_col)
 
-        # Add null check and optional zero stripping
-        attr_col = f'"{inp.attribute}"'
-        where_sql = f"({where_sql}) AND {attr_col} IS NOT NULL"
-        if inp.strip_zeros:
-            where_sql = f"{where_sql} AND {attr_col} != 0"
-
-        # Get basic statistics first
-        stats_query = f"""
-            SELECT
-                MIN({attr_col}) AS min_val,
-                MAX({attr_col}) AS max_val,
-                AVG({attr_col}) AS mean_val,
-                STDDEV({attr_col}) AS std_dev
-            FROM lake.{table_name}
-            WHERE {where_sql}
-        """
-
-        logger.debug("Class breaks stats query: %s", stats_query)
-
         try:
-            stats_result = execute_query_with_retry(
-                ducklake_manager,
-                stats_query,
-                params if params else None,
-                fetch_all=False,
-            )
-
-            if not stats_result or stats_result[0] is None:
-                return ClassBreaksOutput(
-                    attribute=inp.attribute,
-                    method=inp.method.value,
-                    breaks=[],
-                    min=None,
-                    max=None,
-                    mean=None,
-                    std_dev=None,
-                ).model_dump()
-
-            min_val, max_val, mean_val, std_dev = stats_result
-
-            # Calculate breaks based on method
-            # Use connection with retry for methods that need DB access
             with ducklake_manager.connection() as con:
-                if inp.method.value == "quantile":
-                    breaks = await self._calculate_quantile_breaks(
-                        con, table_name, attr_col, where_sql, params, inp.breaks
-                    )
-                elif inp.method.value == "equal_interval":
-                    breaks = self._calculate_equal_interval_breaks(
-                        min_val, max_val, inp.breaks
-                    )
-                elif inp.method.value == "standard_deviation":
-                    breaks = self._calculate_std_dev_breaks(
-                        min_val, max_val, mean_val, std_dev, inp.breaks
-                    )
-                elif inp.method.value == "heads_and_tails":
-                    breaks = await self._calculate_heads_tails_breaks(
-                        con,
-                        table_name,
-                        attr_col,
-                        where_sql,
-                        params,
-                        inp.breaks,
-                        mean_val,
-                    )
-                else:
-                    breaks = []
-
-            return ClassBreaksOutput(
-                attribute=inp.attribute,
-                method=inp.method.value,
-                breaks=breaks,
-                min=float(min_val) if min_val is not None else None,
-                max=float(max_val) if max_val is not None else None,
-                mean=float(mean_val) if mean_val is not None else None,
-                std_dev=float(std_dev) if std_dev is not None else None,
-            ).model_dump()
+                result = calculate_class_breaks(
+                    con,
+                    f"lake.{table_name}",
+                    inp.attribute,
+                    method=inp.method,
+                    num_breaks=inp.breaks,
+                    where_clause=where_sql,
+                    params=params if params else None,
+                    strip_zeros=inp.strip_zeros,
+                )
+            return result.model_dump()
         except Exception as e:
             logger.error("Class breaks query failed: %s", e)
             raise RuntimeError(f"Query execution failed: {e}")
-
-    async def _calculate_quantile_breaks(
-        self,
-        con: Any,
-        table_name: str,
-        attr_col: str,
-        where_sql: str,
-        params: list[Any],
-        num_breaks: int,
-    ) -> list[float]:
-        """Calculate quantile breaks using PERCENTILE_CONT."""
-        # Generate percentile values (e.g., for 5 breaks: 0.2, 0.4, 0.6, 0.8, 1.0)
-        percentiles = [i / num_breaks for i in range(1, num_breaks + 1)]
-
-        # Build query with multiple PERCENTILE_CONT calls
-        percentile_exprs = ", ".join(
-            f"PERCENTILE_CONT({p}) WITHIN GROUP (ORDER BY {attr_col})"
-            for p in percentiles
-        )
-        query = f"""
-            SELECT {percentile_exprs}
-            FROM lake.{table_name}
-            WHERE {where_sql}
-        """
-
-        if params:
-            result = con.execute(query, params).fetchone()
-        else:
-            result = con.execute(query).fetchone()
-
-        if result:
-            return [float(v) for v in result if v is not None]
-        return []
-
-    def _calculate_equal_interval_breaks(
-        self, min_val: float, max_val: float, num_breaks: int
-    ) -> list[float]:
-        """Calculate equal interval breaks."""
-        if min_val == max_val:
-            return [float(min_val)]
-
-        interval = (max_val - min_val) / num_breaks
-        breaks = [min_val + interval * i for i in range(1, num_breaks + 1)]
-        return [float(b) for b in breaks]
-
-    def _calculate_std_dev_breaks(
-        self,
-        min_val: float,
-        max_val: float,
-        mean_val: float,
-        std_dev: float,
-        num_breaks: int,
-    ) -> list[float]:
-        """Calculate standard deviation breaks."""
-        if std_dev is None or std_dev == 0:
-            return self._calculate_equal_interval_breaks(min_val, max_val, num_breaks)
-
-        # Generate breaks at standard deviation intervals around mean
-        breaks = []
-        half_breaks = num_breaks // 2
-
-        for i in range(-half_breaks, half_breaks + 1):
-            if i == 0:
-                continue
-            break_val = mean_val + (i * std_dev)
-            if min_val <= break_val <= max_val:
-                breaks.append(break_val)
-
-        # Always include max
-        if not breaks or breaks[-1] < max_val:
-            breaks.append(max_val)
-
-        return sorted([float(b) for b in breaks])
-
-    async def _calculate_heads_tails_breaks(
-        self,
-        con: Any,
-        table_name: str,
-        attr_col: str,
-        where_sql: str,
-        params: list[Any],
-        num_breaks: int,
-        initial_mean: float,
-    ) -> list[float]:
-        """Calculate heads and tails breaks.
-
-        Heads/tails algorithm iteratively splits data at the mean,
-        taking the "head" (above mean) for the next iteration.
-        """
-        breaks = []
-        current_mean = initial_mean
-        current_where = where_sql
-
-        for _ in range(num_breaks - 1):
-            breaks.append(float(current_mean))
-
-            # Get mean of values above current mean
-            query = f"""
-                SELECT AVG({attr_col})
-                FROM lake.{table_name}
-                WHERE {current_where} AND {attr_col} > ?
-            """
-            query_params = params + [current_mean] if params else [current_mean]
-
-            result = con.execute(query, query_params).fetchone()
-
-            if result and result[0] is not None:
-                current_mean = result[0]
-            else:
-                break
-
-        return sorted(breaks)
 
 
 # Singleton instance
