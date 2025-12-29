@@ -213,7 +213,8 @@ Only use this if you’re modifying the GOAT source code.
 | `AUTH` | Backend auth flag (True/False) |
 | `NEXT_PUBLIC_APP_URL` | Public URL of the Web UI |
 | `NEXT_PUBLIC_API_URL` | Public URL of the Core API |
-| `NEXT_PUBLIC_GEOAPI_URL` | Public URL of the GeoAPI |
+| `NEXT_PUBLIC_GEOAPI_URL` | Public URL of the GeoAPI (tiles/features) |
+| `NEXT_PUBLIC_PROCESSES_URL` | Public URL of the Processes API |
 | `NEXT_PUBLIC_ACCOUNTS_API_URL` | Public URL of Accounts API (optional) |
 | `NEXT_PUBLIC_DOCS_URL` | URL for documentation |
 | `NEXT_PUBLIC_MAP_TOKEN` | MapLibre/Mapbox token |

@@ -1,6 +1,7 @@
 export const KEYCLOAK_CLIENT_ID = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID;
 export const KEYCLOAK_ISSUER = process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER;
 export const GEOAPI_BASE_URL = process.env.NEXT_PUBLIC_GEOAPI_URL;
+export const PROCESSES_BASE_URL = process.env.NEXT_PUBLIC_PROCESSES_URL;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 // Handle placeholder values properly

@@ -152,6 +152,7 @@
       "name": "Backend Debug",
       "configurations": [
         "GeoAPI Debug",
+        "Processes Debug",
         "Core Debug",
       ],
       "presentation": {
@@ -164,6 +165,7 @@
       "name": "Launch App",
       "configurations": [
         "GeoAPI Debug",
+        "Processes Debug",
         "Core Debug",
         "Web Debug"
       ],
