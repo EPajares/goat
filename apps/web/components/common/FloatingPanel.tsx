@@ -7,6 +7,8 @@ interface FloatingPanelProps {
   width?: number;
   minHeight?: string | number;
   maxHeight?: string;
+  /** When true, panel fills available height enabling internal scrolling */
+  fillHeight?: boolean;
 }
 
 export const FloatingPanel = ({
@@ -15,6 +17,7 @@ export const FloatingPanel = ({
   width = 300,
   minHeight = "400px",
   maxHeight = "auto",
+  fillHeight = false,
 }: FloatingPanelProps) => {
   const theme = useTheme();
   return (
@@ -26,7 +29,7 @@ export const FloatingPanel = ({
           width: `${width}px`,
           minHeight: typeof minHeight === "number" ? `${minHeight}px` : minHeight,
           maxHeight,
-          height: "auto",
+          height: fillHeight ? "100%" : "auto",
           borderRadius: "1rem",
           backgroundColor: alpha(theme.palette.background.paper, 0.9),
           boxShadow: `rgba(0, 0, 0, 0.2) 0px 0px 10px`,

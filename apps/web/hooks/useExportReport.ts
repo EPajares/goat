@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { useSWRConfig } from "swr";
 
 import { apiRequestAuth } from "@/lib/api/fetcher";
-import { JOBS_API_BASE_URL } from "@/lib/api/jobs";
+import { JOBS_API_BASE_URL } from "@/lib/api/processes";
 
 const PROJECTS_API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/v2/project`;
 

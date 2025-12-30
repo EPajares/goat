@@ -1,10 +1,8 @@
 # Standard library imports
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-
 import uuid
 from uuid import uuid4
+
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 # Import Env variables from Core
 import core._dotenv  # noqa: E402, F401, I001

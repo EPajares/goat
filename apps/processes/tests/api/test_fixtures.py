@@ -8,14 +8,11 @@ NOTE: Tests have been reorganized into:
 This file contains fixture validation tests only.
 """
 
-# Add paths for imports
-import sys
 from uuid import uuid4
 
 import pytest
 
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 from lib.tool_registry import get_tool
 

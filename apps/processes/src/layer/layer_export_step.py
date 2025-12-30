@@ -8,17 +8,14 @@ OGC Process ID: LayerExport
 Topics: layer-export-requested -> layer-export-completed / layer-export-failed
 """
 
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+
 import io
 import os
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
-
-# Add paths before any lib imports - must include venv for duckdb
-if "/app/apps/processes/src" not in sys.path:
-    sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # noqa: F401 - sets up full sys.path including venv
 
 from pydantic import BaseModel, Field
 

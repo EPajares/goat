@@ -1,11 +1,8 @@
 """Unit tests for OGC statistics processes."""
 
-import sys
-
 import pytest
 
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 from lib.config import get_settings
 from lib.ogc_process_generator import (

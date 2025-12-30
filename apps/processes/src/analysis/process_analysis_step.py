@@ -18,19 +18,12 @@ The registry automatically:
 - Dynamically generates *LayerParams versions that use layer IDs instead of file paths
 """
 
-import sys
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-# Add paths before any lib imports
-for path in [
-    "/app/apps/processes/src",
-    "/app/apps/core/src",
-    "/app/packages/python/goatlib/src",
-]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_exception_handler import format_ogc_error_response
 from lib.tool_registry import get_combined_input_schema, get_tool, get_tool_names
 from pydantic import BaseModel

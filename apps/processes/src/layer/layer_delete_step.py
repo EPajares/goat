@@ -9,15 +9,13 @@ Topics: layer-delete-requested -> job.completed / job.failed
 """
 
 import sys
+
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
-# Add paths before any lib imports - must include venv for duckdb
-if "/app/apps/processes/src" not in sys.path:
-    sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # noqa: F401 - sets up full sys.path including venv
-
+import lib.paths  # noqa: F401 - sets up remaining paths
 from pydantic import BaseModel, Field
 
 
@@ -75,11 +73,10 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
     Returns:
         LayerDeleteResult with deletion status
     """
-    from sqlalchemy import select
-
     from lib.db import Layer, get_async_session
     from lib.ducklake import get_ducklake_manager
     from lib.job_state import job_state_manager
+    from sqlalchemy import select
 
     # Parse and validate input
     data = LayerDeleteInput(**input_data)
@@ -111,7 +108,12 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
 
     engine, async_session_maker = await get_async_session()
 
+    # Variables to track what needs to be deleted
+    layer_type = None
+    layer_name = None
+
     try:
+        # First, get layer info from database
         async with async_session_maker() as session:
             # 1. Get layer using SQLAlchemy model
             stmt = select(Layer).where(Layer.id == layer_id)
@@ -131,33 +133,46 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
             layer_type = (
                 layer.type.value if hasattr(layer.type, "value") else str(layer.type)
             )
-            context.logger.info("Found layer", {"name": layer.name, "type": layer_type})
+            layer_name = layer.name
+            context.logger.info("Found layer", {"name": layer_name, "type": layer_type})
 
-            # 2. Delete DuckLake data for feature/table layers
-            if layer_type in ("feature", "table"):
-                try:
-                    deleted = ducklake_manager.delete_layer_table(
-                        user_id=user_id,
-                        layer_id=layer_id,
+        # 2. Delete DuckLake data OUTSIDE of the async session (avoid lock contention)
+        if layer_type in ("feature", "table"):
+            try:
+                deleted = ducklake_manager.delete_layer_table(
+                    user_id=user_id,
+                    layer_id=layer_id,
+                )
+                result.ducklake_deleted = deleted
+                if deleted:
+                    context.logger.info(
+                        "Deleted DuckLake table", {"layer_id": str(layer_id)}
                     )
-                    result.ducklake_deleted = deleted
-                    if deleted:
-                        context.logger.info(
-                            "Deleted DuckLake table", {"layer_id": str(layer_id)}
-                        )
-                    else:
-                        context.logger.info(
-                            "No DuckLake table found", {"layer_id": str(layer_id)}
-                        )
-                except Exception as e:
-                    context.logger.warn(
-                        "Error deleting DuckLake table", {"error": str(e)}
+                else:
+                    context.logger.info(
+                        "No DuckLake table found", {"layer_id": str(layer_id)}
                     )
-                    # Continue with metadata deletion even if DuckLake deletion fails
+            except Exception as e:
+                context.logger.warn("Error deleting DuckLake table", {"error": str(e)})
+                # Continue with metadata deletion even if DuckLake deletion fails
 
-            # 3. Delete layer record (cascade deletes layer_project_link due to FK constraint)
-            await session.delete(layer)
-            await session.commit()
+        # 3. Delete layer record from PostgreSQL (in a NEW session after DuckLake is done)
+        async with async_session_maker() as session:
+            # Re-fetch the layer for deletion
+            stmt = select(Layer).where(Layer.id == layer_id)
+            query_result = await session.execute(stmt)
+            layer = query_result.scalars().first()
+
+            if layer:
+                context.logger.info(
+                    "Starting PostgreSQL delete", {"layer_id": str(layer_id)}
+                )
+                await session.delete(layer)
+                context.logger.info(
+                    "Layer marked for deletion, committing", {"layer_id": str(layer_id)}
+                )
+                await session.commit()
+                context.logger.info("Commit completed", {"layer_id": str(layer_id)})
 
             result.metadata_deleted = True
             context.logger.info("Deleted layer metadata", {"layer_id": str(layer_id)})

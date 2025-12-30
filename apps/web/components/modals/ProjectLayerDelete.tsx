@@ -21,6 +21,7 @@ import { mutate } from "swr";
 
 import { LAYERS_API_BASE_URL, deleteLayer, useDataset } from "@/lib/api/layers";
 import { deleteProjectLayer, useProjectLayers } from "@/lib/api/projects";
+import { useUserProfile } from "@/lib/api/users";
 import type { ProjectLayer } from "@/lib/validations/project";
 
 interface ProjectLayerDeleteDialogProps {
@@ -41,6 +42,7 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const { dataset } = useDataset(projectLayer?.layer_id);
   const { mutate: mutateProjectLayers } = useProjectLayers(projectId);
+  const { userProfile } = useUserProfile();
   const [deleteSourceLayer, setDeleteSourceLayer] = useState(false);
 
   async function handleDelete() {
@@ -49,7 +51,11 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
       if (!projectLayer) return;
 
       if (deleteSourceLayer && dataset) {
-        await deleteLayer(dataset.id);
+        if (!userProfile?.id) {
+          toast.error(t("error_user_not_found"));
+          return;
+        }
+        await deleteLayer(dataset.id, userProfile.id);
         // Invalidate dataset layers cache
         mutate(`${LAYERS_API_BASE_URL}`);
       } else {

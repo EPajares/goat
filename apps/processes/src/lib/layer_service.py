@@ -13,17 +13,12 @@ import logging
 import os
 import tempfile
 from dataclasses import dataclass
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from uuid import UUID
 
 from goatlib.io.converter import IOConverter
 from goatlib.io.remote_source.wfs import from_wfs
-from goatlib.models.io import DatasetMetadata
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from lib.config import get_settings
 from lib.db import (
     FeatureGeometryType,
@@ -35,6 +30,8 @@ from lib.db import (
 )
 from lib.ducklake import get_ducklake_manager
 from lib.s3 import get_s3_service
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -113,38 +110,92 @@ def build_extent_wkt(extent: dict[str, float]) -> str:
 
 
 # =============================================================================
-# Base Style Generation
+# Base Style Generation (copied from core.schemas.style)
 # =============================================================================
 
 
+def hex_to_rgb(hex: str) -> tuple[int, ...]:
+    """Convert hex color to RGB tuple."""
+    hex = hex.lstrip("#")
+    return tuple(int(hex[i : i + 2], 16) for i in (0, 2, 4))
+
+
+# Spectral diverging colors from Colorbrewer (last entry has most colors)
+SPECTRAL_COLORS = [
+    "#d53e4f",
+    "#f46d43",
+    "#fdae61",
+    "#fee08b",
+    "#ffffbf",
+    "#e6f598",
+    "#abdda4",
+    "#66c2a5",
+    "#3288bd",
+]
+
+default_style_settings = {
+    "min_zoom": 1,
+    "max_zoom": 22,
+    "visibility": True,
+}
+
+default_point_style_settings = {
+    **default_style_settings,
+    "filled": True,
+    "fixed_radius": False,
+    "radius_range": [0, 10],
+    "radius_scale": "linear",
+    "radius": 5,
+    "opacity": 1,
+    "stroked": False,
+}
+
+default_line_style_settings = {
+    **default_style_settings,
+    "filled": True,
+    "opacity": 1,
+    "stroked": True,
+    "stroke_width": 7,
+    "stroke_width_range": [0, 10],
+    "stroke_width_scale": "linear",
+}
+
+default_polygon_style_settings = {
+    **default_style_settings,
+    "filled": True,
+    "opacity": 0.8,
+    "stroked": False,
+    "stroke_width": 3,
+    "stroke_width_range": [0, 10],
+    "stroke_width_scale": "linear",
+    "stroke_color": [217, 25, 85],
+}
+
+
 def get_base_style(geometry_type: FeatureGeometryType) -> Dict[str, Any]:
-    """Get default style properties for a geometry type."""
+    """Return the base style for the given feature geometry type.
+
+    Copied from core.schemas.style.get_base_style for consistency.
+    """
+    import random
+
+    color = list(hex_to_rgb(random.choice(SPECTRAL_COLORS)))
+
     if geometry_type == FeatureGeometryType.point:
         return {
-            "type": "circle",
-            "paint": {
-                "circle-radius": 5,
-                "circle-color": "#3b82f6",
-                "circle-stroke-width": 1,
-                "circle-stroke-color": "#ffffff",
-            },
+            "color": color,
+            **default_point_style_settings,
         }
     elif geometry_type == FeatureGeometryType.line:
         return {
-            "type": "line",
-            "paint": {
-                "line-color": "#3b82f6",
-                "line-width": 2,
-            },
+            "color": color,
+            **default_line_style_settings,
+            "stroke_color": color,
         }
     else:  # polygon
         return {
-            "type": "fill",
-            "paint": {
-                "fill-color": "#3b82f6",
-                "fill-opacity": 0.5,
-                "fill-outline-color": "#1e40af",
-            },
+            **default_polygon_style_settings,
+            "color": color,
         }
 
 
@@ -550,6 +601,12 @@ async def create_layer_record(
     # Get layer size from DuckLake
     size = await _get_layer_size(async_session, import_result)
 
+    # Build extent WKT if available
+    extent_wkt = None
+    if import_result.extent:
+        extent_wkt = build_extent_wkt(import_result.extent)
+        logger.info("Layer extent: %s", extent_wkt)
+
     # Create layer
     layer = Layer(
         id=layer_id,
@@ -567,13 +624,18 @@ async def create_layer_record(
         size=size,
         upload_file_type=upload_file_type.value if upload_file_type else None,
         job_id=job_id,
+        extent=extent_wkt,
     )
 
     async_session.add(layer)
 
     # Link to project if specified
     if project_id:
-        link = LayerProjectLink(layer_id=layer_id, project_id=project_id)
+        link = LayerProjectLink(
+            layer_id=layer_id,
+            project_id=project_id,
+            name=name,  # Use the layer name for the project link
+        )
         async_session.add(link)
 
     await async_session.commit()

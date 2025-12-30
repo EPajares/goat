@@ -8,16 +8,13 @@ These tests verify the full flow of layer operations through the OGC API:
 Uses goatlib test data files for realistic testing.
 """
 
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
 import tempfile
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
+
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 # Test data directory
 TEST_DATA_DIR = Path(__file__).parent.parent / "data" / "layer"

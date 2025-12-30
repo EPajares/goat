@@ -2,19 +2,19 @@
  * OGC API Processes client
  *
  * This module provides functions to interact with the OGC API Processes
- * service for analytics operations like:
- * - feature-count: Count features with optional CQL2 filter
- * - area-statistics: Calculate area statistics for polygon layers
- * - unique-values: Get unique values with occurrence counts
- * - class-breaks: Calculate classification breaks for numeric attributes
+ * service for:
+ * - Process execution (analytics tools, layer operations)
+ * - Job status tracking and management
+ * - Analytics operations (feature-count, class-breaks, etc.)
  */
 import useSWR from "swr";
 
-import { apiRequestAuth } from "@/lib/api/fetcher";
+import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
 import { PROCESSES_BASE_URL } from "@/lib/constants";
 
-// OGC API Processes base URL
+// OGC API Processes base URLs
 export const PROCESSES_API_BASE_URL = `${PROCESSES_BASE_URL}/processes`;
+export const JOBS_API_BASE_URL = `${PROCESSES_BASE_URL}/jobs`;
 
 // ============================================================================
 // Types for OGC API Processes
@@ -40,6 +40,88 @@ export interface ProcessLink {
 export interface ProcessList {
   processes: ProcessSummary[];
   links: ProcessLink[];
+}
+
+// ============================================================================
+// OGC Job Types
+// ============================================================================
+
+/**
+ * OGC API Processes job status types
+ * See: https://docs.ogc.org/is/18-062r2/18-062r2.html#sc_job_status
+ */
+export type JobStatusType = "accepted" | "running" | "successful" | "failed" | "dismissed";
+
+/**
+ * Process/Job types (process IDs)
+ */
+export type JobType =
+  | "LayerImport"
+  | "LayerExport"
+  | "LayerUpdate"
+  | "LayerDelete"
+  | "buffer"
+  | "join"
+  | "catchment_area_active_mobility"
+  | "catchment_area_pt"
+  | "catchment_area_car"
+  | "oev_gueteklasse"
+  | "heatmap_connectivity_active_mobility"
+  | "heatmap_connectivity_pt"
+  | "heatmap_connectivity_car"
+  | "heatmap_closest_average_active_mobility"
+  | "heatmap_closest_average_pt"
+  | "heatmap_closest_average_car"
+  | "heatmap_gravity_active_mobility"
+  | "heatmap_gravity_pt"
+  | "heatmap_gravity_car"
+  | "aggregate_point"
+  | "aggregate_polygon"
+  | "trip_count_station"
+  | "origin_destination"
+  | "nearby_station_access"
+  | "print_report";
+
+/**
+ * OGC Job status response
+ */
+export interface Job {
+  jobID: string;
+  processID: JobType;
+  status: JobStatusType;
+  message?: string;
+  created?: string;
+  started?: string;
+  finished?: string;
+  updated?: string;
+  progress?: number;
+  links?: ProcessLink[];
+  // Extended fields from our implementation
+  user_id?: string;
+  read?: boolean;
+  project_id?: string;
+  payload?: Record<string, unknown>;
+}
+
+/**
+ * Paginated jobs response
+ */
+export interface JobsResponse {
+  jobs: Job[];
+  links?: ProcessLink[];
+  numberMatched?: number;
+  numberReturned?: number;
+}
+
+/**
+ * Query parameters for listing jobs
+ */
+export interface GetJobsQueryParams {
+  status?: JobStatusType;
+  processID?: JobType;
+  limit?: number;
+  offset?: number;
+  read?: boolean; // Filter by read status
 }
 
 // Feature Count types
@@ -140,6 +222,127 @@ async function executeProcess<TInput, TOutput>(processId: string, inputs: TInput
   }
 
   return await response.json();
+}
+
+/**
+ * Execute a process and return the job status (for async processes)
+ */
+export async function executeProcessAsync<TInput>(processId: string, inputs: TInput): Promise<Job> {
+  const response = await apiRequestAuth(`${PROCESSES_API_BASE_URL}/${processId}/execution`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ inputs }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail?.detail || error.detail || `Process execution failed: ${processId}`);
+  }
+
+  return await response.json();
+}
+
+// ============================================================================
+// Job Management Functions
+// ============================================================================
+
+/**
+ * Get job status by ID
+ */
+export async function getJob(jobId: string): Promise<Job> {
+  const response = await apiRequestAuth(`${JOBS_API_BASE_URL}/${jobId}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to get job: ${jobId}`);
+  }
+
+  return await response.json();
+}
+
+/**
+ * Dismiss/cancel a job
+ */
+export async function dismissJob(jobId: string): Promise<void> {
+  const response = await apiRequestAuth(`${JOBS_API_BASE_URL}/${jobId}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to dismiss job: ${jobId}`);
+  }
+}
+
+/**
+ * Mark jobs as read (clear from notification list)
+ * For completed jobs, this dismisses them from the system
+ */
+export async function setJobsReadStatus(jobIds: string[]): Promise<void> {
+  // Dismiss all jobs to clear them from the notification list
+  // This is the OGC-standard way to remove jobs from the system
+  const results = await Promise.allSettled(jobIds.map((id) => dismissJob(id)));
+
+  // Log any failures but don't throw
+  const failures = results.filter((r) => r.status === "rejected");
+  if (failures.length > 0) {
+    console.warn(`Failed to dismiss ${failures.length} of ${jobIds.length} jobs`);
+  }
+}
+
+// ============================================================================
+// Job SWR Hooks
+// ============================================================================
+
+/**
+ * Hook to fetch and poll jobs list
+ */
+export function useJobs(queryParams?: GetJobsQueryParams) {
+  const { data, isLoading, error, mutate, isValidating } = useSWR<JobsResponse>(
+    [`${JOBS_API_BASE_URL}`, queryParams],
+    fetcher,
+    {
+      refreshInterval: 5000, // Poll every 5 seconds
+    }
+  );
+
+  return {
+    jobs: data,
+    isLoading,
+    isError: error,
+    mutate,
+    isValidating,
+  };
+}
+
+/**
+ * Hook to fetch and poll a single job by ID
+ */
+export function useJob(jobId?: string, refreshInterval = 2000) {
+  const { data, isLoading, error, mutate } = useSWR<Job>(
+    jobId ? [`${JOBS_API_BASE_URL}/${jobId}`] : null,
+    fetcher,
+    {
+      refreshInterval: (data) => {
+        if (!data) return refreshInterval;
+        // Stop polling when job is finished
+        if (data.status === "successful" || data.status === "failed" || data.status === "dismissed") {
+          return 0;
+        }
+        return refreshInterval;
+      },
+    }
+  );
+
+  return {
+    job: data,
+    isLoading,
+    isError: error,
+    mutate,
+  };
 }
 
 /**

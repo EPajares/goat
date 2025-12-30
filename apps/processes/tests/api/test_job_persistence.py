@@ -11,15 +11,13 @@ there's no dedicated ogc_processes type in the current enum.
 A proper JobType could be added to GOAT Core in the future.
 """
 
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
 from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
+
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+
 from core.db.models.job import Job
 from core.schemas.job import JobStatusType, JobType
 from sqlalchemy import select

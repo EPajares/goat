@@ -6,13 +6,9 @@ Tests:
 - Process retrieval via get_process
 """
 
-# Add paths for imports
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
 import pytest
+
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 from lib.ogc_process_generator import (
     LAYER_PROCESSES,

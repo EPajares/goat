@@ -7,7 +7,7 @@ import type { ZodObject } from "zod";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { setMaskLayer } from "@/lib/store/map/slice";
 import { HeatmapRoutingTypeEnum, maxFeatureCnt, toolboxMaskLayerNames } from "@/lib/validations/tools";

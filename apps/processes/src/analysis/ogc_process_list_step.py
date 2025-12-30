@@ -5,16 +5,8 @@ GET /processes
 Returns list of all available processes with summaries.
 """
 
-import sys
-
-# Add paths before any lib imports
-for path in [
-    "/app/apps/processes/src",
-    "/app/apps/core/src",
-    "/app/packages/python/goatlib/src",
-]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
 
 from lib.ogc_base import get_base_url, pydantic_response, self_link
 from lib.ogc_process_generator import get_process_list
