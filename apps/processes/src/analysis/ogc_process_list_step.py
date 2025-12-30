@@ -5,9 +5,11 @@ GET /processes
 Returns list of all available processes with summaries.
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import get_base_url, pydantic_response, self_link
 from lib.ogc_process_generator import get_process_list
 from lib.ogc_schemas import ProcessList
@@ -19,6 +21,7 @@ config = {
     "method": "GET",
     "description": "OGC API Processes - list all available processes",
     "emits": [],
+    "middleware": [auth_middleware],
 }
 
 

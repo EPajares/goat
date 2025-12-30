@@ -15,6 +15,7 @@ from typing import Any, Dict
 from uuid import UUID
 
 import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import error_response, get_base_url, not_found_response
 from lib.ogc_schemas import Link, StatusCode, StatusInfo
 
@@ -26,6 +27,7 @@ config = {
     "method": "GET",
     "emits": [],
     "flows": ["analysis-flow"],
+    "middleware": [auth_middleware],
 }
 
 

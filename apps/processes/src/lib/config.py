@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -39,6 +39,14 @@ class Settings(BaseSettings):
     MOTIA_REDIS_HOST: str = Field(default="redis")
     MOTIA_REDIS_PORT: int = Field(default=6379)
     MOTIA_DISABLE_MEMORY_SERVER: bool = Field(default=True)
+
+    # Keycloak settings (for JWT validation)
+    AUTH: bool = Field(default=True, description="Enable JWT signature verification")
+    KEYCLOAK_ISSUER: str = Field(
+        default="https://auth.dev.plan4better.de/realms/p4b",
+        description="Keycloak issuer URL (full URL including realm)",
+        alias="NEXT_PUBLIC_KEYCLOAK_ISSUER",
+    )
 
     # S3/MinIO settings (for DuckLake storage - optional)
     DUCKLAKE_S3_ENDPOINT: Optional[str] = None

@@ -24,7 +24,6 @@ import { useFolders } from "@/lib/api/folders";
 import { createLayer } from "@/lib/api/layers";
 import { useJobs } from "@/lib/api/processes";
 import { useProject } from "@/lib/api/projects";
-import { useUserProfile } from "@/lib/api/users";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { GetContentQueryParams } from "@/lib/validations/common";
@@ -49,7 +48,6 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
 
   const { project } = useProject(projectId);
-  const { userProfile } = useUserProfile();
   const steps = [t("select_file"), t("destination_and_metadata"), t("confirmation")];
   const { mutate } = useJobs({
     read: false,
@@ -144,7 +142,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
 
   const handleUpload = async () => {
     try {
-      if (!fileValue || !userProfile?.id) return;
+      if (!fileValue) return;
       setIsBusy(true);
 
       // Request backend for presigned URL
@@ -165,7 +163,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
       });
 
       // Kick off layer creation via OGC API Processes
-      const response = await createLayer({ ...payload, user_id: userProfile.id }, projectId);
+      const response = await createLayer(payload, projectId);
 
       // OGC Job response has jobID not job_id
       const jobId = response?.jobID;

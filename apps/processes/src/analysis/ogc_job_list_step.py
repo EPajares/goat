@@ -14,6 +14,7 @@ sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 
 import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import error_response, get_base_url, pydantic_response, self_link
 from lib.ogc_schemas import JobList, Link, StatusCode, StatusInfo
 
@@ -25,6 +26,7 @@ config = {
     "method": "GET",
     "emits": [],
     "flows": ["analysis-flow"],
+    "middleware": [auth_middleware],
 }
 
 
