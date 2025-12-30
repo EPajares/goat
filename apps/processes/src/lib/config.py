@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     )
     PROCESSES_PORT: int = Field(default=8200, description="Port for URL generation")
 
+    # Data directory
+    DATA_DIR: str = Field(default="/app/data")
+
     # PostgreSQL settings (for DuckLake catalog)
     POSTGRES_USER: str = Field(default="postgres")
     POSTGRES_PASSWORD: str = Field(default="postgres")
@@ -37,11 +40,21 @@ class Settings(BaseSettings):
     MOTIA_REDIS_PORT: int = Field(default=6379)
     MOTIA_DISABLE_MEMORY_SERVER: bool = Field(default=True)
 
-    # S3/MinIO settings (optional)
+    # S3/MinIO settings (for DuckLake storage - optional)
     DUCKLAKE_S3_ENDPOINT: Optional[str] = None
     DUCKLAKE_S3_BUCKET: Optional[str] = None
     DUCKLAKE_S3_ACCESS_KEY: Optional[str] = None
     DUCKLAKE_S3_SECRET_KEY: Optional[str] = None
+
+    # S3 settings (for file imports/exports)
+    S3_ACCESS_KEY_ID: Optional[str] = None
+    S3_SECRET_ACCESS_KEY: Optional[str] = None
+    S3_REGION: str = Field(default="eu-central-1")
+    S3_ENDPOINT_URL: Optional[str] = None  # e.g., for Hetzner/MinIO
+    S3_PUBLIC_ENDPOINT_URL: Optional[str] = None
+    S3_PROVIDER: str = Field(default="aws")  # aws, hetzner, minio
+    S3_BUCKET_NAME: str = Field(default="goat")
+    S3_BUCKET_PATH: str = Field(default="")
 
     @property
     def default_host_port(self) -> str:

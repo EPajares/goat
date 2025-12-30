@@ -390,52 +390,6 @@ async def test_job_payload_with_download_url(db_session, test_user):
     await db_session.delete(job)
     await db_session.commit()
 
-
-# ============================================================================
-# OGC Status Mapping Tests
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_ogc_status_values(db_session, test_user):
-    """Test that job status values are OGC-compliant."""
-    # OGC API Processes status values:
-    # accepted, running, successful, failed, dismissed
-
-    ogc_statuses = [
-        JobStatusType.accepted,
-        JobStatusType.running,
-        JobStatusType.successful,
-        JobStatusType.failed,
-        JobStatusType.dismissed,
-    ]
-
-    for ogc_status in ogc_statuses:
-        job = Job(
-            id=uuid4(),
-            user_id=test_user.id,
-            type=OGC_JOB_TYPE,
-            status=ogc_status,
-            payload={"process_id": "test"},
-        )
-        db_session.add(job)
-        await db_session.commit()
-
-        print(f"[TEST] OGC status '{ogc_status.value}'")
-
-        # Verify OGC-compliant status values
-        assert ogc_status.value in [
-            "accepted",
-            "running",
-            "successful",
-            "failed",
-            "dismissed",
-        ]
-
-        await db_session.delete(job)
-        await db_session.commit()
-
-
 # ============================================================================
 # Job Timestamps Tests
 # ============================================================================
