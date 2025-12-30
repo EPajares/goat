@@ -2,12 +2,21 @@
 OGC API Processes - Execute Process
 POST /processes/{processId}/execution
 
-Executes a process asynchronously and returns job status.
+Executes a process synchronously or asynchronously based on process capabilities.
+
+For async processes (most vector analysis tools):
+- Returns 201 Created with job status
+- Job processes in background via event emission
+
+For sync processes (statistics tools):
+- Returns 200 OK with results directly
+- Executes immediately without creating a job
 """
 
 import os
 import sys
 from datetime import datetime, timezone
+from typing import Any, Dict
 from uuid import uuid4
 
 sys.path.insert(0, "/app/apps/core/src")
@@ -16,8 +25,8 @@ sys.path.insert(0, "/app/apps/processes/src")
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
-    Link,
     OGCException,
+    Link,
     StatusCode,
     StatusInfo,
 )
@@ -28,10 +37,126 @@ config = {
     "type": "api",
     "path": "/processes/:processId/execution",
     "method": "POST",
-    "description": "OGC API Processes - execute a process asynchronously",
+    "description": "OGC API Processes - execute a process (sync or async based on process capabilities)",
     "emits": ["analysis-requested"],
     "flows": ["analysis-flow"],
 }
+
+
+async def _execute_sync_statistics(
+    tool_info, inputs: Dict[str, Any], context
+) -> Dict[str, Any]:
+    """Execute statistics tool synchronously and return results.
+
+    Args:
+        tool_info: Tool information from registry
+        inputs: Input parameters
+        context: Motia context for logging
+
+    Returns:
+        Results from the statistics function
+    """
+    # Import GOAT Core components (lazy import)
+    from core.core.config import settings
+    from core.storage.ducklake import ducklake_manager
+
+    # Initialize DuckLake if not already done
+    if not ducklake_manager._connection:
+        ducklake_manager.init(settings)
+
+    # Get the execute function (stored as tool_class for statistics)
+    execute_fn = tool_info.tool_class._fn
+
+    # Get layer information from inputs
+    collection = inputs.get("collection")
+    user_id = inputs.get("user_id")
+
+    if not collection:
+        raise ValueError("'collection' is required for statistics operations")
+
+    # Get table name from DuckLake
+    layer_table = ducklake_manager.get_user_layer_table(user_id, collection)
+    if not layer_table:
+        raise ValueError(f"Collection '{collection}' not found for user")
+
+    # Build where clause from filter (CQL2 filter support can be added later)
+    where_clause = "TRUE"
+    filter_expr = inputs.get("filter")
+    if filter_expr:
+        # For now, pass filter as-is (assume SQL-compatible)
+        # TODO: Add CQL2 to SQL conversion
+        where_clause = filter_expr
+
+    # Get DuckDB connection
+    con = ducklake_manager.get_connection()
+
+    # Build function arguments based on tool type
+    tool_name = tool_info.name
+
+    if tool_name == "feature_count":
+        result = execute_fn(
+            con=con,
+            table_name=layer_table,
+            where_clause=where_clause,
+        )
+    elif tool_name == "unique_values":
+        attribute = inputs.get("attribute")
+        if not attribute:
+            raise ValueError("'attribute' is required for unique_values")
+
+        from goatlib.analysis.statistics import SortOrder
+
+        order = SortOrder(inputs.get("order", "descendent"))
+        limit = inputs.get("limit", 100)
+        offset = inputs.get("offset", 0)
+
+        result = execute_fn(
+            con=con,
+            table_name=layer_table,
+            attribute=attribute,
+            where_clause=where_clause,
+            order=order,
+            limit=limit,
+            offset=offset,
+        )
+    elif tool_name == "class_breaks":
+        attribute = inputs.get("attribute")
+        if not attribute:
+            raise ValueError("'attribute' is required for class_breaks")
+
+        from goatlib.analysis.statistics import ClassBreakMethod
+
+        method = ClassBreakMethod(inputs.get("method", "quantile"))
+        num_breaks = inputs.get("breaks", 5)
+        strip_zeros = inputs.get("strip_zeros", False)
+
+        result = execute_fn(
+            con=con,
+            table_name=layer_table,
+            attribute=attribute,
+            method=method,
+            num_breaks=num_breaks,
+            where_clause=where_clause,
+            strip_zeros=strip_zeros,
+        )
+    elif tool_name == "area_statistics":
+        from goatlib.analysis.statistics import AreaOperation
+
+        operation = AreaOperation(inputs.get("operation", "sum"))
+        geometry_column = inputs.get("geometry_column", "geom")
+
+        result = execute_fn(
+            con=con,
+            table_name=layer_table,
+            geometry_column=geometry_column,
+            operation=operation,
+            where_clause=where_clause,
+        )
+    else:
+        raise ValueError(f"Unknown statistics tool: {tool_name}")
+
+    # Return result as dict
+    return result.model_dump()
 
 
 async def handler(req, context):
@@ -104,9 +229,62 @@ async def handler(req, context):
             "process_id": process_id,
             "job_id": job_id,
             "user_id": user_id,
+            "sync_execute": tool_info.supports_sync,
         },
     )
 
+    # Check if this is a sync-execute process (like statistics)
+    if tool_info.supports_sync:
+        try:
+            # Execute synchronously and return results directly
+            context.logger.info(
+                f"Executing {process_id} synchronously",
+                {"tool_name": process_id},
+            )
+
+            result = await _execute_sync_statistics(tool_info, inputs, context)
+
+            context.logger.info(
+                f"{process_id} completed successfully",
+                {"result_keys": list(result.keys())},
+            )
+
+            # Return 200 OK with results directly (OGC sync-execute response)
+            return {
+                "status": 200,
+                "body": result,
+            }
+
+        except ValueError as e:
+            # Validation error
+            error = OGCException(
+                type=OGC_EXCEPTION_INVALID_PARAMETER,
+                title="Invalid parameter",
+                status=400,
+                detail=str(e),
+            )
+            return {
+                "status": 400,
+                "body": error.model_dump(),
+            }
+        except Exception as e:
+            # Execution error
+            context.logger.error(
+                f"Error executing {process_id}",
+                {"error": str(e)},
+            )
+            error = OGCException(
+                type="http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/internal-error",
+                title="Execution failed",
+                status=500,
+                detail=str(e),
+            )
+            return {
+                "status": 500,
+                "body": error.model_dump(),
+            }
+
+    # Async execution for traditional vector analysis tools
     # Build event data for Motia
     event_data = {
         "jobId": job_id,
