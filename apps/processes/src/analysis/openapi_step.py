@@ -240,6 +240,57 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 },
             },
         },
+        "/jobs": {
+            "get": {
+                "summary": "Job List",
+                "description": "Retrieve the list of jobs",
+                "operationId": "getJobs",
+                "tags": ["Jobs"],
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "string"},
+                        "description": "Filter by process type (e.g., file_import, file_export)",
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": False,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["accepted", "running", "successful", "failed", "dismissed"],
+                        },
+                        "description": "Filter by job status",
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 10},
+                        "description": "Maximum number of jobs to return",
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": False,
+                        "schema": {"type": "integer", "minimum": 0, "default": 0},
+                        "description": "Offset for pagination",
+                    },
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of jobs",
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/JobList"}
+                            }
+                        },
+                    },
+                },
+            }
+        },
         "/jobs/{jobId}/results": {
             "get": {
                 "summary": "Job Results",
@@ -458,6 +509,28 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                         "links": {
                             "type": "array",
                             "items": {"$ref": "#/components/schemas/Link"},
+                        },
+                    },
+                },
+                "JobList": {
+                    "type": "object",
+                    "required": ["jobs", "links"],
+                    "properties": {
+                        "jobs": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/StatusInfo"},
+                        },
+                        "links": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Link"},
+                        },
+                        "numberMatched": {
+                            "type": "integer",
+                            "description": "Total number of jobs matching the query",
+                        },
+                        "numberReturned": {
+                            "type": "integer",
+                            "description": "Number of jobs returned in this response",
                         },
                     },
                 },
