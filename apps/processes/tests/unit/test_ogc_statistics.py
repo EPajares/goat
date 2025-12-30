@@ -1,6 +1,5 @@
 """Unit tests for OGC statistics processes."""
 
-import os
 import sys
 
 import pytest
@@ -8,6 +7,7 @@ import pytest
 sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/processes/src")
 
+from lib.config import get_settings
 from lib.ogc_process_generator import (
     generate_process_description,
     generate_process_summary,
@@ -18,10 +18,9 @@ from lib.ogc_schemas import JobControlOptions, TransmissionMode
 from lib.tool_registry import get_tool
 
 
-# Base URL for tests - uses environment variables or defaults
-TEST_HOST = os.environ.get("PROCESSES_HOST", "localhost")
-TEST_PORT = os.environ.get("PROCESSES_PORT", "8200")
-TEST_BASE_URL = f"http://{TEST_HOST}:{TEST_PORT}"
+# Base URL for tests - uses settings
+settings = get_settings()
+TEST_BASE_URL = f"http://{settings.PROCESSES_HOST}:{settings.PROCESSES_PORT}"
 
 
 class TestStatisticsProcessDescriptions:

@@ -27,7 +27,7 @@ config = {
     "description": "Persists job status to GOAT Core jobs table",
     "subscribes": ["job.completed", "job.failed"],
     "emits": [],
-    "flows": ["analysis-flow"],
+    "flows": ["analysis-flow", "layer-flow"],
     "infrastructure": {
         "handler": {
             "timeout": 30  # Short timeout for DB write
@@ -74,7 +74,7 @@ async def handler(input_data: Dict[str, Any], context):
             job_uuid = UUID(job_id) if job_id else None
             user_uuid = UUID(user_id) if user_id else None
         except (ValueError, TypeError) as e:
-            context.logger.warning(f"Invalid UUID format: {e}")
+            context.logger.info(f"Invalid UUID format: {e}")
             job_uuid = None
             user_uuid = None
 

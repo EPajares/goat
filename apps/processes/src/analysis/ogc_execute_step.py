@@ -4,7 +4,7 @@ POST /processes/{processId}/execution
 
 Executes a process synchronously or asynchronously based on process capabilities.
 
-For async processes (most vector analysis tools):
+For async processes (most vector analysis tools, layer operations):
 - Returns 201 Created with job status
 - Job processes in background via event emission
 
@@ -33,6 +33,7 @@ from lib.ogc_base import (
     not_found_response,
     pydantic_response,
 )
+from lib.ogc_process_generator import LAYER_PROCESSES
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,
     Link,
@@ -41,14 +42,28 @@ from lib.ogc_schemas import (
 )
 from lib.tool_registry import get_tool
 
+# Map layer process IDs to their event topics
+LAYER_PROCESS_TOPICS = {
+    "LayerImport": "layer-import-requested",
+    "LayerExport": "layer-export-requested",
+    "LayerUpdate": "layer-update-requested",
+    "LayerDelete": "layer-delete-requested",
+}
+
 config = {
     "name": "OGCExecuteProcess",
     "type": "api",
     "path": "/processes/:processId/execution",
     "method": "POST",
     "description": "OGC API Processes - execute a process (sync or async based on process capabilities)",
-    "emits": ["analysis-requested"],
-    "flows": ["analysis-flow"],
+    "emits": [
+        "analysis-requested",
+        "layer-import-requested",
+        "layer-export-requested",
+        "layer-update-requested",
+        "layer-delete-requested",
+    ],
+    "flows": ["analysis-flow", "layer-flow"],
 }
 
 
@@ -186,7 +201,11 @@ async def handler(req, context):
         {"process_id": process_id, "base_url": base_url},
     )
 
-    # Validate process exists
+    # Check if this is a layer process
+    if process_id in LAYER_PROCESSES:
+        return await _execute_layer_process(process_id, inputs, base_url, context)
+
+    # Validate process exists in tool registry
     tool_info = get_tool(process_id)
     if not tool_info:
         return not_found_response("process", process_id)
@@ -269,6 +288,173 @@ async def handler(req, context):
 
     # Emit event for background processing
     await context.emit({"topic": "analysis-requested", "data": event_data})
+
+    # Return 201 Created with job status
+    status_info = StatusInfo(
+        processID=process_id,
+        jobID=job_id,
+        status=StatusCode.accepted,
+        message="Job submitted for processing",
+        created=timestamp,
+        links=[
+            Link(
+                href=f"{base_url}/jobs/{job_id}",
+                rel="self",
+                type="application/json",
+                title="Job status",
+            ),
+            Link(
+                href=f"{base_url}/jobs/{job_id}/results",
+                rel="http://www.opengis.net/def/rel/ogc/1.0/results",
+                type="application/json",
+                title="Job results",
+            ),
+        ],
+    )
+
+    return pydantic_response(status_info, status=201)
+
+
+async def _execute_layer_process(
+    process_id: str,
+    inputs: Dict[str, Any],
+    base_url: str,
+    context,
+) -> Dict[str, Any]:
+    """Execute a layer process (import/export/update).
+
+    All layer processes are async-only.
+    """
+    # Validate required inputs
+    user_id = inputs.get("user_id")
+    if not user_id:
+        return error_response(
+            400,
+            "Missing required input",
+            "'user_id' is required in inputs",
+            OGC_EXCEPTION_INVALID_PARAMETER,
+        )
+
+    # Generate job ID
+    job_id = (
+        inputs.get("job_id")
+        or f"{process_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}"
+    )
+    timestamp = datetime.now(timezone.utc).isoformat()
+
+    context.logger.info(
+        "Executing layer process",
+        {
+            "process_id": process_id,
+            "job_id": job_id,
+            "user_id": user_id,
+        },
+    )
+
+    # Validate process-specific required inputs
+    if process_id == "LayerImport":
+        if not inputs.get("layer_id"):
+            return error_response(
+                400,
+                "Missing input",
+                "'layer_id' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("folder_id"):
+            return error_response(
+                400,
+                "Missing input",
+                "'folder_id' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("name"):
+            return error_response(
+                400,
+                "Missing input",
+                "'name' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("s3_key") and not inputs.get("wfs_url"):
+            return error_response(
+                400,
+                "Missing input",
+                "Either 's3_key' or 'wfs_url' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+
+    elif process_id == "LayerExport":
+        if not inputs.get("layer_id"):
+            return error_response(
+                400,
+                "Missing input",
+                "'layer_id' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("layer_owner_id"):
+            return error_response(
+                400,
+                "Missing input",
+                "'layer_owner_id' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("file_type"):
+            return error_response(
+                400,
+                "Missing input",
+                "'file_type' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("file_name"):
+            return error_response(
+                400,
+                "Missing input",
+                "'file_name' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+
+    elif process_id == "LayerUpdate":
+        if not inputs.get("layer_id"):
+            return error_response(
+                400,
+                "Missing input",
+                "'layer_id' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+        if not inputs.get("s3_key") and not inputs.get("refresh_wfs"):
+            return error_response(
+                400,
+                "Missing input",
+                "Either 's3_key' or 'refresh_wfs' is required",
+                OGC_EXCEPTION_INVALID_PARAMETER,
+            )
+
+    # Build event data
+    event_data = {
+        "job_id": job_id,
+        "timestamp": timestamp,
+        **inputs,
+    }
+
+    # Store job in Redis for tracking
+    from lib.job_state import job_state_manager
+
+    await job_state_manager.create_job(
+        job_id=job_id,
+        user_id=user_id,
+        process_id=process_id,
+        status="accepted",
+        inputs=inputs,
+    )
+
+    # Get the topic for this process
+    topic = LAYER_PROCESS_TOPICS.get(process_id)
+    if not topic:
+        return error_response(
+            500, "Configuration error", f"No topic defined for {process_id}"
+        )
+
+    # Emit event for background processing
+    await context.emit({"topic": topic, "data": event_data})
 
     # Return 201 Created with job status
     status_info = StatusInfo(

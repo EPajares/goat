@@ -1,43 +1,49 @@
 """Database utilities for processes app.
 
-Provides lightweight database access without importing core dependencies.
+Re-exports database models from core to avoid duplication.
+Provides async session factory for direct database access.
 """
 
-from datetime import datetime
-from typing import Optional
-from uuid import UUID
+import sys
+from pathlib import Path
 
-from sqlalchemy import Column, DateTime, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+# Add core's src directory to path so we can import from it
+core_src_path = str(Path(__file__).parent.parent.parent.parent.parent / "core" / "src")
+if core_src_path not in sys.path:
+    sys.path.insert(0, core_src_path)
 
-from lib.config import get_settings
+# Import env variables from core (needed before importing core modules)
+import core._dotenv  # noqa: E402, F401, I001
 
-Base = declarative_base()
+# Re-export models and enums from core
+from core.db.models import Job, Layer  # noqa: E402
+from core.db.models._link_model import LayerProjectLink  # noqa: E402
+from core.db.models.layer import (  # noqa: E402
+    FeatureGeometryType,
+    FeatureType,
+    FileUploadType,
+    LayerType,
+)
 
+# Also re-export job-related types
+from core.schemas.job import JobStatusType, JobType  # noqa: E402
 
-class Job(Base):
-    """Lightweight Job model for reading from core's job table.
+# =============================================================================
+# Session Factory (processes-specific, avoids full core dependency)
+# =============================================================================
 
-    This mirrors core.db.models.job.Job but without all the dependencies.
-    Only includes fields needed for OGC job status queries and writes.
-    """
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
 
-    __tablename__ = "job"
-    __table_args__ = {"schema": "customer"}
-
-    id = Column(PGUUID(as_uuid=True), primary_key=True)
-    user_id = Column(PGUUID(as_uuid=True), nullable=False)
-    type = Column(String(255))  # JobType enum value
-    status = Column(String(50))  # JobStatusType enum value
-    payload = Column(Text, nullable=True)  # JSON string
-    created_at = Column(DateTime(timezone=True))
-    updated_at = Column(DateTime(timezone=True))
+from lib.config import get_settings  # noqa: E402
 
 
 async def get_async_session():
-    """Create an async database session."""
+    """Create an async database session.
+
+    Returns:
+        Tuple of (engine, async_session_factory)
+    """
     settings = get_settings()
     engine = create_async_engine(
         settings.ASYNC_POSTGRES_DATABASE_URI,
@@ -45,3 +51,21 @@ async def get_async_session():
     )
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     return engine, async_session
+
+
+# Export everything that was previously available
+__all__ = [
+    # Models
+    "Job",
+    "Layer",
+    "LayerProjectLink",
+    # Enums
+    "FeatureGeometryType",
+    "FeatureType",
+    "FileUploadType",
+    "LayerType",
+    "JobStatusType",
+    "JobType",
+    # Session
+    "get_async_session",
+]
