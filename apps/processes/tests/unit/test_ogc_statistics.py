@@ -141,7 +141,12 @@ class TestStatisticsProcessSummary:
 
     def test_statistics_summary_has_sync_execute(self):
         """Test that statistics process summaries have sync-execute."""
-        stats_tools = ["feature_count", "unique_values", "class_breaks", "area_statistics"]
+        stats_tools = [
+            "feature_count",
+            "unique_values",
+            "class_breaks",
+            "area_statistics",
+        ]
 
         for tool_name in stats_tools:
             tool_info = get_tool(tool_name)
@@ -199,7 +204,12 @@ class TestProcessDescriptionSerialization:
 
     def test_all_statistics_processes_serialize(self):
         """Test that all statistics processes can be serialized."""
-        stats_tools = ["feature_count", "unique_values", "class_breaks", "area_statistics"]
+        stats_tools = [
+            "feature_count",
+            "unique_values",
+            "class_breaks",
+            "area_statistics",
+        ]
 
         for tool_name in stats_tools:
             process = get_process(tool_name, TEST_BASE_URL)

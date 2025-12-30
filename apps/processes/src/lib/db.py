@@ -19,7 +19,7 @@ Base = declarative_base()
 
 class Job(Base):
     """Lightweight Job model for reading from core's job table.
-    
+
     This mirrors core.db.models.job.Job but without all the dependencies.
     Only includes fields needed for OGC job status queries and writes.
     """
@@ -43,7 +43,5 @@ async def get_async_session():
         settings.ASYNC_POSTGRES_DATABASE_URI,
         echo=False,
     )
-    async_session = sessionmaker(
-        engine, class_=AsyncSession, expire_on_commit=False
-    )
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     return engine, async_session

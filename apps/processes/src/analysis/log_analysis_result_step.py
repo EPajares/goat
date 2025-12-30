@@ -9,7 +9,11 @@ import sys
 from typing import Optional
 
 # Add paths before any lib imports
-for path in ["/app/apps/processes/src", "/app/apps/core/src", "/app/packages/python/goatlib/src"]:
+for path in [
+    "/app/apps/processes/src",
+    "/app/apps/core/src",
+    "/app/packages/python/goatlib/src",
+]:
     if path not in sys.path:
         sys.path.insert(0, path)
 

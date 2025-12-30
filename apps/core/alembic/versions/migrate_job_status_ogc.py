@@ -50,17 +50,13 @@ def upgrade() -> None:
     op.drop_column("job", "project_id", schema="customer")
 
     # Step 3: Rename status_simple to status
-    op.alter_column(
-        "job", "status_simple", new_column_name="status", schema="customer"
-    )
+    op.alter_column("job", "status_simple", new_column_name="status", schema="customer")
 
 
 def downgrade() -> None:
     """Revert OGC-compliant schema back to legacy schema."""
     # Step 1: Rename status back to status_simple
-    op.alter_column(
-        "job", "status", new_column_name="status_simple", schema="customer"
-    )
+    op.alter_column("job", "status", new_column_name="status_simple", schema="customer")
 
     # Step 2: Re-add dropped columns
     op.add_column(
