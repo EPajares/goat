@@ -24,7 +24,6 @@ from geoapi.models import HealthCheck
 from geoapi.routers import (
     features_router,
     metadata_router,
-    processes_router,
     tiles_router,
 )
 from geoapi.services.layer_service import layer_service
@@ -49,8 +48,6 @@ class TimeoutMiddleware(BaseHTTPMiddleware):
             timeout = settings.TILE_TIMEOUT
         elif "/items" in path or "/features" in path:
             timeout = settings.FEATURE_TIMEOUT
-        elif "/processes/" in path:
-            timeout = settings.PROCESS_TIMEOUT
         else:
             timeout = settings.REQUEST_TIMEOUT
 
@@ -112,7 +109,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title=settings.APP_NAME,
     version="2.0.0",
-    description="OGC Features, Tiles, and Processes API for GOAT layers, powered by DuckDB/DuckLake",
+    description="OGC Features and Tiles API for GOAT layers, powered by DuckDB/DuckLake",
     openapi_url="/api/openapi.json",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -140,7 +137,6 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(metadata_router)
 app.include_router(features_router)
 app.include_router(tiles_router)
-app.include_router(processes_router)
 
 
 @app.get(

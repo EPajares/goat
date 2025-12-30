@@ -12,9 +12,8 @@ import sys
 from typing import Any, Dict
 from uuid import UUID
 
-sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/processes/src")
-
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 config = {
     "name": "LogJobStatus",

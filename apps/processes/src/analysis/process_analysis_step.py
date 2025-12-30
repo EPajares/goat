@@ -22,14 +22,11 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
-
-# Add paths for imports
-sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/processes/src")
-
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_exception_handler import format_ogc_error_response
 from lib.tool_registry import get_combined_input_schema, get_tool, get_tool_names
+from pydantic import BaseModel
 
 
 class AnalysisResult(BaseModel):

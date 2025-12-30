@@ -37,10 +37,6 @@ CONFORMANCE_CLASSES = [
     "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/mvt",
     "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/tileset",
     "http://www.opengis.net/spec/ogcapi-tiles-1/1.0/conf/tilesets-list",
-    # Processes
-    "http://www.opengis.net/spec/ogcapi-processes-1/1.0/conf/core",
-    "http://www.opengis.net/spec/ogcapi-processes-1/1.0/conf/ogc-process-description",
-    "http://www.opengis.net/spec/ogcapi-processes-1/1.0/conf/json",
 ]
 
 
@@ -80,12 +76,6 @@ async def landing_page(request: Request) -> LandingPage:
                 rel="conformance",
                 type="application/json",
                 title="Conformance classes",
-            ),
-            Link(
-                href=f"{base_url}/processes",
-                rel="http://www.opengis.net/def/rel/ogc/1.0/processes",
-                type="application/json",
-                title="Processes",
             ),
             Link(
                 href=f"{base_url}/collections/{{collectionId}}",

@@ -46,7 +46,6 @@ class Settings(BaseSettings):
         os.getenv("GEOAPI_TILE_TIMEOUT", "30")
     )  # Increased for large datasets
     FEATURE_TIMEOUT: int = int(os.getenv("GEOAPI_FEATURE_TIMEOUT", "30"))
-    PROCESS_TIMEOUT: int = int(os.getenv("GEOAPI_PROCESS_TIMEOUT", "60"))
 
     # CORS settings
     CORS_ORIGINS: list[str] = ["*"]
