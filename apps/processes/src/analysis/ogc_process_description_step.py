@@ -5,9 +5,11 @@ GET /processes/{processId}
 Returns full description of a process including inputs/outputs and geometry constraints.
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import get_base_url, not_found_response, pydantic_response
 from lib.ogc_process_generator import get_process
 
@@ -18,6 +20,7 @@ config = {
     "method": "GET",
     "description": "OGC API Processes - get full process description",
     "emits": [],
+    "middleware": [auth_middleware],
 }
 
 

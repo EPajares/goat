@@ -8,13 +8,14 @@ OGC Process ID: LayerUpdate
 Topics: layer-update-requested -> layer-update-completed / layer-update-failed
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 from uuid import UUID
 
+import lib.paths  # noqa: F401 - sets up remaining paths
 from pydantic import BaseModel, Field
 
 
@@ -52,7 +53,12 @@ config = {
     "type": "event",
     "description": "Update existing layer data from S3 or WFS (refresh)",
     "subscribes": ["layer-update-requested"],
-    "emits": ["job.completed", "job.failed"],
+    "emits": [
+        "layer-update-completed",
+        "layer-update-failed",
+        "job.completed",
+        "job.failed",
+    ],
     "flows": ["layer-flow"],
     "input": LayerUpdateInput.model_json_schema(),
     "infrastructure": {

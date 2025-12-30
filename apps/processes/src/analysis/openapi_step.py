@@ -5,11 +5,12 @@ Serves OpenAPI 3.0 spec for OGC-compliant endpoints only.
 Dynamically generates schemas from pydantic models.
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 
+import lib.paths  # noqa: F401 - sets up remaining paths
 from lib.ogc_base import get_base_url
 from lib.ogc_schemas import StatusCode
 
@@ -73,6 +74,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Retrieve the list of available processes",
                 "operationId": "getProcesses",
                 "tags": ["Processes"],
+                "security": [{"bearerAuth": []}],
                 "responses": {
                     "200": {
                         "description": "List of processes",
@@ -91,6 +93,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Retrieve the description of a specific process",
                 "operationId": "getProcessDescription",
                 "tags": ["Processes"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "processId",
@@ -126,6 +129,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Execute a process asynchronously, returning a job ID",
                 "operationId": "execute",
                 "tags": ["Processes"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "processId",
@@ -183,6 +187,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Retrieve the status of a job",
                 "operationId": "getStatus",
                 "tags": ["Jobs"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "jobId",
@@ -216,6 +221,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Cancel a running job or remove a completed job",
                 "operationId": "dismiss",
                 "tags": ["Jobs"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "jobId",
@@ -251,6 +257,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Retrieve the list of jobs",
                 "operationId": "getJobs",
                 "tags": ["Jobs"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "type",
@@ -307,6 +314,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                 "description": "Retrieve the results of a completed job",
                 "operationId": "getResults",
                 "tags": ["Jobs"],
+                "security": [{"bearerAuth": []}],
                 "parameters": [
                     {
                         "name": "jobId",
@@ -359,6 +367,14 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
         ],
         "paths": paths,
         "components": {
+            "securitySchemes": {
+                "bearerAuth": {
+                    "type": "http",
+                    "scheme": "bearer",
+                    "bearerFormat": "JWT",
+                    "description": "JWT Bearer token authentication",
+                }
+            },
             "schemas": {
                 "LandingPage": {
                     "type": "object",
@@ -554,7 +570,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                         "instance": {"type": "string", "format": "uri"},
                     },
                 },
-            }
+            },
         },
     }
 

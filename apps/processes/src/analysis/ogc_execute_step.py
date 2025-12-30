@@ -13,13 +13,15 @@ For sync processes (statistics tools):
 - Executes immediately without creating a job
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import uuid4
 
+import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import (
     error_response,
     get_base_url,
@@ -57,6 +59,7 @@ config = {
         "layer-delete-requested",
     ],
     "flows": ["analysis-flow", "layer-flow"],
+    "middleware": [auth_middleware],
 }
 
 
@@ -185,13 +188,21 @@ async def handler(req, context):
 
     base_url = get_base_url(req)
 
+    # Get user_id from auth middleware (attached to request)
+    user_id = req.get("user_id")
+    if not user_id:
+        return error_response(401, "Unauthorized", "Authentication required")
+
     # Get inputs from request body
     body = req.get("body", {})
     inputs = body.get("inputs", body)  # Support both {inputs: {...}} and direct {...}
 
+    # Add user_id to inputs for downstream processing
+    inputs["user_id"] = str(user_id)
+
     context.logger.info(
         "OGC Execute process requested",
-        {"process_id": process_id, "base_url": base_url},
+        {"process_id": process_id, "base_url": base_url, "user_id": str(user_id)},
     )
 
     # Check if this is a layer process
@@ -203,15 +214,8 @@ async def handler(req, context):
     if not tool_info:
         return not_found_response("process", process_id)
 
-    # Validate required inputs
+    # user_id is already set from auth middleware
     user_id = inputs.get("user_id")
-    if not user_id:
-        return error_response(
-            400,
-            "Missing required input",
-            "'user_id' is required in inputs",
-            OGC_EXCEPTION_INVALID_PARAMETER,
-        )
 
     # Generate job ID and output layer ID
     job_id = f"{process_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}"
@@ -317,16 +321,10 @@ async def _execute_layer_process(
     """Execute a layer process (import/export/update).
 
     All layer processes are async-only.
+    user_id is already set in inputs by the handler from auth middleware.
     """
-    # Validate required inputs
+    # user_id is already in inputs from handler
     user_id = inputs.get("user_id")
-    if not user_id:
-        return error_response(
-            400,
-            "Missing required input",
-            "'user_id' is required in inputs",
-            OGC_EXCEPTION_INVALID_PARAMETER,
-        )
 
     # Generate job ID
     job_id = (

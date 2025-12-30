@@ -14,7 +14,6 @@ import { mutate } from "swr";
 
 import { LAYERS_API_BASE_URL, deleteLayer } from "@/lib/api/layers";
 import { PROJECTS_API_BASE_URL, deleteProject } from "@/lib/api/projects";
-import { useUserProfile } from "@/lib/api/users";
 
 import type { ContentDialogBaseProps } from "@/types/dashboard/content";
 
@@ -32,16 +31,11 @@ const ContentDeleteModal: React.FC<ContentDeleteDialogProps> = ({
   content,
 }) => {
   const { t } = useTranslation("common");
-  const { userProfile } = useUserProfile();
   const handleDelete = async () => {
     try {
       if (!content) return;
       if (type === "layer") {
-        if (!userProfile?.id) {
-          toast.error(t("error_user_not_found"));
-          return;
-        }
-        await deleteLayer(content?.id, userProfile.id);
+        await deleteLayer(content?.id);
         mutate((key) => Array.isArray(key) && key[0] === LAYERS_API_BASE_URL);
       } else if (type === "project") {
         await deleteProject(content?.id);

@@ -112,13 +112,12 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
 
 export const updateLayerDataset = async (
   layerId: string,
-  userId: string,
   options?: { s3_key?: string; refresh_wfs?: boolean }
 ): Promise<Job> => {
   // Use LayerUpdate process
+  // user_id is extracted from JWT token by the server
   const inputs: Record<string, unknown> = {
     layer_id: layerId,
-    user_id: userId,
     ...(options?.s3_key && { s3_key: options.s3_key }),
     ...(options?.refresh_wfs && { refresh_wfs: options.refresh_wfs }),
   };
@@ -177,10 +176,10 @@ export const useLayerClassBreaks = (
   return { classBreaks: data, isLoading, isError: error };
 };
 
-export const deleteLayer = async (id: string, userId: string): Promise<Job> => {
+export const deleteLayer = async (id: string): Promise<Job> => {
+  // user_id is extracted from JWT token by the server
   return executeProcessAsync("LayerDelete", {
     layer_id: id,
-    user_id: userId,
   });
 };
 
@@ -188,10 +187,10 @@ export const deleteLayer = async (id: string, userId: string): Promise<Job> => {
  * Create a new layer from a dataset using OGC API Processes (LayerImport).
  * Supports both S3 file uploads and WFS imports.
  * Layer type (feature or table) is auto-detected based on geometry presence.
+ * user_id is extracted from JWT token by the server.
  */
 export const createLayer = async (
   payload: CreateLayerFromDataset & {
-    user_id: string;
     // Optional WFS import fields
     url?: string;
     other_properties?: Record<string, unknown>;
@@ -199,8 +198,8 @@ export const createLayer = async (
   projectId?: string
 ): Promise<Job> => {
   // Map to LayerImport process inputs
+  // user_id is extracted from JWT token by the server
   const inputs: Record<string, unknown> = {
-    user_id: payload.user_id,
     layer_id: crypto.randomUUID(), // Generate new layer ID
     folder_id: payload.folder_id,
     name: payload.name,

@@ -5,12 +5,14 @@ Returns job results from GOAT Core jobs table.
 GET /jobs/{jobId}/results
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 from uuid import UUID
 
+import lib.paths  # noqa: F401 - sets up remaining paths
+from lib.auth import auth_middleware
 from lib.ogc_base import error_response, get_base_url, not_found_response
 from lib.ogc_schemas import OGC_EXCEPTION_RESULT_NOT_READY
 
@@ -22,6 +24,7 @@ config = {
     "method": "GET",
     "emits": [],
     "flows": ["analysis-flow"],
+    "middleware": [auth_middleware],
 }
 
 
