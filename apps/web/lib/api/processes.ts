@@ -1,8 +1,8 @@
 /**
- * OGC API Processes client for GeoAPI
+ * OGC API Processes client
  *
  * This module provides functions to interact with the OGC API Processes
- * endpoints in GeoAPI for analytics operations like:
+ * service for analytics operations like:
  * - feature-count: Count features with optional CQL2 filter
  * - area-statistics: Calculate area statistics for polygon layers
  * - unique-values: Get unique values with occurrence counts
@@ -11,9 +11,10 @@
 import useSWR from "swr";
 
 import { apiRequestAuth } from "@/lib/api/fetcher";
+import { PROCESSES_BASE_URL } from "@/lib/constants";
 
-// GeoAPI processes base URL
-export const PROCESSES_API_BASE_URL = new URL("processes", process.env.NEXT_PUBLIC_GEOAPI_URL).href;
+// OGC API Processes base URL
+export const PROCESSES_API_BASE_URL = `${PROCESSES_BASE_URL}/processes`;
 
 // ============================================================================
 // Types for OGC API Processes

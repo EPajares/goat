@@ -15,15 +15,12 @@ Endpoints:
 - DELETE /jobs/{jobId} - Dismiss job
 """
 
-import sys
 from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import uuid4
 
-# Add paths for imports
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
+# Import path configuration first
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_process_generator import get_process, get_process_list
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,

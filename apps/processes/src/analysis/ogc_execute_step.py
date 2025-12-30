@@ -19,9 +19,8 @@ from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import uuid4
 
-sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/processes/src")
-
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,
     OGC_EXCEPTION_NO_SUCH_PROCESS,

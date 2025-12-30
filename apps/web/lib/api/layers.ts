@@ -1,6 +1,8 @@
 import useSWR from "swr";
 
 import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
+import { PROCESSES_API_BASE_URL } from "@/lib/api/processes";
+import { GEOAPI_BASE_URL } from "@/lib/constants";
 import type { PaginatedQueryParams } from "@/lib/validations/common";
 import type {
   ClassBreaks,
@@ -21,8 +23,7 @@ import type {
 } from "@/lib/validations/layer";
 
 export const LAYERS_API_BASE_URL = new URL("api/v2/layer", process.env.NEXT_PUBLIC_API_URL).href;
-export const COLLECTIONS_API_BASE_URL = new URL("collections", process.env.NEXT_PUBLIC_GEOAPI_URL).href;
-export const PROCESSES_API_BASE_URL = new URL("processes", process.env.NEXT_PUBLIC_GEOAPI_URL).href;
+export const COLLECTIONS_API_BASE_URL = `${GEOAPI_BASE_URL}/collections`;
 
 /**
  * Fetcher for OGC API Processes execution endpoints (POST requests)

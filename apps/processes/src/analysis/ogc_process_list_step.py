@@ -7,9 +7,8 @@ Returns list of all available processes with summaries.
 
 import sys
 
-sys.path.insert(0, "/app/apps/core/src")
 sys.path.insert(0, "/app/apps/processes/src")
-
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_process_generator import get_process_list
 from lib.ogc_schemas import Link, ProcessList
 
