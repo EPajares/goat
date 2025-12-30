@@ -14,8 +14,9 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { requestDatasetUpload } from "@/lib/api/datasets";
-import { useJobs } from "@/lib/api/jobs";
 import { updateLayerDataset } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
+import { useUserProfile } from "@/lib/api/users";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 
@@ -35,6 +36,7 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
   const { mutate } = useJobs({
     read: false,
   });
+  const { userProfile } = useUserProfile();
   const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
   const handleOnClose = () => {
     setIsBusy(false);
@@ -44,13 +46,18 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
   };
   const handleUpdate = async () => {
     try {
+      if (!userProfile?.id) {
+        toast.error(t("error_user_not_found"));
+        return;
+      }
       setIsBusy(true);
       let s3Key: string | undefined;
 
       if (content?.data_type === "wfs") {
-        // Direct WFS refresh - no intermediate upload needed
-        const response = await updateLayerDataset(content.id, { refresh_wfs: true });
-        const jobId = response?.job_id;
+        // Direct WFS refresh via OGC API Processes
+        const response = await updateLayerDataset(content.id, userProfile.id, { refresh_wfs: true });
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));
@@ -68,8 +75,9 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
         s3Key = presigned?.fields?.key;
 
         const layerId = content.id;
-        const response = await updateLayerDataset(layerId, { s3_key: s3Key });
-        const jobId = response?.job_id;
+        const response = await updateLayerDataset(layerId, userProfile.id, { s3_key: s3Key });
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));

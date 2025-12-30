@@ -399,7 +399,7 @@ async def dismiss_job(
         Tuple of (status_code, response_dict)
     """
     # TODO: Implement BullMQ job removal for waiting jobs
-    # TODO: Update GOAT Core jobs table status to 'killed'
+    # TODO: Update GOAT Core jobs table status to 'dismissed'
 
     status_info = StatusInfo(
         jobID=job_id,

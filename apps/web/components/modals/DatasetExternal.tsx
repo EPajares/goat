@@ -37,9 +37,10 @@ import { toast } from "react-toastify";
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useFolders } from "@/lib/api/folders";
-import { useJobs } from "@/lib/api/jobs";
 import { createLayer, createRasterLayer } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { addProjectLayers, useProject, useProjectLayers } from "@/lib/api/projects";
+import { useUserProfile } from "@/lib/api/users";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { generateLayerGetLegendGraphicUrl, generateWmsUrl } from "@/lib/transformers/wms";
 import { convertWmtsToXYZUrl, getWmtsFlatLayers } from "@/lib/transformers/wmts";
@@ -411,6 +412,7 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
   const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
+  const { userProfile } = useUserProfile();
   const { mutate } = useJobs({
     read: false,
   });
@@ -591,7 +593,11 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
     try {
       setIsBusy(true);
       if (capabilities?.type === vectorDataType.Enum.wfs) {
-        // Direct WFS import - no intermediate S3 step
+        if (!userProfile?.id) {
+          toast.error(t("error_user_not_found"));
+          return;
+        }
+        // Direct WFS import via OGC API Processes
         const payload = createLayerFromDatasetSchema.parse({
           ...layerPayload,
           data_type: capabilities.type,
@@ -602,8 +608,12 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
             srs: selectedDatasets[0].DefaultCRS,
           },
         });
-        const response = await createLayer(payload, projectId);
-        const jobId = response?.job_id;
+        const response = await createLayer(
+          { ...payload, user_id: userProfile.id, url: externalUrl ?? undefined },
+          projectId
+        );
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));

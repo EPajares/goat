@@ -1,7 +1,7 @@
 import useSWR from "swr";
 
 import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
-import { PROCESSES_API_BASE_URL } from "@/lib/api/processes";
+import { type Job, PROCESSES_API_BASE_URL, executeProcessAsync } from "@/lib/api/processes";
 import { GEOAPI_BASE_URL } from "@/lib/constants";
 import type { PaginatedQueryParams } from "@/lib/validations/common";
 import type {
@@ -112,22 +112,18 @@ export const updateDataset = async (datasetId: string, payload: PostDataset) => 
 
 export const updateLayerDataset = async (
   layerId: string,
+  userId: string,
   options?: { s3_key?: string; refresh_wfs?: boolean }
-) => {
-  const url = new URL(`${LAYERS_API_BASE_URL}/${layerId}/dataset`);
-  if (options?.s3_key) {
-    url.searchParams.append("s3_key", options.s3_key);
-  }
-  if (options?.refresh_wfs) {
-    url.searchParams.append("refresh_wfs", "true");
-  }
-  const response = await apiRequestAuth(url.toString(), {
-    method: "PUT",
-  });
-  if (!response.ok) {
-    throw new Error("Failed to update layer dataset");
-  }
-  return await response.json();
+): Promise<Job> => {
+  // Use LayerUpdate process
+  const inputs: Record<string, unknown> = {
+    layer_id: layerId,
+    user_id: userId,
+    ...(options?.s3_key && { s3_key: options.s3_key }),
+    ...(options?.refresh_wfs && { refresh_wfs: options.refresh_wfs }),
+  };
+
+  return executeProcessAsync("LayerUpdate", inputs);
 };
 
 export const useDatasetCollectionItems = (datasetId: string, queryParams?: GetCollectionItemsQueryParams) => {
@@ -181,40 +177,50 @@ export const useLayerClassBreaks = (
   return { classBreaks: data, isLoading, isError: error };
 };
 
-export const deleteLayer = async (id: string) => {
-  try {
-    await apiRequestAuth(`${LAYERS_API_BASE_URL}/${id}`, {
-      method: "DELETE",
-    });
-  } catch (error) {
-    console.error(error);
-    throw Error(`deleteLayer: unable to delete project with id ${id}`);
-  }
+export const deleteLayer = async (id: string, userId: string): Promise<Job> => {
+  return executeProcessAsync("LayerDelete", {
+    layer_id: id,
+    user_id: userId,
+  });
 };
 
 /**
- * Create a new layer from a dataset.
+ * Create a new layer from a dataset using OGC API Processes (LayerImport).
+ * Supports both S3 file uploads and WFS imports.
  * Layer type (feature or table) is auto-detected based on geometry presence.
- * CSV/Excel with WKT geometry columns will become feature layers.
  */
-export const createLayer = async (payload: CreateLayerFromDataset, projectId?: string) => {
-  const url = new URL(`${LAYERS_API_BASE_URL}/internal`);
-  if (projectId) {
-    url.searchParams.append("project_id", projectId);
-  }
-  const response = await apiRequestAuth(url.toString(), {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error("Failed to create layer");
-  }
-  return await response.json();
+export const createLayer = async (
+  payload: CreateLayerFromDataset & {
+    user_id: string;
+    // Optional WFS import fields
+    url?: string;
+    other_properties?: Record<string, unknown>;
+  },
+  projectId?: string
+): Promise<Job> => {
+  // Map to LayerImport process inputs
+  const inputs: Record<string, unknown> = {
+    user_id: payload.user_id,
+    layer_id: crypto.randomUUID(), // Generate new layer ID
+    folder_id: payload.folder_id,
+    name: payload.name,
+    ...(payload.description && { description: payload.description }),
+    ...(payload.tags && { tags: payload.tags }),
+    ...(projectId && { project_id: projectId }),
+    // S3 upload path
+    ...(payload.s3_key && { s3_key: payload.s3_key }),
+    // WFS import path
+    ...(payload.url && { wfs_url: payload.url }),
+    ...(payload.other_properties && { other_properties: payload.other_properties }),
+  };
+
+  return executeProcessAsync("LayerImport", inputs);
 };
 
+/**
+ * Create a new raster/external layer (WMS, WMTS, XYZ, COG).
+ * These don't upload data, just reference external URLs.
+ */
 export const createRasterLayer = async (payload: CreateRasterLayer, projectId?: string) => {
   const url = new URL(`${LAYERS_API_BASE_URL}/raster`);
   if (projectId) {
@@ -380,21 +386,24 @@ export const useLayerUniqueValues = (
 };
 
 /**
- * Start a dataset export job. Returns a job_id that can be polled for completion.
+ * Start a dataset export job using OGC API Processes.
+ * Returns a Job that can be polled for completion.
  * When job is finished, use getExportDownloadUrl to get the download URL.
  */
-export const startDatasetExport = async (payload: DatasetDownloadRequest): Promise<{ job_id: string }> => {
-  const response = await apiRequestAuth(`${LAYERS_API_BASE_URL}/${payload.id}/export`, {
-    method: "POST",
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  if (!response.ok) {
-    throw new Error("Failed to start export job");
-  }
-  return await response.json();
+export const startDatasetExport = async (
+  payload: DatasetDownloadRequest & { user_id: string; layer_owner_id: string }
+): Promise<Job> => {
+  const inputs = {
+    user_id: payload.user_id,
+    layer_id: payload.id,
+    layer_owner_id: payload.layer_owner_id,
+    file_type: payload.file_type,
+    file_name: payload.file_name,
+    ...(payload.crs && { crs: payload.crs }),
+    ...(payload.query && { query: payload.query }),
+  };
+
+  return executeProcessAsync("LayerExport", inputs);
 };
 
 export const useClassBreak = (layerId: string, operation: string, column: string, breaks: number) => {

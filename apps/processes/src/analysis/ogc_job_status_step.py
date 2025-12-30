@@ -8,12 +8,13 @@ Returns job status from:
 GET /jobs/{jobId}
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 from uuid import UUID
 
+import lib.paths  # noqa: F401 - sets up remaining paths
 from lib.ogc_base import error_response, get_base_url, not_found_response
 from lib.ogc_schemas import Link, StatusCode, StatusInfo
 
@@ -26,6 +27,25 @@ config = {
     "emits": [],
     "flows": ["analysis-flow"],
 }
+
+
+# Map legacy status values to OGC-compliant StatusCode
+LEGACY_STATUS_MAP = {
+    "killed": "dismissed",
+    "pending": "accepted",
+    "finished": "successful",
+    "timeout": "failed",
+}
+
+
+def normalize_status(status: str) -> StatusCode:
+    """Convert legacy status to OGC-compliant StatusCode."""
+    normalized = LEGACY_STATUS_MAP.get(status, status)
+    try:
+        return StatusCode(normalized)
+    except ValueError:
+        # If still invalid, default to failed
+        return StatusCode.failed
 
 
 async def handler(req: Dict[str, Any], context):
@@ -46,7 +66,7 @@ async def handler(req: Dict[str, Any], context):
 
         if redis_job:
             # Job found in Redis (in-progress)
-            ogc_status = StatusCode(redis_job.get("status", "accepted"))
+            ogc_status = normalize_status(redis_job.get("status", "accepted"))
 
             links = [
                 Link(
@@ -98,7 +118,7 @@ async def handler(req: Dict[str, Any], context):
                 if not job:
                     return not_found_response("job", job_id)
 
-                ogc_status = StatusCode(job.status)
+                ogc_status = normalize_status(job.status)
 
                 links = [
                     Link(

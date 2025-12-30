@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { computeTripCount } from "@/lib/api/tools";
 import { accessibilityIndicatorsStaticPayload } from "@/lib/constants/payloads";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";

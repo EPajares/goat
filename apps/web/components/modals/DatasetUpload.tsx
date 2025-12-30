@@ -21,9 +21,10 @@ import { toast } from "react-toastify";
 
 import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useFolders } from "@/lib/api/folders";
-import { useJobs } from "@/lib/api/jobs";
 import { createLayer } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { useProject } from "@/lib/api/projects";
+import { useUserProfile } from "@/lib/api/users";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { GetContentQueryParams } from "@/lib/validations/common";
@@ -48,6 +49,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
 
   const { project } = useProject(projectId);
+  const { userProfile } = useUserProfile();
   const steps = [t("select_file"), t("destination_and_metadata"), t("confirmation")];
   const { mutate } = useJobs({
     read: false,
@@ -142,7 +144,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
 
   const handleUpload = async () => {
     try {
-      if (!fileValue) return;
+      if (!fileValue || !userProfile?.id) return;
       setIsBusy(true);
 
       // Request backend for presigned URL
@@ -162,10 +164,11 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         s3_key: presigned.fields.key,
       });
 
-      // Kick off layer creation (type is auto-detected by backend)
-      const response = await createLayer(payload, projectId);
+      // Kick off layer creation via OGC API Processes
+      const response = await createLayer({ ...payload, user_id: userProfile.id }, projectId);
 
-      const jobId = response?.job_id;
+      // OGC Job response has jobID not job_id
+      const jobId = response?.jobID;
       if (jobId) {
         mutate();
         dispatch(setRunningJobIds([...runningJobIds, jobId]));

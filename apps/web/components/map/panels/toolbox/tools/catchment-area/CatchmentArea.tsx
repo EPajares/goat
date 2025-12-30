@@ -11,7 +11,7 @@ import {
   computeCarCatchmentArea,
   computePTCatchmentArea,
 } from "@/lib/api/catchmentArea";
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { useProjectLayers } from "@/lib/api/projects";
 import { STREET_NETWORK_LAYER_ID } from "@/lib/constants";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";

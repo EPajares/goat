@@ -1,12 +1,20 @@
-import * as z from "zod";
+/**
+ * Job validations - OGC API Processes compatible
+ *
+ * Types are primarily defined in lib/api/processes.ts
+ * This file re-exports for backward compatibility during migration
+ */
 
-import { paginatedSchema } from "@/lib/validations/common";
-import { responseSchema } from "@/lib/validations/response";
+// Re-export types from processes.ts for components that still use this import path
+export type { Job, JobStatusType, JobType, GetJobsQueryParams, JobsResponse } from "@/lib/api/processes";
 
-export const msgTypeEnum = z.enum(["info", "warning", "error"]);
-export const jobTypeEnum = z.enum([
-  "file_import",
-  "file_export",
+// Job type enum for runtime validation (matches processID values)
+export const jobTypeValues = [
+  "LayerImport",
+  "LayerExport",
+  "LayerUpdate",
+  "LayerDelete",
+  "buffer",
   "join",
   "catchment_area_active_mobility",
   "catchment_area_pt",
@@ -23,81 +31,60 @@ export const jobTypeEnum = z.enum([
   "heatmap_gravity_car",
   "aggregate_point",
   "aggregate_polygon",
-  "buffer",
   "trip_count_station",
   "origin_destination",
   "nearby_station_access",
   "print_report",
-]);
-export const jobStatusTypeEnum = z.enum(["pending", "running", "finished", "failed", "killed", "timeout"]);
+] as const;
 
-export const msgSchema = z.object({
-  type: msgTypeEnum,
-  msg: z.string(),
-});
+// Job status enum for runtime validation (OGC status codes)
+export const jobStatusValues = ["accepted", "running", "successful", "failed", "dismissed"] as const;
 
-const jobStepSchema = z.object({
-  status: jobStatusTypeEnum.optional(),
-  timestamp_start: z.date().nullable(),
-  timestamp_end: z.date().nullable(),
-  msg: msgSchema.optional(),
-});
+// Helper to check if a process is still running
+export function isJobRunning(status: string): boolean {
+  return status === "accepted" || status === "running";
+}
 
-const jobStatusLayerUpload = z.object({
-  validation: jobStepSchema.optional(),
-  upload: jobStepSchema.optional(),
-  migration: jobStepSchema.optional(),
-});
+// Helper to check if a process completed successfully
+export function isJobSuccessful(status: string): boolean {
+  return status === "successful";
+}
 
-// Payload schema for print_report jobs
-export const printReportPayloadSchema = z.object({
-  download_url: z.string().optional(),
-  file_name: z.string().optional(),
-  file_size_bytes: z.number().optional(),
-  page_count: z.number().optional(),
-  format: z.string().optional(),
-  layout_id: z.string().uuid().optional(),
-});
+// Helper to check if a process failed
+export function isJobFailed(status: string): boolean {
+  return status === "failed" || status === "dismissed";
+}
 
-// Payload schema for file_export jobs
-export const exportDatasetPayloadSchema = z.object({
-  s3_key: z.string().optional(),
-  file_name: z.string().optional(),
-  layer_id: z.string().uuid().optional(),
-  output_format: z.string().optional(),
-  feature_count: z.number().optional(),
-});
-
-export const jobSchema = z.object({
-  updated_at: z.string(),
-  created_at: z.string(),
-  id: z.string().uuid(),
-  type: jobTypeEnum,
-  status: jobStatusLayerUpload,
-  status_simple: jobStatusTypeEnum,
-  msg_simple: z.string().optional(),
-  read: z.boolean().optional(),
-  project_id: z.string().uuid().optional(),
-  payload: z.record(z.unknown()).optional(),
-});
-
-export const getJobsQueryParamsSchema = paginatedSchema.extend({
-  job_type: jobTypeEnum.optional(),
-  project_id: z.string().uuid().optional(),
-  start_data: z.string().optional(),
-  read: z.boolean().optional(),
-  end_data: z.string().optional(),
-  authorization: z.string().optional(),
-});
-
-export const jobResponseSchema = responseSchema(jobSchema);
-
-export type JobStatusType = z.infer<typeof jobStatusTypeEnum>;
-export type JobType = z.infer<typeof jobTypeEnum>;
-export type MsgType = z.infer<typeof msgTypeEnum>;
-export type JobStep = z.infer<typeof jobStepSchema>;
-export type Job = z.infer<typeof jobSchema>;
-export type JobPaginated = z.infer<typeof jobResponseSchema>;
-export type GetJobsQueryParam = z.infer<typeof getJobsQueryParamsSchema>;
-export type PrintReportPayload = z.infer<typeof printReportPayloadSchema>;
-export type ExportDatasetPayload = z.infer<typeof exportDatasetPayloadSchema>;
+/**
+ * Backward compatible enum-like object for job types
+ * Used by components that import jobTypeEnum from this file
+ */
+export const jobTypeEnum = {
+  Enum: {
+    LayerImport: "LayerImport",
+    LayerExport: "LayerExport",
+    LayerUpdate: "LayerUpdate",
+    LayerDelete: "LayerDelete",
+    buffer: "buffer",
+    join: "join",
+    catchment_area_active_mobility: "catchment_area_active_mobility",
+    catchment_area_pt: "catchment_area_pt",
+    catchment_area_car: "catchment_area_car",
+    oev_gueteklasse: "oev_gueteklasse",
+    heatmap_connectivity_active_mobility: "heatmap_connectivity_active_mobility",
+    heatmap_connectivity_pt: "heatmap_connectivity_pt",
+    heatmap_connectivity_car: "heatmap_connectivity_car",
+    heatmap_closest_average_active_mobility: "heatmap_closest_average_active_mobility",
+    heatmap_closest_average_pt: "heatmap_closest_average_pt",
+    heatmap_closest_average_car: "heatmap_closest_average_car",
+    heatmap_gravity_active_mobility: "heatmap_gravity_active_mobility",
+    heatmap_gravity_pt: "heatmap_gravity_pt",
+    heatmap_gravity_car: "heatmap_gravity_car",
+    aggregate_point: "aggregate_point",
+    aggregate_polygon: "aggregate_polygon",
+    trip_count_station: "trip_count_station",
+    origin_destination: "origin_destination",
+    nearby_station_access: "nearby_station_access",
+    print_report: "print_report",
+  } as const,
+} as const;

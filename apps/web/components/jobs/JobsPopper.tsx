@@ -16,8 +16,7 @@ import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { setJobsReadStatus, useJobs } from "@/lib/api/jobs";
-import type { Job } from "@/lib/validations/jobs";
+import { type Job, setJobsReadStatus, useJobs } from "@/lib/api/processes";
 
 import { ArrowPopper as JobStatusMenu } from "@/components/ArrowPoper";
 import JobProgressItem from "@/components/jobs/JobProgressItem";
@@ -54,13 +53,12 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 export default function JobsPopper() {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
-  const { jobs, mutate } = useJobs({
-    read: false,
-  });
+  const { jobs, mutate } = useJobs();
 
+  // Filter to get running/accepted jobs using OGC status
   const runningJobs = useMemo(() => {
-    return jobs?.items?.filter((job) => job.status_simple === "running" || job.status_simple === "pending");
-  }, [jobs?.items]);
+    return jobs?.jobs?.filter((job) => job.status === "running" || job.status === "accepted");
+  }, [jobs?.jobs]);
 
   // Poll faster (every 2 seconds) when there are pending/running jobs
   const [intervalId, setIntervalId] = useState<number | null>(null);
@@ -97,7 +95,7 @@ export default function JobsPopper() {
   const [isBusy, setIsBusy] = useState(false);
 
   const handleClearAll = async () => {
-    const jobIds = jobs?.items?.map((job) => job.id);
+    const jobIds = jobs?.jobs?.map((job) => job.jobID);
     if (!jobIds) return;
     setIsBusy(true);
     try {
@@ -110,7 +108,7 @@ export default function JobsPopper() {
     }
   };
 
-  // Handle download for file_export jobs
+  // Handle download for LayerExport jobs
   const handleExportDownload = async (payload: Record<string, unknown> | undefined) => {
     if (!payload) return;
     try {
@@ -134,7 +132,7 @@ export default function JobsPopper() {
   // Helper to render download button for export jobs
   const renderExportDownloadButton = (job: Job) => {
     const payload = job.payload as Record<string, unknown> | undefined;
-    const canDownload = job.status_simple === "finished" && payload?.download_url;
+    const canDownload = job.status === "successful" && payload?.download_url;
 
     if (!canDownload) return undefined;
 
@@ -152,7 +150,7 @@ export default function JobsPopper() {
 
   return (
     <>
-      {jobs?.items && jobs.items.length > 0 && (
+      {jobs?.jobs && jobs.jobs.length > 0 && (
         <JobStatusMenu
           content={
             <Paper
@@ -176,23 +174,23 @@ export default function JobsPopper() {
                   py: 2,
                 }}>
                 <Stack direction="column">
-                  {jobs?.items?.map((job, index) => {
-                    // Add download button for file_export jobs
+                  {jobs?.jobs?.map((job, index) => {
+                    // Add download button for LayerExport jobs
                     const actionButton =
-                      job.type === "file_export" ? renderExportDownloadButton(job) : undefined;
+                      job.processID === "LayerExport" ? renderExportDownloadButton(job) : undefined;
 
                     return (
-                      <Box key={job.id}>
+                      <Box key={job.jobID}>
                         <JobProgressItem
-                          id={job.id}
-                          type={job.type}
-                          status={job.status_simple}
-                          name={job.id}
-                          date={job.updated_at}
-                          errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
+                          id={job.jobID}
+                          type={job.processID}
+                          status={job.status}
+                          name={job.jobID}
+                          date={job.updated || job.created || ""}
+                          errorMessage={job.status === "failed" ? job.message : undefined}
                           actionButton={actionButton}
                         />
-                        {index < jobs.items.length - 1 && <Divider />}
+                        {index < jobs.jobs.length - 1 && <Divider />}
                       </Box>
                     );
                   })}
@@ -217,7 +215,7 @@ export default function JobsPopper() {
           open={open}
           placement="bottom"
           onClose={() => setOpen(false)}>
-          {jobs?.items && jobs.items.length > 0 ? (
+          {jobs?.jobs && jobs.jobs.length > 0 ? (
             <Tooltip title={t("job_status")}>
               <IconButton
                 onClick={() => {

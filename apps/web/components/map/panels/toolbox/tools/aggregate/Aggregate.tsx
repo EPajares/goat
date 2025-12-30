@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { computeAggregatePoint, computeAggregatePolygon } from "@/lib/api/tools";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { LayerFieldType } from "@/lib/validations/layer";

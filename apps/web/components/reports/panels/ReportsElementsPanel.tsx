@@ -20,7 +20,7 @@ import { useTranslation } from "react-i18next";
 
 import { Icon } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement, ReportElementType, ReportLayout } from "@/lib/validations/reportLayout";
 
@@ -218,7 +218,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
   const { jobs, isLoading, mutate } = useJobs(
     projectId
       ? {
-          project_id: projectId,
+          processID: "print_report",
         }
       : undefined
   );
@@ -252,19 +252,19 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
 
   // Filter jobs by type and layout_id from payload
   const printJobs = useMemo(() => {
-    if (!jobs?.items || !layoutId) return [];
-    return jobs.items.filter((job) => {
+    if (!jobs?.jobs || !layoutId) return [];
+    return jobs.jobs.filter((job) => {
       // Filter by job type first
-      if (job.type !== "print_report") return false;
+      if (job.processID !== "print_report") return false;
       // Then filter by layout_id in payload (payload can be string or object)
       const payload = parsePayload(job.payload);
       return payload?.layout_id === layoutId;
     });
-  }, [jobs?.items, layoutId]);
+  }, [jobs?.jobs, layoutId]);
 
   // Check if there are running jobs
   const hasRunningJobs = useMemo(() => {
-    return printJobs.some((job) => job.status_simple === "running" || job.status_simple === "pending");
+    return printJobs.some((job) => job.status === "running" || job.status === "accepted");
   }, [printJobs]);
 
   // Poll for updates - always poll at a slower rate, faster when jobs are running
@@ -340,15 +340,15 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
           {printJobs.map((job, index) => {
             const payload = parsePayload(job.payload);
             // Show download button for finished jobs that have s3_key
-            const canDownload = job.status_simple === "finished" && payload?.s3_key;
-            const isDownloading = downloadingJobId === job.id;
+            const canDownload = job.status === "successful" && payload?.s3_key;
+            const isDownloading = downloadingJobId === job.jobID;
 
             // Create download button to pass as custom action
             const downloadButton = canDownload ? (
               <Tooltip title={t("download")}>
                 <IconButton
                   size="small"
-                  onClick={() => handleDownload(job.id, payload?.file_name || "report.pdf")}
+                  onClick={() => handleDownload(job.jobID, payload?.file_name || "report.pdf")}
                   disabled={isDownloading}
                   sx={{ fontSize: "1.2rem", color: "success.main" }}>
                   {isDownloading ? (
@@ -361,14 +361,14 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
             ) : undefined;
 
             return (
-              <Box key={job.id} sx={{ overflow: "hidden" }}>
+              <Box key={job.jobID} sx={{ overflow: "hidden" }}>
                 <JobProgressItem
-                  id={job.id}
-                  type={job.type}
-                  status={job.status_simple}
-                  name={job.id}
-                  date={job.updated_at}
-                  errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
+                  id={job.jobID}
+                  type={job.processID}
+                  status={job.status}
+                  name={job.jobID}
+                  date={job.updated || job.created || ""}
+                  errorMessage={job.status === "failed" ? job.message : undefined}
                   actionButton={downloadButton}
                 />
                 {index < printJobs.length - 1 && <Divider />}

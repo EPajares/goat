@@ -5,12 +5,13 @@ Cancels a running job or deletes a finished job.
 DELETE /jobs/{jobId}
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 from uuid import UUID
 
+import lib.paths  # noqa: F401 - sets up remaining paths
 from lib.ogc_base import (
     error_response,
     get_base_url,
@@ -60,8 +61,8 @@ async def handler(req: Dict[str, Any], context):
                 if not job:
                     return not_found_response("job", job_id)
 
-                # Update job status to killed/dismissed
-                job.status = "killed"
+                # Update job status to dismissed (OGC-compliant)
+                job.status = "dismissed"
                 await session.commit()
 
                 status_info = StatusInfo(
