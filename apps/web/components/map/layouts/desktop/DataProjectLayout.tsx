@@ -40,7 +40,7 @@ import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/me
 import LayerSettingsPanel from "@/components/map/panels/layer/LayerSettingsPanel";
 import { ProjectLayerTree } from "@/components/map/panels/layer/ProjectLayerTree";
 import Scenario from "@/components/map/panels/scenario/Scenario";
-import Toolbox from "@/components/map/panels/toolbox/Toolbox";
+import Toolbox from "@/components/map/panels/toolbox/CombinedToolbox";
 
 const toolbarHeight = 52;
 const panelWidth = 300;
@@ -305,11 +305,19 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           pointerEvents: "none",
           alignItems: "flex-end",
         }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: "flex-start",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}>
           {/* Measurement Results Panel - to the left of active right panel */}
           <MeasureResultsPanel {...measureTool} />
           {activeRightComponent && (
-            <FloatingPanel width={panelWidth} sx={{ mb: 2 }}>
+            <FloatingPanel width={panelWidth} maxHeight="100%" fillHeight>
               {activeRightComponent}
             </FloatingPanel>
           )}
@@ -319,7 +327,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           direction="column"
           alignItems="flex-end"
           sx={{
-            marginTop: "auto",
+            mt: 2,
             pointerEvents: "none",
             width: "max-content",
             maxWidth: "none",

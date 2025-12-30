@@ -41,6 +41,10 @@
       "src/analysis/list_tools_api_step.py": {
         "x": 892,
         "y": 298
+      },
+      "src/analysis/ogc_job_list_step.py": {
+        "x": 50,
+        "y": 1508
       }
     }
   }

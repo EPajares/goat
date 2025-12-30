@@ -17,6 +17,7 @@ export const ACCOUNTS_DISABLED =
   accountsDisabledRaw &&
   accountsDisabledRaw !== "APP_NEXT_PUBLIC_ACCOUNTS_DISABLED" &&
   accountsDisabledRaw.toLowerCase() === "true";
+
 export const DOCS_URL = `${APP_URL}/docs`;
 export const DOCS_VERSION = "2.0";
 export const CONTACT_US_URL = "https://plan4better.de/contact";
