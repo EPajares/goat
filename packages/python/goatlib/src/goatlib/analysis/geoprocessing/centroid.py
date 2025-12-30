@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.vector import CentroidParams
+from goatlib.analysis.schemas.geoprocessing import CentroidParams
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)

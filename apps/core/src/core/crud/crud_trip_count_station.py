@@ -105,7 +105,7 @@ class CRUDTripCountStation(CRUDToolBase):
         # Create result layer
         await self.create_feature_layer_tool(layer_in=result_layer, params=params)
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Trip count created.",
         }
 

@@ -3,31 +3,32 @@ from pathlib import Path
 from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.vector import ClipParams
+from goatlib.analysis.schemas.geoprocessing import DifferenceParams
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
 
-class ClipTool(AnalysisTool):
-    """Tool for clipping features from input layer using overlay layer geometry.
+class DifferenceTool(AnalysisTool):
+    """Tool for computing the difference between input and overlay geometries.
 
-    This tool implements the standard clip operation using DuckDB views with bbox optimization.
+    This tool implements the QGIS 'Difference' operation using DuckDB views with bbox optimization.
     Automatically handles bbox columns for spatial indexing - creates them if needed or uses
     existing ones. Follows GeoParquet spatial indexing specification.
     """
 
     def _run_implementation(
-        self: Self, params: ClipParams
+        self: Self, params: DifferenceParams
     ) -> List[Tuple[Path, DatasetMetadata]]:
-        """Perform clip operation using views with bbox spatial optimization.
+        """Perform difference operation using views with bbox spatial optimization.
 
         Args:
-            params: ClipParams object with input_path, overlay_path, and other options.
+            params: DifferenceParams object with input_path, overlay_path, and other options.
 
         Returns:
             List containing tuple of (output_path, metadata).
         """
+
         # Import input and overlay datasets with automatic bbox handling
         input_meta, input_view = self.import_input(params.input_path, "input_data")
         overlay_meta, overlay_view = self.import_input(
@@ -68,13 +69,13 @@ class ClipTool(AnalysisTool):
         if not params.output_path:
             params.output_path = str(
                 Path(params.input_path).parent
-                / f"{Path(params.input_path).stem}_clip.parquet"
+                / f"{Path(params.input_path).stem}_difference.parquet"
             )
         output_path = Path(params.output_path)
 
-        # Perform clipping operation using views with bbox optimization
+        # Perform difference operation using views with bbox optimization
         # Both views now have bbox columns (either pre-existing or created by import_input)
-        logger.info("Performing view-based clipping with bbox spatial filtering")
+        logger.info("Performing view-based difference with bbox spatial filtering")
 
         # Detect input geometry type to filter output appropriately
         input_geom_type = self.con.execute(f"""
@@ -120,43 +121,61 @@ class ClipTool(AnalysisTool):
             FROM unified
         """)
 
-        # Then clip each input feature against the unified overlay
+        # Then compute difference for each input feature against the unified overlay
         logger.info(
-            "Performing clipping against unified overlay geometry with bbox optimization"
+            "Computing difference against unified overlay geometry with bbox optimization"
         )
 
         # Build geometry type filter clause
-        geom_type_filter = (
-            f"AND ST_GeometryType(ST_Intersection(i.{input_geom}, u.unified_geom)) IN {allowed_types}"
-            if allowed_types
-            else ""
-        )
+        geom_type_filter = ""
+        if allowed_types:
+            geom_type_filter = f"""
+                AND (
+                    u.unified_geom IS NULL 
+                    OR ST_GeometryType(ST_Difference(i.{input_geom}, u.unified_geom)) IN {allowed_types}
+                )
+            """
 
         self.con.execute(f"""
-            CREATE OR REPLACE VIEW clipped_result AS
+            CREATE OR REPLACE VIEW difference_result AS
             SELECT
                 i.* EXCLUDE ({input_geom}, bbox),
-                ST_Intersection(i.{input_geom}, u.unified_geom) AS {input_geom}
+                CASE
+                    WHEN u.unified_geom IS NOT NULL 
+                        AND ST_Intersects(i.{input_geom}, u.unified_geom)
+                        -- Bbox-based spatial filter for performance (GeoParquet spatial indexing)
+                        AND i.bbox.minx <= u.bbox.maxx
+                        AND i.bbox.maxx >= u.bbox.minx
+                        AND i.bbox.miny <= u.bbox.maxy
+                        AND i.bbox.maxy >= u.bbox.miny
+                    THEN
+                        ST_Difference(i.{input_geom}, u.unified_geom)
+                    ELSE
+                        i.{input_geom}
+                END AS {input_geom}
             FROM {input_view} i
-            CROSS JOIN unified_overlay u
+            LEFT JOIN unified_overlay u ON TRUE
             WHERE ST_IsValid(i.{input_geom})
-                AND ST_Intersects(i.{input_geom}, u.unified_geom)
-                -- Bbox-based spatial filter for performance (GeoParquet spatial indexing)
-                AND i.bbox.minx <= u.bbox.maxx
-                AND i.bbox.maxx >= u.bbox.minx
-                AND i.bbox.miny <= u.bbox.maxy
-                AND i.bbox.maxy >= u.bbox.miny
-                AND NOT ST_IsEmpty(ST_Intersection(i.{input_geom}, u.unified_geom))
+                AND (
+                    u.unified_geom IS NULL
+                    OR NOT ST_IsEmpty(
+                        CASE
+                            WHEN ST_Intersects(i.{input_geom}, u.unified_geom)
+                            THEN ST_Difference(i.{input_geom}, u.unified_geom)
+                            ELSE i.{input_geom}
+                        END
+                    )
+                )
                 -- Filter out degenerate geometries - keep only same type as input (ArcGIS/QGIS behavior)
                 {geom_type_filter}
         """)
 
         # Export view result to file
         self.con.execute(
-            f"COPY clipped_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+            f"COPY difference_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )
 
-        logger.info("Clipped data written to %s", output_path)
+        logger.info("Difference data written to %s", output_path)
 
         # Create metadata for output
         output_metadata = DatasetMetadata(

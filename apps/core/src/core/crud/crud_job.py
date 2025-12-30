@@ -60,7 +60,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
             user_id=user_id,
             type=job_type,
             status=job_status,
-            status_simple=JobStatusType.pending,
+            status_simple=JobStatusType.accepted,
         )
         if project_id:
             job.project_id = project_id
@@ -101,7 +101,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
             "type": MsgType.info.value,
             "text": msg_text,
         }
-        if status == JobStatusType.finished:
+        if status == JobStatusType.successful:
             job.status_simple = JobStatusType.running
         else:
             job.status_simple = status
@@ -191,7 +191,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
                 Job.id.in_(job_ids),
                 Job.user_id == user_id,
                 Job.status_simple.notin_(
-                    [JobStatusType.pending.value, JobStatusType.running.value]
+                    [JobStatusType.accepted.value, JobStatusType.running.value]
                 ),
             )
         )

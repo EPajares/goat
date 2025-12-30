@@ -234,7 +234,7 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
             project_id=project_id,
         )
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "result": result,
         }
 
@@ -295,7 +295,7 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
 
         logger.info("S3 layer import complete: %s", result)
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "result": result,
         }
 
@@ -328,7 +328,7 @@ class CRUDLayerImportDuckLake(CRUDFailedJob):
             project_id=project_id,
         )
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "result": result,
         }
 
@@ -681,7 +681,7 @@ class CRUDLayerExportDuckLake(CRUDFailedJob):
                 file_name,
             )
 
-            return {"status": JobStatusType.finished.value, "result": result_payload}
+            return {"status": JobStatusType.successful.value, "result": result_payload}
 
         except asyncio.TimeoutError:
             # Cleanup on timeout

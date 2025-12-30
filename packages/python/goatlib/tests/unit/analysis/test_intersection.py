@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 
 from goatlib.analysis.schemas.vector import IntersectionParams
-from goatlib.analysis.vector.intersection import IntersectionTool
+from goatlib.analysis.geoprocessing.intersection import IntersectionTool
 
 
 def test_intersection_polygons() -> None:

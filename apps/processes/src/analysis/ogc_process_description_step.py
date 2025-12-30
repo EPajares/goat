@@ -5,13 +5,19 @@ GET /processes/{processId}
 Returns full description of a process including inputs/outputs and geometry constraints.
 """
 
-import os
 import sys
 
-sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add paths before any lib imports
+for path in [
+    "/app/apps/processes/src",
+    "/app/apps/core/src",
+    "/app/packages/python/goatlib/src",
+]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+from lib.ogc_base import get_base_url, not_found_response, pydantic_response
 from lib.ogc_process_generator import get_process
-from lib.ogc_schemas import OGC_EXCEPTION_NO_SUCH_PROCESS, OGCException
 
 config = {
     "name": "OGCProcessDescription",
@@ -25,7 +31,6 @@ config = {
 
 async def handler(req, context):
     """Handle GET /processes/{processId} request."""
-    # Get process ID from path params
     process_id = req.get("pathParams", {}).get("processId")
 
     if not process_id:
@@ -34,38 +39,17 @@ async def handler(req, context):
             "body": {"error": "processId is required"},
         }
 
-    # Build base URL from request headers
-    default_host = os.environ.get("PROCESSES_HOST", "localhost")
-    default_port = os.environ.get("PROCESSES_PORT", "8200")
-    default_host_port = f"{default_host}:{default_port}"
-    proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", default_host_port)
-    base_url = f"{proto}://{host}"
+    base_url = get_base_url(req)
 
     context.logger.info(
         "OGC Process description requested",
-        {
-            "process_id": process_id,
-            "base_url": base_url,
-        },
+        {"process_id": process_id, "base_url": base_url},
     )
 
     # Get process description
     process = get_process(process_id, base_url)
 
     if not process:
-        error = OGCException(
-            type=OGC_EXCEPTION_NO_SUCH_PROCESS,
-            title="Process not found",
-            status=404,
-            detail=f"Process '{process_id}' does not exist",
-        )
-        return {
-            "status": 404,
-            "body": error.model_dump(),
-        }
+        return not_found_response("process", process_id)
 
-    return {
-        "status": 200,
-        "body": process.model_dump(by_alias=True, exclude_none=True),
-    }
+    return pydantic_response(process)

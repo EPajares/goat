@@ -189,7 +189,7 @@ class CRUDHeatmapClosestAverage(CRUDHeatmapBase):
         )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Heatmap closest-average was successfully computed.",
         }
 

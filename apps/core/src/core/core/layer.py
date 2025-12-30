@@ -736,7 +736,7 @@ class OGRFileHandling:
         await async_delete_dir(self.folder_path)
         return {
             "msg": msg,
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
         }
 
     async def upload_ogr2ogr_fail(self, temp_table_name: str) -> None:
@@ -867,7 +867,7 @@ class OGRFileHandling:
 
         return {
             "msg": Msg(type=MsgType.info, text="Data migrated."),
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
         }
 
     async def migrate_target_table_fail(

@@ -223,25 +223,24 @@ def job_init() -> Callable[[Any], Any]:
                 )
                 return None
 
-            # Update job status to finished in case it is not killed, timeout or failed
+            # Update job status to successful in case it is not dismissed or failed
             if result["status"] not in [
-                JobStatusType.killed.value,
-                JobStatusType.timeout.value,
+                JobStatusType.dismissed.value,
                 JobStatusType.failed.value,
             ]:
                 # Use result payload if provided, otherwise use input params
                 if result.get("result"):
                     payload = {
-                        "status_simple": JobStatusType.finished.value,
+                        "status_simple": JobStatusType.successful.value,
                         "payload": result["result"],
                     }
                 elif kwargs.get("params"):
                     payload = {
-                        "status_simple": JobStatusType.finished.value,
+                        "status_simple": JobStatusType.successful.value,
                         "payload": kwargs["params"].json(exclude_none=True),
                     }
                 else:
-                    payload = {"status_simple": JobStatusType.finished.value}
+                    payload = {"status_simple": JobStatusType.successful.value}
 
                 job = await crud_job.update(
                     db=async_session,
@@ -310,12 +309,12 @@ def job_log(
                 msg_text="Job is running.",
                 job_step_name=job_step_name,
             )
-            # Exit if job is killed before starting
-            if job.status_simple == JobStatusType.killed.value:
+            # Exit if job is dismissed before starting
+            if job.status_simple == JobStatusType.dismissed.value:
                 await run_failure_func(self, func, **kwargs)
-                msg_text = "Job was killed."
+                msg_text = "Job was dismissed."
                 background_logger.error(msg_text)
-                return {"status": JobStatusType.killed.value, "msg": msg_text}
+                return {"status": JobStatusType.dismissed.value, "msg": msg_text}
             # Execute function
             try:
                 result: Dict[str, Any] = await asyncio.wait_for(
@@ -326,12 +325,12 @@ def job_log(
                 await async_session.rollback()
                 # Handle the timeout here. For example, you can raise a custom exception or log it.
                 await run_failure_func(self, func, *args, **kwargs)
-                # Update job status to indicate timeout
+                # Update job status to indicate timeout (failed in OGC)
                 msg_text = f"Job timed out after {timeout} seconds."
                 job = await crud_job.update_status(
                     async_session=async_session,
                     job_id=job_id,
-                    status=JobStatusType.timeout,
+                    status=JobStatusType.failed,
                     msg_text=msg_text,
                     job_step_name=job_step_name,
                 )
@@ -359,16 +358,16 @@ def job_log(
             if job_obj is None:
                 raise ValueError(f"Job with id {job_id} not found.")
             job = job_obj
-            if job.status_simple == JobStatusType.killed.value:
-                status = JobStatusType.killed
-                msg_text = "Job was killed."
+            if job.status_simple == JobStatusType.dismissed.value:
+                status = JobStatusType.dismissed
+                msg_text = "Job was dismissed."
             # Else use the status provided by the function
             else:
                 if result["status"] == JobStatusType.failed.value:
                     status = JobStatusType.failed
                     msg_text = result["msg"]
-                elif result["status"] == JobStatusType.finished.value:
-                    status = JobStatusType.finished
+                elif result["status"] == JobStatusType.successful.value:
+                    status = JobStatusType.successful
                     msg_text = "Job finished successfully."
                 else:
                     raise ValueError(
@@ -382,16 +381,16 @@ def job_log(
                 job_step_name=job_step_name,
                 msg_text=msg_text,
             )
-            # Check if job is killed and run failure function if exists
+            # Check if job is dismissed and run failure function if exists
             if job.status_simple in [
-                JobStatusType.killed.value,
+                JobStatusType.dismissed.value,
                 JobStatusType.failed.value,
             ]:
                 # Roll back the transaction
                 await async_session.rollback()
                 # Run failure function if exists
                 await run_failure_func(self, func, *args, **kwargs)
-                msg_txt = "Job was killed"
+                msg_txt = "Job was dismissed"
                 print(msg_txt)
                 raise JobKilledError(msg_txt)
             background_logger.info(f"Job step {job_step_name} finished successfully.")

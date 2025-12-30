@@ -61,11 +61,11 @@ async def test_mark_jobs_as_read(client: AsyncClient, fixture_create_feature_lay
 
 #     response = await client.put(f"{settings.API_V2_STR}/job/kill/{job_id}")
 #     assert response.status_code == 200
-#     assert response.json()["status_simple"] == JobStatusType.killed
+#     assert response.json()["status_simple"] == JobStatusType.dismissed
 #     step_status = ""
 #     status = response.json()["status"]
 #     for job_step in response.json()["status"]:
 #         status_step = status[job_step]
-#         if status_step["status"] == JobStatusType.killed:
+#         if status_step["status"] == JobStatusType.dismissed:
 #             step_status = status_step["status"]
-#     assert step_status == JobStatusType.killed
+#     assert step_status == JobStatusType.dismissed

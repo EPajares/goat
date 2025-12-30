@@ -7,10 +7,18 @@ Returns list of all available processes with summaries.
 
 import sys
 
-sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add paths before any lib imports
+for path in [
+    "/app/apps/processes/src",
+    "/app/apps/core/src",
+    "/app/packages/python/goatlib/src",
+]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+from lib.ogc_base import get_base_url, pydantic_response, self_link
 from lib.ogc_process_generator import get_process_list
-from lib.ogc_schemas import Link, ProcessList
+from lib.ogc_schemas import ProcessList
 
 config = {
     "name": "OGCProcessList",
@@ -22,20 +30,9 @@ config = {
 }
 
 
-import os
-
-# Default host and port from env (fallback when headers missing)
-DEFAULT_HOST = os.environ.get("PROCESSES_HOST", "localhost")
-DEFAULT_PORT = os.environ.get("PROCESSES_PORT", "8200")
-DEFAULT_HOST_PORT = f"{DEFAULT_HOST}:{DEFAULT_PORT}"
-
-
 async def handler(req, context):
     """Handle GET /processes request."""
-    # Build base URL from request headers
-    proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", DEFAULT_HOST_PORT)
-    base_url = f"{proto}://{host}"
+    base_url = get_base_url(req)
 
     context.logger.info("OGC Process list requested", {"base_url": base_url})
 
@@ -45,17 +42,7 @@ async def handler(req, context):
     # Build response
     process_list = ProcessList(
         processes=processes,
-        links=[
-            Link(
-                href=f"{base_url}/processes",
-                rel="self",
-                type="application/json",
-                title="Process list",
-            ),
-        ],
+        links=[self_link(base_url, "/processes", "Process list")],
     )
 
-    return {
-        "status": 200,
-        "body": process_list.model_dump(by_alias=True, exclude_none=True),
-    }
+    return pydantic_response(process_list)

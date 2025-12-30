@@ -1,6 +1,8 @@
 # Analysis tools
 
 from .core.base import AnalysisTool
+from .data_management import JoinTool
+from .geoprocessing import BufferTool
 from .statistics import (
     AreaOperation,
     AreaStatisticsResult,
@@ -15,13 +17,13 @@ from .statistics import (
     calculate_feature_count,
     calculate_unique_values,
 )
-from .vector import BufferTool, JoinTool
 
 __all__ = [
     # Base
     "AnalysisTool",
-    # Vector tools
+    # Geoprocessing tools
     "BufferTool",
+    # Data management tools
     "JoinTool",
     # Statistics functions
     "calculate_feature_count",

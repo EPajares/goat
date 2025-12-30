@@ -12,8 +12,14 @@ import sys
 from typing import Any, Dict
 from uuid import UUID
 
-sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add paths before any lib imports
+for path in [
+    "/app/apps/processes/src",
+    "/app/apps/core/src",
+    "/app/packages/python/goatlib/src",
+]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 config = {
     "name": "LogJobStatus",
@@ -61,13 +67,7 @@ async def handler(input_data: Dict[str, Any], context):
     )
 
     try:
-        # Import GOAT Core components
-        from core.core.config import settings
-        from core.db.models.job import Job
-
-        # Import Motia schemas for payload structure
-        from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-        from sqlalchemy.orm import sessionmaker
+        from lib.db import Job, get_async_session
 
         # Parse UUIDs
         try:
@@ -82,17 +82,9 @@ async def handler(input_data: Dict[str, Any], context):
             context.logger.error("Missing required job_id or user_id")
             return {"status": "error", "message": "Missing required fields"}
 
-        # Map OGC status to GOAT Core status
-        # OGC: accepted, running, successful, failed, dismissed
-        # GOAT Core: pending, running, finished, failed, timeout, killed
-        status_map = {
-            "successful": "finished",
-            "failed": "failed",
-            "accepted": "pending",
-            "running": "running",
-            "dismissed": "killed",
-        }
-        db_status = status_map.get(status, "failed")
+        # Status is now OGC-compliant (accepted, running, successful, failed, dismissed)
+        # Use directly without mapping
+        db_status = status
 
         # Build payload
         payload = {
@@ -109,16 +101,7 @@ async def handler(input_data: Dict[str, Any], context):
         # Remove None values
         payload = {k: v for k, v in payload.items() if v is not None}
 
-        # Create async engine and session
-        engine = create_async_engine(
-            settings.ASYNC_DATABASE_URI,
-            echo=False,
-        )
-        async_session = sessionmaker(
-            engine,
-            class_=AsyncSession,
-            expire_on_commit=False,
-        )
+        engine, async_session = await get_async_session()
 
         async with async_session() as session:
             # Create job record
@@ -139,6 +122,13 @@ async def handler(input_data: Dict[str, Any], context):
             )
 
         await engine.dispose()
+
+        # Delete job from Redis now that it's persisted to PostgreSQL
+        from lib.job_state import job_state_manager
+
+        deleted = await job_state_manager.delete_job(job_id)
+        if deleted:
+            context.logger.info(f"Job {job_id} removed from Redis")
 
         return {
             "status": "success",

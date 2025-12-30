@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 import geopandas as gpd
 import pytest
 from goatlib.analysis.schemas.vector import BufferParams
-from goatlib.analysis.vector.buffer import BufferTool
+from goatlib.analysis.geoprocessing.buffer import BufferTool
 from goatlib.routing.adapters.motis.motis_client import MotisServiceClient
 from goatlib.routing.adapters.motis.motis_converters import (
     extract_bus_stations_for_buffering,

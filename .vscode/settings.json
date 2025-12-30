@@ -49,7 +49,7 @@
     "packages/python/goatlib/tests",
     "apps/geoapi/tests",
     "apps/core/tests",
-    "apps/motia/tests"
+    "apps/processes/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   

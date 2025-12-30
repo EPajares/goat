@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 
 from goatlib.analysis.schemas.vector import ClipParams
-from goatlib.analysis.vector.clip import ClipTool
+from goatlib.analysis.geoprocessing.clip import ClipTool
 
 
 def test_clip_polygons() -> None:
