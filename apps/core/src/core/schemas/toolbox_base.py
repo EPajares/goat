@@ -25,7 +25,6 @@ class ColumnStatisticsOperation(str, Enum):
     expression = "expression"
 
 
-
 class ColumnStatistic(BaseModel):
     """Column statistic schema."""
 
@@ -274,7 +273,9 @@ class InputLayerType(BaseModel):
 
     @field_validator("layer_types", mode="after")
     @classmethod
-    def validate_layer_types(cls: type["InputLayerType"], value: List[LayerType]) -> List[LayerType]:
+    def validate_layer_types(
+        cls: type["InputLayerType"], value: List[LayerType]
+    ) -> List[LayerType]:
         for layer_type in value:
             if layer_type not in LayerType.__members__:
                 raise ValueError(f"{layer_type} is not a valid LayerType")

@@ -19,7 +19,7 @@ def test_get_clip_tool():
     assert tool_info is not None
     assert tool_info.name == "clip"
     assert tool_info.display_name == "Clip"
-    assert tool_info.category == "vector"
+    assert tool_info.category == "geoprocessing"
     # Verify auto-discovered classes (original and generated)
     assert tool_info.params_class.__name__ == "ClipParams"
     assert tool_info.layer_params_class.__name__ == "ClipLayerParams"
@@ -48,7 +48,7 @@ def test_auto_discovery():
         assert info.params_class is not None
         assert info.layer_params_class is not None
         assert info.tool_class is not None
-        assert info.category == "vector"
+        assert info.category in ("geoprocessing", "data_management", "statistics")
 
 
 def test_tools_metadata():
@@ -60,7 +60,7 @@ def test_tools_metadata():
     assert clip_meta is not None
     assert clip_meta["display_name"] == "Clip"
     assert "description" in clip_meta
-    assert clip_meta["category"] == "vector"
+    assert clip_meta["category"] == "geoprocessing"
 
 
 def test_tools_metadata_with_schema():
@@ -137,3 +137,119 @@ def test_layer_params_includes_project_scenario():
     assert "project_id" in fields
     assert "scenario_id" in fields
     assert "save_results" in fields
+
+
+# === Statistics Tool Tests ===
+
+
+def test_feature_count_tool_registration():
+    """Test that feature_count statistics tool is registered correctly."""
+    tool_info = get_tool("feature_count")
+    assert tool_info is not None
+    assert tool_info.name == "feature_count"
+    assert tool_info.display_name == "Feature Count"
+    assert tool_info.category == "statistics"
+
+    # Verify sync execution support
+    assert tool_info.supports_sync is True
+    assert tool_info.supports_async is False
+    assert "sync-execute" in tool_info.job_control_options
+
+    # Verify layer params include required fields
+    fields = tool_info.layer_params_class.model_fields
+    assert "collection" in fields
+    assert "user_id" in fields
+    assert "filter" in fields
+
+
+def test_unique_values_tool_registration():
+    """Test that unique_values statistics tool is registered correctly."""
+    tool_info = get_tool("unique_values")
+    assert tool_info is not None
+    assert tool_info.name == "unique_values"
+    assert tool_info.category == "statistics"
+    assert tool_info.supports_sync is True
+
+    # Verify layer params include required fields
+    fields = tool_info.layer_params_class.model_fields
+    assert "collection" in fields
+    assert "user_id" in fields
+    assert "attribute" in fields
+    assert "order" in fields
+    assert "limit" in fields
+    assert "offset" in fields
+
+
+def test_class_breaks_tool_registration():
+    """Test that class_breaks statistics tool is registered correctly."""
+    tool_info = get_tool("class_breaks")
+    assert tool_info is not None
+    assert tool_info.name == "class_breaks"
+    assert tool_info.category == "statistics"
+    assert tool_info.supports_sync is True
+
+    # Verify layer params include required fields
+    fields = tool_info.layer_params_class.model_fields
+    assert "collection" in fields
+    assert "user_id" in fields
+    assert "attribute" in fields
+    assert "method" in fields
+    assert "breaks" in fields
+    assert "strip_zeros" in fields
+
+
+def test_area_statistics_tool_registration():
+    """Test that area_statistics tool is registered correctly."""
+    tool_info = get_tool("area_statistics")
+    assert tool_info is not None
+    assert tool_info.name == "area_statistics"
+    assert tool_info.category == "statistics"
+    assert tool_info.supports_sync is True
+
+    # Verify layer params include required fields
+    fields = tool_info.layer_params_class.model_fields
+    assert "collection" in fields
+    assert "user_id" in fields
+    assert "operation" in fields
+
+
+def test_statistics_tools_have_sync_execute():
+    """Test that all statistics tools support sync execution only."""
+    stats_tools = ["feature_count", "unique_values", "class_breaks", "area_statistics"]
+
+    for tool_name in stats_tools:
+        tool_info = get_tool(tool_name)
+        assert tool_info is not None, f"{tool_name} not found"
+        assert tool_info.supports_sync is True, f"{tool_name} should support sync"
+        assert (
+            tool_info.supports_async is False
+        ), f"{tool_name} should not support async"
+        assert tool_info.job_control_options == ["sync-execute"]
+
+
+def test_vector_tools_have_async_execute():
+    """Test that vector tools support async execution (default)."""
+    vector_tools = ["clip", "buffer", "centroid"]
+
+    for tool_name in vector_tools:
+        tool_info = get_tool(tool_name)
+        if tool_info is not None:  # Tool may not exist in all test environments
+            assert tool_info.supports_async is True, f"{tool_name} should support async"
+            assert "async-execute" in tool_info.job_control_options
+
+
+def test_tools_metadata_includes_job_control():
+    """Test that tools metadata includes job_control_options."""
+    metadata = get_tools_metadata()
+
+    # Find feature_count metadata
+    fc_meta = next((m for m in metadata if m["name"] == "feature_count"), None)
+    assert fc_meta is not None
+    assert "job_control_options" in fc_meta
+    assert fc_meta["job_control_options"] == ["sync-execute"]
+
+    # Find clip metadata
+    clip_meta = next((m for m in metadata if m["name"] == "clip"), None)
+    if clip_meta:
+        assert "job_control_options" in clip_meta
+        assert "async-execute" in clip_meta["job_control_options"]

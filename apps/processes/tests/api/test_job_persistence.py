@@ -43,7 +43,7 @@ async def test_create_job_pending(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.pending,
+        status=JobStatusType.accepted,
         payload={
             "process_id": "clip",
             "inputs": {
@@ -60,7 +60,7 @@ async def test_create_job_pending(db_session, test_user):
     assert job.id == job_id
     assert job.user_id == test_user.id
     assert job.type == OGC_JOB_TYPE
-    assert job.status == JobStatusType.pending
+    assert job.status == JobStatusType.accepted
     assert job.payload["process_id"] == "clip"
 
     print(f"[TEST] Job created: {job.id} with status={job.status}")
@@ -75,19 +75,19 @@ async def test_job_status_transitions(db_session, test_user):
     """Test job status transitions: pending -> running -> finished."""
     job_id = uuid4()
 
-    # Create job in pending status
+    # Create job in accepted status
     job = Job(
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.pending,
+        status=JobStatusType.accepted,
         payload={"process_id": "buffer"},
     )
     db_session.add(job)
     await db_session.commit()
 
     print(f"[TEST] Job {job_id}: status={job.status}")
-    assert job.status == JobStatusType.pending
+    assert job.status == JobStatusType.accepted
 
     # Transition to running
     job.status = JobStatusType.running
@@ -97,8 +97,8 @@ async def test_job_status_transitions(db_session, test_user):
     print(f"[TEST] Job {job_id}: status={job.status}")
     assert job.status == JobStatusType.running
 
-    # Transition to finished with result
-    job.status = JobStatusType.finished
+    # Transition to successful with result
+    job.status = JobStatusType.successful
     job.payload = {
         "process_id": "buffer",
         "result_layer_id": str(uuid4()),
@@ -108,7 +108,7 @@ async def test_job_status_transitions(db_session, test_user):
     await db_session.refresh(job)
 
     print(f"[TEST] Job {job_id}: status={job.status}, payload={job.payload}")
-    assert job.status == JobStatusType.finished
+    assert job.status == JobStatusType.successful
     assert "result_layer_id" in job.payload
     assert job.payload["feature_count"] == 42
 
@@ -126,7 +126,7 @@ async def test_job_failed_status(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.pending,
+        status=JobStatusType.accepted,
         payload={"process_id": "clip"},
     )
     db_session.add(job)
@@ -153,8 +153,8 @@ async def test_job_failed_status(db_session, test_user):
 
 
 @pytest.mark.asyncio
-async def test_job_killed_status(db_session, test_user):
-    """Test job dismissal (killed status)."""
+async def test_job_dismissed_status(db_session, test_user):
+    """Test job dismissal (dismissed status)."""
     job_id = uuid4()
 
     job = Job(
@@ -168,12 +168,12 @@ async def test_job_killed_status(db_session, test_user):
     await db_session.commit()
 
     # Dismiss the job
-    job.status = JobStatusType.killed
+    job.status = JobStatusType.dismissed
     await db_session.commit()
     await db_session.refresh(job)
 
     print(f"[TEST] Job {job_id}: status={job.status} (dismissed)")
-    assert job.status == JobStatusType.killed
+    assert job.status == JobStatusType.dismissed
 
     # Cleanup
     await db_session.delete(job)
@@ -195,7 +195,7 @@ async def test_query_job_by_id(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.finished,
+        status=JobStatusType.successful,
         payload={
             "process_id": "centroid",
             "result_layer_id": str(result_layer_id),
@@ -212,7 +212,7 @@ async def test_query_job_by_id(db_session, test_user):
 
     assert queried_job is not None
     assert queried_job.id == job_id
-    assert queried_job.status == JobStatusType.finished
+    assert queried_job.status == JobStatusType.successful
     assert queried_job.payload["result_layer_id"] == str(result_layer_id)
 
     print(f"[TEST] Queried job {job_id}: status={queried_job.status}")
@@ -235,9 +235,9 @@ async def test_query_jobs_by_user(db_session, test_user):
             user_id=test_user.id,
             type=OGC_JOB_TYPE,
             status=[
-                JobStatusType.pending,
+                JobStatusType.accepted,
                 JobStatusType.running,
-                JobStatusType.finished,
+                JobStatusType.successful,
             ][i],
             payload={"process_id": f"tool_{i}"},
         )
@@ -273,9 +273,9 @@ async def test_query_jobs_by_status(db_session, test_user):
 
     # Create jobs with different statuses
     statuses = [
-        JobStatusType.pending,
+        JobStatusType.accepted,
         JobStatusType.running,
-        JobStatusType.finished,
+        JobStatusType.successful,
         JobStatusType.failed,
     ]
     for job_id, status in zip(job_ids, statuses):
@@ -289,18 +289,18 @@ async def test_query_jobs_by_status(db_session, test_user):
         db_session.add(job)
     await db_session.commit()
 
-    # Query only finished jobs
+    # Query only successful jobs
     stmt = select(Job).where(
-        Job.user_id == test_user.id, Job.status == JobStatusType.finished
+        Job.user_id == test_user.id, Job.status == JobStatusType.successful
     )
     result = await db_session.execute(stmt)
-    finished_jobs = result.scalars().all()
+    successful_jobs = result.scalars().all()
 
-    assert len(finished_jobs) >= 1
-    for job in finished_jobs:
-        assert job.status == JobStatusType.finished
+    assert len(successful_jobs) >= 1
+    for job in successful_jobs:
+        assert job.status == JobStatusType.successful
 
-    print(f"[TEST] Found {len(finished_jobs)} finished jobs")
+    print(f"[TEST] Found {len(successful_jobs)} successful jobs")
 
     # Cleanup
     for job_id in job_ids:
@@ -327,7 +327,7 @@ async def test_job_payload_with_result_layer(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.finished,
+        status=JobStatusType.successful,
         payload={
             "process_id": "clip",
             "save_results": True,
@@ -365,7 +365,7 @@ async def test_job_payload_with_download_url(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.finished,
+        status=JobStatusType.successful,
         payload={
             "process_id": "clip",
             "save_results": False,
@@ -390,56 +390,6 @@ async def test_job_payload_with_download_url(db_session, test_user):
     await db_session.delete(job)
     await db_session.commit()
 
-
-# ============================================================================
-# OGC Status Mapping Tests
-# ============================================================================
-
-
-@pytest.mark.asyncio
-async def test_ogc_status_mapping(db_session, test_user):
-    """Test that GOAT Core status maps correctly to OGC status."""
-    # GOAT Core -> OGC mapping:
-    # pending -> accepted
-    # running -> running
-    # finished -> successful
-    # failed -> failed
-    # killed -> dismissed
-
-    status_mapping = {
-        JobStatusType.pending: "accepted",
-        JobStatusType.running: "running",
-        JobStatusType.finished: "successful",
-        JobStatusType.failed: "failed",
-        JobStatusType.killed: "dismissed",
-    }
-
-    for goat_status, ogc_status in status_mapping.items():
-        job = Job(
-            id=uuid4(),
-            user_id=test_user.id,
-            type=OGC_JOB_TYPE,
-            status=goat_status,
-            payload={"process_id": "test"},
-        )
-        db_session.add(job)
-        await db_session.commit()
-
-        print(f"[TEST] GOAT status '{goat_status.value}' -> OGC status '{ogc_status}'")
-
-        # Verify mapping
-        assert goat_status.value in [
-            "pending",
-            "running",
-            "finished",
-            "failed",
-            "killed",
-        ]
-
-        await db_session.delete(job)
-        await db_session.commit()
-
-
 # ============================================================================
 # Job Timestamps Tests
 # ============================================================================
@@ -454,7 +404,7 @@ async def test_job_has_timestamps(db_session, test_user):
         id=job_id,
         user_id=test_user.id,
         type=OGC_JOB_TYPE,
-        status=JobStatusType.pending,
+        status=JobStatusType.accepted,
         payload={"process_id": "buffer"},
     )
     db_session.add(job)

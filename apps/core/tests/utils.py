@@ -15,7 +15,7 @@ from sqlalchemy.sql import text
 
 
 async def check_job_status(
-    client: AsyncClient, job_id: str, target_status: str = JobStatusType.finished.value
+    client: AsyncClient, job_id: str, target_status: str = JobStatusType.successful.value
 ):
     """Check if job is finished."""
 
@@ -30,7 +30,7 @@ async def check_job_status(
         job = response.json()
         if job["status_simple"] not in [
             JobStatusType.running.value,
-            JobStatusType.pending.value,
+            JobStatusType.accepted.value,
         ]:
             break
         else:
@@ -64,7 +64,7 @@ async def check_if_job_failed(client: AsyncClient, job_id: str):
         job = response.json()
         if job["status_simple"] not in [
             JobStatusType.running.value,
-            JobStatusType.pending.value,
+            JobStatusType.accepted.value,
         ]:
             break
         else:

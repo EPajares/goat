@@ -29,7 +29,6 @@ from core.core.layer import (
     CRUDLayerBase,
     FileUpload,
     OGRFileHandling,
-    delete_layer_data,
 )
 from core.crud.base import CRUDBase
 from core.db.models._link_model import (
@@ -145,14 +144,15 @@ class CRUDLayer(CRUDLayerBase):
         async_session: AsyncSession,
         id: UUID,
     ) -> None:
+        """Delete layer metadata from PostgreSQL.
+
+        Note: DuckLake data deletion has been moved to the Processes API.
+        Use POST /processes/LayerDelete/execution for full layer deletion
+        including DuckLake data.
+        """
         layer = await CRUDBase(Layer).get(async_session, id=id)
         if layer is None:
             raise LayerNotFoundError(f"{Layer.__name__} not found")
-
-        # Delete data if internal layer
-        if layer.type in [LayerType.table.value, LayerType.feature.value]:
-            # Delete layer data
-            await delete_layer_data(async_session=async_session, layer=layer)
 
         # Delete layer metadata
         await CRUDBase(Layer).delete(
@@ -737,146 +737,3 @@ class CRUDLayer(CRUDLayerBase):
 
 
 layer = CRUDLayer(Layer)
-
-
-class CRUDLayerDatasetUpdate(CRUDFailedJob):
-    """CRUD class for updating the dataset of an existing layer in-place."""
-
-    def __init__(
-        self,
-        job_id: UUID,
-        background_tasks: BackgroundTasks,
-        async_session: AsyncSession,
-        user_id: UUID,
-    ) -> None:
-        super().__init__(job_id, background_tasks, async_session, user_id)
-
-    @run_background_or_immediately(settings)
-    @job_init()
-    async def update(
-        self,
-        existing_layer_id: UUID,
-        file_metadata: dict,
-        layer_in: ILayerFromDatasetCreate,
-    ) -> Dict[str, Any]:
-        """Update layer dataset in-place (keeps same layer_id).
-
-        Uses atomic swap approach:
-        1. Convert file to parquet (goatlib)
-        2. Create temp DuckLake table from parquet
-        3. If successful: DROP old table, RENAME temp table
-        4. If failed: DROP temp table, original data intact
-        5. Update layer metadata
-        """
-        import tempfile
-        from pathlib import Path
-
-        from goatlib.io.converter import IOConverter
-
-        from core.crud.crud_layer_ducklake import (
-            build_extent_wkt,
-            map_geometry_type,
-        )
-        from core.storage.ducklake import ducklake_manager
-
-        if not self.job_id:
-            raise ValueError("Job ID not defined")
-
-        # Verify layer exists (will raise if not found)
-        await layer.get_internal(
-            async_session=self.async_session,
-            id=existing_layer_id,
-        )
-
-        logger.info(
-            "Updating layer dataset in-place: layer_id=%s",
-            existing_layer_id,
-        )
-
-        # Step 1: Convert file to parquet using goatlib
-        with tempfile.TemporaryDirectory(prefix="goat_update_") as temp_dir:
-            parquet_path = Path(temp_dir) / f"{existing_layer_id}.parquet"
-
-            converter = IOConverter()
-            metadata = converter.to_parquet(
-                src_path=file_metadata["file_path"],
-                out_path=str(parquet_path),
-                target_crs="EPSG:4326",
-            )
-            logger.info("Converted to parquet: %s", metadata.short_summary())
-
-            # Step 2: Atomic replace in DuckLake
-            # This creates temp table, drops old, renames - all in one transaction
-            table_info = ducklake_manager.replace_layer_from_parquet(
-                user_id=self.user_id,
-                layer_id=existing_layer_id,
-                parquet_path=str(parquet_path),
-                target_crs="EPSG:4326",
-            )
-
-        # Step 3: Build updated attributes
-        columns_info = {col["name"]: col["type"] for col in table_info["columns"]}
-
-        update_attrs: Dict[str, Any] = {
-            "attribute_mapping": columns_info,
-            "job_id": self.job_id,
-        }
-
-        # Update geometry-related fields if geometry exists
-        if table_info.get("geometry_type"):
-            update_attrs["feature_layer_geometry_type"] = map_geometry_type(
-                table_info["geometry_type"]
-            )
-            if table_info.get("extent"):
-                update_attrs["extent"] = build_extent_wkt(table_info["extent"])
-
-        # Update size from DuckLake metadata
-        user_schema = f"user_{str(self.user_id).replace('-', '')}"
-        table_name = f"t_{str(existing_layer_id).replace('-', '')}"
-        query = text("""
-            SELECT COALESCE(ts.file_size_bytes, 0) as file_size_bytes
-            FROM ducklake.ducklake_table t
-            JOIN ducklake.ducklake_schema s ON t.schema_id = s.schema_id
-            JOIN ducklake.ducklake_table_stats ts ON t.table_id = ts.table_id
-            WHERE s.schema_name = :schema_name
-              AND t.table_name = :table_name
-              AND t.end_snapshot IS NULL
-              AND s.end_snapshot IS NULL
-        """)
-        result = await self.async_session.execute(
-            query,
-            {"schema_name": user_schema, "table_name": table_name},
-        )
-        row = result.fetchone()
-        update_attrs["size"] = row.file_size_bytes if row else 0
-
-        # Step 4: Update layer metadata in PostgreSQL
-        await layer.update(
-            async_session=self.async_session,
-            id=existing_layer_id,
-            layer_in=update_attrs,
-        )
-
-        # Step 5: Cleanup uploaded file directory
-        upload_dir = os.path.dirname(file_metadata["file_path"])
-        user_upload_dir = os.path.dirname(upload_dir)
-        if upload_dir and os.path.isdir(upload_dir):
-            await async_delete_dir(upload_dir)
-            logger.info("Cleaned up upload directory: %s", upload_dir)
-            if user_upload_dir and os.path.isdir(user_upload_dir):
-                try:
-                    os.rmdir(user_upload_dir)
-                except OSError:
-                    pass
-
-        result = {
-            "status": JobStatusType.finished.value,
-            "msg": "Layer dataset updated successfully",
-            "layer_id": str(existing_layer_id),
-            "table_name": table_info["table_name"],
-            "feature_count": table_info["feature_count"],
-            "geometry_type": table_info.get("geometry_type"),
-        }
-
-        logger.info("Layer dataset update complete: %s", result)
-        return result

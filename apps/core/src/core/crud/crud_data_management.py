@@ -143,7 +143,7 @@ class CRUDJoin(CRUDToolBase):
             params=params,
         )
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Layers where successfully joined.",
         }
 

@@ -334,7 +334,7 @@ class CRUDPrintReport(CRUDFailedJob):
             f"pages: {page_count}"
         )
 
-        return {"status": JobStatusType.finished.value, "result": result_payload}
+        return {"status": JobStatusType.successful.value, "result": result_payload}
 
     async def _render_atlas_pdf(
         self,

@@ -24,15 +24,16 @@ async def request_upload(
     body: DatasetImportRequest,
     user_id: UUID = Depends(get_user_id),
 ) -> PresignedPostResponse:
-
     if body.file_size > settings.MAX_UPLOAD_DATASET_FILE_SIZE:
         raise HTTPException(
             400,
-            detail=f"Dataset file too large. Limit is {settings.MAX_UPLOAD_DATASET_FILE_SIZE//1024//1024} MB."
+            detail=f"Dataset file too large. Limit is {settings.MAX_UPLOAD_DATASET_FILE_SIZE//1024//1024} MB.",
         )
 
     filename = sanitize_filename(body.filename)
-    s3_key = s3_service.build_s3_key(settings.S3_BUCKET_PATH, "users", str(user_id), "imports", "uploads", filename)
+    s3_key = s3_service.build_s3_key(
+        settings.S3_BUCKET_PATH, "users", str(user_id), "imports", "uploads", filename
+    )
 
     # Generate presigned POST object
     presigned = s3_service.generate_presigned_post(

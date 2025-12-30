@@ -22,7 +22,7 @@ class Folder(DateTimeBase, table=True):
             primary_key=True,
             nullable=False,
             server_default=text("uuid_generate_v4()"),
-        )
+        ),
     )
     user_id: UUID = Field(
         sa_column=Column(

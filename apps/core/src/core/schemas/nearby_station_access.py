@@ -28,7 +28,6 @@ class IStartingPointNearbyStationAccess(CatchmentAreaStartingPointsActiveMobilit
         return self
 
 
-
 class INearbyStationAccess(BaseModel):
     """Model for the nearby station endpoint."""
 

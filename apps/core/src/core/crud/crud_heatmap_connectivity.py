@@ -141,7 +141,7 @@ class CRUDHeatmapConnectivity(CRUDToolBase):
             params=params,
         )
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Heatmap connectivity was successfully computed.",
         }
 

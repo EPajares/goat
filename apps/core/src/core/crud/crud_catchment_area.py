@@ -355,7 +355,7 @@ class CRUDCatchmentAreaActiveMobility(CRUDCatchmentAreaBase):
             )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Active mobility catchment area was successfully computed.",
         }
 
@@ -405,7 +405,9 @@ class CRUDCatchmentAreaPT(CRUDCatchmentAreaBase):
             )
             shapes_sorted = []
             for i in shapes_data.index:
-                shapes_sorted.append((shapes_data["geometry"][i], shapes_data["minute"][i]))
+                shapes_sorted.append(
+                    (shapes_data["geometry"][i], shapes_data["minute"][i])
+                )
             shapes_sorted = sorted(shapes_sorted, key=lambda x: x[1], reverse=True)
             insert_string = ""
             for shape in shapes_sorted:
@@ -607,7 +609,7 @@ class CRUDCatchmentAreaPT(CRUDCatchmentAreaBase):
                 )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Public transport catchment area was successfully computed.",
         }
 
@@ -728,7 +730,7 @@ class CRUDCatchmentAreaCar(CRUDCatchmentAreaBase):
             )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Active mobility catchment area was successfully computed.",
         }
 

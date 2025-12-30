@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.vector import (
+from goatlib.analysis.schemas.data_management import (
     JoinOperationType,
     JoinParams,
     JoinType,

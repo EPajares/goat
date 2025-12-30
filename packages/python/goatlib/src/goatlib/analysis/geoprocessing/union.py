@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, List, Optional, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.vector import UnionParams
+from goatlib.analysis.schemas.geoprocessing import UnionParams
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)

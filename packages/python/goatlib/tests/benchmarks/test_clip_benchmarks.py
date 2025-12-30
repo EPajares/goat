@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Tuple
 
 from goatlib.analysis.schemas.vector import ClipParams
-from goatlib.analysis.vector.clip import ClipTool
+from goatlib.analysis.geoprocessing.clip import ClipTool
 
 
 def benchmark_clip_large_dataset() -> Tuple[float, int, str]:

@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.vector import BufferParams
+from goatlib.analysis.schemas.geoprocessing import BufferParams
 from goatlib.models.io import DatasetMetadata
 from goatlib.utils.helper import UNIT_TO_METERS
 
