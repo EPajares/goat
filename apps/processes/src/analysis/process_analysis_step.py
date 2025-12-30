@@ -22,7 +22,10 @@ import sys
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-sys.path.insert(0, "/app/apps/processes/src")
+# Add paths before any lib imports
+for path in ["/app/apps/processes/src", "/app/apps/core/src", "/app/packages/python/goatlib/src"]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 from lib.ogc_exception_handler import format_ogc_error_response
 from lib.tool_registry import get_combined_input_schema, get_tool, get_tool_names
@@ -94,6 +97,15 @@ async def handler(input_data: Dict[str, Any], context):
             "tool_name": tool_name,
             "user_id": user_id,
         },
+    )
+
+    # Update job status to running in Redis
+    from lib.job_state import job_state_manager
+
+    await job_state_manager.update_job_status(
+        job_id=job_id,
+        status="running",
+        message="Processing analysis...",
     )
 
     try:

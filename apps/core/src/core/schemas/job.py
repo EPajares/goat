@@ -34,14 +34,16 @@ class JobType(str, Enum):
 
 
 class JobStatusType(str, Enum):
-    """Status types."""
+    """OGC API Processes compliant status types.
 
-    pending = "pending"
-    running = "running"
-    finished = "finished"
-    failed = "failed"
-    timeout = "timeout"
-    killed = "killed"
+    See: https://docs.ogc.org/is/18-062r2/18-062r2.html#sc_job_status
+    """
+
+    accepted = "accepted"  # Job has been accepted but not yet started
+    running = "running"  # Job is currently being executed
+    successful = "successful"  # Job completed successfully
+    failed = "failed"  # Job execution failed
+    dismissed = "dismissed"  # Job was cancelled/killed
 
 
 class MsgType(str, Enum):
@@ -62,7 +64,7 @@ class Msg(BaseModel):
 class JobStep(BaseModel):
     """Job step attribute types."""
 
-    status: JobStatusType = JobStatusType.pending
+    status: JobStatusType = JobStatusType.accepted
     timestamp_start: datetime | None = None
     timestamp_end: datetime | None = None
     msg: Msg | None = None

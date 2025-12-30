@@ -164,7 +164,7 @@ async def kill_job(
     job = result[0]
 
     if job.status_simple not in [
-        JobStatusType.pending.value,
+        JobStatusType.accepted.value,
         JobStatusType.running.value,
     ]:
         raise HTTPException(

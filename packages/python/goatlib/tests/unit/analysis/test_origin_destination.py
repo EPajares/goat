@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 import pytest
 from goatlib.analysis.schemas.vector import OriginDestinationParams
-from goatlib.analysis.vector.origin_destination import OriginDestinationTool
+from goatlib.analysis.geoprocessing.origin_destination import OriginDestinationTool
 
 # Define paths to test data
 # Root is 7 levels up from this file location in packages/python/goatlib/tests/unit/analysis/

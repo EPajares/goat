@@ -7,7 +7,12 @@ name = "processes-tests"
 version = "0.1.0"
 description = "Tests for OGC API Processes analysis workers"
 requires-python = ">=3.11"
-dependencies = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0", "python-jose>=3.3.0"]
+dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "python-jose>=3.3.0",
+    "redis>=5.0.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

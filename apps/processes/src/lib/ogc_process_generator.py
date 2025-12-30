@@ -208,14 +208,114 @@ def generate_process_description(
             geometry_constraints=geometry_constraints,
         )
 
-    # Build outputs dict
-    outputs: Dict[str, OutputDescription] = {
-        "result": OutputDescription(
+    # Build outputs dict - different for statistics vs vector tools
+    outputs: Dict[str, OutputDescription] = {}
+
+    if tool_info.category == "statistics":
+        # Statistics tools return results directly, not a layer reference
+        # Get result schema based on tool name
+        if tool_info.name == "feature_count":
+            outputs["count"] = OutputDescription(
+                title="Feature Count",
+                description="Number of features matching the criteria",
+                schema={"type": "integer"},
+            )
+        elif tool_info.name == "unique_values":
+            outputs["attribute"] = OutputDescription(
+                title="Attribute",
+                description="The attribute/column analyzed",
+                schema={"type": "string"},
+            )
+            outputs["total"] = OutputDescription(
+                title="Total",
+                description="Total number of unique values",
+                schema={"type": "integer"},
+            )
+            outputs["values"] = OutputDescription(
+                title="Values",
+                description="List of unique values with counts",
+                schema={
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "value": {"type": "string"},
+                            "count": {"type": "integer"},
+                        },
+                    },
+                },
+            )
+        elif tool_info.name == "class_breaks":
+            outputs["attribute"] = OutputDescription(
+                title="Attribute",
+                description="The attribute/column analyzed",
+                schema={"type": "string"},
+            )
+            outputs["method"] = OutputDescription(
+                title="Method",
+                description="Classification method used",
+                schema={"type": "string"},
+            )
+            outputs["breaks"] = OutputDescription(
+                title="Breaks",
+                description="Classification break values",
+                schema={"type": "array", "items": {"type": "number"}},
+            )
+            outputs["min"] = OutputDescription(
+                title="Minimum",
+                description="Minimum value",
+                schema={"type": "number"},
+            )
+            outputs["max"] = OutputDescription(
+                title="Maximum",
+                description="Maximum value",
+                schema={"type": "number"},
+            )
+            outputs["mean"] = OutputDescription(
+                title="Mean",
+                description="Mean value",
+                schema={"type": "number"},
+            )
+            outputs["std_dev"] = OutputDescription(
+                title="Standard Deviation",
+                description="Standard deviation",
+                schema={"type": "number"},
+            )
+        elif tool_info.name == "area_statistics":
+            outputs["result"] = OutputDescription(
+                title="Result",
+                description="Result of the statistical operation",
+                schema={"type": "number"},
+            )
+            outputs["total_area"] = OutputDescription(
+                title="Total Area",
+                description="Total area of all features",
+                schema={"type": "number"},
+            )
+            outputs["feature_count"] = OutputDescription(
+                title="Feature Count",
+                description="Number of features",
+                schema={"type": "integer"},
+            )
+            outputs["unit"] = OutputDescription(
+                title="Unit",
+                description="Unit of area measurement",
+                schema={"type": "string"},
+            )
+        else:
+            # Fallback generic result output
+            outputs["result"] = OutputDescription(
+                title="Result",
+                description="Analysis result",
+                schema={"type": "object"},
+            )
+    else:
+        # Vector tools output a layer reference
+        outputs["result"] = OutputDescription(
             title="Result Layer",
             description="UUID of the output layer containing the analysis results",
             schema={"type": "string", "format": "uuid"},
-        ),
-    }
+        )
 
     # Build links
     links: List[Link] = []
@@ -234,12 +334,20 @@ def generate_process_description(
             ),
         ]
 
+    # Map tool's job_control_options to OGC enum values
+    job_control = []
+    for opt in tool_info.job_control_options:
+        if opt == "sync-execute":
+            job_control.append(JobControlOptions.sync_execute)
+        elif opt == "async-execute":
+            job_control.append(JobControlOptions.async_execute)
+
     return ProcessDescription(
         id=tool_info.name,
         title=tool_info.display_name,
         description=tool_info.description,
         version="1.0.0",
-        jobControlOptions=[JobControlOptions.async_execute],
+        jobControlOptions=job_control,
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         links=links,
         inputs=inputs,
@@ -271,12 +379,20 @@ def generate_process_summary(
             ),
         ]
 
+    # Map tool's job_control_options to OGC enum values
+    job_control = []
+    for opt in tool_info.job_control_options:
+        if opt == "sync-execute":
+            job_control.append(JobControlOptions.sync_execute)
+        elif opt == "async-execute":
+            job_control.append(JobControlOptions.async_execute)
+
     return ProcessSummary(
         id=tool_info.name,
         title=tool_info.display_name,
         description=tool_info.description,
         version="1.0.0",
-        jobControlOptions=[JobControlOptions.async_execute],
+        jobControlOptions=job_control,
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         links=links,
     )

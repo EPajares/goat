@@ -369,7 +369,7 @@ class CRUDAggregatePoint(CRUDAggregateBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Points where successfully aggregated.",
         }
 
@@ -639,7 +639,7 @@ class CRUDAggregatePolygon(CRUDAggregateBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Polygons where successfully aggregated.",
         }
 
@@ -803,7 +803,7 @@ class CRUDOriginDestination(CRUDToolBase):
         )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Origin destination pairs where successfully created.",
         }
 

@@ -2,14 +2,19 @@
 OpenAPI/Swagger UI endpoint for OGC API Processes.
 
 Serves OpenAPI 3.0 spec for OGC-compliant endpoints only.
+Dynamically generates schemas from pydantic models.
 """
 
-import os
 import sys
 from typing import Any, Dict
 
-sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add paths before any lib imports
+for path in ["/app/apps/processes/src", "/app/apps/core/src", "/app/packages/python/goatlib/src"]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+from lib.ogc_base import get_base_url
+from lib.ogc_schemas import StatusCode
 
 config = {
     "name": "OpenAPISpec",
@@ -19,6 +24,9 @@ config = {
     "description": "OpenAPI 3.0 specification for OGC API Processes",
     "emits": [],
 }
+
+# Get valid status values from the StatusCode enum
+VALID_STATUS_VALUES = [status.value for status in StatusCode]
 
 
 def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
@@ -260,7 +268,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                         "required": False,
                         "schema": {
                             "type": "string",
-                            "enum": ["accepted", "running", "successful", "failed", "dismissed"],
+                            "enum": VALID_STATUS_VALUES,
                         },
                         "description": "Filter by job status",
                     },
@@ -268,7 +276,12 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                         "name": "limit",
                         "in": "query",
                         "required": False,
-                        "schema": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 10},
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 1000,
+                            "default": 10,
+                        },
                         "description": "Maximum number of jobs to return",
                     },
                     {
@@ -492,13 +505,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
                         "jobID": {"type": "string", "format": "uuid"},
                         "status": {
                             "type": "string",
-                            "enum": [
-                                "accepted",
-                                "running",
-                                "successful",
-                                "failed",
-                                "dismissed",
-                            ],
+                            "enum": VALID_STATUS_VALUES,
                         },
                         "message": {"type": "string"},
                         "created": {"type": "string", "format": "date-time"},
@@ -557,12 +564,7 @@ def generate_openapi_spec(base_url: str) -> Dict[str, Any]:
 
 async def handler(req, context):
     """Handle GET /openapi.json request."""
-    default_host = os.environ.get("PROCESSES_HOST", "localhost")
-    default_port = os.environ.get("PROCESSES_PORT", "8200")
-    default_host_port = f"{default_host}:{default_port}"
-    proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", default_host_port)
-    base_url = f"{proto}://{host}"
+    base_url = get_base_url(req)
 
     context.logger.info("OpenAPI spec requested")
 

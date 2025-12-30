@@ -13,18 +13,24 @@ For sync processes (statistics tools):
 - Executes immediately without creating a job
 """
 
-import os
 import sys
 from datetime import datetime, timezone
 from typing import Any, Dict
 from uuid import uuid4
 
-sys.path.insert(0, "/app/apps/processes/src")
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add paths before any lib imports
+for path in ["/app/apps/processes/src", "/app/apps/core/src", "/app/packages/python/goatlib/src"]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
+
+from lib.ogc_base import (
+    error_response,
+    get_base_url,
+    not_found_response,
+    pydantic_response,
+)
 from lib.ogc_schemas import (
     OGC_EXCEPTION_INVALID_PARAMETER,
-    OGC_EXCEPTION_NO_SUCH_PROCESS,
-    OGCException,
     Link,
     StatusCode,
     StatusInfo,
@@ -160,22 +166,12 @@ async def _execute_sync_statistics(
 
 async def handler(req, context):
     """Handle POST /processes/{processId}/execution request."""
-    # Get process ID from path params
     process_id = req.get("pathParams", {}).get("processId")
 
     if not process_id:
-        return {
-            "status": 400,
-            "body": {"error": "processId is required"},
-        }
+        return error_response(400, "Bad request", "processId is required")
 
-    # Build base URL from request headers
-    default_host = os.environ.get("PROCESSES_HOST", "localhost")
-    default_port = os.environ.get("PROCESSES_PORT", "8200")
-    default_host_port = f"{default_host}:{default_port}"
-    proto = req.get("headers", {}).get("x-forwarded-proto", "http")
-    host = req.get("headers", {}).get("host", default_host_port)
-    base_url = f"{proto}://{host}"
+    base_url = get_base_url(req)
 
     # Get inputs from request body
     body = req.get("body", {})
@@ -183,39 +179,23 @@ async def handler(req, context):
 
     context.logger.info(
         "OGC Execute process requested",
-        {
-            "process_id": process_id,
-            "base_url": base_url,
-        },
+        {"process_id": process_id, "base_url": base_url},
     )
 
     # Validate process exists
     tool_info = get_tool(process_id)
     if not tool_info:
-        error = OGCException(
-            type=OGC_EXCEPTION_NO_SUCH_PROCESS,
-            title="Process not found",
-            status=404,
-            detail=f"Process '{process_id}' does not exist",
-        )
-        return {
-            "status": 404,
-            "body": error.model_dump(),
-        }
+        return not_found_response("process", process_id)
 
     # Validate required inputs
     user_id = inputs.get("user_id")
     if not user_id:
-        error = OGCException(
-            type=OGC_EXCEPTION_INVALID_PARAMETER,
-            title="Missing required input",
-            status=400,
-            detail="'user_id' is required in inputs",
+        return error_response(
+            400,
+            "Missing required input",
+            "'user_id' is required in inputs",
+            OGC_EXCEPTION_INVALID_PARAMETER,
         )
-        return {
-            "status": 400,
-            "body": error.model_dump(),
-        }
 
     # Generate job ID and output layer ID
     job_id = f"{process_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}"
@@ -235,7 +215,6 @@ async def handler(req, context):
     # Check if this is a sync-execute process (like statistics)
     if tool_info.supports_sync:
         try:
-            # Execute synchronously and return results directly
             context.logger.info(
                 f"Executing {process_id} synchronously",
                 {"tool_name": process_id},
@@ -249,57 +228,43 @@ async def handler(req, context):
             )
 
             # Return 200 OK with results directly (OGC sync-execute response)
-            return {
-                "status": 200,
-                "body": result,
-            }
+            return {"status": 200, "body": result}
 
         except ValueError as e:
-            # Validation error
-            error = OGCException(
-                type=OGC_EXCEPTION_INVALID_PARAMETER,
-                title="Invalid parameter",
-                status=400,
-                detail=str(e),
+            return error_response(
+                400, "Invalid parameter", str(e), OGC_EXCEPTION_INVALID_PARAMETER
             )
-            return {
-                "status": 400,
-                "body": error.model_dump(),
-            }
         except Exception as e:
-            # Execution error
-            context.logger.error(
-                f"Error executing {process_id}",
-                {"error": str(e)},
+            context.logger.error(f"Error executing {process_id}", {"error": str(e)})
+            return error_response(
+                500,
+                "Execution failed",
+                str(e),
+                "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/internal-error",
             )
-            error = OGCException(
-                type="http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/internal-error",
-                title="Execution failed",
-                status=500,
-                detail=str(e),
-            )
-            return {
-                "status": 500,
-                "body": error.model_dump(),
-            }
 
     # Async execution for traditional vector analysis tools
-    # Build event data for Motia
     event_data = {
         "jobId": job_id,
         "timestamp": timestamp,
         "tool_name": process_id,
         "output_layer_id": output_layer_id,
-        **inputs,  # Include all inputs
+        **inputs,
     }
 
-    # Emit event for background processing
-    await context.emit(
-        {
-            "topic": "analysis-requested",
-            "data": event_data,
-        }
+    # Store job in Redis for tracking
+    from lib.job_state import job_state_manager
+
+    await job_state_manager.create_job(
+        job_id=job_id,
+        user_id=user_id,
+        process_id=process_id,
+        status="accepted",
+        inputs=inputs,
     )
+
+    # Emit event for background processing
+    await context.emit({"topic": "analysis-requested", "data": event_data})
 
     # Return 201 Created with job status
     status_info = StatusInfo(
@@ -324,7 +289,4 @@ async def handler(req, context):
         ],
     )
 
-    return {
-        "status": 201,
-        "body": status_info.model_dump(by_alias=True, exclude_none=True),
-    }
+    return pydantic_response(status_info, status=201)

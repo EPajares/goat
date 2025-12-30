@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 
 from goatlib.analysis.schemas.vector import CentroidParams
-from goatlib.analysis.vector.centroid import CentroidTool
+from goatlib.analysis.geoprocessing.centroid import CentroidTool
 
 
 def test_centroid_polygons() -> None:

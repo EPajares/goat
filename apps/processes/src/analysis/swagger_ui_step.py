@@ -1,26 +1,27 @@
-import type { ApiRouteConfig, Handlers } from "motia";
+"""
+Swagger UI endpoint.
+GET /swagger
 
-/**
- * Swagger UI endpoint.
- * GET /swagger
- *
- * Serves Swagger UI HTML that loads OpenAPI spec from /api/openapi.json
- */
+Serves Swagger UI HTML that loads OpenAPI spec from /openapi.json
+"""
 
-export const config: ApiRouteConfig = {
-  name: "SwaggerUI",
-  type: "api",
-  path: "/swagger",
-  method: "GET",
-  description: "Swagger UI for API documentation and testing",
-  emits: [],
-};
+import sys
 
-export const handler: Handlers["SwaggerUI"] = async (req, { logger }) => {
-  logger.info("Swagger UI requested");
+# Add paths before any lib imports
+for path in ["/app/apps/processes/src", "/app/apps/core/src", "/app/packages/python/goatlib/src"]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
-  // Use relative URL so it works in dev containers and production
-  const html = `<!DOCTYPE html>
+config = {
+    "name": "SwaggerUI",
+    "type": "api",
+    "path": "/swagger",
+    "method": "GET",
+    "description": "Swagger UI for API documentation and testing",
+    "emits": [],
+}
+
+SWAGGER_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -59,13 +60,17 @@ export const handler: Handlers["SwaggerUI"] = async (req, { logger }) => {
     };
   </script>
 </body>
-</html>`;
+</html>"""
 
-  return {
-    status: 200,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-    },
-    body: html,
-  };
-};
+
+async def handler(req, context):
+    """Handle GET /swagger request - Swagger UI."""
+    context.logger.info("Swagger UI requested")
+
+    return {
+        "status": 200,
+        "headers": {
+            "Content-Type": "text/html; charset=utf-8",
+        },
+        "body": SWAGGER_HTML,
+    }

@@ -870,7 +870,7 @@ class CRUDLayerDatasetUpdate(CRUDFailedJob):
                     pass
 
         result = {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Layer dataset updated successfully",
             "layer_id": str(existing_layer_id),
             "table_name": table_info["table_name"],

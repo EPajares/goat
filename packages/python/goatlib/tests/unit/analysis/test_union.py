@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from goatlib.analysis.schemas.vector import UnionParams
-from goatlib.analysis.vector.union import UnionTool
+from goatlib.analysis.geoprocessing.union import UnionTool
 
 # Test data paths
 TEST_DATA_DIR = Path(__file__).parent.parent.parent / "data" / "vector"

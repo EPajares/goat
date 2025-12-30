@@ -10,7 +10,7 @@ from pathlib import Path
 # Add the source directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from goatlib.analysis.vector.join import JoinTool
+from goatlib.analysis.data_management.join import JoinTool
 from goatlib.analysis.schemas.vector import (
     AttributeRelationship,
     FieldStatistic,

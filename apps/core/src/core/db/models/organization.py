@@ -11,6 +11,7 @@ from core.db.models._base_class import DateTimeBase
 if TYPE_CHECKING:
     from ._link_model import LayerOrganizationLink, ProjectOrganizationLink
 
+
 class Organization(DateTimeBase, table=True):
     """
     A stub representation of the Layer model from another repository.
@@ -29,14 +30,18 @@ class Organization(DateTimeBase, table=True):
         description="Organization ID",
     )
     name: str = Field(
-        sa_column=Column(Text, nullable=False), description="Organization name", max_length=255
+        sa_column=Column(Text, nullable=False),
+        description="Organization name",
+        max_length=255,
     )
     avatar: str | None = Field(sa_column=Column(Text, nullable=True))
 
     # Relationships
     layer_links: List["LayerOrganizationLink"] = Relationship(
-        back_populates="organization", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        back_populates="organization",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
     project_links: List["ProjectOrganizationLink"] = Relationship(
-        back_populates="organization", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+        back_populates="organization",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )

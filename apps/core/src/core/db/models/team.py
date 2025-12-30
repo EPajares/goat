@@ -11,6 +11,7 @@ from core.db.models._base_class import DateTimeBase
 if TYPE_CHECKING:
     from ._link_model import LayerTeamLink, ProjectTeamLink, UserTeamLink
 
+
 class Team(DateTimeBase, table=True):
     """
     A stub representation of the Layer model from another repository.

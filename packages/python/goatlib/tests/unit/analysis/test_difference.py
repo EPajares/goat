@@ -5,7 +5,7 @@ from pathlib import Path
 import duckdb
 
 from goatlib.analysis.schemas.vector import DifferenceParams
-from goatlib.analysis.vector.difference import DifferenceTool
+from goatlib.analysis.geoprocessing.difference import DifferenceTool
 
 
 def test_difference_polygons() -> None:
