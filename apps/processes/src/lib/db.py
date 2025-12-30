@@ -4,13 +4,8 @@ Re-exports database models from core to avoid duplication.
 Provides async session factory for direct database access.
 """
 
-import sys
-from pathlib import Path
-
-# Add core's src directory to path so we can import from it
-core_src_path = str(Path(__file__).parent.parent.parent.parent.parent / "core" / "src")
-if core_src_path not in sys.path:
-    sys.path.insert(0, core_src_path)
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
 
 # Import env variables from core (needed before importing core modules)
 import core._dotenv  # noqa: E402, F401, I001

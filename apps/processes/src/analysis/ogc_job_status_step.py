@@ -8,18 +8,11 @@ Returns job status from:
 GET /jobs/{jobId}
 """
 
-import sys
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+
 from typing import Any, Dict
 from uuid import UUID
-
-# Add paths before any lib imports
-for path in [
-    "/app/apps/processes/src",
-    "/app/apps/core/src",
-    "/app/packages/python/goatlib/src",
-]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
 
 from lib.ogc_base import error_response, get_base_url, not_found_response
 from lib.ogc_schemas import Link, StatusCode, StatusInfo

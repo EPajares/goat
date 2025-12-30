@@ -7,12 +7,6 @@ Tests:
 - LayerImporter.delete_layer
 """
 
-# Add paths for imports
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
 import os
 import tempfile
 from pathlib import Path
@@ -20,6 +14,8 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 # Test data directory
 TEST_DATA_DIR = Path(__file__).parent.parent / "data" / "layer"

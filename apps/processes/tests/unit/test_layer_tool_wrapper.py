@@ -1,13 +1,12 @@
 """Unit tests for the layer tool wrapper."""
 
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
-
 from uuid import UUID, uuid4
 
 import pytest
+
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
+
 from core.storage.ducklake import ducklake_manager
 from lib.layer_tool_wrapper import GenericLayerTool
 from lib.tool_registry import get_tool

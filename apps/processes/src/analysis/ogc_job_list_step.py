@@ -8,17 +8,10 @@ Returns list of jobs from both:
 GET /jobs
 """
 
-import sys
-from typing import Any, Dict
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
 
-# Add paths before any lib imports
-for path in [
-    "/app/apps/processes/src",
-    "/app/apps/core/src",
-    "/app/packages/python/goatlib/src",
-]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
+from typing import Any, Dict
 
 from lib.ogc_base import error_response, get_base_url, pydantic_response, self_link
 from lib.ogc_schemas import JobList, Link, StatusCode, StatusInfo

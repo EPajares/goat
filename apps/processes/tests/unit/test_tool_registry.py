@@ -1,9 +1,6 @@
 """Unit tests for the tool registry."""
 
-import sys
-
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 from lib.tool_registry import (
     get_all_tools,

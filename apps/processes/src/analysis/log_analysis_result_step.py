@@ -5,17 +5,10 @@ This step logs completed/failed analysis results and can be extended
 to store job status in a database, send notifications, etc.
 """
 
-import sys
-from typing import Optional
+import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
+import lib.paths  # noqa: F401 - sets up remaining paths
 
-# Add paths before any lib imports
-for path in [
-    "/app/apps/processes/src",
-    "/app/apps/core/src",
-    "/app/packages/python/goatlib/src",
-]:
-    if path not in sys.path:
-        sys.path.insert(0, path)
+from typing import Optional
 
 from pydantic import BaseModel
 

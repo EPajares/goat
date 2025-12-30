@@ -1,12 +1,10 @@
 """Test analysis tools with DuckLake layer I/O."""
 
-import sys
 from uuid import UUID, uuid4
 
 import pytest
 
-sys.path.insert(0, "/app/apps/core/src")
-sys.path.insert(0, "/app/apps/processes/src")
+import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
 
 from core.storage.ducklake import ducklake_manager
 from lib.tool_registry import get_tool
