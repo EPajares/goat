@@ -7,4 +7,9 @@ import bullmqPlugin from '@motiadev/plugin-bullmq/plugin'
 
 export default defineConfig({
   plugins: [observabilityPlugin, statesPlugin, endpointPlugin, logsPlugin, bullmqPlugin],
+  redis: {
+    useMemoryServer: false,
+    host: 'redis',
+    port: 6379,
+  },
 })

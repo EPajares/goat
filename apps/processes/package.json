@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "motia install",
-    "dev": "motia dev -p ${PROCESSES_PORT:-8200}",
+    "dev": "MOTIA_WORKBENCH_BASE=/workbench motia dev -p ${PROCESSES_PORT:-8200}",
     "start": "motia start -p ${PROCESSES_PORT:-8200}",
     "generate-types": "motia generate-types",
     "build": "motia build",
