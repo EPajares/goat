@@ -45,7 +45,7 @@ def test_auto_discovery():
         assert info.params_class is not None
         assert info.layer_params_class is not None
         assert info.tool_class is not None
-        assert info.category in ("geoprocessing", "data_management", "statistics")
+        assert info.category in ("geoprocessing", "data_management", "statistics", "accessibility")
 
 
 def test_tools_metadata():

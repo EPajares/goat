@@ -634,7 +634,9 @@ async def create_layer_record(
         link = LayerProjectLink(
             layer_id=layer_id,
             project_id=project_id,
-            name=name,  # Use the layer name for the project link
+            name=name,
+            properties=properties,
+            other_properties=other_properties,
         )
         async_session.add(link)
 

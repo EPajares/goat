@@ -165,6 +165,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "update_layer_dataset",
                     "status": "successful",
                     "result": {
                         "msg": "Layer updated successfully",
@@ -221,6 +222,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "update_layer_dataset",
                     "status": "failed",
                     "error": error_msg,
                 },

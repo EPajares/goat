@@ -141,7 +141,12 @@ def _discover_tools() -> None:
 
     try:
         # Import goatlib modules
-        from goatlib.analysis import data_management, geoprocessing, schemas
+        from goatlib.analysis import (
+            accessibility,
+            data_management,
+            geoprocessing,
+            schemas,
+        )
 
         # Import local layer_params_factory (not from goatlib)
         from lib.layer_params_factory import create_layer_params_class
@@ -169,6 +174,15 @@ def _discover_tools() -> None:
                     params_classes[tool_name] = obj
                     params_categories[tool_name] = "data_management"
                     logger.debug(f"Found data_management Params: {name} -> {tool_name}")
+
+        # Check heatmap/accessibility schemas
+        if hasattr(schemas, "heatmap"):
+            for name, obj in inspect.getmembers(schemas.heatmap, inspect.isclass):
+                if _is_params_class(name, obj) and _has_path_fields(obj):
+                    tool_name = _extract_tool_name(name, "Params")
+                    params_classes[tool_name] = obj
+                    params_categories[tool_name] = "accessibility"
+                    logger.debug(f"Found heatmap Params: {name} -> {tool_name}")
 
         # Fallback: Check vector schemas for backwards compatibility
         if hasattr(schemas, "vector") and not params_classes:
@@ -205,6 +219,17 @@ def _discover_tools() -> None:
                 tool_name = _extract_tool_name(name, "Result")
                 result_classes[tool_name] = obj
                 logger.debug(f"Found data_management Result: {name} -> {tool_name}")
+
+        # Find matching *Tool classes in accessibility module
+        for name, obj in inspect.getmembers(accessibility, inspect.isclass):
+            if name.endswith("Tool") and not name.endswith("LayerTool"):
+                tool_name = _extract_tool_name(name, "Tool")
+                tool_classes[tool_name] = obj
+                logger.debug(f"Found accessibility Tool: {name} -> {tool_name}")
+            elif name.endswith("Result") and not name.endswith("LayerResult"):
+                tool_name = _extract_tool_name(name, "Result")
+                result_classes[tool_name] = obj
+                logger.debug(f"Found accessibility Result: {name} -> {tool_name}")
 
         # Register tools that have both params and tool classes
         for tool_name, params_class in params_classes.items():
@@ -373,16 +398,23 @@ def get_combined_input_schema() -> Dict[str, Any]:
         "required": ["tool_name", "jobId", "timestamp", "user_id"],
     }
 
-    # Collect all unique properties from all tools (use layer_params_class)
+    # Collect all unique properties and $defs from all tools (use layer_params_class)
     all_properties: Dict[str, Any] = {}
+    all_defs: Dict[str, Any] = {}
     for tool_info in _registry.values():
         tool_schema = tool_info.layer_params_class.model_json_schema()
         for prop_name, prop_schema in tool_schema.get("properties", {}).items():
             if prop_name not in schema["properties"]:
                 # Make tool-specific fields optional in combined schema
                 all_properties[prop_name] = prop_schema
+        # Collect $defs (enum definitions, nested models, etc.)
+        for def_name, def_schema in tool_schema.get("$defs", {}).items():
+            if def_name not in all_defs:
+                all_defs[def_name] = def_schema
 
     schema["properties"].update(all_properties)
+    if all_defs:
+        schema["$defs"] = all_defs
 
     return schema
 
