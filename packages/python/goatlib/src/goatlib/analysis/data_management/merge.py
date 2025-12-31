@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.geoprocessing import MergeParams
+from goatlib.analysis.schemas.data_management import MergeParams
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)

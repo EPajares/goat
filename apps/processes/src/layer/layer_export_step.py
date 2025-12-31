@@ -246,6 +246,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "file_export",
                     "status": "successful",
                     "result": {
                         "s3_key": s3_key,
@@ -303,6 +304,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "file_export",
                     "status": "failed",
                     "error": error_msg,
                 },

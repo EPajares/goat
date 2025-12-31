@@ -1,8 +1,12 @@
 # Standard library imports
+import sys
 import uuid
 from uuid import uuid4
 
-import lib.paths  # type: ignore # noqa: F401 - sets up sys.path
+# Add src to path before importing lib.paths
+sys.path.insert(0, "/app/apps/processes/src")
+
+import lib.paths  # type: ignore # noqa: F401, E402 - sets up sys.path
 
 # Import Env variables from Core
 import core._dotenv  # noqa: E402, F401, I001
@@ -11,13 +15,18 @@ import pytest_asyncio
 
 # Reuse Core's test infrastructure
 from core.core.config import settings
+
+# Import LayerImporter for fixtures
+from lib.layer_service import LayerImporter  # noqa: E402
+
+# Import lib settings for processes API (separate from core settings)
+from lib.config import settings as lib_settings  # noqa: E402
 from core.crud.base import CRUDBase
 from core.db.models import User
 from core.db.models.folder import Folder
 from core.db.models.project import Project
 from core.db.models.scenario import Scenario
 from core.endpoints.deps import session_manager
-from core.services.layer_import import layer_importer
 from core.storage.ducklake import ducklake_manager
 from jose import jwt
 from sqlalchemy import text
@@ -40,6 +49,9 @@ def set_test_mode():
     settings.ACCOUNTS_SCHEMA = TEST_ACCOUNTS_SCHEMA  # Unique accounts schema
     settings.DUCKLAKE_CATALOG_SCHEMA = TEST_DUCKLAKE_CATALOG  # Unique DuckLake catalog
     settings.TEST_MODE = True
+
+    # Also set lib settings for Processes API
+    lib_settings.DUCKLAKE_CATALOG_SCHEMA = TEST_DUCKLAKE_CATALOG
 
 
 set_test_mode()
@@ -183,10 +195,19 @@ async def test_folder(db_session, test_user):
 GOATLIB_TEST_DATA = "/app/packages/python/goatlib/tests/data/vector"
 
 
+# Lazy layer importer - created after DuckLake is initialized
+def get_layer_importer():
+    """Get or create LayerImporter instance (lazy initialization)."""
+    if not hasattr(get_layer_importer, "_instance"):
+        get_layer_importer._instance = LayerImporter()
+    return get_layer_importer._instance
+
+
 @pytest_asyncio.fixture
 async def polygon_layer(test_user):
     """Create polygon layer from goatlib test data using LayerImporter directly."""
     layer_id = uuid4()
+    layer_importer = get_layer_importer()
 
     # Use layer_importer directly (sync, no CRUD overhead)
     result = layer_importer.import_file(
@@ -211,6 +232,7 @@ async def polygon_layer(test_user):
 async def boundary_layer(test_user):
     """Create boundary layer for clip operations using LayerImporter directly."""
     layer_id = uuid4()
+    layer_importer = get_layer_importer()
 
     # Use layer_importer directly (sync, no CRUD overhead)
     result = layer_importer.import_file(

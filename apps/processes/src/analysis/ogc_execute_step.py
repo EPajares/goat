@@ -76,13 +76,11 @@ async def _execute_sync_statistics(
     Returns:
         Results from the statistics function
     """
-    # Import GOAT Core components (lazy import)
-    from core.core.config import settings
-    from core.storage.ducklake import ducklake_manager
+    # Import local lib components (not core - processes is standalone)
+    from lib.ducklake import get_ducklake_manager
 
-    # Initialize DuckLake if not already done
-    if not ducklake_manager._connection:
-        ducklake_manager.init(settings)
+    # Get DuckLake manager (initializes lazily from lib.config settings)
+    ducklake_manager = get_ducklake_manager()
 
     # Get the execute function (stored as tool_class for statistics)
     execute_fn = tool_info.tool_class._fn
@@ -217,8 +215,8 @@ async def handler(req, context):
     # user_id is already set from auth middleware
     user_id = inputs.get("user_id")
 
-    # Generate job ID and output layer ID
-    job_id = f"{process_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}"
+    # Generate job ID (UUID) and output layer ID
+    job_id = str(uuid4())
     output_layer_id = inputs.get("output_layer_id") or str(uuid4())
     timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -326,11 +324,8 @@ async def _execute_layer_process(
     # user_id is already in inputs from handler
     user_id = inputs.get("user_id")
 
-    # Generate job ID
-    job_id = (
-        inputs.get("job_id")
-        or f"{process_id}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}-{uuid4().hex[:8]}"
-    )
+    # Generate job ID (UUID)
+    job_id = inputs.get("job_id") or str(uuid4())
     timestamp = datetime.now(timezone.utc).isoformat()
 
     context.logger.info(

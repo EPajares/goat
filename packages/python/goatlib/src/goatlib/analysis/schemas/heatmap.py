@@ -27,7 +27,7 @@ class HeatmapCommon(BaseModel):
     routing_mode: RoutingMode = Field(
         description="Transport mode selecting the OD matrix.",
     )
-    od_matrix_source: str = Field(
+    od_matrix_path: str = Field(
         ...,
         description=(
             "Path, directory, glob pattern, or S3 URI to OD matrix Parquet file(s). "

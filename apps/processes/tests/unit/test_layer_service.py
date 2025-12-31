@@ -368,8 +368,9 @@ class TestGetBaseStyle:
         from lib.db import FeatureGeometryType
 
         style = get_base_style(FeatureGeometryType.point)
-        assert style["type"] == "circle"
-        assert "circle-radius" in style["paint"]
+        assert "color" in style
+        assert "radius" in style
+        assert style["filled"] is True
 
     def test_line_style(self):
         """Test line geometry style."""
@@ -377,8 +378,9 @@ class TestGetBaseStyle:
         from lib.db import FeatureGeometryType
 
         style = get_base_style(FeatureGeometryType.line)
-        assert style["type"] == "line"
-        assert "line-color" in style["paint"]
+        assert "color" in style
+        assert "stroke_color" in style
+        assert "stroke_width" in style
 
     def test_polygon_style(self):
         """Test polygon geometry style."""
@@ -386,5 +388,6 @@ class TestGetBaseStyle:
         from lib.db import FeatureGeometryType
 
         style = get_base_style(FeatureGeometryType.polygon)
-        assert style["type"] == "fill"
-        assert "fill-color" in style["paint"]
+        assert "color" in style
+        assert "opacity" in style
+        assert style["filled"] is True

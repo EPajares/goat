@@ -1,7 +1,7 @@
 # Analysis schemas
 
 # Keep vector as alias for backwards compatibility
-from . import data_management, geoprocessing, statistics, vector
+from . import data_management, geoprocessing, heatmap, statistics, vector
 from .base import ALL_GEOMETRY_TYPES, POLYGON_TYPES, GeometryType
 from .data_management import (
     AttributeRelationship,
@@ -9,6 +9,7 @@ from .data_management import (
     JoinOperationType,
     JoinParams,
     JoinType,
+    MergeParams,
     MultipleMatchingRecordsType,
     SortConfiguration,
     SpatialRelationshipType,
@@ -23,9 +24,17 @@ from .geoprocessing import (
     ClipParams,
     DifferenceParams,
     IntersectionParams,
-    MergeParams,
     OriginDestinationParams,
     UnionParams,
+)
+from .heatmap import (
+    HeatmapClosestAverageParams,
+    HeatmapConnectivityParams,
+    HeatmapGravityParams,
+    ImpedanceFunction,
+    OpportunityClosestAverage,
+    OpportunityGravity,
+    RoutingMode,
 )
 from .statistics import (
     AreaOperation,
@@ -48,6 +57,7 @@ __all__ = [
     "geoprocessing",
     "data_management",
     "statistics",
+    "heatmap",
     # Base schemas
     "GeometryType",
     "ALL_GEOMETRY_TYPES",
@@ -59,10 +69,10 @@ __all__ = [
     "UnionParams",
     "DifferenceParams",
     "CentroidParams",
-    "MergeParams",
     "OriginDestinationParams",
     # Data management schemas
     "JoinParams",
+    "MergeParams",
     "SpatialRelationshipType",
     "JoinOperationType",
     "MultipleMatchingRecordsType",
@@ -72,6 +82,14 @@ __all__ = [
     "AttributeRelationship",
     "SortConfiguration",
     "FieldStatistic",
+    # Heatmap/Accessibility schemas
+    "HeatmapGravityParams",
+    "HeatmapConnectivityParams",
+    "HeatmapClosestAverageParams",
+    "OpportunityGravity",
+    "OpportunityClosestAverage",
+    "ImpedanceFunction",
+    "RoutingMode",
     # Statistics schemas
     "ClassBreakMethod",
     "SortOrder",

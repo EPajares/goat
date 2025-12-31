@@ -6,7 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID as UUID_PG
 from sqlmodel import Column, Field, ForeignKey, Relationship, Text, text
 
 from core.core.config import settings
-from core.schemas.job import JobStatusType, JobType
+from core.schemas.job import JobStatusType
 
 from ._base_class import DateTimeBase
 
@@ -37,8 +37,9 @@ class Job(DateTimeBase, table=True):
         ),
         description="User ID of the user who created the job",
     )
-    type: JobType = Field(
-        sa_column=Column(Text, nullable=False), description="Type of the job"
+    type: str = Field(
+        sa_column=Column(Text, nullable=False),
+        description="Type of the job (e.g., file_import, buffer, clip)",
     )
     status: JobStatusType = Field(
         sa_column=Column(Text, nullable=False, index=True),
