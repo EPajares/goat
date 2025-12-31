@@ -7,4 +7,9 @@ import statesPlugin from "@motiadev/plugin-states/plugin";
 
 export default defineConfig({
   plugins: [observabilityPlugin, statesPlugin, endpointPlugin, logsPlugin, bullmqPlugin],
-});
+  redis: {
+    useMemoryServer: false,
+    host: 'redis',
+    port: 6379,
+  },
+})
