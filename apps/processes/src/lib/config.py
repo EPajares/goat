@@ -64,6 +64,24 @@ class Settings(BaseSettings):
     S3_BUCKET_NAME: str = Field(default="goat")
     S3_BUCKET_PATH: str = Field(default="")
 
+    # Print/Report settings
+    PRINT_FRONTEND_URL: str = Field(
+        default="http://web:3000",
+        description="Next.js frontend URL for print preview pages",
+    )
+    PRINT_OUTPUT_DIR: str = Field(
+        default="prints", description="S3 subdirectory for print outputs"
+    )
+    PRINT_FIRST_PAGE_TIMEOUT_MS: int = Field(
+        default=60000, description="Timeout in ms for first page (loads assets)"
+    )
+    PRINT_SUBSEQUENT_PAGE_TIMEOUT_MS: int = Field(
+        default=30000, description="Timeout in ms for atlas pages (cached assets)"
+    )
+    PRINT_ATLAS_BATCH_SIZE: int = Field(
+        default=5, description="Number of atlas pages to render in parallel"
+    )
+
     @property
     def default_host_port(self) -> str:
         """Get default host:port string for URL generation."""

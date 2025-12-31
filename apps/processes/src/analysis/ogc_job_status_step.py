@@ -8,6 +8,7 @@ Returns job status from:
 GET /jobs/{jobId}
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702

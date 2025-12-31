@@ -8,6 +8,7 @@ OGC Process ID: LayerUpdate
 Topics: layer-update-requested -> layer-update-completed / layer-update-failed
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702

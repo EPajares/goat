@@ -1026,6 +1026,7 @@ version = "2.0.0"
 source = { editable = "apps/geoapi" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "cachetools" },
     { name = "duckdb" },
     { name = "fastapi", extra = ["standard"] },
     { name = "goatlib" },
@@ -1048,6 +1049,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "cachetools" },
     { name = "duckdb", specifier = ">=1.4.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
     { name = "goatlib", editable = "packages/python/goatlib" },

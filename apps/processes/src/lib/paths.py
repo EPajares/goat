@@ -11,9 +11,12 @@ Import this module FIRST in any file that needs goatlib or core imports.
 
 import sys
 
+# Dynamically determine Python version for site-packages path
+_python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
+
 # Add paths in order of priority (first = highest)
 _PATHS_TO_ADD = [
-    "/app/.venv/lib/python3.11/site-packages",  # goatlib dependencies
+    f"/app/.venv/lib/{_python_version}/site-packages",  # goatlib dependencies
     "/app/packages/python/goatlib/src",  # goatlib source
     "/app/apps/core/src",  # core app
     "/app/apps/processes/src",  # processes lib

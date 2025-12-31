@@ -60,6 +60,7 @@ export type JobType =
   | "LayerExport"
   | "LayerUpdate"
   | "LayerDelete"
+  | "PrintReport"
   | "buffer"
   | "join"
   | "catchment_area_active_mobility"
@@ -79,8 +80,7 @@ export type JobType =
   | "aggregate_polygon"
   | "trip_count_station"
   | "origin_destination"
-  | "nearby_station_access"
-  | "print_report";
+  | "nearby_station_access";
 
 /**
  * OGC Job status response

@@ -5,6 +5,7 @@ Returns job results from GOAT Core jobs table.
 GET /jobs/{jobId}/results
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702

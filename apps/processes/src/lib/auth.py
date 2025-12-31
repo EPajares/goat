@@ -78,17 +78,17 @@ def decode_token(token: str) -> Dict[str, Any]:
     return user_token
 
 
-def get_user_id_from_request(req: Dict[str, Any]) -> UUID:
-    """Extract user_id from JWT token in Authorization header.
+def get_access_token_from_request(req: Dict[str, Any]) -> str:
+    """Extract access token from Authorization header.
 
     Args:
         req: Motia request dict with headers
 
     Returns:
-        User UUID from JWT token
+        Access token string (without Bearer prefix)
 
     Raises:
-        ValueError: If no token or invalid token
+        ValueError: If no token or invalid header format
     """
     headers = req.get("headers", {})
     authorization = headers.get("authorization")
@@ -108,6 +108,23 @@ def get_user_id_from_request(req: Dict[str, Any]) -> UUID:
 
     if not token:
         raise ValueError("Missing Authorization token")
+
+    return token
+
+
+def get_user_id_from_request(req: Dict[str, Any]) -> UUID:
+    """Extract user_id from JWT token in Authorization header.
+
+    Args:
+        req: Motia request dict with headers
+
+    Returns:
+        User UUID from JWT token
+
+    Raises:
+        ValueError: If no token or invalid token
+    """
+    token = get_access_token_from_request(req)
 
     try:
         # Decode and validate the JWT token

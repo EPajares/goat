@@ -8,6 +8,7 @@ OGC Process ID: LayerImport
 Topics: layer-import-requested -> layer-import-completed / layer-import-failed
 """
 
+import os
 import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 import lib.paths  # noqa: F401 - sets up remaining paths
 

@@ -8,11 +8,13 @@ NOTE: Uses GOAT Core's Job model for database operations.
 Motia only defines Pydantic schemas for API validation.
 """
 
-import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
-import lib.paths  # noqa: F401 - sets up remaining paths
+import sys
 
+sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 from typing import Any, Dict
 from uuid import UUID
+
+import lib.paths  # noqa: F401 - sets up remaining paths
 
 config = {
     "name": "LogJobStatus",
@@ -20,7 +22,7 @@ config = {
     "description": "Persists job status to GOAT Core jobs table",
     "subscribes": ["job.completed", "job.failed"],
     "emits": [],
-    "flows": ["analysis-flow", "layer-flow"],
+    "flows": ["analysis-flow", "layer-flow", "print-flow"],
     "infrastructure": {
         "handler": {
             "timeout": 30  # Short timeout for DB write
@@ -97,22 +99,36 @@ async def handler(input_data: Dict[str, Any], context):
         engine, async_session = await get_async_session()
 
         async with async_session() as session:
-            # Create job record
-            job = Job(
-                id=job_uuid,
-                user_id=user_uuid,
-                type=tool_name,  # Tool name as job type
-                status=db_status,
-                payload=payload,
-            )
+            from sqlalchemy import select
 
-            session.add(job)
-            await session.commit()
+            # Check if job already exists (for retries)
+            existing_job = await session.execute(select(Job).where(Job.id == job_uuid))
+            existing_job = existing_job.scalar_one_or_none()
 
-            context.logger.info(
-                f"Job {job_id} logged with status {db_status}",
-                {"job_id": job_id, "status": db_status},
-            )
+            if existing_job:
+                # Update existing job
+                existing_job.status = db_status
+                existing_job.payload = payload
+                await session.commit()
+                context.logger.info(
+                    f"Job {job_id} updated with status {db_status}",
+                    {"job_id": job_id, "status": db_status},
+                )
+            else:
+                # Create new job record
+                job = Job(
+                    id=job_uuid,
+                    user_id=user_uuid,
+                    type=tool_name,
+                    status=db_status,
+                    payload=payload,
+                )
+                session.add(job)
+                await session.commit()
+                context.logger.info(
+                    f"Job {job_id} logged with status {db_status}",
+                    {"job_id": job_id, "status": db_status},
+                )
 
         await engine.dispose()
 

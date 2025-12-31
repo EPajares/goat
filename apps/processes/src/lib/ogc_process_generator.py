@@ -23,7 +23,6 @@ from lib.ogc_schemas import (
 )
 from lib.tool_registry import ToolInfo, get_all_tools, get_tool
 
-
 # =============================================================================
 # Static Layer Process Definitions
 # =============================================================================
@@ -229,6 +228,80 @@ LAYER_PROCESSES: Dict[str, Dict[str, Any]] = {
                 "title": "Metadata Deleted",
                 "description": "Whether PostgreSQL metadata was deleted",
                 "schema": {"type": "boolean"},
+            },
+        },
+    },
+    "PrintReport": {
+        "title": "Print Report",
+        "description": "Generate a printable report (PDF/PNG) from a project layout. "
+        "Supports single page and atlas (multi-page) printing. "
+        "Uploads result to S3 and returns presigned download URL.",
+        "version": "1.0.0",
+        "keywords": ["print", "report", "pdf", "export"],
+        "jobControlOptions": [JobControlOptions.async_execute],
+        "inputs": {
+            "project_id": {
+                "title": "Project ID",
+                "description": "UUID of the project containing the layout",
+                "schema": {"type": "string", "format": "uuid"},
+                "minOccurs": 1,
+            },
+            "layout_id": {
+                "title": "Layout ID",
+                "description": "UUID of the report layout to print",
+                "schema": {"type": "string", "format": "uuid"},
+                "minOccurs": 1,
+            },
+            "format": {
+                "title": "Output Format",
+                "description": "Output format (pdf or png)",
+                "schema": {
+                    "type": "string",
+                    "enum": ["pdf", "png"],
+                    "default": "pdf",
+                },
+                "minOccurs": 0,
+            },
+            "atlas_page_indices": {
+                "title": "Atlas Page Indices",
+                "description": "Specific atlas pages to print (0-indexed). If not provided, prints all pages.",
+                "schema": {
+                    "type": "array",
+                    "items": {"type": "integer", "minimum": 0},
+                },
+                "minOccurs": 0,
+            },
+        },
+        "outputs": {
+            "download_url": {
+                "title": "Download URL",
+                "description": "Presigned URL to download the generated file",
+                "schema": {"type": "string", "format": "uri"},
+            },
+            "s3_key": {
+                "title": "S3 Key",
+                "description": "S3 key of the generated file",
+                "schema": {"type": "string"},
+            },
+            "file_name": {
+                "title": "File Name",
+                "description": "Name of the generated file",
+                "schema": {"type": "string"},
+            },
+            "file_size_bytes": {
+                "title": "File Size",
+                "description": "Size of the generated file in bytes",
+                "schema": {"type": "integer"},
+            },
+            "page_count": {
+                "title": "Page Count",
+                "description": "Number of pages generated",
+                "schema": {"type": "integer"},
+            },
+            "format": {
+                "title": "Format",
+                "description": "Output format (pdf, png, or zip for multi-page PNG)",
+                "schema": {"type": "string"},
             },
         },
     },

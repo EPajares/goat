@@ -5,6 +5,7 @@ GET /conformance
 Returns list of conformance classes the API implements.
 """
 
+import os
 import sys; sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
 import lib.paths  # noqa: F401 - sets up remaining paths
 

@@ -5,6 +5,7 @@ Cancels a running job or deletes a finished job.
 DELETE /jobs/{jobId}
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702

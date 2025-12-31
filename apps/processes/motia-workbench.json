@@ -29,39 +29,36 @@
     }
   },
   {
+    "id": "print-flow",
+    "config": {
+      "src/print/print_execute_step.py": {
+        "x": -400,
+        "y": 100
+      },
+      "src/print/print_generate_step.py": {
+        "x": 200,
+        "y": 100
+      },
+      "src/analysis/log_job_status_step.py": {
+        "x": 700,
+        "y": 100
+      }
+    }
+  },
+  {
     "id": "analysis-flow",
     "config": {
-      "src/analysis/process_analysis_step.py": {
-        "x": -603,
-        "y": -194
-      },
-      "src/analysis/ogc_job_status_step.py": {
-        "x": -513,
-        "y": 603
-      },
-      "src/analysis/ogc_job_results_step.py": {
-        "x": 326,
-        "y": 636
-      },
-      "src/analysis/ogc_job_list_step.py": {
-        "x": 50,
-        "y": 1508
-      },
-      "src/analysis/ogc_job_dismiss_step.py": {
-        "x": 10,
-        "y": 836
-      },
-      "src/analysis/ogc_execute_step.py": {
-        "x": -1042,
-        "y": 341
-      },
       "src/analysis/log_job_status_step.py": {
         "x": 1100,
         "y": 445
       },
       "src/analysis/log_analysis_result_step.py": {
-        "x": 1085,
-        "y": -584
+        "x": 871,
+        "y": -682
+      },
+      "src/analysis/process_analysis_step.py": {
+        "x": -603,
+        "y": -194
       }
     }
   }

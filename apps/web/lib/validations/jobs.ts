@@ -14,6 +14,7 @@ export const jobTypeValues = [
   "LayerExport",
   "LayerUpdate",
   "LayerDelete",
+  "PrintReport",
   "buffer",
   "join",
   "catchment_area_active_mobility",
@@ -34,7 +35,6 @@ export const jobTypeValues = [
   "trip_count_station",
   "origin_destination",
   "nearby_station_access",
-  "print_report",
 ] as const;
 
 // Job status enum for runtime validation (OGC status codes)
@@ -65,6 +65,7 @@ export const jobTypeEnum = {
     LayerExport: "LayerExport",
     LayerUpdate: "LayerUpdate",
     LayerDelete: "LayerDelete",
+    PrintReport: "PrintReport",
     buffer: "buffer",
     join: "join",
     catchment_area_active_mobility: "catchment_area_active_mobility",
@@ -85,6 +86,5 @@ export const jobTypeEnum = {
     trip_count_station: "trip_count_station",
     origin_destination: "origin_destination",
     nearby_station_access: "nearby_station_access",
-    print_report: "print_report",
   } as const,
 } as const;

@@ -5,6 +5,7 @@ Serves OpenAPI 3.0 spec for OGC-compliant endpoints only.
 Dynamically generates schemas from pydantic models.
 """
 
+import os
 import sys
 
 sys.path.insert(0, "/app/apps/processes/src")  # noqa: E702
