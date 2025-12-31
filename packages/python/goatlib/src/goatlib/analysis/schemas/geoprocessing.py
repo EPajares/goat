@@ -264,59 +264,6 @@ class CentroidParams(BaseModel):
         return ALL_GEOMETRY_TYPES
 
 
-class MergeParams(BaseModel):
-    """Parameters for merging multiple vector layers."""
-
-    input_paths: List[str] = Field(
-        ...,
-        min_length=2,
-        description="List of paths to vector layers to merge. Must be at least 2 layers.",
-    )
-
-    output_path: Optional[str] = Field(
-        None,
-        description="Output path for merged layer. If None, generates based on first input.",
-    )
-
-    output_crs: Optional[str] = Field(
-        None,
-        description=(
-            "Target CRS for output (e.g., 'EPSG:4326'). "
-            "If None, uses CRS of first input layer. All layers reprojected to match."
-        ),
-    )
-
-    add_source_field: bool = Field(
-        True,
-        description=(
-            "If True, adds a 'layer_source' field indicating which input layer "
-            "each feature came from (0, 1, 2, etc.)."
-        ),
-    )
-
-    validate_geometry_types: bool = Field(
-        True,
-        description=(
-            "If True, validates all inputs have compatible geometry types:\n"
-            "- All Point/MultiPoint (compatible)\n"
-            "- All LineString/MultiLineString (compatible)\n"
-            "- All Polygon/MultiPolygon (compatible)\n"
-            "If False, allows mixing different types (e.g., Point + Polygon)."
-        ),
-    )
-
-    promote_to_multi: bool = Field(
-        True,
-        description=(
-            "If True, promotes single-part to multi-part geometries:\n"
-            "- Point → MultiPoint\n"
-            "- LineString → MultiLineString\n"
-            "- Polygon → MultiPolygon\n"
-            "Required when merging layers with mixed single/multi geometries."
-        ),
-    )
-
-
 class OriginDestinationParams(BaseModel):
     """
     Parameters for performing origin-destination analysis.

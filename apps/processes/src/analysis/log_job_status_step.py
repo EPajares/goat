@@ -47,7 +47,7 @@ async def handler(input_data: Dict[str, Any], context):
     """
     job_id = input_data.get("job_id")
     user_id = input_data.get("user_id")
-    tool_name = input_data.get("tool_name")
+    tool_name = input_data.get("tool_name") or input_data.get("process_id") or "unknown"
     status = input_data.get("status")
 
     context.logger.info(

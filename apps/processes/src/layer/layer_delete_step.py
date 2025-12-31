@@ -194,7 +194,10 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
                     "topic": "job.completed",
                     "data": {
                         "job_id": job_id,
+                        "user_id": str(user_id),
+                        "tool_name": "data_delete_multi",
                         "process_id": "LayerDelete",
+                        "status": "successful",
                         "result": result.model_dump(),
                     },
                 }
@@ -218,7 +221,10 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
                 "topic": "job.failed",
                 "data": {
                     "job_id": job_id,
+                    "user_id": str(user_id),
+                    "tool_name": "data_delete_multi",
                     "process_id": "LayerDelete",
+                    "status": "failed",
                     "error": error_msg,
                 },
             }
@@ -241,7 +247,10 @@ async def handler(input_data: dict, context) -> LayerDeleteResult:
                 "topic": "job.failed",
                 "data": {
                     "job_id": job_id,
+                    "user_id": str(user_id),
+                    "tool_name": "data_delete_multi",
                     "process_id": "LayerDelete",
+                    "status": "failed",
                     "error": error_msg,
                 },
             }

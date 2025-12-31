@@ -34,6 +34,7 @@ LAYER_PROCESSES: Dict[str, Dict[str, Any]] = {
         "description": "Import geospatial data from S3 file or WFS service into DuckLake storage. "
         "Supports GeoJSON, GPKG, Shapefile (ZIP), KML, CSV, XLSX, and WFS.",
         "version": "1.0.0",
+        "keywords": ["data_management"],
         "jobControlOptions": [JobControlOptions.async_execute],
         "inputs": {
             "layer_id": {
@@ -108,6 +109,7 @@ LAYER_PROCESSES: Dict[str, Dict[str, Any]] = {
         "description": "Export a layer from DuckLake to various file formats. "
         "Uploads result to S3 and returns presigned download URL.",
         "version": "1.0.0",
+        "keywords": ["data_management"],
         "jobControlOptions": [JobControlOptions.async_execute],
         "inputs": {
             "layer_id": {
@@ -167,6 +169,7 @@ LAYER_PROCESSES: Dict[str, Dict[str, Any]] = {
         "description": "Update existing layer data from S3 file or refresh from WFS source. "
         "Replaces existing data with new data.",
         "version": "1.0.0",
+        "keywords": ["data_management"],
         "jobControlOptions": [JobControlOptions.async_execute],
         "inputs": {
             "layer_id": {
@@ -206,6 +209,7 @@ LAYER_PROCESSES: Dict[str, Dict[str, Any]] = {
         "description": "Delete a layer and its data from DuckLake storage. "
         "Removes both the data table and layer metadata.",
         "version": "1.0.0",
+        "keywords": ["data_management"],
         "jobControlOptions": [JobControlOptions.async_execute],
         "inputs": {
             "layer_id": {
@@ -251,6 +255,7 @@ def _generate_layer_process_summary(
         title=process_def["title"],
         description=process_def["description"],
         version=process_def["version"],
+        keywords=process_def.get("keywords", []),
         jobControlOptions=process_def["jobControlOptions"],
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         links=links,
@@ -304,6 +309,7 @@ def _generate_layer_process_description(
         title=process_def["title"],
         description=process_def["description"],
         version=process_def["version"],
+        keywords=process_def.get("keywords", []),
         jobControlOptions=process_def["jobControlOptions"],
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         inputs=inputs,
@@ -643,6 +649,7 @@ def generate_process_description(
         title=tool_info.display_name,
         description=tool_info.description,
         version="1.0.0",
+        keywords=[tool_info.category] if tool_info.category else [],
         jobControlOptions=job_control,
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         links=links,
@@ -688,6 +695,7 @@ def generate_process_summary(
         title=tool_info.display_name,
         description=tool_info.description,
         version="1.0.0",
+        keywords=[tool_info.category] if tool_info.category else [],
         jobControlOptions=job_control,
         outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
         links=links,

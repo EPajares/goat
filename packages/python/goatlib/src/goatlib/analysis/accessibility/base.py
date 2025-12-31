@@ -22,7 +22,7 @@ class HeatmapToolBase(AnalysisTool):
 
     def _prepare_od_matrix(
         self: Self,
-        od_matrix_source: str,
+        od_matrix_path: str,
         od_column_map: dict[str, str] | None = None,
         od_matrix_view_name: str = "od_matrix",
     ) -> tuple[str, int]:
@@ -46,11 +46,11 @@ class HeatmapToolBase(AnalysisTool):
                     "{mapping['orig_id']}" AS orig_id,
                     "{mapping['dest_id']}" AS dest_id,
                     "{mapping['cost']}" AS cost
-                FROM read_parquet('{od_matrix_source}')
+                FROM read_parquet('{od_matrix_path}')
             """)
         except Exception as e:
             raise ValueError(
-                f"Failed to register OD matrix from '{od_matrix_source}': {e}"
+                f"Failed to register OD matrix from '{od_matrix_path}': {e}"
             )
 
         # Inspect columns

@@ -240,7 +240,7 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
     work_dir = tmp_path / "heatmap_gravity_test"
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    od_matrix_source = str(
+    od_matrix_path = str(
         data_root.parent.parent.parent.parent.parent
         / "data"
         / "traveltime_matrices"
@@ -249,7 +249,7 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
 
     params = HeatmapGravityParams(
         routing_mode="walking",
-        od_matrix_source=od_matrix_source,
+        od_matrix_path=od_matrix_path,
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",
@@ -282,7 +282,7 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
     work_dir = tmp_path / "heatmap_closest_average_test"
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    od_matrix_source = str(
+    od_matrix_path = str(
         data_root.parent.parent.parent.parent.parent
         / "data"
         / "traveltime_matrices"
@@ -291,7 +291,7 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
 
     params = HeatmapClosestAverageParams(
         routing_mode="walking",
-        od_matrix_source=od_matrix_source,
+        od_matrix_path=od_matrix_path,
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",
@@ -322,7 +322,7 @@ def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
     work_dir = tmp_path / "heatmap_connectivity_test"
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    od_matrix_source = str(
+    od_matrix_path = str(
         data_root.parent.parent.parent.parent.parent
         / "data"
         / "traveltime_matrices"
@@ -331,7 +331,7 @@ def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
 
     params = HeatmapConnectivityParams(
         routing_mode="walking",
-        od_matrix_source=od_matrix_source,
+        od_matrix_path=od_matrix_path,
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",

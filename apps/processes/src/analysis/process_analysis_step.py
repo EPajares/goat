@@ -114,13 +114,11 @@ async def handler(input_data: Dict[str, Any], context):
                 f"Unknown tool: '{tool_name}'. Available tools: {', '.join(available) or 'none'}"
             )
 
-        # Import GOAT Core components (lazy import to avoid startup issues)
-        from core.core.config import settings
-        from core.storage.ducklake import ducklake_manager
+        # Import local lib components (not core - processes is standalone)
+        from lib.ducklake import get_ducklake_manager
 
-        # Initialize DuckLake if not already done
-        if not ducklake_manager._connection:
-            ducklake_manager.init(settings)
+        # Get DuckLake manager (initializes lazily from lib.config settings)
+        ducklake_manager = get_ducklake_manager()
 
         # Build params for this specific tool
         params = _build_params(tool_info, input_data)
@@ -152,6 +150,13 @@ async def handler(input_data: Dict[str, Any], context):
             feature_count=result.feature_count,
             geometry_type=result.geometry_type,
             processedAt=datetime.now(timezone.utc).isoformat(),
+        )
+
+        # Update job status in Redis to "successful"
+        await job_state_manager.update_job_status(
+            job_id=job_id,
+            status="successful",
+            message=f"Analysis completed: {result.feature_count} features",
         )
 
         context.logger.info(
@@ -217,6 +222,13 @@ async def handler(input_data: Dict[str, Any], context):
             error=str(e),
             ogc_error=ogc_error,
             processedAt=datetime.now(timezone.utc).isoformat(),
+        )
+
+        # Update job status in Redis to "failed"
+        await job_state_manager.update_job_status(
+            job_id=job_id,
+            status="failed",
+            message=str(e),
         )
 
         await context.emit(

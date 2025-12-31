@@ -212,6 +212,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "file_import",
                     "status": "successful",
                     "result": {
                         "msg": "Layer imported successfully",
@@ -279,6 +280,7 @@ async def handler(input_data: Dict[str, Any], context):
                 "data": {
                     "job_id": job_id,
                     "user_id": user_id,
+                    "tool_name": "file_import",
                     "status": "failed",
                     "error": error_msg,
                 },

@@ -103,6 +103,10 @@ class ProcessSummary(BaseModel):
     title: str
     description: str | None = None
     version: str = "1.0.0"
+    keywords: list[str] = Field(
+        default_factory=list,
+        description="Keywords/categories for the process (e.g., geoprocessing, data_management, statistics)",
+    )
     jobControlOptions: list[JobControlOptions] = Field(
         default_factory=lambda: [JobControlOptions.async_execute]
     )

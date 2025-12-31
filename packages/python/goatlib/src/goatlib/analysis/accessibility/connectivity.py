@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Self
 
-from goatlib.analysis.heatmap.base import HeatmapToolBase
+from goatlib.analysis.accessibility.base import HeatmapToolBase
 from goatlib.analysis.schemas.heatmap import HeatmapConnectivityParams
 from goatlib.io.utils import Metadata
 
@@ -20,7 +20,7 @@ class HeatmapConnectivityTool(HeatmapToolBase):
 
         # --- Prepare OD matrix ---
         od_table, h3_resolution = self._prepare_od_matrix(
-            params.od_matrix_source, params.od_column_map
+            params.od_matrix_path, params.od_column_map
         )
         logger.info(
             "OD matrix ready: table=%s, h3_resolution=%s", od_table, h3_resolution
