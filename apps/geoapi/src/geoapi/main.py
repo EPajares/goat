@@ -24,9 +24,11 @@ from geoapi.models import HealthCheck
 from geoapi.routers import (
     features_router,
     metadata_router,
+    processes_router,
     tiles_router,
 )
 from geoapi.services.layer_service import layer_service
+from geoapi.services.windmill_client import windmill_client
 
 # Configure logging
 logging.basicConfig(
@@ -100,6 +102,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Cleanup
     logger.info("Shutting down GeoAPI...")
     await layer_service.close()
+    await windmill_client.close()
     ducklake_pool.close()
     ducklake_manager.close()
     logger.info("GeoAPI shutdown complete")
@@ -125,7 +128,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -137,6 +140,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(metadata_router)
 app.include_router(features_router)
 app.include_router(tiles_router)
+app.include_router(processes_router)
 
 
 @app.get(

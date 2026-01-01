@@ -2,19 +2,6 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Processes Debug",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "pnpm run dev",
-      "envFile": "${workspaceFolder}/apps/processes/.env",
-      "cwd": "${workspaceFolder}/apps/processes",
-      "presentation": {
-        "hidden": false,
-        "group": "backend",
-        "order": 1
-      }
-    },
-    {
       "name": "Core Debug",
       "type": "debugpy",
       "request": "launch",
@@ -152,7 +139,6 @@
       "name": "Backend Debug",
       "configurations": [
         "GeoAPI Debug",
-        "Processes Debug",
         "Core Debug",
       ],
       "presentation": {
@@ -165,7 +151,6 @@
       "name": "Launch App",
       "configurations": [
         "GeoAPI Debug",
-        "Processes Debug",
         "Core Debug",
         "Web Debug"
       ],

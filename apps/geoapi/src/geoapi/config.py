@@ -13,12 +13,27 @@ class Settings(BaseSettings):
     APP_NAME: str = "GOAT GeoAPI"
     DEBUG: bool = False
 
+    # Authentication settings
+    AUTH: bool = os.getenv("AUTH", "true").lower() == "true"
+    KEYCLOAK_SERVER_URL: str = os.getenv(
+        "KEYCLOAK_SERVER_URL", "https://auth.dev.plan4better.de"
+    )
+    REALM_NAME: str = os.getenv("REALM_NAME", "p4b")
+
     # PostgreSQL settings for DuckLake catalog
     POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_OUTER_PORT", "5432"))
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "goat")
+
+    # Schema settings
+    CUSTOMER_SCHEMA: str = os.getenv("CUSTOMER_SCHEMA", "customer")
+
+    # Windmill settings for job execution
+    WINDMILL_URL: str = os.getenv("WINDMILL_URL", "http://windmill-server:8000")
+    WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "plan4better")
+    WINDMILL_TOKEN: str = os.getenv("WINDMILL_TOKEN", "")
 
     # DuckLake settings
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")

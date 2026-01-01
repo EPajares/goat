@@ -4,6 +4,7 @@
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "service": "goat-dev",
+  "initializeCommand": "cd .devcontainer && ln -sf ../.env .env 2>/dev/null || true",
   "customizations": {
     "vscode": {
         "extensions": [
