@@ -13,13 +13,45 @@ services:
 
   redis:
     image: redis:7.4.1-alpine
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
     networks:
       proxy:
+
+  # Windmill Server - API, UI, scheduler
+  windmill-server:
+    image: ghcr.io/windmill-labs/windmill:main
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: server
+      BASE_URL: http://localhost:8100
+      SUPERADMIN_EMAIL: dev@plan4better.de
+      SUPERADMIN_PASSWORD: changeme
+    ports:
+      - 8100:8000
+    networks:
+      proxy:
+
+  # Windmill Worker - executes scripts
+  windmill-worker:
+    image: ghcr.io/windmill-labs/windmill:main
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: default
+    networks:
+      proxy:
+    # Mount entire workspace so scripts can access goatlib and deps
+    volumes:
+      - ../:/app/workspace:ro
+    depends_on:
+      - windmill-server
 
   goat-dev:
     depends_on:
       - rabbitmq
       - redis
+      - windmill-server
+      - windmill-worker
     build:
       dockerfile: Dockerfile
     container_name: goat-dev

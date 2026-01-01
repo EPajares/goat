@@ -1026,13 +1026,17 @@ version = "2.0.0"
 source = { editable = "apps/geoapi" }
 dependencies = [
     { name = "asyncpg" },
+    { name = "cachetools" },
     { name = "duckdb" },
     { name = "fastapi", extra = ["standard"] },
     { name = "goatlib" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pygeofilter" },
+    { name = "python-jose", extra = ["cryptography"] },
+    { name = "requests" },
     { name = "sentry-sdk" },
+    { name = "wmill" },
 ]
 
 [package.dev-dependencies]
@@ -1048,13 +1052,17 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "asyncpg", specifier = ">=0.29.0" },
+    { name = "cachetools" },
     { name = "duckdb", specifier = ">=1.4.3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.0" },
     { name = "goatlib", editable = "packages/python/goatlib" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0" },
     { name = "pygeofilter", specifier = ">=0.2.0" },
+    { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
+    { name = "requests", specifier = ">=2.25.0" },
     { name = "sentry-sdk", specifier = ">=2.0.0" },
+    { name = "wmill", specifier = ">=1.0.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -2954,6 +2962,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/75/994634a49b7e12532be6a42103597b71098fd25900f7437d6055ed39930a/websockets-15.0.1-cp311-cp311-win32.whl", hash = "sha256:16b6c1b3e57799b9d38427dda63edcbe4926352c47cf88588c0be4ace18dac85", size = 176388, upload-time = "2025-03-05T20:02:13.32Z" },
     { url = "https://files.pythonhosted.org/packages/98/93/e36c73f78400a65f5e236cd376713c34182e6663f6889cd45a4a04d8f203/websockets-15.0.1-cp311-cp311-win_amd64.whl", hash = "sha256:27ccee0071a0e75d22cb35849b1db43f2ecd3e161041ac1ee9d2352ddf72f065", size = 176828, upload-time = "2025-03-05T20:02:14.585Z" },
     { url = "https://files.pythonhosted.org/packages/fa/a8/5b41e0da817d64113292ab1f8247140aac61cbf6cfd085d6a0fa77f4984f/websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f", size = 169743, upload-time = "2025-03-05T20:03:39.41Z" },
+]
+
+[[package]]
+name = "wmill"
+version = "1.601.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/44/7e/c6a7fa19999a8a5ece1af2c28167cc37c2529c056c93e2a07a8e1a9b3c48/wmill-1.601.1.tar.gz", hash = "sha256:f7892599501a73bc96fbb0a27e7461e8715915e91bf68d6ce591ce7e96066786", size = 18415, upload-time = "2025-12-27T15:44:10.406Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f4/02/db9978e7b661ac1e139f9cbdebc8c24dc25da7cfd761df5c3b44436f9d15/wmill-1.601.1-py3-none-any.whl", hash = "sha256:6a1fc373d30c64d0a3df26d673be44b81cce91bacbf8bf912d9409e3ce862c61", size = 18710, upload-time = "2025-12-27T15:44:08.691Z" },
 ]
 
 [[package]]

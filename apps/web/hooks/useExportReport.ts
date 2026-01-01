@@ -3,10 +3,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 import { useSWRConfig } from "swr";
 
-import { apiRequestAuth } from "@/lib/api/fetcher";
-import { JOBS_API_BASE_URL } from "@/lib/api/processes";
-
-const PROJECTS_API_BASE_URL = `${process.env.NEXT_PUBLIC_API_URL}/api/v2/project`;
+import { JOBS_API_BASE_URL, executeProcessAsync } from "@/lib/api/processes";
 
 export type ExportFormat = "pdf" | "png";
 
@@ -14,6 +11,7 @@ export interface ExportOptions {
   projectId: string;
   layoutId: string;
   format?: ExportFormat;
+  atlasPageIndices?: number[];
 }
 
 export interface UseExportReportResult {
@@ -22,8 +20,8 @@ export interface UseExportReportResult {
 }
 
 /**
- * Hook for exporting reports to PDF/PNG via the backend.
- * Submits the job and shows a toast - doesn't wait for completion.
+ * Hook for exporting reports to PDF/PNG via OGC API Processes.
+ * Submits a PrintReport job and shows a toast - doesn't wait for completion.
  * Job progress can be tracked in the Jobs Popper.
  */
 export function useExportReport(): UseExportReportResult {
@@ -32,32 +30,30 @@ export function useExportReport(): UseExportReportResult {
   const { mutate } = useSWRConfig();
 
   /**
-   * Start export job
+   * Start export job via OGC API Processes
    */
   const exportReport = useCallback(
     async (options: ExportOptions): Promise<void> => {
-      const { projectId, layoutId, format = "pdf" } = options;
+      const { projectId, layoutId, format = "pdf", atlasPageIndices } = options;
 
       setIsBusy(true);
 
       try {
-        const response = await apiRequestAuth(`${PROJECTS_API_BASE_URL}/${projectId}/print`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            layout_id: layoutId,
-            format,
-          }),
-        });
+        // Execute PrintReport process via OGC API Processes
+        const inputs: Record<string, unknown> = {
+          project_id: projectId,
+          layout_id: layoutId,
+          format,
+        };
 
-        if (!response.ok) {
-          throw new Error("Request failed");
+        // Only include atlas_page_indices if provided
+        if (atlasPageIndices !== undefined) {
+          inputs.atlas_page_indices = atlasPageIndices;
         }
 
-        const data = await response.json();
-        if (data.job_id) {
+        const job = await executeProcessAsync("PrintReport", inputs);
+
+        if (job.jobID) {
           toast.info(`"${t("print_report")}" - ${t("job_started")}`);
           // Refresh all jobs queries to show the new job in both popper and history
           mutate((key) => Array.isArray(key) && key[0]?.startsWith(JOBS_API_BASE_URL));
