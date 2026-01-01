@@ -363,6 +363,371 @@ class WindmillClient:
                 pass  # Ignore cleanup errors
             self._client = None
 
+    async def create_or_update_script(
+        self,
+        path: str,
+        content: str,
+        summary: str = "",
+        description: str = "",
+        language: str = "python3",
+    ) -> dict[str, Any]:
+        """Create or update a script in Windmill.
+
+        Args:
+            path: Script path (e.g., "f/goat/buffer")
+            content: Python script content
+            summary: Short summary
+            description: Full description
+            language: Script language (default: python3)
+
+        Returns:
+            Script info dict
+
+        Raises:
+            WindmillError: If API call fails
+        """
+        client = self._get_client()
+        workspace = settings.WINDMILL_WORKSPACE
+
+        # Delete existing script first (POST not DELETE per Windmill API)
+        try:
+            await self._run_sync(
+                client.client.post,
+                f"{settings.WINDMILL_URL}/api/w/{workspace}/scripts/delete/p/{path}",
+                headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+            )
+            logger.info(f"Deleted existing script: {path}")
+        except Exception:
+            pass  # Script might not exist
+
+        script_data = {
+            "path": path,
+            "content": content,
+            "summary": summary,
+            "description": description,
+            "language": language,
+        }
+
+        try:
+            response = await self._run_sync(
+                client.client.post,
+                f"{settings.WINDMILL_URL}/api/w/{workspace}/scripts/create",
+                json=script_data,
+                headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+            )
+
+            response.raise_for_status()
+            logger.info(f"Script synced: {path}")
+            return {"path": path, "status": "synced"}
+
+        except Exception as e:
+            logger.error(f"Error syncing script {path}: {e}")
+            raise WindmillError(f"Failed to sync script: {e}") from e
+
+    async def set_workspace_env_var(self, name: str, value: str) -> None:
+        """Set a workspace-level environment variable in Windmill.
+
+        These variables are available to all scripts in the workspace.
+
+        Args:
+            name: Environment variable name
+            value: Environment variable value
+
+        Raises:
+            WindmillError: If API call fails
+        """
+        client = self._get_client()
+        workspace = settings.WINDMILL_WORKSPACE
+
+        try:
+            response = await self._run_sync(
+                client.client.post,
+                f"{settings.WINDMILL_URL}/api/w/{workspace}/workspaces/set_environment_variable",
+                json={"name": name, "value": value},
+                headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+            )
+            response.raise_for_status()
+            logger.debug(f"Set workspace env var: {name}")
+        except Exception as e:
+            logger.warning(f"Failed to set env var {name}: {e}")
+            # Don't raise - env vars may already exist or be set differently
+
+    async def create_or_update_secret(
+        self, name: str, value: str, description: str = ""
+    ) -> None:
+        """Create or update a secret in Windmill.
+
+        Secrets are encrypted and can have access permissions.
+        Scripts access them via wmill.get_variable() or $var: syntax.
+
+        Args:
+            name: Secret name (will be stored at f/goat/{name})
+            value: Secret value
+            description: Optional description
+
+        Raises:
+            WindmillError: If API call fails
+        """
+        client = self._get_client()
+        workspace = settings.WINDMILL_WORKSPACE
+        path = f"f/goat/{name}"
+
+        # Try to update first, then create if not exists
+        try:
+            # Check if exists
+            response = await self._run_sync(
+                client.client.get,
+                f"{settings.WINDMILL_URL}/api/w/{workspace}/variables/exists/{path}",
+                headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+            )
+            exists = response.json()
+
+            if exists:
+                # Update existing
+                response = await self._run_sync(
+                    client.client.post,
+                    f"{settings.WINDMILL_URL}/api/w/{workspace}/variables/update/{path}",
+                    json={"value": value},
+                    headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+                )
+            else:
+                # Create new
+                response = await self._run_sync(
+                    client.client.post,
+                    f"{settings.WINDMILL_URL}/api/w/{workspace}/variables/create",
+                    json={
+                        "path": path,
+                        "value": value,
+                        "is_secret": True,
+                        "description": description or f"GOAT tool secret: {name}",
+                    },
+                    headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+                )
+
+            response.raise_for_status()
+            logger.debug(f"Set secret: {path}")
+        except Exception as e:
+            logger.warning(f"Failed to set secret {name}: {e}")
+
+    async def _configure_workspace_env_vars(self) -> None:
+        """Configure required environment variables and secrets for goatlib tools.
+
+        - Non-sensitive config → workspace environment variables
+        - Passwords and keys → Windmill secrets (encrypted)
+        """
+        # Non-sensitive config as environment variables
+        env_vars = {
+            "POSTGRES_SERVER": settings.POSTGRES_SERVER,
+            "POSTGRES_PORT": str(settings.POSTGRES_PORT),
+            "POSTGRES_USER": settings.POSTGRES_USER,
+            "POSTGRES_DB": settings.POSTGRES_DB,
+            "DUCKLAKE_CATALOG_SCHEMA": settings.DUCKLAKE_CATALOG_SCHEMA,
+            "DUCKLAKE_DATA_DIR": settings.DUCKLAKE_DATA_DIR,
+            "CUSTOMER_SCHEMA": settings.CUSTOMER_SCHEMA,
+        }
+
+        # Optional non-sensitive S3 settings
+        if settings.S3_PROVIDER:
+            env_vars["S3_PROVIDER"] = settings.S3_PROVIDER
+        if settings.S3_ENDPOINT_URL:
+            env_vars["S3_ENDPOINT_URL"] = settings.S3_ENDPOINT_URL
+        if settings.S3_REGION_NAME:
+            env_vars["S3_REGION_NAME"] = settings.S3_REGION_NAME
+        if settings.S3_BUCKET_NAME:
+            env_vars["S3_BUCKET_NAME"] = settings.S3_BUCKET_NAME
+
+        logger.info(f"Configuring {len(env_vars)} workspace environment variables")
+        for name, value in env_vars.items():
+            await self.set_workspace_env_var(name, value)
+
+        # Sensitive values as secrets
+        secrets = {
+            "POSTGRES_PASSWORD": settings.POSTGRES_PASSWORD,
+            "POSTGRES_DATABASE_URI": settings.POSTGRES_DATABASE_URI,
+        }
+
+        # Optional sensitive S3 settings
+        if settings.S3_ACCESS_KEY_ID:
+            secrets["S3_ACCESS_KEY_ID"] = settings.S3_ACCESS_KEY_ID
+        if settings.S3_SECRET_ACCESS_KEY:
+            secrets["S3_SECRET_ACCESS_KEY"] = settings.S3_SECRET_ACCESS_KEY
+
+        logger.info(f"Configuring {len(secrets)} workspace secrets")
+        for name, value in secrets.items():
+            await self.create_or_update_secret(name, value)
+
+        logger.info("Workspace configuration complete")
+
+    async def sync_goatlib_tools(self) -> list[dict[str, Any]]:
+        """Sync all goatlib tools to Windmill.
+
+        Auto-generates scripts from goatlib tool modules.
+        Extracts Pydantic fields to create typed function signatures that Windmill can parse.
+        Also configures required environment variables in the workspace.
+
+        Returns:
+            List of synced script info dicts
+        """
+        from goatlib.tools import generate_windmill_script
+        from goatlib.tools.registry import TOOL_REGISTRY
+
+        # First, configure required environment variables
+        await self._configure_workspace_env_vars()
+
+        results = []
+        for tool_def in TOOL_REGISTRY:
+            params_class = tool_def.get_params_class()
+            content = generate_windmill_script(tool_def.module_path, params_class)
+            try:
+                result = await self.create_or_update_script(
+                    path=tool_def.windmill_path,
+                    content=content,
+                    summary=tool_def.display_name,
+                    description=tool_def.description,
+                )
+                results.append(result)
+            except WindmillError as e:
+                logger.warning(f"Failed to sync {tool_def.windmill_path}: {e}")
+                results.append(
+                    {
+                        "path": tool_def.windmill_path,
+                        "status": "failed",
+                        "error": str(e),
+                    }
+                )
+
+        return results
+
+        return results
+
+    async def list_jobs_filtered(
+        self,
+        user_id: str,
+        script_path_start: str = "f/goat/",
+        created_after_days: int = 3,
+        process_id: str | None = None,
+        success: bool | None = None,
+        running: bool | None = None,
+        limit: int = 100,
+        include_results: bool = True,
+    ) -> list[dict[str, Any]]:
+        """List jobs from Windmill with efficient filtering.
+
+        Uses indexed filters (script_path_start, created_after) before
+        applying args filter for user_id.
+
+        Args:
+            user_id: User ID to filter by (in args)
+            script_path_start: Script path prefix filter (default: f/goat/)
+            created_after_days: Only return jobs from last N days (default: 3)
+            process_id: Optional specific process ID to filter
+            success: Filter by success state (True/False/None)
+            running: Filter by running state (True/False/None)
+            limit: Maximum results (max 100)
+            include_results: Fetch results for successful jobs (default: True)
+
+        Returns:
+            List of job dicts from Windmill
+
+        Raises:
+            WindmillError: If API call fails
+        """
+        import asyncio
+
+        client = self._get_client()
+        workspace = settings.WINDMILL_WORKSPACE
+
+        # Calculate created_after timestamp
+        from datetime import datetime, timedelta, timezone
+
+        created_after = datetime.now(timezone.utc) - timedelta(days=created_after_days)
+        created_after_iso = created_after.isoformat()
+
+        # Build query params - use indexed filters first
+        params: dict[str, Any] = {
+            "per_page": min(limit, 100),  # Windmill max is 100
+            "script_path_start": script_path_start
+            if not process_id
+            else f"f/goat/{process_id}",
+            "created_after": created_after_iso,
+            "has_null_parent": "true",  # Only root jobs, not flow steps
+            "job_kinds": "script",  # Only script jobs
+            "args": f'{{"user_id": "{user_id}"}}',  # JSON subset filter
+        }
+
+        # Add optional filters
+        if success is not None:
+            params["success"] = str(success).lower()
+        if running is not None:
+            params["running"] = str(running).lower()
+
+        try:
+            response = await self._run_sync(
+                client.client.get,
+                f"{settings.WINDMILL_URL}/api/w/{workspace}/jobs/list",
+                params=params,
+                headers={"Authorization": f"Bearer {settings.WINDMILL_TOKEN}"},
+            )
+            response.raise_for_status()
+            jobs = response.json()
+
+            # Fetch results in parallel for successful jobs
+            # Windmill's /jobs/list doesn't include result, need separate fetch
+            # Only fetch for jobs that need payload (e.g., layer_export for download_url)
+            if include_results:
+                # Only fetch results for layer_export jobs (they have download_url)
+                jobs_needing_results = [
+                    j
+                    for j in jobs
+                    if j.get("success") is True
+                    and j.get("script_path", "").endswith("layer_export")
+                ]
+                if jobs_needing_results:
+
+                    async def fetch_result(job: dict[str, Any]) -> None:
+                        try:
+                            job["result"] = await self.get_job_result(job["id"])
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to fetch result for job {job['id']}: {e}"
+                            )
+
+                    await asyncio.gather(
+                        *[fetch_result(job) for job in jobs_needing_results],
+                        return_exceptions=True,
+                    )
+
+            return jobs
+
+        except Exception as e:
+            logger.error(f"Error listing jobs: {e}")
+            raise WindmillError(f"Failed to list jobs: {e}") from e
+
+    async def get_job_with_result(self, job_id: str) -> dict[str, Any]:
+        """Get job details including result if completed.
+
+        Args:
+            job_id: Windmill job ID
+
+        Returns:
+            Job dict with 'result' field populated if job completed
+
+        Raises:
+            WindmillJobNotFound: If job doesn't exist
+            WindmillError: If API call fails
+        """
+        # Get job status first
+        job = await self.get_job_status(job_id)
+
+        # If job completed successfully, fetch the result
+        if job.get("success") is True:
+            try:
+                job["result"] = await self.get_job_result(job_id)
+            except Exception as e:
+                logger.warning(f"Failed to fetch result for job {job_id}: {e}")
+
+        return job
+
 
 # Global client instance
 windmill_client = WindmillClient()

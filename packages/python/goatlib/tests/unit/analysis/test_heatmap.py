@@ -2,9 +2,9 @@ import math
 from pathlib import Path
 
 import pytest
-from goatlib.analysis.heatmap.closest_average import HeatmapClosestAverageTool
-from goatlib.analysis.heatmap.connectivity import HeatmapConnectivityTool
-from goatlib.analysis.heatmap.gravity import HeatmapGravityTool
+from goatlib.analysis.accessibility.closest_average import HeatmapClosestAverageTool
+from goatlib.analysis.accessibility.connectivity import HeatmapConnectivityTool
+from goatlib.analysis.accessibility.gravity import HeatmapGravityTool
 from goatlib.analysis.schemas.heatmap import (
     HeatmapClosestAverageParams,
     HeatmapConnectivityParams,

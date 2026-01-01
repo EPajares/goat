@@ -30,8 +30,17 @@ class BufferTool(AnalysisTool):
                 f"Could not detect geometry column for {params.input_path}."
             )
 
-        if not crs:
-            raise ValueError(f"Could not detect CRS for {params.input_path}.")
+        # Fallback to output_crs (default EPSG:4326) if CRS not detected
+        # This happens when exporting from DuckLake which doesn't preserve GeoParquet metadata
+        if crs:
+            crs_str = crs.to_string()
+        else:
+            crs_str = params.output_crs or "EPSG:4326"
+            logger.warning(
+                "Could not detect CRS for %s, using fallback: %s",
+                params.input_path,
+                crs_str,
+            )
 
         # --- Define output path
         if not params.output_path:
@@ -40,7 +49,6 @@ class BufferTool(AnalysisTool):
                 / f"{Path(params.input_path).stem}_buffer.parquet"
             )
         output_path = Path(params.output_path)
-        crs_str = crs.to_string()
         logger.info(
             "Starting buffer: %s | table='%s' | geometry='%s' | CRS=%s",
             params.input_path,

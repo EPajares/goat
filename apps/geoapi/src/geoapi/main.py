@@ -95,6 +95,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize layer service (PostgreSQL pool for metadata)
     await layer_service.init()
 
+    # Sync goatlib tools to Windmill (dev mode)
+    if settings.WINDMILL_SYNC_TOOLS:
+        try:
+            results = await windmill_client.sync_goatlib_tools()
+            logger.info(f"Synced {len(results)} tools to Windmill")
+        except Exception as e:
+            logger.warning(f"Failed to sync tools to Windmill: {e}")
+
     logger.info("GeoAPI started successfully")
 
     yield

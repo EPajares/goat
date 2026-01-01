@@ -59,10 +59,17 @@ class ClipTool(AnalysisTool):
             "overlay",
         )
 
-        # For WGS84 datasets, assume both are in EPSG:4326 (no CRS conversion needed)
-        logger.info(
-            "Assuming both datasets are in EPSG:4326 (WGS84) - no CRS conversion required"
-        )
+        # Get CRS from input metadata, fallback to output_crs or EPSG:4326
+        crs = input_meta.crs
+        if crs:
+            crs_str = crs.to_string()
+        else:
+            crs_str = params.output_crs or "EPSG:4326"
+            logger.warning(
+                "Could not detect CRS for %s, using fallback: %s",
+                params.input_path,
+                crs_str,
+            )
 
         # Define output path
         if not params.output_path:
@@ -163,7 +170,7 @@ class ClipTool(AnalysisTool):
             path=str(output_path),
             source_type="vector",
             geometry_column=input_geom,
-            crs="EPSG:4326",
+            crs=crs_str,
             schema="public",
             table_name=output_path.stem,
         )

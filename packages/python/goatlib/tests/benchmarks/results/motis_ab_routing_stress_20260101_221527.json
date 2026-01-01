@@ -1,0 +1,81 @@
+{
+  "timings": {
+    "total_start": 251736.187525069,
+    "total_duration": 5.802046702010557
+  },
+  "memory_usage": {
+    "final": {
+      "current_mb": 0.4664764404296875,
+      "peak_mb": 1.488316535949707,
+      "process_rss_mb": 253.33984375
+    }
+  },
+  "network_stats": {},
+  "response_stats": {
+    "route_count": 5,
+    "total_legs": 49,
+    "total_distance_m": 2784948.84,
+    "total_duration_s": 158400.0,
+    "modes_used": [
+      "walk",
+      "bus",
+      "rail"
+    ],
+    "mode_count": 3,
+    "transfer_count": 17,
+    "walking_legs": 27,
+    "transit_legs": 22,
+    "avg_route_distance": 556989.7679999999,
+    "avg_route_duration": 31680.0,
+    "max_results_requested": 10,
+    "transport_modes_requested": [
+      "transit",
+      "walk"
+    ]
+  },
+  "validation_stats": {
+    "valid_routes": 5,
+    "total_routes": 5,
+    "validation_success_rate": 1.0,
+    "route_errors": [],
+    "leg_errors": [],
+    "error_count": 0,
+    "plausibility": {
+      "average_score": 44.0,
+      "issues_by_severity": {
+        "error": 4,
+        "warning": 18,
+        "info": 0
+      },
+      "total_issues": 22,
+      "most_common_issues": [
+        [
+          "Extremely long leg distance",
+          12
+        ],
+        [
+          "Route duration very long",
+          4
+        ],
+        [
+          "Speed too high for walk",
+          3
+        ],
+        [
+          "Walking distance shorter than straight line",
+          1
+        ],
+        [
+          "Very long transfer",
+          1
+        ]
+      ],
+      "score_distribution": {
+        "min": 25.0,
+        "max": 80.0,
+        "avg": 44.0
+      }
+    }
+  },
+  "timestamp": "2026-01-01T22:15:27.396906"
+}

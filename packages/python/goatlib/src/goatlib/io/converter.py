@@ -5,16 +5,18 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Self
+from typing import TYPE_CHECKING, Iterator, Self
 from urllib.parse import urlparse
 
 import duckdb
-from osgeo import gdal
 
 from goatlib.config import settings
 from goatlib.io.formats import ALL_EXTS, FileFormat
 from goatlib.io.utils import detect_path_type, download_if_remote
 from goatlib.models.io import DatasetMetadata
+
+if TYPE_CHECKING:
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -681,6 +683,8 @@ class IOConverter:
         target_crs: str | None = None,
     ) -> DatasetMetadata:
         """Convert any raster to a Cloud-Optimized GeoTIFF (COG)."""
+        from osgeo import gdal
+
         logger.info("Converting raster to COG: %s", src_path)
 
         out = Path(out_path)

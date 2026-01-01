@@ -33,6 +33,18 @@ class OriginDestinationTool(AnalysisTool):
                 f"Could not detect geometry column for input: {params.geometry_path}"
             )
 
+        # Get CRS from metadata, fallback to output_crs or EPSG:4326
+        crs = geom_meta.crs
+        if crs:
+            crs_str = crs.to_string()
+        else:
+            crs_str = params.output_crs or "EPSG:4326"
+            logger.warning(
+                "Could not detect CRS for %s, using fallback: %s",
+                params.geometry_path,
+                crs_str,
+            )
+
         # Define output paths
         if not params.output_path_lines:
             params.output_path_lines = str(
@@ -104,7 +116,7 @@ class OriginDestinationTool(AnalysisTool):
                     path=str(output_path_lines),
                     source_type="vector",
                     geometry_column="geom",
-                    crs="EPSG:4326",  # Assuming input is 4326
+                    crs=crs_str,
                     schema="public",
                     table_name=output_path_lines.stem,
                 ),
@@ -115,7 +127,7 @@ class OriginDestinationTool(AnalysisTool):
                     path=str(output_path_points),
                     source_type="vector",
                     geometry_column="geom",
-                    crs="EPSG:4326",
+                    crs=crs_str,
                     schema="public",
                     table_name=output_path_points.stem,
                 ),

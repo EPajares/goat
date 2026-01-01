@@ -301,3 +301,6 @@ class OriginDestinationParams(BaseModel):
         None,
         description="Destination file path for the points output. If not provided, will be auto-generated.",
     )
+    output_crs: Optional[str] = Field(
+        None, description="Target coordinate reference system for the output geometry."
+    )

@@ -1,35 +1,24 @@
 """
-Auto-discovery tool registry for goatlib analysis tools.
+Tool registry for goatlib Windmill tools.
 
-This module automatically discovers all *Params classes from goatlib and
-creates OGC Process descriptions from them.
-
-The convention for tools is:
-- Params: Schema class ending with "Params" (e.g., ClipParams, BufferParams)
-- Tool: Tool class ending with "Tool" (e.g., ClipTool, BufferTool)
-
-The tool name is derived from the class name by removing "Params" suffix
-and converting to snake_case (e.g., "ClipParams" -> "clip").
+This module uses goatlib.tools.*ToolParams classes as the single source of truth
+for both OGC Processes API and Windmill script generation.
 
 Usage:
     from geoapi.services.tool_registry import tool_registry
 
     # Get tool by name
-    tool_info = tool_registry.get_tool("clip")
+    tool_info = tool_registry.get_tool("buffer")
 
     # Get all available tools
     tools = tool_registry.get_all_tools()
 
     # Get OGC process description
-    process_desc = tool_registry.get_process_description("clip", base_url)
+    process_desc = tool_registry.get_process_description("buffer", base_url)
 """
 
-import inspect
 import logging
-import re
-import sys
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any, Type
 
 from pydantic import BaseModel
@@ -47,18 +36,20 @@ from geoapi.models.processes import (
 
 logger = logging.getLogger(__name__)
 
+# Fields to exclude from OGC Process inputs (internal implementation details)
+EXCLUDED_FIELDS = {"input_path", "output_path", "overlay_path", "output_crs"}
+
 
 @dataclass
 class ToolInfo:
     """Information about a registered analysis tool."""
 
-    name: str  # Short name (e.g., "clip")
-    display_name: str  # Human readable (e.g., "Clip")
-    description: str  # Description from docstring
-    params_class: Type[BaseModel]  # Original *Params class
-    tool_class: Type  # Tool execution class
-    result_class: Type | None = None  # Result dataclass (optional)
-    category: str = "geoprocessing"  # Tool category
+    name: str  # Short name (e.g., "buffer")
+    display_name: str  # Human readable (e.g., "Buffer")
+    description: str  # Tool description
+    params_class: Type[BaseModel]  # *ToolParams class from goatlib.tools
+    windmill_path: str  # Windmill script path (e.g., "f/goat/buffer")
+    category: str = "geoprocessing"
     job_control_options: list[str] = field(default_factory=lambda: ["async-execute"])
     keywords: list[str] = field(default_factory=list)
 
@@ -74,25 +65,14 @@ class ToolInfo:
 
 
 class ToolRegistry:
-    """Registry for auto-discovered goatlib analysis tools."""
+    """Registry for goatlib tools using *ToolParams as single source of truth."""
 
     def __init__(self):
         self._registry: dict[str, ToolInfo] = {}
         self._initialized = False
 
-    def _camel_to_snake(self, name: str) -> str:
-        """Convert CamelCase to snake_case."""
-        return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
-
-    def _extract_tool_name(self, class_name: str, suffix: str) -> str:
-        """Extract tool name from class name by removing suffix."""
-        if class_name.endswith(suffix):
-            name = class_name[: -len(suffix)]
-            return self._camel_to_snake(name)
-        return self._camel_to_snake(class_name)
-
     def _get_description(self, cls: Type) -> str:
-        """Extract description from class docstring."""
+        """Extract first paragraph from class docstring."""
         if cls.__doc__:
             lines = cls.__doc__.strip().split("\n")
             first_para = []
@@ -103,136 +83,27 @@ class ToolRegistry:
                 if line:
                     first_para.append(line)
             return " ".join(first_para)
-        return f"{cls.__name__} analysis tool"
+        return f"{cls.__name__} tool"
 
-    def _is_params_class(self, name: str, cls: Type) -> bool:
-        """Check if a class is a *Params class (not *LayerParams)."""
-        return (
-            name.endswith("Params")
-            and not name.endswith("LayerParams")
-            and issubclass(cls, BaseModel)
-            and hasattr(cls, "model_fields")
-        )
-
-    def _has_path_fields(self, cls: Type[BaseModel]) -> bool:
-        """Check if a Params class has path-based fields that can be converted."""
-        for field_name in cls.model_fields:
-            if field_name.endswith("_path") or field_name.endswith("_paths"):
-                return True
-        return False
-
-    def _setup_goatlib_path(self) -> None:
-        """Ensure goatlib is importable."""
-        # Add goatlib path if not already in sys.path
-        goatlib_path = Path("/app/packages/python/goatlib/src")
-        if goatlib_path.exists() and str(goatlib_path) not in sys.path:
-            sys.path.insert(0, str(goatlib_path))
-            logger.info(f"Added goatlib path: {goatlib_path}")
-
-    def _discover_tools(self) -> None:
-        """Auto-discover all *Params/*Tool pairs from goatlib."""
+    def _init_tools(self) -> None:
+        """Initialize tools from goatlib.tools.registry."""
         if self._initialized:
             return
 
-        self._setup_goatlib_path()
-
         try:
-            from goatlib.analysis import (
-                accessibility,
-                data_management,
-                geoprocessing,
-                schemas,
-            )
+            from goatlib.tools.registry import TOOL_REGISTRY
 
-            # Find all *Params classes in schemas
-            params_classes: dict[str, Type[BaseModel]] = {}
-            params_categories: dict[str, str] = {}
-
-            # Check geoprocessing schemas
-            if hasattr(schemas, "geoprocessing"):
-                for name, obj in inspect.getmembers(
-                    schemas.geoprocessing, inspect.isclass
-                ):
-                    if self._is_params_class(name, obj) and self._has_path_fields(obj):
-                        tool_name = self._extract_tool_name(name, "Params")
-                        params_classes[tool_name] = obj
-                        params_categories[tool_name] = "geoprocessing"
-                        logger.debug(
-                            f"Found geoprocessing Params: {name} -> {tool_name}"
-                        )
-
-            # Check data_management schemas
-            if hasattr(schemas, "data_management"):
-                for name, obj in inspect.getmembers(
-                    schemas.data_management, inspect.isclass
-                ):
-                    if self._is_params_class(name, obj) and self._has_path_fields(obj):
-                        tool_name = self._extract_tool_name(name, "Params")
-                        params_classes[tool_name] = obj
-                        params_categories[tool_name] = "data_management"
-                        logger.debug(
-                            f"Found data_management Params: {name} -> {tool_name}"
-                        )
-
-            # Check heatmap/accessibility schemas
-            if hasattr(schemas, "heatmap"):
-                for name, obj in inspect.getmembers(schemas.heatmap, inspect.isclass):
-                    if self._is_params_class(name, obj) and self._has_path_fields(obj):
-                        tool_name = self._extract_tool_name(name, "Params")
-                        params_classes[tool_name] = obj
-                        params_categories[tool_name] = "accessibility"
-                        logger.debug(f"Found heatmap Params: {name} -> {tool_name}")
-
-            # Fallback: Check vector schemas
-            if hasattr(schemas, "vector") and not params_classes:
-                for name, obj in inspect.getmembers(schemas.vector, inspect.isclass):
-                    if self._is_params_class(name, obj) and self._has_path_fields(obj):
-                        tool_name = self._extract_tool_name(name, "Params")
-                        params_classes[tool_name] = obj
-                        params_categories[tool_name] = "geoprocessing"
-                        logger.debug(
-                            f"Found vector Params (legacy): {name} -> {tool_name}"
-                        )
-
-            # Find matching *Tool classes
-            tool_classes: dict[str, Type] = {}
-            result_classes: dict[str, Type] = {}
-
-            for module in [geoprocessing, data_management, accessibility]:
-                for name, obj in inspect.getmembers(module, inspect.isclass):
-                    if name.endswith("Tool") and not name.endswith("LayerTool"):
-                        tool_name = self._extract_tool_name(name, "Tool")
-                        tool_classes[tool_name] = obj
-                        logger.debug(f"Found Tool: {name} -> {tool_name}")
-                    elif name.endswith("Result") and not name.endswith("LayerResult"):
-                        tool_name = self._extract_tool_name(name, "Result")
-                        result_classes[tool_name] = obj
-
-            # Register tools with both params and tool classes
-            for tool_name, params_class in params_classes.items():
-                if tool_name in tool_classes:
-                    tool_class = tool_classes[tool_name]
-                    result_class = result_classes.get(tool_name)
-                    category = params_categories.get(tool_name, "geoprocessing")
-
-                    display_name = tool_name.replace("_", " ").title()
-                    description = self._get_description(params_class)
-
-                    self._registry[tool_name] = ToolInfo(
-                        name=tool_name,
-                        display_name=display_name,
-                        description=description,
-                        params_class=params_class,
-                        tool_class=tool_class,
-                        result_class=result_class,
-                        category=category,
-                        keywords=[category],
-                    )
-                    logger.info(f"Registered tool: {tool_name} (category: {category})")
-                else:
-                    logger.warning(
-                        f"Found {params_class.__name__} but no matching Tool class"
-                    )
+            for tool_def in TOOL_REGISTRY:
+                params_class = tool_def.get_params_class()
+                self._registry[tool_def.name] = ToolInfo(
+                    name=tool_def.name,
+                    display_name=tool_def.display_name,
+                    description=self._get_description(params_class),
+                    params_class=params_class,
+                    windmill_path=tool_def.windmill_path,
+                    category=tool_def.category,
+                    keywords=list(tool_def.keywords),
+                )
 
             self._initialized = True
             logger.info(f"Tool registry initialized with {len(self._registry)} tools")
@@ -243,56 +114,60 @@ class ToolRegistry:
 
     def get_tool(self, name: str) -> ToolInfo | None:
         """Get tool info by name."""
-        self._discover_tools()
+        self._init_tools()
         return self._registry.get(name.lower())
 
     def get_all_tools(self) -> dict[str, ToolInfo]:
         """Get all registered tools."""
-        self._discover_tools()
+        self._init_tools()
         return self._registry.copy()
 
     def get_tool_names(self) -> list[str]:
         """Get list of all tool names."""
-        self._discover_tools()
+        self._init_tools()
         return list(self._registry.keys())
 
-    def _pydantic_field_to_json_schema(
-        self,
-        field_name: str,
-        field_info: Any,
-        field_type: Any,
+    def _json_schema_for_field(
+        self, field_name: str, field_info: Any
     ) -> dict[str, Any]:
-        """Convert a Pydantic field to JSON Schema."""
-        schema: dict[str, Any] = {}
+        """Convert Pydantic field to JSON Schema."""
+        from typing import Union, get_args, get_origin
 
-        # Get type name
-        origin = getattr(field_type, "__origin__", None)
+        from pydantic_core import PydanticUndefined
 
-        if origin is list:
-            schema["type"] = "array"
-            args = getattr(field_type, "__args__", ())
-            if args:
-                schema["items"] = self._python_type_to_json_schema(args[0])
-        elif origin is dict:
-            schema["type"] = "object"
-        elif field_type is str:
-            schema["type"] = "string"
-        elif field_type is int:
-            schema["type"] = "integer"
-        elif field_type is float:
-            schema["type"] = "number"
-        elif field_type is bool:
-            schema["type"] = "boolean"
-        elif hasattr(field_type, "__members__"):  # Enum
-            schema["type"] = "string"
-            schema["enum"] = list(field_type.__members__.keys())
+        annotation = field_info.annotation
+        origin = get_origin(annotation)
+
+        # Handle Optional types (Union with None)
+        if origin is Union:
+            args = get_args(annotation)
+            non_none = [a for a in args if a is not type(None)]
+            if len(non_none) == 1:
+                # It's Optional[X], recurse on X
+                inner_schema = self._type_to_json_schema(non_none[0])
+            else:
+                # Multiple types - use anyOf
+                inner_schema = {
+                    "anyOf": [self._type_to_json_schema(a) for a in non_none]
+                }
         else:
-            schema["type"] = "object"
+            inner_schema = self._type_to_json_schema(annotation)
 
-        return schema
+        # Add default value if present
+        if (
+            field_info.default is not None
+            and field_info.default is not PydanticUndefined
+        ):
+            inner_schema["default"] = field_info.default
 
-    def _python_type_to_json_schema(self, python_type: Any) -> dict[str, Any]:
+        return inner_schema
+
+    def _type_to_json_schema(self, python_type: Any) -> dict[str, Any]:
         """Convert Python type to JSON Schema."""
+        from typing import Literal, get_args, get_origin
+
+        origin = get_origin(python_type)
+
         if python_type is str:
             return {"type": "string"}
         elif python_type is int:
@@ -301,10 +176,18 @@ class ToolRegistry:
             return {"type": "number"}
         elif python_type is bool:
             return {"type": "boolean"}
+        elif origin is list:
+            args = get_args(python_type)
+            if args:
+                return {"type": "array", "items": self._type_to_json_schema(args[0])}
+            return {"type": "array"}
+        elif origin is Literal:
+            args = get_args(python_type)
+            return {"type": "string", "enum": list(args)}
         elif hasattr(python_type, "__members__"):  # Enum
             return {"type": "string", "enum": list(python_type.__members__.keys())}
         else:
-            return {"type": "object"}
+            return {"type": "string"}
 
     def get_process_summary(
         self, tool_name: str, base_url: str
@@ -337,99 +220,60 @@ class ToolRegistry:
     def get_process_description(
         self, tool_name: str, base_url: str
     ) -> ProcessDescription | None:
-        """Get full OGC process description for a tool."""
+        """Get full OGC process description for a tool.
+
+        Uses Pydantic's model_fields to generate OGC-compliant input descriptions.
+        Excludes internal fields (input_path, output_path, etc.) that are
+        implementation details not exposed to users.
+        """
         tool = self.get_tool(tool_name)
         if not tool:
             return None
 
-        # Build inputs from params class
+        # Build inputs from params class model_fields
         inputs: dict[str, InputDescription] = {}
-        params_class = tool.params_class
 
-        # Add standard GOAT inputs
-        inputs["user_id"] = InputDescription(
-            title="User ID",
-            description="UUID of the user who owns the layers",
-            schema_={"type": "string", "format": "uuid"},
-            minOccurs=1,
-            maxOccurs=1,
-        )
-        inputs["project_id"] = InputDescription(
-            title="Project ID",
-            description="UUID of the project (required for saving results)",
-            schema_={"type": "string", "format": "uuid"},
-            minOccurs=0,
-            maxOccurs=1,
-        )
+        for field_name, field_info in tool.params_class.model_fields.items():
+            # Skip internal fields
+            if field_name in EXCLUDED_FIELDS:
+                continue
 
-        # Parse params class fields
-        for field_name, field_info in params_class.model_fields.items():
-            # Transform path fields to layer_id fields
-            if field_name.endswith("_path"):
-                layer_field = field_name.replace("_path", "_layer_id")
-                filter_field = field_name.replace("_path", "_filter")
+            # Get JSON schema for field
+            json_schema = self._json_schema_for_field(field_name, field_info)
 
-                inputs[layer_field] = InputDescription(
-                    title=field_name.replace("_", " ")
-                    .title()
-                    .replace("Path", "Layer ID"),
-                    description=field_info.description
-                    or f"UUID of the {field_name.replace('_path', '')} layer",
-                    schema_={"type": "string", "format": "uuid"},
-                    minOccurs=1 if field_info.is_required() else 0,
-                    maxOccurs=1,
-                    keywords=["layer"],
-                )
+            # Detect layer fields - these get special UI treatment (dropdown selector)
+            is_layer_field = field_name.endswith("_layer_id") or field_name.endswith(
+                "_layer_ids"
+            )
 
-                # Add filter for non-output paths
-                if not field_name.startswith("output"):
-                    inputs[filter_field] = InputDescription(
-                        title=f"{field_name.replace('_', ' ').title().replace('Path', '')} Filter",
-                        description="SQL WHERE clause to filter layer features",
-                        schema_={"type": "string"},
-                        minOccurs=0,
-                        maxOccurs=1,
-                    )
-            elif field_name.endswith("_paths"):
-                layer_field = field_name.replace("_paths", "_layer_ids")
-                inputs[layer_field] = InputDescription(
-                    title=field_name.replace("_", " ")
-                    .title()
-                    .replace("Paths", "Layer IDs"),
-                    description=field_info.description or "List of layer UUIDs",
-                    schema_={
-                        "type": "array",
-                        "items": {"type": "string", "format": "uuid"},
-                    },
-                    minOccurs=1 if field_info.is_required() else 0,
-                    maxOccurs="unbounded",
-                    keywords=["layer"],
-                )
-            else:
-                # Regular field
-                field_type = field_info.annotation
-                json_schema = self._pydantic_field_to_json_schema(
-                    field_name, field_info, field_type
-                )
+            # Add format hints for known field types
+            if is_layer_field:
+                json_schema["format"] = "uuid"
+            elif field_name in ("user_id", "folder_id", "project_id"):
+                json_schema["format"] = "uuid"
 
-                inputs[field_name] = InputDescription(
-                    title=field_name.replace("_", " ").title(),
-                    description=field_info.description or f"Parameter: {field_name}",
-                    schema_=json_schema,
-                    minOccurs=1 if field_info.is_required() else 0,
-                    maxOccurs=1,
-                )
+            inputs[field_name] = InputDescription(
+                title=field_info.title or field_name.replace("_", " ").title(),
+                description=field_info.description or f"Parameter: {field_name}",
+                schema_=json_schema,
+                minOccurs=1 if field_info.is_required() else 0,
+                maxOccurs=1,
+                # Mark layer fields so UI can render layer selector dropdown
+                keywords=["layer"] if is_layer_field else [],
+            )
 
         # Define outputs
         outputs = {
             "result": OutputDescription(
                 title="Result",
-                description="Processing result as GeoJSON or reference to DuckLake layer",
+                description="Processing result with layer metadata",
                 schema_={
-                    "oneOf": [
-                        {"type": "object", "format": "geojson-feature-collection"},
-                        {"type": "string", "format": "uri"},
-                    ]
+                    "type": "object",
+                    "properties": {
+                        "layer_id": {"type": "string", "format": "uuid"},
+                        "name": {"type": "string"},
+                        "feature_count": {"type": "integer"},
+                    },
                 },
             ),
         }
@@ -470,7 +314,7 @@ class ToolRegistry:
 
     def get_process_list(self, base_url: str, limit: int = 100) -> ProcessList:
         """Get OGC process list with all tools."""
-        self._discover_tools()
+        self._init_tools()
 
         processes = []
         for tool_name in list(self._registry.keys())[:limit]:

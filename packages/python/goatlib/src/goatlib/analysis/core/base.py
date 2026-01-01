@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, List, Self, Tuple, final
 
 import duckdb
+
 from goatlib.analysis.schemas.base import GeometryType
 from goatlib.io.utils import Metadata, download_if_remote, get_metadata
 from goatlib.models.io import DatasetMetadata

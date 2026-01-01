@@ -1,0 +1,60 @@
+{
+  "timings": {
+    "total_start": 252134.013907786,
+    "total_duration": 1.715461965999566
+  },
+  "memory_usage": {
+    "final": {
+      "current_mb": 0.19056034088134766,
+      "peak_mb": 0.4624500274658203,
+      "process_rss_mb": 250.93359375
+    }
+  },
+  "network_stats": {},
+  "response_stats": {
+    "route_count": 5,
+    "total_legs": 19,
+    "total_distance_m": 13684.071,
+    "total_duration_s": 3660.0,
+    "modes_used": [
+      "subway",
+      "rail",
+      "walk"
+    ],
+    "mode_count": 3,
+    "transfer_count": 2,
+    "walking_legs": 12,
+    "transit_legs": 7,
+    "avg_route_distance": 2736.8142,
+    "avg_route_duration": 732.0,
+    "max_results_requested": 2,
+    "transport_modes_requested": [
+      "transit",
+      "walk"
+    ]
+  },
+  "validation_stats": {
+    "valid_routes": 5,
+    "total_routes": 5,
+    "validation_success_rate": 1.0,
+    "route_errors": [],
+    "leg_errors": [],
+    "error_count": 0,
+    "plausibility": {
+      "average_score": 100.0,
+      "issues_by_severity": {
+        "error": 0,
+        "warning": 0,
+        "info": 0
+      },
+      "total_issues": 0,
+      "most_common_issues": [],
+      "score_distribution": {
+        "min": 100.0,
+        "max": 100.0,
+        "avg": 100.0
+      }
+    }
+  },
+  "timestamp": "2026-01-01T22:22:01.132932"
+}

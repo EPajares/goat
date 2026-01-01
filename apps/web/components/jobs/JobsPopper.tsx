@@ -131,8 +131,8 @@ export default function JobsPopper() {
 
   // Helper to render download button for export jobs
   const renderExportDownloadButton = (job: Job) => {
-    const payload = job.payload as Record<string, unknown> | undefined;
-    const canDownload = job.status === "successful" && payload?.download_url;
+    const result = job.result as Record<string, unknown> | undefined;
+    const canDownload = job.status === "successful" && result?.download_url;
 
     if (!canDownload) return undefined;
 
@@ -140,7 +140,7 @@ export default function JobsPopper() {
       <Tooltip title={t("download")}>
         <IconButton
           size="small"
-          onClick={() => handleExportDownload(payload)}
+          onClick={() => handleExportDownload(result)}
           sx={{ fontSize: "1.2rem", color: "success.main" }}>
           <DownloadIcon fontSize="small" />
         </IconButton>
@@ -175,9 +175,9 @@ export default function JobsPopper() {
                 }}>
                 <Stack direction="column">
                   {jobs?.jobs?.map((job, index) => {
-                    // Add download button for LayerExport jobs
+                    // Add download button for layer_export jobs
                     const actionButton =
-                      job.processID === "LayerExport" ? renderExportDownloadButton(job) : undefined;
+                      job.processID === "layer_export" ? renderExportDownloadButton(job) : undefined;
 
                     return (
                       <Box key={job.jobID}>

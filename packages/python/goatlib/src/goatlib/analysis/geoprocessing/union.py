@@ -59,28 +59,39 @@ class UnionTool(AnalysisTool):
                 "overlay",
             )
 
-        # Check CRS compatibility and validate input layer has CRS
+        # Get CRS from input metadata, fallback to output_crs or EPSG:4326
         input_crs = input_meta.crs
-        if not input_crs:
-            raise ValueError(f"Input layer has no CRS information: {params.input_path}")
+        if input_crs:
+            input_crs_str = input_crs.to_string()
+        else:
+            input_crs_str = params.output_crs or "EPSG:4326"
+            logger.warning(
+                "Could not detect CRS for %s, using fallback: %s",
+                params.input_path,
+                input_crs_str,
+            )
 
-        overlay_crs = None
+        overlay_crs_str = None
         if overlay_meta:
             overlay_crs = overlay_meta.crs
-            if not overlay_crs:
-                raise ValueError(
-                    f"Overlay layer has no CRS information: {params.overlay_path}"
+            if overlay_crs:
+                overlay_crs_str = overlay_crs.to_string()
+            else:
+                overlay_crs_str = params.output_crs or "EPSG:4326"
+                logger.warning(
+                    "Could not detect CRS for %s, using fallback: %s",
+                    params.overlay_path,
+                    overlay_crs_str,
                 )
 
             # Validate CRS compatibility
-            if str(input_crs) != str(overlay_crs):
+            if input_crs_str != overlay_crs_str:
                 logger.info(
                     "CRS mismatch detected. Input: %s, Overlay: %s",
-                    input_crs,
-                    overlay_crs,
+                    input_crs_str,
+                    overlay_crs_str,
                 )
                 logger.info("Transforming overlay layer to match input CRS")
-            overlay_crs = overlay_meta.crs
 
         # Define output path
         if not params.output_path:
@@ -108,8 +119,8 @@ class UnionTool(AnalysisTool):
             overlay_meta,
             input_geom,
             overlay_geom,
-            input_crs,
-            overlay_crs,
+            input_crs_str,
+            overlay_crs_str,
             output_path,
         )
 
@@ -120,7 +131,7 @@ class UnionTool(AnalysisTool):
             path=str(output_path),
             source_type="vector",
             format="geoparquet",
-            crs=str(params.output_crs or input_crs),
+            crs=params.output_crs or input_crs_str,
             geometry_type=output_geometry_type,
         )
 
@@ -326,7 +337,7 @@ class UnionTool(AnalysisTool):
 
         # Combine all parts
         logger.info("Combining all union parts")
-        self.con.execute(f"""
+        self.con.execute("""
             CREATE OR REPLACE VIEW unioned AS
             SELECT * FROM overlapping_features
             UNION ALL
