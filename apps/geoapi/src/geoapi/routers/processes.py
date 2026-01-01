@@ -516,54 +516,80 @@ async def list_jobs(
         jobs = []
         for db_job in db_jobs:
             job_id = str(db_job["id"])
-            try:
-                # Get live status from Windmill
-                windmill_job = await windmill_client.get_job_status(job_id)
-                windmill_status = _windmill_status_to_ogc(windmill_job)
+            db_status = db_job["status"]
 
-                # Update status in DB if changed
-                db_status = db_job["status"]
-                if windmill_status.value != db_status:
-                    await job_service.update_job_status(
-                        job_id=db_job["id"],
-                        status=windmill_status.value,
+            # Only query Windmill for jobs that might still be running
+            # Skip Windmill lookup for completed/legacy jobs to avoid unnecessary requests
+            if db_status in ("accepted", "running"):
+                try:
+                    # Get live status from Windmill
+                    windmill_job = await windmill_client.get_job_status(job_id)
+                    windmill_status = _windmill_status_to_ogc(windmill_job)
+
+                    # Update status in DB if changed
+                    if windmill_status.value != db_status:
+                        await job_service.update_job_status(
+                            job_id=db_job["id"],
+                            status=windmill_status.value,
+                        )
+
+                    # Build StatusInfo with correct process ID from DB
+                    status_info = _windmill_job_to_status_info(windmill_job, base_url)
+                    status_info.processID = db_job[
+                        "type"
+                    ]  # Use DB process ID, not Windmill path
+                    jobs.append(status_info)
+
+                except WindmillJobNotFound:
+                    # Job exists in DB but not in Windmill - build from DB
+                    jobs.append(
+                        StatusInfo(
+                            processID=db_job["type"],
+                            type="process",
+                            jobID=job_id,
+                            status=_db_status_to_ogc(db_status),
+                            created=db_job.get("created_at"),
+                            links=[
+                                Link(
+                                    href=f"{base_url}/jobs/{job_id}",
+                                    rel="self",
+                                    type="application/json",
+                                    title="Job status",
+                                ),
+                            ],
+                        )
                     )
-
-                # Build StatusInfo with correct process ID from DB
-                status_info = _windmill_job_to_status_info(windmill_job, base_url)
-                status_info.processID = db_job[
-                    "type"
-                ]  # Use DB process ID, not Windmill path
-                jobs.append(status_info)
-
-            except WindmillJobNotFound:
-                # Job exists in DB but not in Windmill - build from DB
+                except WindmillError as e:
+                    logger.warning(
+                        f"Failed to get Windmill status for job {job_id}: {e}"
+                    )
+                    # Include job with DB status only
+                    jobs.append(
+                        StatusInfo(
+                            processID=db_job["type"],
+                            type="process",
+                            jobID=job_id,
+                            status=_db_status_to_ogc(db_status),
+                            created=db_job.get("created_at"),
+                            links=[
+                                Link(
+                                    href=f"{base_url}/jobs/{job_id}",
+                                    rel="self",
+                                    type="application/json",
+                                    title="Job status",
+                                ),
+                            ],
+                        )
+                    )
+            else:
+                # Job is completed (successful, failed, dismissed) - use DB status directly
+                # No need to query Windmill for completed jobs
                 jobs.append(
                     StatusInfo(
                         processID=db_job["type"],
                         type="process",
                         jobID=job_id,
-                        status=_db_status_to_ogc(db_job["status"]),
-                        created=db_job.get("created_at"),
-                        links=[
-                            Link(
-                                href=f"{base_url}/jobs/{job_id}",
-                                rel="self",
-                                type="application/json",
-                                title="Job status",
-                            ),
-                        ],
-                    )
-                )
-            except WindmillError as e:
-                logger.warning(f"Failed to get Windmill status for job {job_id}: {e}")
-                # Include job with DB status only
-                jobs.append(
-                    StatusInfo(
-                        processID=db_job["type"],
-                        type="process",
-                        jobID=job_id,
-                        status=_db_status_to_ogc(db_job["status"]),
+                        status=_db_status_to_ogc(db_status),
                         created=db_job.get("created_at"),
                         links=[
                             Link(
