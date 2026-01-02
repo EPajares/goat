@@ -48,8 +48,7 @@
     "-p", "no:cacheprovider",
     "packages/python/goatlib/tests",
     "apps/geoapi/tests",
-    "apps/core/tests",
-    "apps/processes/tests"
+    "apps/core/tests"
   ],
   "python.testing.cwd": "${workspaceFolder}",
   

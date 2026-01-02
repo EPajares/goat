@@ -39,7 +39,6 @@ from geoapi.models.processes import (
 )
 from geoapi.services.analytics_registry import analytics_registry
 from geoapi.services.analytics_service import analytics_service
-from geoapi.services.job_service import JobStatus, job_service
 from geoapi.services.tool_registry import tool_registry
 from geoapi.services.windmill_client import (
     WindmillError,
@@ -202,6 +201,22 @@ async def conformance() -> ConformanceDeclaration:
 # === Process List and Description ===
 
 
+def get_language_from_request(request: Request) -> str:
+    """Extract language from Accept-Language header.
+
+    Returns the first supported language or 'en' as default.
+    """
+    accept_language = request.headers.get("accept-language", "en")
+    # Parse first language preference (e.g., "de-DE,de;q=0.9,en;q=0.8" -> "de")
+    if accept_language:
+        first_lang = accept_language.split(",")[0].split(";")[0].strip()
+        # Extract base language (e.g., "de-DE" -> "de")
+        lang_code = first_lang.split("-")[0].lower()
+        if lang_code in ("en", "de"):  # Supported languages
+            return lang_code
+    return "en"
+
+
 @router.get(
     "/processes",
     summary="List available processes",
@@ -211,14 +226,18 @@ async def list_processes(
     request: Request,
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
 ) -> ProcessList:
-    """Get list of all available processes (analytics + async tools)."""
+    """Get list of all available processes (analytics + async tools).
+
+    Supports i18n via Accept-Language header (en, de).
+    """
     base_url = get_base_url(request)
+    language = get_language_from_request(request)
 
     # Get analytics processes (sync) - auto-generated from goatlib schemas
-    analytics_summaries = analytics_registry.get_all_summaries(base_url)
+    analytics_summaries = analytics_registry.get_all_summaries(base_url, language)
 
-    # Get async tool processes from registry
-    tool_list = tool_registry.get_process_list(base_url, limit=limit)
+    # Get async tool processes from registry (with translations)
+    tool_list = tool_registry.get_process_list(base_url, limit=limit, language=language)
 
     # Combine both
     all_processes = analytics_summaries + tool_list.processes
@@ -248,15 +267,24 @@ async def list_processes(
     },
 )
 async def get_process(request: Request, process_id: str) -> ProcessDescription:
-    """Get detailed description of a specific process."""
+    """Get detailed description of a specific process.
+
+    Supports i18n via Accept-Language header (en, de).
+    Returns x-ui-sections and x-ui field metadata for dynamic UI rendering.
+    """
     base_url = get_base_url(request)
+    language = get_language_from_request(request)
 
     # Check analytics processes first (auto-generated from goatlib schemas)
     if analytics_registry.is_analytics_process(process_id):
-        return analytics_registry.get_process_description(process_id, base_url)
+        return analytics_registry.get_process_description(
+            process_id, base_url, language
+        )
 
-    # Check async tool processes
-    process_desc = tool_registry.get_process_description(process_id, base_url)
+    # Check async tool processes (with translations)
+    process_desc = tool_registry.get_process_description(
+        process_id, base_url, language=language
+    )
 
     if not process_desc:
         raise HTTPException(
@@ -322,8 +350,8 @@ async def execute_process(
             },
         )
 
-    # Prepare script path for Windmill
-    script_path = f"f/goat/{process_id}"
+    # Use the windmill_path from the registry (ensures correct casing)
+    script_path = tool_info.windmill_path
 
     # Add user_id to inputs for job tracking
     job_inputs = {**execute_request.inputs, "user_id": str(user_id)}
@@ -336,15 +364,6 @@ async def execute_process(
         )
 
         logger.info(f"Job {job_id} created for process {process_id} by user {user_id}")
-
-        # Store job in database for user-scoped access
-        await job_service.create_job(
-            job_id=UUID(job_id),
-            user_id=user_id,
-            job_type=process_id,
-            status=JobStatus.ACCEPTED,
-            payload=execute_request.inputs,
-        )
 
         # Build status info response
         status_info = StatusInfo(
@@ -390,25 +409,6 @@ async def execute_process(
 
 
 # === Job Management ===
-
-
-def _db_status_to_ogc(status: str) -> StatusCode:
-    """Convert database status to OGC status code.
-
-    Handles legacy status values like 'killed', 'pending', 'finished'.
-    """
-    # Direct OGC status values
-    if status in ("accepted", "running", "successful", "failed", "dismissed"):
-        return StatusCode(status)
-
-    # Legacy status mappings
-    legacy_map = {
-        "pending": StatusCode.accepted,
-        "finished": StatusCode.successful,
-        "killed": StatusCode.dismissed,
-        "timeout": StatusCode.failed,
-    }
-    return legacy_map.get(status, StatusCode.failed)
 
 
 def _windmill_status_to_ogc(job: dict[str, Any]) -> StatusCode:
@@ -498,109 +498,44 @@ async def list_jobs(
     user_id: UUID = Depends(get_user_id),
     process_id: Annotated[str | None, Query(alias="processID")] = None,
     status: Annotated[str | None, Query()] = None,
-    limit: Annotated[int, Query(ge=1, le=1000)] = 100,
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> JobList:
-    """List all jobs for the authenticated user, optionally filtered by process ID or status."""
+    """List all jobs for the authenticated user from the last 3 days.
+
+    Jobs are queried directly from Windmill using efficient indexed filters.
+    """
     base_url = get_base_url(request)
 
     try:
-        # Get jobs from database (user-scoped)
-        db_jobs = await job_service.list_jobs(
-            user_id=user_id,
+        # Map OGC status to Windmill filters
+        success_filter: bool | None = None
+        running_filter: bool | None = None
+        if status == "successful":
+            success_filter = True
+        elif status == "failed":
+            success_filter = False
+        elif status == "running":
+            running_filter = True
+
+        # Query Windmill directly with efficient filters
+        windmill_jobs = await windmill_client.list_jobs_filtered(
+            user_id=str(user_id),
+            script_path_start="f/goat/",
+            created_after_days=3,
             process_id=process_id,
-            status=status,
+            success=success_filter,
+            running=running_filter,
             limit=limit,
         )
 
-        # For each job, get current status from Windmill and build StatusInfo
+        # Convert Windmill jobs to OGC StatusInfo
         jobs = []
-        for db_job in db_jobs:
-            job_id = str(db_job["id"])
-            db_status = db_job["status"]
-
-            # Only query Windmill for jobs that might still be running
-            # Skip Windmill lookup for completed/legacy jobs to avoid unnecessary requests
-            if db_status in ("accepted", "running"):
-                try:
-                    # Get live status from Windmill
-                    windmill_job = await windmill_client.get_job_status(job_id)
-                    windmill_status = _windmill_status_to_ogc(windmill_job)
-
-                    # Update status in DB if changed
-                    if windmill_status.value != db_status:
-                        await job_service.update_job_status(
-                            job_id=db_job["id"],
-                            status=windmill_status.value,
-                        )
-
-                    # Build StatusInfo with correct process ID from DB
-                    status_info = _windmill_job_to_status_info(windmill_job, base_url)
-                    status_info.processID = db_job[
-                        "type"
-                    ]  # Use DB process ID, not Windmill path
-                    jobs.append(status_info)
-
-                except WindmillJobNotFound:
-                    # Job exists in DB but not in Windmill - build from DB
-                    jobs.append(
-                        StatusInfo(
-                            processID=db_job["type"],
-                            type="process",
-                            jobID=job_id,
-                            status=_db_status_to_ogc(db_status),
-                            created=db_job.get("created_at"),
-                            links=[
-                                Link(
-                                    href=f"{base_url}/jobs/{job_id}",
-                                    rel="self",
-                                    type="application/json",
-                                    title="Job status",
-                                ),
-                            ],
-                        )
-                    )
-                except WindmillError as e:
-                    logger.warning(
-                        f"Failed to get Windmill status for job {job_id}: {e}"
-                    )
-                    # Include job with DB status only
-                    jobs.append(
-                        StatusInfo(
-                            processID=db_job["type"],
-                            type="process",
-                            jobID=job_id,
-                            status=_db_status_to_ogc(db_status),
-                            created=db_job.get("created_at"),
-                            links=[
-                                Link(
-                                    href=f"{base_url}/jobs/{job_id}",
-                                    rel="self",
-                                    type="application/json",
-                                    title="Job status",
-                                ),
-                            ],
-                        )
-                    )
-            else:
-                # Job is completed (successful, failed, dismissed) - use DB status directly
-                # No need to query Windmill for completed jobs
-                jobs.append(
-                    StatusInfo(
-                        processID=db_job["type"],
-                        type="process",
-                        jobID=job_id,
-                        status=_db_status_to_ogc(db_status),
-                        created=db_job.get("created_at"),
-                        links=[
-                            Link(
-                                href=f"{base_url}/jobs/{job_id}",
-                                rel="self",
-                                type="application/json",
-                                title="Job status",
-                            ),
-                        ],
-                    )
-                )
+        for wm_job in windmill_jobs:
+            status_info = _windmill_job_to_status_info(wm_job, base_url)
+            # Include result for successful jobs
+            if wm_job.get("success") is True and wm_job.get("result"):
+                status_info.result = wm_job.get("result")
+            jobs.append(status_info)
 
         return JobList(
             jobs=jobs,
@@ -614,7 +549,7 @@ async def list_jobs(
             ],
         )
 
-    except Exception as e:
+    except WindmillError as e:
         logger.error(f"Error listing jobs: {e}")
         raise HTTPException(
             status_code=500,
@@ -625,6 +560,23 @@ async def list_jobs(
                 "detail": str(e),
             },
         )
+
+
+def _verify_job_ownership(job: dict[str, Any], user_id: UUID) -> bool:
+    """Verify that a job belongs to the specified user.
+
+    Checks the user_id in the job's args against the authenticated user.
+
+    Args:
+        job: Windmill job dict
+        user_id: Authenticated user's UUID
+
+    Returns:
+        True if job belongs to user, False otherwise
+    """
+    job_args = job.get("args", {})
+    job_user_id = job_args.get("user_id")
+    return job_user_id == str(user_id)
 
 
 @router.get(
@@ -644,9 +596,11 @@ async def get_job_status(
     base_url = get_base_url(request)
 
     try:
-        # First check if user owns this job
-        db_job = await job_service.get_job(UUID(job_id), user_id)
-        if not db_job:
+        # Get job directly from Windmill
+        windmill_job = await windmill_client.get_job_with_result(job_id)
+
+        # Verify user owns this job (check user_id in args)
+        if not _verify_job_ownership(windmill_job, user_id):
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -657,44 +611,18 @@ async def get_job_status(
                 },
             )
 
-        # Get live status from Windmill
-        windmill_job = await windmill_client.get_job_status(job_id)
+        # Convert to StatusInfo
         status_info = _windmill_job_to_status_info(windmill_job, base_url)
 
-        # Use process ID from DB (not Windmill path)
-        status_info.processID = db_job["type"]
-
-        # Update status in DB if changed
-        windmill_status = _windmill_status_to_ogc(windmill_job)
-        if windmill_status.value != db_job["status"]:
-            await job_service.update_job_status(
-                job_id=UUID(job_id),
-                status=windmill_status.value,
-            )
+        # Include result payload for successful jobs
+        if windmill_job.get("success") is True and windmill_job.get("result"):
+            status_info.payload = windmill_job.get("result")
 
         return status_info
 
     except HTTPException:
         raise
     except WindmillJobNotFound:
-        # Job in DB but not in Windmill - return DB info
-        db_job = await job_service.get_job(UUID(job_id), user_id)
-        if db_job:
-            return StatusInfo(
-                processID=db_job["type"],
-                type="process",
-                jobID=job_id,
-                status=_db_status_to_ogc(db_job["status"]),
-                created=db_job.get("created_at"),
-                links=[
-                    Link(
-                        href=f"{base_url}/jobs/{job_id}",
-                        rel="self",
-                        type="application/json",
-                        title="Job status",
-                    ),
-                ],
-            )
         raise HTTPException(
             status_code=404,
             detail={
@@ -735,9 +663,11 @@ async def get_job_results(
 ) -> Any:
     """Get results of a completed job."""
     try:
-        # First check if user owns this job
-        db_job = await job_service.get_job(UUID(job_id), user_id)
-        if not db_job:
+        # Get job directly from Windmill
+        job = await windmill_client.get_job_status(job_id)
+
+        # Verify user owns this job
+        if not _verify_job_ownership(job, user_id):
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -748,8 +678,7 @@ async def get_job_results(
                 },
             )
 
-        # Check job status from Windmill
-        job = await windmill_client.get_job_status(job_id)
+        # Check job status
         status = _windmill_status_to_ogc(job)
 
         if status == StatusCode.running or status == StatusCode.accepted:
@@ -824,9 +753,11 @@ async def dismiss_job(
     base_url = get_base_url(request)
 
     try:
-        # First check if user owns this job
-        db_job = await job_service.get_job(UUID(job_id), user_id)
-        if not db_job:
+        # Get job directly from Windmill
+        job = await windmill_client.get_job_status(job_id)
+
+        # Verify user owns this job
+        if not _verify_job_ownership(job, user_id):
             raise HTTPException(
                 status_code=404,
                 detail={
@@ -837,27 +768,34 @@ async def dismiss_job(
                 },
             )
 
-        # Cancel the job in Windmill
-        try:
-            await windmill_client.cancel_job(job_id, "User requested dismissal")
-        except WindmillJobNotFound:
-            pass  # Job might already be finished
+        # Cancel if still running
+        status = _windmill_status_to_ogc(job)
+        if status in (StatusCode.accepted, StatusCode.running):
+            try:
+                await windmill_client.cancel_job(job_id, "User requested dismissal")
+            except WindmillError:
+                pass  # Job might have just finished
 
-        # Update status in DB
-        await job_service.update_job_status(
-            job_id=UUID(job_id),
-            status=JobStatus.DISMISSED,
-            user_id=user_id,
-        )
+        # Parse timestamps for response
+        created = None
+        if job.get("created_at"):
+            try:
+                created = datetime.fromisoformat(
+                    job["created_at"].replace("Z", "+00:00")
+                )
+            except Exception:
+                pass
+
+        process_id = job.get("script_path", "").replace("f/goat/", "")
 
         # Build response
         return StatusInfo(
-            processID=db_job["type"],
+            processID=process_id if process_id else None,
             type="process",
             jobID=job_id,
             status=StatusCode.dismissed,
             message="Job dismissed",
-            created=db_job.get("created_at"),
+            created=created,
             links=[
                 Link(
                     href=f"{base_url}/jobs/{job_id}",
@@ -870,6 +808,16 @@ async def dismiss_job(
 
     except HTTPException:
         raise
+    except WindmillJobNotFound:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "type": OGC_EXCEPTION_NO_SUCH_JOB,
+                "title": "Job not found",
+                "status": 404,
+                "detail": f"Job '{job_id}' not found",
+            },
+        )
     except WindmillError as e:
         logger.error(f"Error dismissing job: {e}")
         raise HTTPException(

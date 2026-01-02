@@ -34,17 +34,24 @@ class Settings(BaseSettings):
     WINDMILL_URL: str = os.getenv("WINDMILL_URL", "http://windmill-server:8000")
     WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "plan4better")
     WINDMILL_TOKEN: str = os.getenv("WINDMILL_TOKEN", "")
+    WINDMILL_SYNC_TOOLS: bool = (
+        os.getenv("WINDMILL_SYNC_TOOLS", "false").lower() == "true"
+    )
 
     # DuckLake settings
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")
     # Must match core app's data path since they share the same catalog
     DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
 
-    # S3/MinIO settings (optional)
-    DUCKLAKE_S3_ENDPOINT: Optional[str] = os.getenv("DUCKLAKE_S3_ENDPOINT")
-    DUCKLAKE_S3_BUCKET: Optional[str] = os.getenv("DUCKLAKE_S3_BUCKET")
-    DUCKLAKE_S3_ACCESS_KEY: Optional[str] = os.getenv("DUCKLAKE_S3_ACCESS_KEY")
-    DUCKLAKE_S3_SECRET_KEY: Optional[str] = os.getenv("DUCKLAKE_S3_SECRET_KEY")
+    # S3/MinIO settings (shared for DuckLake and uploads)
+    S3_PROVIDER: str = os.getenv("S3_PROVIDER", "hetzner").lower()
+    S3_ENDPOINT_URL: Optional[str] = os.getenv("S3_ENDPOINT_URL")
+    S3_ACCESS_KEY_ID: Optional[str] = os.getenv("S3_ACCESS_KEY_ID")
+    S3_SECRET_ACCESS_KEY: Optional[str] = os.getenv("S3_SECRET_ACCESS_KEY")
+    S3_REGION_NAME: str = os.getenv("S3_REGION_NAME") or os.getenv(
+        "S3_REGION", "us-east-1"
+    )
+    S3_BUCKET_NAME: Optional[str] = os.getenv("S3_BUCKET_NAME")
 
     # MVT Settings
     MAX_FEATURES_PER_TILE: int = 15000

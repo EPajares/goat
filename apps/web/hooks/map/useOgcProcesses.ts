@@ -3,6 +3,7 @@
  *
  * Provides hooks for fetching process list, descriptions, and executing processes
  */
+import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 
@@ -23,10 +24,13 @@ const PROCESSES_API_URL = `${PROCESSES_BASE_URL}/processes`;
 // Fetchers
 // ============================================================================
 
-async function fetchProcessList(): Promise<OGCProcessList> {
+async function fetchProcessList(language: string): Promise<OGCProcessList> {
   const response = await apiRequestAuth(PROCESSES_API_URL, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept-Language": language,
+    },
   });
 
   if (!response.ok) {
@@ -36,10 +40,13 @@ async function fetchProcessList(): Promise<OGCProcessList> {
   return response.json();
 }
 
-async function fetchProcessDescription(processId: string): Promise<OGCProcessDescription> {
+async function fetchProcessDescription(processId: string, language: string): Promise<OGCProcessDescription> {
   const response = await apiRequestAuth(`${PROCESSES_API_URL}/${processId}`, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Accept-Language": language,
+    },
   });
 
   if (!response.ok) {
@@ -79,10 +86,17 @@ async function executeProcess(_url: string, { arg }: { arg: ExecuteProcessArgs }
  * Hook to fetch the list of all available processes
  */
 export function useProcessList() {
-  const { data, error, isLoading, mutate } = useSWR<OGCProcessList>("ogc-process-list", fetchProcessList, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60000, // Cache for 1 minute
-  });
+  const { i18n } = useTranslation();
+  const language = i18n.language || "en";
+
+  const { data, error, isLoading, mutate } = useSWR<OGCProcessList>(
+    ["ogc-process-list", language],
+    () => fetchProcessList(language),
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000, // Cache for 1 minute
+    }
+  );
 
   return {
     processes: data?.processes ?? [],
@@ -97,9 +111,12 @@ export function useProcessList() {
  * Hook to fetch a specific process description with full input/output details
  */
 export function useProcessDescription(processId: string | undefined) {
+  const { i18n } = useTranslation();
+  const language = i18n.language || "en";
+
   const { data, error, isLoading, mutate } = useSWR<OGCProcessDescription>(
-    processId ? `ogc-process-${processId}` : null,
-    () => (processId ? fetchProcessDescription(processId) : Promise.reject("No process ID")),
+    processId ? [`ogc-process-${processId}`, language] : null,
+    () => (processId ? fetchProcessDescription(processId, language) : Promise.reject("No process ID")),
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000,
@@ -150,11 +167,15 @@ const DEFAULT_CATEGORY: ToolCategory = "geoprocessing";
 
 /**
  * Hook to get processes organized by category
+ * Filters out processes marked as hidden (x-ui-hidden: true)
  */
 export function useCategorizedProcesses() {
   const { processes, isLoading, error } = useProcessList();
 
-  const categorizedProcesses = processes.map(
+  // Filter out processes hidden from toolbox
+  const visibleProcesses = processes.filter((process) => !process["x-ui-toolbox-hidden"]);
+
+  const categorizedProcesses = visibleProcesses.map(
     (process): CategorizedTool => ({
       ...process,
       category: CATEGORY_MAP[process.id] || DEFAULT_CATEGORY,

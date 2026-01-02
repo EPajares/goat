@@ -100,7 +100,7 @@ export interface Job {
   user_id?: string;
   read?: boolean;
   project_id?: string;
-  payload?: Record<string, unknown>;
+  result?: Record<string, unknown>;
 }
 
 /**

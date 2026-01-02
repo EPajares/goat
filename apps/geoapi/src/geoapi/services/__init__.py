@@ -3,7 +3,6 @@
 from geoapi.services.analytics_registry import analytics_registry
 from geoapi.services.analytics_service import analytics_service
 from geoapi.services.feature_service import FeatureService, feature_service
-from geoapi.services.job_service import JobService, JobStatus, job_service
 from geoapi.services.layer_service import LayerService, layer_service
 from geoapi.services.tile_service import TileService, tile_service
 from geoapi.services.tool_registry import tool_registry
@@ -14,13 +13,10 @@ __all__ = [
     "LayerService",
     "TileService",
     "FeatureService",
-    "JobService",
-    "JobStatus",
     # Singleton instances
     "analytics_registry",
     "analytics_service",
     "feature_service",
-    "job_service",
     "layer_service",
     "tile_service",
     "tool_registry",

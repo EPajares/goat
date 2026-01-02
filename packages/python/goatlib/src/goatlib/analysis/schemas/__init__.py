@@ -1,7 +1,7 @@
 # Analysis schemas
 
 # Keep vector as alias for backwards compatibility
-from . import data_management, geoprocessing, heatmap, statistics, vector
+from . import data_management, geoprocessing, heatmap, statistics, ui, vector
 from .base import ALL_GEOMETRY_TYPES, POLYGON_TYPES, GeometryType
 from .data_management import (
     AttributeRelationship,
@@ -50,6 +50,25 @@ from .statistics import (
     UniqueValuesInput,
     UniqueValuesResult,
 )
+from .ui import (
+    SECTION_AREA,
+    SECTION_CONFIGURATION,
+    SECTION_INPUT,
+    SECTION_OPPORTUNITIES,
+    SECTION_OPTIONS,
+    SECTION_OUTPUT,
+    SECTION_ROUTING,
+    SECTION_SCENARIO,
+    SECTION_STATISTICS,
+    SECTION_TIME,
+    UIFieldConfig,
+    UISection,
+    layer_selector_field,
+    merge_ui_field,
+    scenario_selector_field,
+    ui_field,
+    ui_sections,
+)
 
 __all__ = [
     # Modules
@@ -58,10 +77,29 @@ __all__ = [
     "data_management",
     "statistics",
     "heatmap",
+    "ui",
     # Base schemas
     "GeometryType",
     "ALL_GEOMETRY_TYPES",
     "POLYGON_TYPES",
+    # UI schemas
+    "UISection",
+    "UIFieldConfig",
+    "ui_field",
+    "ui_sections",
+    "merge_ui_field",
+    "layer_selector_field",
+    "scenario_selector_field",
+    "SECTION_ROUTING",
+    "SECTION_CONFIGURATION",
+    "SECTION_INPUT",
+    "SECTION_OUTPUT",
+    "SECTION_OPTIONS",
+    "SECTION_OPPORTUNITIES",
+    "SECTION_SCENARIO",
+    "SECTION_STATISTICS",
+    "SECTION_TIME",
+    "SECTION_AREA",
     # Geoprocessing schemas
     "BufferParams",
     "ClipParams",

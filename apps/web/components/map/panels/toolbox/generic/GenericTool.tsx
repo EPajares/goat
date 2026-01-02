@@ -3,6 +3,7 @@
  *
  * Renders a tool form dynamically from OGC process description.
  * Handles input state, validation, and execution.
+ * Supports section-based layout from x-ui metadata.
  */
 import { Box, CircularProgress, Stack, Typography, useTheme } from "@mui/material";
 import { useParams } from "next/navigation";
@@ -15,8 +16,14 @@ import { ICON_NAME } from "@p4b/ui/components/Icon";
 import { useJobs } from "@/lib/api/processes";
 import { useUserProfile } from "@/lib/api/users";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
-import { getDefaultValues, processInputs, validateInputs } from "@/lib/utils/ogc-utils";
+import {
+  getDefaultValues,
+  getVisibleInputs,
+  processInputsWithSections,
+  validateInputs,
+} from "@/lib/utils/ogc-utils";
 
+import type { ProcessedSection } from "@/types/map/ogc-processes";
 import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
 import { useProcessDescription, useProcessExecution } from "@/hooks/map/useOgcProcesses";
@@ -29,6 +36,23 @@ import ToolboxActionButtons from "@/components/map/panels/common/ToolboxActionBu
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
 import LearnMore from "@/components/map/panels/toolbox/common/LearnMore";
 import { GenericInput } from "@/components/map/panels/toolbox/generic/inputs";
+
+// Map section icons from backend to ICON_NAME
+const SECTION_ICON_MAP: Record<string, ICON_NAME> = {
+  layers: ICON_NAME.LAYERS,
+  route: ICON_NAME.ROUTE,
+  settings: ICON_NAME.SETTINGS,
+  hexagon: ICON_NAME.HEXAGON,
+  table: ICON_NAME.TABLE,
+  tag: ICON_NAME.BOOKMARK,
+  grid: ICON_NAME.TABLE,
+  list: ICON_NAME.LIST,
+  globe: ICON_NAME.GLOBE,
+  upload: ICON_NAME.UPLOAD,
+  download: ICON_NAME.DOWNLOAD,
+  location: ICON_NAME.LOCATION,
+  "location-marker": ICON_NAME.LOCATION_MARKER,
+};
 
 interface GenericToolProps extends IndicatorBaseProps {
   processId: string;
@@ -55,29 +79,46 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
 
   // Form state
   const [values, setValues] = useState<Record<string, unknown>>({});
-  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Process inputs into categorized groups
-  const { mainInputs, advancedInputs } = useMemo(() => {
+  // Section collapse state
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  // Process inputs into sections
+  const sections = useMemo(() => {
     if (!process) {
-      return { mainInputs: [], advancedInputs: [], hiddenInputs: [] };
+      return [];
     }
-    return processInputs(process);
+    return processInputsWithSections(process);
   }, [process]);
 
-  // Initialize default values when process loads
+  // Initialize default values and collapsed states when process loads
   useEffect(() => {
     if (process) {
       const defaults = getDefaultValues(process);
       setValues(defaults);
+
+      // Initialize collapsed states from section definitions
+      const collapsed: Record<string, boolean> = {};
+      for (const section of sections) {
+        collapsed[section.id] = section.collapsed;
+      }
+      setCollapsedSections(collapsed);
     }
-  }, [process]);
+  }, [process, sections]);
 
   // Update a single input value
   const handleInputChange = useCallback((name: string, value: unknown) => {
     setValues((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  }, []);
+
+  // Toggle section collapse
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
     }));
   }, []);
 
@@ -93,18 +134,21 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   const isValid = useMemo(() => {
     if (!process) return false;
 
-    // Check required fields
-    for (const input of mainInputs) {
-      if (input.required) {
-        const value = values[input.name];
-        if (value === undefined || value === null || value === "") {
-          return false;
+    // Check required fields across all sections
+    for (const section of sections) {
+      const visibleInputs = getVisibleInputs(section.inputs, values);
+      for (const input of visibleInputs) {
+        if (input.required) {
+          const value = values[input.name];
+          if (value === undefined || value === null || value === "") {
+            return false;
+          }
         }
       }
     }
 
     return true;
-  }, [process, mainInputs, values]);
+  }, [process, sections, values]);
 
   // Execute the process
   const handleRun = async () => {
@@ -143,6 +187,14 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
       console.error("Process execution error:", error);
       toast.error(t("error_running_tool"));
     }
+  };
+
+  // Get icon for section
+  const getSectionIcon = (section: ProcessedSection): ICON_NAME => {
+    if (section.icon && SECTION_ICON_MAP[section.icon]) {
+      return SECTION_ICON_MAP[section.icon];
+    }
+    return ICON_NAME.LAYERS;
   };
 
   // Loading state
@@ -190,65 +242,51 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
             <LearnMore docsPath={`/toolbox/geoprocessing/${processId}`} />
           </Typography>
 
-          {/* Main Inputs Section */}
-          <SectionHeader
-            active={true}
-            alwaysActive={true}
-            label={t("input_parameters")}
-            icon={ICON_NAME.LAYERS}
-            disableAdvanceOptions={true}
-          />
-          <SectionOptions
-            active={true}
-            baseOptions={
-              <Stack spacing={2}>
-                {mainInputs.map((input) => (
-                  <GenericInput
-                    key={input.name}
-                    input={input}
-                    value={values[input.name]}
-                    onChange={(value) => handleInputChange(input.name, value)}
-                    disabled={isExecuting}
-                    formValues={values}
-                  />
-                ))}
-              </Stack>
-            }
-          />
+          {/* Render sections dynamically */}
+          {sections.map((section) => {
+            const visibleInputs = getVisibleInputs(section.inputs, values);
 
-          {/* Advanced Settings (if any) */}
-          {advancedInputs.length > 0 && (
-            <>
-              <SectionHeader
-                active={showAdvanced}
-                alwaysActive={false}
-                label={t("advanced_settings")}
-                icon={ICON_NAME.SETTINGS}
-                disableAdvanceOptions={false}
-                collapsed={!showAdvanced}
-                setCollapsed={(collapsed) => setShowAdvanced(!collapsed)}
-              />
-              {showAdvanced && (
-                <SectionOptions
-                  active={true}
-                  baseOptions={
-                    <Stack spacing={2}>
-                      {advancedInputs.map((input) => (
-                        <GenericInput
-                          key={input.name}
-                          input={input}
-                          value={values[input.name]}
-                          onChange={(value) => handleInputChange(input.name, value)}
-                          disabled={isExecuting}
-                          formValues={values}
-                        />
-                      ))}
-                    </Stack>
-                  }
+            // Skip empty sections
+            if (visibleInputs.length === 0) {
+              return null;
+            }
+
+            const isCollapsed = collapsedSections[section.id] ?? section.collapsed;
+            const isFirstSection = sections.indexOf(section) === 0;
+
+            return (
+              <Box key={section.id}>
+                <SectionHeader
+                  active={!isCollapsed}
+                  alwaysActive={!section.collapsible || isFirstSection}
+                  label={section.label}
+                  icon={getSectionIcon(section)}
+                  disableAdvanceOptions={!section.collapsible}
+                  collapsed={isCollapsed}
+                  setCollapsed={section.collapsible ? () => toggleSection(section.id) : undefined}
                 />
-              )}
-            </>
-          )}
+                {!isCollapsed && (
+                  <SectionOptions
+                    active={true}
+                    baseOptions={
+                      <Stack spacing={2}>
+                        {visibleInputs.map((input) => (
+                          <GenericInput
+                            key={input.name}
+                            input={input}
+                            value={values[input.name]}
+                            onChange={(value) => handleInputChange(input.name, value)}
+                            disabled={isExecuting}
+                            formValues={values}
+                          />
+                        ))}
+                      </Stack>
+                    }
+                  />
+                )}
+              </Box>
+            );
+          })}
         </Box>
       }
       action={

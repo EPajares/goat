@@ -33,15 +33,15 @@ class GeoAPIDuckLakePool(DuckLakePool):
             def __init__(self):
                 self.POSTGRES_DATABASE_URI = settings.POSTGRES_DATABASE_URI
                 self.DUCKLAKE_CATALOG_SCHEMA = settings.DUCKLAKE_CATALOG_SCHEMA
-                self.DUCKLAKE_S3_ENDPOINT = getattr(
-                    settings, "DUCKLAKE_S3_ENDPOINT", None
+                self.DUCKLAKE_S3_ENDPOINT = getattr(settings, "S3_ENDPOINT_URL", None)
+                self.DUCKLAKE_S3_BUCKET = (
+                    None  # Not using S3 for DuckLake storage currently
                 )
-                self.DUCKLAKE_S3_BUCKET = getattr(settings, "DUCKLAKE_S3_BUCKET", None)
                 self.DUCKLAKE_S3_ACCESS_KEY = getattr(
-                    settings, "DUCKLAKE_S3_ACCESS_KEY", None
+                    settings, "S3_ACCESS_KEY_ID", None
                 )
                 self.DUCKLAKE_S3_SECRET_KEY = getattr(
-                    settings, "DUCKLAKE_S3_SECRET_KEY", None
+                    settings, "S3_SECRET_ACCESS_KEY", None
                 )
                 self.DUCKLAKE_DATA_DIR = getattr(settings, "DUCKLAKE_DATA_DIR", None)
                 self.DATA_DIR = getattr(settings, "DATA_DIR", "/tmp")

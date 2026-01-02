@@ -2,9 +2,10 @@
  * Generic Array Input Component
  *
  * Renders an input for array values (e.g., list of numbers for buffer distances).
+ * Uses comma-separated text input for simplicity.
  */
-import { Chip, Stack, TextField } from "@mui/material";
-import { useState } from "react";
+import { Stack, TextField } from "@mui/material";
+import { useEffect, useState } from "react";
 
 import { getEffectiveSchema } from "@/lib/utils/ogc-utils";
 
@@ -20,74 +21,76 @@ interface ArrayInputProps {
 }
 
 export default function ArrayInput({ input, value, onChange, disabled }: ArrayInputProps) {
-  const [inputValue, setInputValue] = useState("");
   const effectiveSchema = getEffectiveSchema(input.schema);
   const itemSchema = effectiveSchema.items;
   const itemType = itemSchema?.type || "string";
+  const isNumeric = itemType === "number" || itemType === "integer";
 
-  const currentValues = value ?? [];
+  // Keep raw text in local state to allow free typing
+  const [textValue, setTextValue] = useState(() => value?.join(", ") ?? "");
 
-  const handleAddValue = () => {
-    if (!inputValue.trim()) return;
+  // Sync from parent when value changes externally
+  useEffect(() => {
+    const newText = value?.join(", ") ?? "";
+    if (newText !== textValue) {
+      setTextValue(newText);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
 
-    let newValue: unknown;
-    if (itemType === "number" || itemType === "integer") {
-      newValue = Number(inputValue);
-      if (isNaN(newValue as number)) return;
-    } else {
-      newValue = inputValue;
+  const parseValues = (text: string): unknown[] | undefined => {
+    if (!text.trim()) {
+      return undefined;
     }
 
-    onChange([...currentValues, newValue]);
-    setInputValue("");
-  };
+    // Split by comma and process each value
+    const parts = text
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p);
+    const newValues: unknown[] = [];
 
-  const handleRemoveValue = (index: number) => {
-    const newValues = [...currentValues];
-    newValues.splice(index, 1);
-    onChange(newValues.length > 0 ? newValues : undefined);
-  };
-
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleAddValue();
+    for (const part of parts) {
+      if (isNumeric) {
+        const num = Number(part);
+        if (!isNaN(num)) {
+          newValues.push(num);
+        }
+      } else {
+        newValues.push(part);
+      }
     }
+
+    return newValues.length > 0 ? newValues : undefined;
+  };
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const text = event.target.value;
+    setTextValue(text);
+  };
+
+  // Parse and update parent on blur
+  const handleBlur = () => {
+    const parsed = parseValues(textValue);
+    onChange(parsed);
   };
 
   return (
-    <Stack spacing={1}>
+    <Stack>
       <FormLabelHelper label={input.title} tooltip={input.description} color="inherit" />
-
-      {/* Current values as chips */}
-      {currentValues.length > 0 && (
-        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
-          {currentValues.map((val, index) => (
-            <Chip
-              key={index}
-              label={String(val)}
-              size="small"
-              onDelete={disabled ? undefined : () => handleRemoveValue(index)}
-              disabled={disabled}
-            />
-          ))}
-        </Stack>
-      )}
-
-      {/* Input for new values */}
-      <Stack direction="row" spacing={1}>
-        <TextField
-          size="small"
-          type={itemType === "number" || itemType === "integer" ? "number" : "text"}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          disabled={disabled}
-          placeholder={`Add ${input.title.toLowerCase()}`}
-          fullWidth
-          helperText="Press Enter to add"
-        />
-      </Stack>
+      <TextField
+        size="small"
+        value={textValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        disabled={disabled}
+        placeholder={isNumeric ? "e.g. 100, 200, 300" : "Enter values separated by commas"}
+        fullWidth
+        helperText="Separate multiple values with commas"
+        InputProps={{
+          sx: { fontSize: "0.875rem" },
+        }}
+      />
     </Stack>
   );
 }

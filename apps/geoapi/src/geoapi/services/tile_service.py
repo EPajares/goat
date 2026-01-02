@@ -62,7 +62,7 @@ class TileService:
         col_types = {col["name"]: col.get("type", "VARCHAR") for col in columns}
         column_names = [col["name"] for col in columns]
 
-        # MVT supported types
+        # MVT supported types (can be passed directly)
         mvt_supported_types = {
             "varchar",
             "text",
@@ -81,6 +81,14 @@ class TileService:
             "bool",
         }
 
+        # Types that cannot be included in MVT at all (even with casting)
+        mvt_excluded_type_prefixes = {"struct", "map", "list", "union"}
+
+        def is_excluded_type(col_type: str) -> bool:
+            """Check if type must be excluded from MVT entirely."""
+            type_lower = col_type.lower()
+            return any(type_lower.startswith(t) for t in mvt_excluded_type_prefixes)
+
         def needs_cast(col_type: str) -> bool:
             """Check if type needs casting to VARCHAR for MVT."""
             type_lower = col_type.lower()
@@ -96,6 +104,11 @@ class TileService:
         else:
             # No properties available
             prop_cols = []
+
+        # Filter out columns with types that cannot be used in MVT at all
+        prop_cols = [
+            c for c in prop_cols if not is_excluded_type(col_types.get(c, "VARCHAR"))
+        ]
 
         # Build select clause with casting for unsupported types
         select_parts = []

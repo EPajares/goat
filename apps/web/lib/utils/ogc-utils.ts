@@ -2,6 +2,7 @@
  * Utility functions for processing OGC API Processes schemas
  *
  * Transforms OGC input descriptions into UI-friendly structures
+ * with support for sections, field ordering, and conditional visibility.
  */
 import type {
   InferredInputType,
@@ -9,13 +10,22 @@ import type {
   OGCInputSchema,
   OGCProcessDescription,
   ProcessedInput,
+  ProcessedSection,
+  UIFieldMeta,
+  UISection,
 } from "@/types/map/ogc-processes";
 
 // Inputs that are handled automatically (not shown in form)
 const HIDDEN_INPUT_NAMES = ["user_id", "project_id", "save_results"];
 
-// Inputs that go in advanced settings section
-const ADVANCED_INPUT_NAMES = ["output_crs", "output_name", "scenario_id"];
+// Default section for fields without explicit section assignment
+const DEFAULT_SECTION_ID = "main";
+
+// Default section definitions (used when no x-ui-sections provided)
+const DEFAULT_SECTIONS: UISection[] = [
+  { id: "main", order: 1, label: "Parameters", icon: "layers" },
+  { id: "advanced", order: 10, label: "Advanced", icon: "settings", collapsible: true, collapsed: true },
+];
 
 /**
  * Infer the input type from OGC input schema
@@ -135,6 +145,7 @@ export function extractEnumValues(schema: OGCInputSchema): (string | number | bo
 export function processInput(name: string, input: OGCInputDescription): ProcessedInput {
   const inputType = inferInputType(input, name);
   const effectiveSchema = getEffectiveSchema(input.schema);
+  const uiMeta = input.schema["x-ui"] as UIFieldMeta | undefined;
 
   return {
     name,
@@ -148,42 +159,124 @@ export function processInput(name: string, input: OGCInputDescription): Processe
     isLayerInput: input.keywords.includes("layer"),
     geometryConstraints: extractGeometryConstraints(input),
     metadata: input.metadata,
+    // UI metadata
+    section: uiMeta?.section ?? DEFAULT_SECTION_ID,
+    fieldOrder: uiMeta?.field_order ?? 100,
+    uiMeta,
   };
 }
 
 /**
- * Process all inputs from a process description
+ * Process all inputs from a process description (legacy format)
+ * @deprecated Use processInputsWithSections instead
  */
 export function processInputs(process: OGCProcessDescription): {
   mainInputs: ProcessedInput[];
   advancedInputs: ProcessedInput[];
   hiddenInputs: ProcessedInput[];
 } {
+  const sections = processInputsWithSections(process);
+
+  // Flatten back to legacy format for backwards compatibility
   const mainInputs: ProcessedInput[] = [];
   const advancedInputs: ProcessedInput[] = [];
   const hiddenInputs: ProcessedInput[] = [];
 
-  for (const [name, input] of Object.entries(process.inputs)) {
-    const processed = processInput(name, input);
-
-    if (HIDDEN_INPUT_NAMES.includes(name)) {
-      hiddenInputs.push(processed);
-    } else if (ADVANCED_INPUT_NAMES.includes(name)) {
-      advancedInputs.push(processed);
+  for (const section of sections) {
+    if (section.id === "advanced" || section.id === "options") {
+      advancedInputs.push(...section.inputs);
     } else {
-      mainInputs.push(processed);
+      mainInputs.push(...section.inputs);
     }
   }
 
-  // Sort: required inputs first, then by name
-  mainInputs.sort((a, b) => {
-    if (a.required !== b.required) {
-      return a.required ? -1 : 1;
+  // Hidden inputs from process
+  for (const [name, input] of Object.entries(process.inputs)) {
+    if (HIDDEN_INPUT_NAMES.includes(name)) {
+      hiddenInputs.push(processInput(name, input));
     }
-    return a.name.localeCompare(b.name);
-  });
+  }
 
   return { mainInputs, advancedInputs, hiddenInputs };
+}
+
+/**
+ * Process inputs grouped by sections with proper ordering
+ */
+export function processInputsWithSections(process: OGCProcessDescription): ProcessedSection[] {
+  // Get section definitions from process or use defaults
+  const sectionDefs = process["x-ui-sections"] ?? DEFAULT_SECTIONS;
+
+  // Create section map
+  const sectionMap = new Map<string, ProcessedSection>();
+
+  for (const def of sectionDefs) {
+    sectionMap.set(def.id, {
+      id: def.id,
+      label: def.label ?? def.label_key ?? def.id,
+      icon: def.icon,
+      order: def.order,
+      collapsible: def.collapsible ?? false,
+      collapsed: def.collapsed ?? false,
+      inputs: [],
+    });
+  }
+
+  // Process and categorize inputs
+  for (const [name, input] of Object.entries(process.inputs)) {
+    // Skip hidden inputs
+    if (HIDDEN_INPUT_NAMES.includes(name)) {
+      continue;
+    }
+
+    const processed = processInput(name, input);
+
+    // Skip fields marked as hidden in UI metadata
+    if (processed.uiMeta?.hidden) {
+      continue;
+    }
+
+    const sectionId = processed.section ?? DEFAULT_SECTION_ID;
+
+    // Get or create section
+    let section = sectionMap.get(sectionId);
+    if (!section) {
+      // Create section dynamically if not defined
+      section = {
+        id: sectionId,
+        label: formatSectionLabel(sectionId),
+        order: 50, // Middle priority for unknown sections
+        collapsible: false,
+        collapsed: false,
+        inputs: [],
+      };
+      sectionMap.set(sectionId, section);
+    }
+
+    section.inputs.push(processed);
+  }
+
+  // Sort inputs within each section by field_order
+  for (const section of sectionMap.values()) {
+    section.inputs.sort((a, b) => a.fieldOrder - b.fieldOrder);
+  }
+
+  // Convert to array, filter empty sections, and sort by section order
+  const sections = Array.from(sectionMap.values())
+    .filter((section) => section.inputs.length > 0)
+    .sort((a, b) => a.order - b.order);
+
+  return sections;
+}
+
+/**
+ * Format section ID into display label
+ */
+function formatSectionLabel(sectionId: string): string {
+  return sectionId
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 /**
@@ -268,4 +361,169 @@ export function formatInputName(name: string): string {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+// ============================================================================
+// Visibility Evaluation Functions
+// ============================================================================
+
+/**
+ * Evaluate a MongoDB-like condition against form values
+ *
+ * Supports operators:
+ * - $eq: equals
+ * - $ne: not equals
+ * - $gt, $gte, $lt, $lte: comparisons
+ * - $in: value in array
+ * - $nin: value not in array
+ * - $exists: field exists (is not undefined/null)
+ */
+export function evaluateCondition(
+  condition: Record<string, unknown>,
+  values: Record<string, unknown>
+): boolean {
+  for (const [field, check] of Object.entries(condition)) {
+    const value = values[field];
+
+    // Handle operator objects
+    if (check !== null && typeof check === "object" && !Array.isArray(check)) {
+      const operators = check as Record<string, unknown>;
+
+      for (const [op, expected] of Object.entries(operators)) {
+        switch (op) {
+          case "$eq":
+            if (value !== expected) return false;
+            break;
+          case "$ne":
+            if (value === expected) return false;
+            break;
+          case "$gt":
+            if (typeof value !== "number" || typeof expected !== "number" || value <= expected) return false;
+            break;
+          case "$gte":
+            if (typeof value !== "number" || typeof expected !== "number" || value < expected) return false;
+            break;
+          case "$lt":
+            if (typeof value !== "number" || typeof expected !== "number" || value >= expected) return false;
+            break;
+          case "$lte":
+            if (typeof value !== "number" || typeof expected !== "number" || value > expected) return false;
+            break;
+          case "$in":
+            if (!Array.isArray(expected) || !expected.includes(value)) return false;
+            break;
+          case "$nin":
+            if (!Array.isArray(expected) || expected.includes(value)) return false;
+            break;
+          case "$exists":
+            const exists = value !== undefined && value !== null && value !== "";
+            if (expected && !exists) return false;
+            if (!expected && exists) return false;
+            break;
+          default:
+            // Unknown operator, skip
+            break;
+        }
+      }
+    } else {
+      // Direct equality check
+      if (value !== check) return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if an input should be visible based on its UI metadata and form values
+ */
+export function isInputVisible(input: ProcessedInput, values: Record<string, unknown>): boolean {
+  const { uiMeta } = input;
+
+  if (!uiMeta) return true;
+
+  // Check hidden flag (always hidden)
+  if (uiMeta.hidden) return false;
+
+  // Check visible_when condition
+  if (uiMeta.visible_when) {
+    if (!evaluateCondition(uiMeta.visible_when, values)) {
+      return false;
+    }
+  }
+
+  // Check hidden_when condition
+  if (uiMeta.hidden_when) {
+    if (evaluateCondition(uiMeta.hidden_when, values)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Get visible inputs for a section based on current form values
+ */
+export function getVisibleInputs(
+  inputs: ProcessedInput[],
+  values: Record<string, unknown>
+): ProcessedInput[] {
+  return inputs.filter((input) => isInputVisible(input, values));
+}
+
+/**
+ * Filter inputs by mutually exclusive group
+ * Returns only the highest priority input that has a value, or the first one if none have values
+ */
+export function filterMutuallyExclusiveInputs(
+  inputs: ProcessedInput[],
+  values: Record<string, unknown>
+): ProcessedInput[] {
+  // Group inputs by mutually_exclusive_group
+  const groups = new Map<string, ProcessedInput[]>();
+  const nonGrouped: ProcessedInput[] = [];
+
+  for (const input of inputs) {
+    const groupId = input.uiMeta?.mutually_exclusive_group;
+    if (groupId) {
+      const group = groups.get(groupId) ?? [];
+      group.push(input);
+      groups.set(groupId, group);
+    } else {
+      nonGrouped.push(input);
+    }
+  }
+
+  // For each group, determine which input to show
+  const result = [...nonGrouped];
+
+  for (const [, groupInputs] of groups) {
+    // Sort by priority (lower is higher priority)
+    groupInputs.sort((a, b) => (a.uiMeta?.priority ?? 99) - (b.uiMeta?.priority ?? 99));
+
+    // Find the first input that has a value
+    const inputWithValue = groupInputs.find((input) => {
+      const value = values[input.name];
+      return value !== undefined && value !== null && value !== "";
+    });
+
+    if (inputWithValue) {
+      result.push(inputWithValue);
+    } else {
+      // No input has value, show the highest priority one
+      result.push(groupInputs[0]);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Get all inputs from a group for toggling
+ */
+export function getMutuallyExclusiveGroup(inputs: ProcessedInput[], groupId: string): ProcessedInput[] {
+  return inputs
+    .filter((input) => input.uiMeta?.mutually_exclusive_group === groupId)
+    .sort((a, b) => (a.uiMeta?.priority ?? 99) - (b.uiMeta?.priority ?? 99));
 }

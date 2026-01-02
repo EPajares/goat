@@ -1,0 +1,22 @@
+{
+  "timings": {
+    "total_start": 251742.57933304,
+    "total_duration": 2.5929753810050897
+  },
+  "memory_usage": {
+    "final": {
+      "current_mb": 0.1894083023071289,
+      "peak_mb": 0.7079153060913086,
+      "process_rss_mb": 295.13671875
+    }
+  },
+  "network_stats": {},
+  "response_stats": {
+    "polygon_count": 1,
+    "total_coordinates": 5,
+    "total_locations": 338,
+    "expected_cutoffs": 1,
+    "transit_modes": 1
+  },
+  "timestamp": "2026-01-01T22:15:30.574367"
+}

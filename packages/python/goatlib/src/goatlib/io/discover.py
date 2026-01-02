@@ -4,8 +4,8 @@ from __future__ import annotations
 import logging
 import shutil
 import tempfile
-import urllib.request
 import urllib.error
+import urllib.request
 import zipfile
 from contextlib import contextmanager
 from pathlib import Path
