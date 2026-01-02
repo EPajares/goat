@@ -10,6 +10,14 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Self
 
+from pydantic import ConfigDict, Field
+
+from goatlib.analysis.schemas.ui import (
+    SECTION_OUTPUT,
+    UISection,
+    ui_field,
+    ui_sections,
+)
 from goatlib.io.converter import IOConverter
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
@@ -27,19 +35,80 @@ class LayerImportParams(ToolInputBase):
     Either s3_key or wfs_url must be provided.
     """
 
-    # Layer metadata
-    name: str | None = None  # Optional, will use filename if not provided
-    description: str | None = None
-    tags: list[str] | None = None
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            UISection(id="source", order=1, icon="upload"),
+            UISection(id="wfs_options", order=2, icon="globe"),
+            UISection(id="metadata", order=3, icon="tag"),
+            SECTION_OUTPUT,
+        )
+    )
 
     # Import source (one of these must be provided)
-    s3_key: str | None = None
-    wfs_url: str | None = None
-    wfs_layer_name: str | None = None
+    s3_key: str | None = Field(
+        None,
+        description="S3 object key for file import",
+        json_schema_extra=ui_field(
+            section="source",
+            field_order=1,
+            mutually_exclusive_group="import_source",
+        ),
+    )
+    wfs_url: str | None = Field(
+        None,
+        description="WFS service URL for external layer import",
+        json_schema_extra=ui_field(
+            section="source",
+            field_order=2,
+            mutually_exclusive_group="import_source",
+        ),
+    )
+    wfs_layer_name: str | None = Field(
+        None,
+        description="Layer name within the WFS service",
+        json_schema_extra=ui_field(
+            section="wfs_options",
+            field_order=1,
+            visible_when={"wfs_url": {"$ne": None}},
+        ),
+    )
 
     # External layer properties (for WFS/external services)
-    data_type: str | None = None
-    other_properties: dict | None = None
+    data_type: str | None = Field(
+        None,
+        description="Data type (for WFS layers)",
+        json_schema_extra=ui_field(
+            section="wfs_options",
+            field_order=2,
+            visible_when={"wfs_url": {"$ne": None}},
+        ),
+    )
+    other_properties: dict | None = Field(
+        None,
+        description="Additional properties for WFS layer",
+        json_schema_extra=ui_field(
+            section="wfs_options",
+            field_order=3,
+            hidden=True,
+        ),
+    )
+
+    # Layer metadata
+    name: str | None = Field(
+        None,
+        description="Layer name (will use filename if not provided)",
+        json_schema_extra=ui_field(section="metadata", field_order=1),
+    )
+    description: str | None = Field(
+        None,
+        description="Layer description",
+        json_schema_extra=ui_field(section="metadata", field_order=2),
+    )
+    tags: list[str] | None = Field(
+        None,
+        description="Tags for categorizing the layer",
+        json_schema_extra=ui_field(section="metadata", field_order=3, widget="tags"),
+    )
 
 
 class LayerImportRunner(BaseToolRunner[LayerImportParams]):

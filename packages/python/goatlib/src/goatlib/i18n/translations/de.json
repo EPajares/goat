@@ -1,0 +1,415 @@
+{
+  "sections": {
+    "routing": {
+      "label": "Routing"
+    },
+    "configuration": {
+      "label": "Konfiguration"
+    },
+    "opportunities": {
+      "label": "Gelegenheiten"
+    },
+    "scenario": {
+      "label": "Szenario"
+    },
+    "input": {
+      "label": "Eingabe"
+    },
+    "output": {
+      "label": "Ausgabe"
+    },
+    "options": {
+      "label": "Optionen"
+    },
+    "statistics": {
+      "label": "Statistik"
+    },
+    "time": {
+      "label": "Zeit"
+    },
+    "area": {
+      "label": "Fläche"
+    },
+    "buffer": {
+      "label": "Puffer-Einstellungen"
+    },
+    "overlay": {
+      "label": "Überlagerung"
+    },
+    "field_selection": {
+      "label": "Feldauswahl"
+    },
+    "matrix": {
+      "label": "Matrix-Daten"
+    },
+    "columns": {
+      "label": "Spaltenzuordnung"
+    },
+    "source": {
+      "label": "Importquelle"
+    },
+    "wfs_options": {
+      "label": "WFS-Optionen"
+    },
+    "metadata": {
+      "label": "Metadaten"
+    }
+  },
+  "fields": {
+    "routing_mode": {
+      "label": "Verkehrsmittel",
+      "description": "Wählen Sie das Verkehrsmittel für die Erreichbarkeitsanalyse"
+    },
+    "impedance": {
+      "label": "Impedanzfunktion",
+      "description": "Distanzabbau-Funktion für die Gravitationsberechnung"
+    },
+    "max_sensitivity": {
+      "label": "Maximale Sensitivität",
+      "description": "Maximaler Sensitivitätswert für die Normalisierung"
+    },
+    "opportunities": {
+      "label": "Gelegenheiten",
+      "description": "Liste der Gelegenheitsdatensätze mit Gravitationsparametern"
+    },
+    "input_path": {
+      "label": "Eingabe-Layer",
+      "description": "Wählen Sie den Eingabe-Layer für die Analyse"
+    },
+    "input_layer_id": {
+      "label": "Eingabe-Layer",
+      "description": "Wählen Sie den Eingabe-Layer für die Analyse"
+    },
+    "overlay_layer_id": {
+      "label": "Überlagerungs-Layer",
+      "description": "Wählen Sie den Überlagerungs-Layer"
+    },
+    "output_name": {
+      "label": "Ausgabename",
+      "description": "Name für den Ausgabe-Layer"
+    },
+    "max_cost": {
+      "label": "Reisezeitlimit",
+      "description": "Maximale Reisezeit in Minuten"
+    },
+    "sensitivity": {
+      "label": "Sensitivität",
+      "description": "Abbau-Sensitivitätsparameter für das Gravitationsmodell"
+    },
+    "potential_field": {
+      "label": "Potenzialfeld",
+      "description": "Feldname mit den Zielpotenzialwerten"
+    },
+    "potential_constant": {
+      "label": "Konstantes Potenzial",
+      "description": "Verwenden Sie einen konstanten Wert für alle Ziele"
+    },
+    "potential_expression": {
+      "label": "Potenzialausdruck",
+      "description": "Ausdruck zur Potenzialberechnung (z.B. 'area', 'perimeter')"
+    },
+    "n_destinations": {
+      "label": "Anzahl der Ziele",
+      "description": "Anzahl der nächsten Ziele zum Mitteln"
+    },
+    "reference_area_path": {
+      "label": "Referenzgebiet",
+      "description": "Layer, der das Referenzgebiet für die Konnektivitätsanalyse definiert"
+    },
+    "distances": {
+      "label": "Pufferabstände",
+      "description": "Liste der zu erstellenden Pufferabstände"
+    },
+    "field": {
+      "label": "Abstandsfeld",
+      "description": "Feld mit dem Pufferabstand für jedes Feature"
+    },
+    "units": {
+      "label": "Entfernungseinheit",
+      "description": "Maßeinheit für Entfernungen"
+    },
+    "dissolve": {
+      "label": "Auflösen",
+      "description": "Überlappende Puffer zu einer Geometrie zusammenführen"
+    },
+    "num_triangles": {
+      "label": "Kurvenglättung",
+      "description": "Anzahl der Segmente zur Kurvenannäherung"
+    },
+    "cap_style": {
+      "label": "Endkappenstil",
+      "description": "Stil für Linienendpunkte"
+    },
+    "join_style": {
+      "label": "Verbindungsstil",
+      "description": "Stil für Eckverbindungen zwischen Segmenten"
+    },
+    "mitre_limit": {
+      "label": "Gehrungsgrenze",
+      "description": "Verhältnis für Gehrungsverbindungslänge"
+    },
+    "scenario_id": {
+      "label": "Szenario",
+      "description": "Wählen Sie ein Szenario für die Analyse"
+    },
+    "od_matrix_path": {
+      "label": "OD-Matrix",
+      "description": "Pfad zur Quell-Ziel-Matrix"
+    },
+    "overlay_path": {
+      "label": "Überlagerungs-Layer",
+      "description": "Wählen Sie den Überlagerungs-Layer"
+    },
+    "input_fields": {
+      "label": "Eingabefelder",
+      "description": "Felder, die vom Eingabe-Layer behalten werden"
+    },
+    "overlay_fields": {
+      "label": "Überlagerungsfelder",
+      "description": "Felder, die vom Überlagerungs-Layer behalten werden"
+    },
+    "overlay_fields_prefix": {
+      "label": "Überlagerungsfeld-Präfix",
+      "description": "Präfix für Überlagerungsfeldnamen"
+    },
+    "geometry_path": {
+      "label": "Geometrie-Layer",
+      "description": "Layer mit Quell-/Zielgeometrien"
+    },
+    "matrix_path": {
+      "label": "Matrix-Datei",
+      "description": "Quell-Ziel-Matrix-Datei (parquet/csv)"
+    },
+    "unique_id_column": {
+      "label": "Eindeutige ID-Spalte",
+      "description": "Spalte mit eindeutigen Feature-IDs"
+    },
+    "origin_column": {
+      "label": "Quellspalte",
+      "description": "Spalte mit Quell-IDs"
+    },
+    "destination_column": {
+      "label": "Zielspalte",
+      "description": "Spalte mit Ziel-IDs"
+    },
+    "weight_column": {
+      "label": "Gewichtungsspalte",
+      "description": "Spalte mit Flussgewichtungen"
+    },
+    "output_path": {
+      "label": "Ausgabepfad",
+      "description": "Zielpfad für die Ausgabe"
+    },
+    "output_crs": {
+      "label": "Ausgabe-CRS",
+      "description": "Koordinatenreferenzsystem für die Ausgabe"
+    },
+    "layer_id": {
+      "label": "Layer",
+      "description": "Wählen Sie den Layer"
+    },
+    "s3_key": {
+      "label": "Datei",
+      "description": "Hochgeladene Datei zum Importieren"
+    },
+    "wfs_url": {
+      "label": "WFS-URL",
+      "description": "URL des WFS-Dienstes"
+    },
+    "wfs_layer_name": {
+      "label": "WFS-Layername",
+      "description": "Name des Layers im WFS-Dienst"
+    },
+    "data_type": {
+      "label": "Datentyp",
+      "description": "Datentyp für WFS-Layer"
+    },
+    "name": {
+      "label": "Name",
+      "description": "Layername"
+    },
+    "description": {
+      "label": "Beschreibung",
+      "description": "Layerbeschreibung"
+    },
+    "tags": {
+      "label": "Tags",
+      "description": "Tags zur Kategorisierung des Layers"
+    },
+    "file_type": {
+      "label": "Dateiformat",
+      "description": "Ausgabedateiformat"
+    },
+    "file_name": {
+      "label": "Dateiname",
+      "description": "Name für die exportierte Datei"
+    },
+    "crs": {
+      "label": "Ziel-CRS",
+      "description": "Koordinatenreferenzsystem für Reprojektion"
+    },
+    "query": {
+      "label": "Filterabfrage",
+      "description": "SQL-WHERE-Klausel zum Filtern von Features"
+    },
+    "collection": {
+      "label": "Layer",
+      "description": "Wählen Sie den zu analysierenden Layer"
+    },
+    "attribute": {
+      "label": "Attribut",
+      "description": "Zu analysierender Attribut-/Spaltenname"
+    },
+    "filter": {
+      "label": "Filter",
+      "description": "CQL2-Filterausdruck"
+    },
+    "order": {
+      "label": "Sortierreihenfolge",
+      "description": "Sortierreihenfolge nach Anzahl"
+    },
+    "limit": {
+      "label": "Limit",
+      "description": "Maximale Anzahl der zurückzugebenden Werte"
+    },
+    "offset": {
+      "label": "Versatz",
+      "description": "Versatz für Paginierung"
+    },
+    "method": {
+      "label": "Klassifizierungsmethode",
+      "description": "Methode zur Berechnung der Klassengrenzen"
+    },
+    "breaks": {
+      "label": "Anzahl der Klassen",
+      "description": "Anzahl der zu erstellenden Klassen"
+    },
+    "strip_zeros": {
+      "label": "Nullwerte ausschließen",
+      "description": "Nullwerte von der Analyse ausschließen"
+    },
+    "operation": {
+      "label": "Operation",
+      "description": "Durchzuführende statistische Operation"
+    }
+  },
+  "enums": {
+    "routing_mode": {
+      "walking": "Zu Fuß",
+      "bicycle": "Fahrrad",
+      "pedelec": "Pedelec (E-Bike)",
+      "public_transport": "Öffentliche Verkehrsmittel",
+      "car": "Auto"
+    },
+    "impedance_function": {
+      "gaussian": "Gauß",
+      "linear": "Linear",
+      "exponential": "Exponentiell",
+      "power": "Potenz"
+    },
+    "units": {
+      "meters": "Meter",
+      "kilometers": "Kilometer",
+      "feet": "Fuß",
+      "miles": "Meilen",
+      "nautical_miles": "Seemeilen",
+      "yards": "Yards"
+    },
+    "cap_style": {
+      "CAP_ROUND": "Rund",
+      "CAP_FLAT": "Flach",
+      "CAP_SQUARE": "Quadratisch"
+    },
+    "join_style": {
+      "JOIN_ROUND": "Rund",
+      "JOIN_MITRE": "Gehrung",
+      "JOIN_BEVEL": "Fase"
+    },
+    "sort_order": {
+      "ascendent": "Aufsteigend",
+      "descendent": "Absteigend"
+    },
+    "class_break_method": {
+      "quantile": "Quantil",
+      "equal_interval": "Gleiche Intervalle",
+      "standard_deviation": "Standardabweichung",
+      "heads_and_tails": "Heads and Tails"
+    },
+    "area_operation": {
+      "sum": "Summe",
+      "mean": "Mittelwert",
+      "min": "Minimum",
+      "max": "Maximum"
+    }
+  },
+  "tools": {
+    "buffer": {
+      "title": "Puffer",
+      "description": "Erstellen Sie Pufferzonen um Features"
+    },
+    "clip": {
+      "title": "Ausschneiden",
+      "description": "Features mit Überlagerungsgeometrie ausschneiden"
+    },
+    "centroid": {
+      "title": "Schwerpunkt",
+      "description": "Schwerpunkte für Features berechnen"
+    },
+    "intersection": {
+      "title": "Verschneiden",
+      "description": "Geometrische Verschneidung zweier Layer berechnen"
+    },
+    "union": {
+      "title": "Vereinigen",
+      "description": "Geometrien aus zwei Layern kombinieren"
+    },
+    "difference": {
+      "title": "Differenz",
+      "description": "Überlagerungsgeometrie von der Eingabe subtrahieren"
+    },
+    "origin_destination": {
+      "title": "Quell-Ziel-Analyse",
+      "description": "Flussdaten zwischen Quellen und Zielen visualisieren"
+    },
+    "heatmap_gravity": {
+      "title": "Heatmap Gravitation",
+      "description": "Gravitationsbasierte Erreichbarkeits-Heatmaps berechnen"
+    },
+    "heatmap_closest_average": {
+      "title": "Heatmap Nächster Durchschnitt",
+      "description": "Erreichbarkeit basierend auf nächsten Zielen berechnen"
+    },
+    "heatmap_connectivity": {
+      "title": "Heatmap Konnektivität",
+      "description": "Konnektivität zu Referenzgebieten berechnen"
+    },
+    "layer_import": {
+      "title": "Layer importieren",
+      "description": "Geodaten aus externen Quellen importieren"
+    },
+    "layer_export": {
+      "title": "Layer exportieren",
+      "description": "Layer in Dateiformat exportieren"
+    },
+    "layer_delete": {
+      "title": "Layer löschen",
+      "description": "Layer aus dem Speicher entfernen"
+    },
+    "feature_count": {
+      "title": "Feature-Anzahl",
+      "description": "Features in einer Sammlung mit optionaler Filterung zählen"
+    },
+    "unique_values": {
+      "title": "Eindeutige Werte",
+      "description": "Eindeutige Werte eines Attributs mit Anzahl der Vorkommen abrufen"
+    },
+    "class_breaks": {
+      "title": "Klassengrenzen",
+      "description": "Klassifizierungsgrenzen für ein numerisches Attribut berechnen"
+    },
+    "area_statistics": {
+      "title": "Flächenstatistiken",
+      "description": "Flächenstatistiken für Polygon-Features berechnen"
+    }
+  }
+}

@@ -25,6 +25,7 @@ export interface OGCProcessSummary {
   jobControlOptions: string[];
   outputTransmission: string[];
   links: OGCLink[];
+  "x-ui-toolbox-hidden"?: boolean;
 }
 
 export interface OGCProcessList {
@@ -62,11 +63,45 @@ export interface OGCOutputDescription {
 export interface OGCProcessDescription extends OGCProcessSummary {
   inputs: Record<string, OGCInputDescription>;
   outputs: Record<string, OGCOutputDescription>;
+  "x-ui-sections"?: UISection[];
 }
 
 // ============================================================================
 // JSON Schema Types (subset used by OGC)
 // ============================================================================
+
+/**
+ * UI metadata for a field (x-ui in schema)
+ */
+export interface UIFieldMeta {
+  section?: string;
+  field_order?: number;
+  label?: string;
+  description?: string;
+  hidden?: boolean;
+  visible_when?: Record<string, unknown>;
+  hidden_when?: Record<string, unknown>;
+  mutually_exclusive_group?: string;
+  priority?: number;
+  repeatable?: boolean;
+  min_items?: number;
+  max_items?: number;
+  widget?: string;
+  widget_options?: Record<string, unknown>;
+}
+
+/**
+ * UI section definition (from x-ui-sections)
+ */
+export interface UISection {
+  id: string;
+  order: number;
+  icon?: string;
+  label?: string;
+  label_key?: string;
+  collapsible?: boolean;
+  collapsed?: boolean;
+}
 
 export interface OGCInputSchema {
   type?: string;
@@ -88,6 +123,7 @@ export interface OGCInputSchema {
   allOf?: OGCInputSchema[];
   $ref?: string;
   $defs?: Record<string, OGCInputSchema>;
+  "x-ui"?: UIFieldMeta;
 }
 
 // ============================================================================
@@ -152,6 +188,23 @@ export interface ProcessedInput {
   isLayerInput: boolean;
   geometryConstraints?: string[];
   metadata: OGCMetadata[];
+  // UI metadata from x-ui
+  section?: string;
+  fieldOrder: number;
+  uiMeta?: UIFieldMeta;
+}
+
+/**
+ * Processed section with its inputs
+ */
+export interface ProcessedSection {
+  id: string;
+  label: string;
+  icon?: string;
+  order: number;
+  collapsible: boolean;
+  collapsed: boolean;
+  inputs: ProcessedInput[];
 }
 
 /**

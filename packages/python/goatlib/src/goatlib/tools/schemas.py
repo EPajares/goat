@@ -8,6 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from goatlib.analysis.schemas.ui import ui_field
+
 
 class ToolInputBase(BaseModel):
     """Base inputs that ALL tools receive.
@@ -19,16 +21,25 @@ class ToolInputBase(BaseModel):
     For layer imports outside a project, folder_id must be provided.
     """
 
-    user_id: str = Field(..., description="User UUID (injected by GeoAPI)")
+    user_id: str = Field(
+        ...,
+        description="User UUID (injected by GeoAPI)",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
+    )
     folder_id: str | None = Field(
         None,
         description="Destination folder UUID for output layer. If not provided, derived from project_id.",
+        json_schema_extra=ui_field(section="output", field_order=98, hidden=True),
     )
     project_id: str | None = Field(
-        None, description="If provided, add result layer to this project"
+        None,
+        description="If provided, add result layer to this project",
+        json_schema_extra=ui_field(section="output", field_order=97, hidden=True),
     )
     output_name: str | None = Field(
-        None, description="Custom name for output layer (optional)"
+        None,
+        description="Custom name for output layer (optional)",
+        json_schema_extra=ui_field(section="output", field_order=1),
     )
 
 
@@ -40,7 +51,15 @@ class LayerInputMixin(BaseModel):
             distance: float
     """
 
-    input_layer_id: str = Field(..., description="Source layer UUID from DuckLake")
+    input_layer_id: str = Field(
+        ...,
+        description="Source layer UUID from DuckLake",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
 
 
 class TwoLayerInputMixin(BaseModel):
@@ -51,8 +70,24 @@ class TwoLayerInputMixin(BaseModel):
             pass
     """
 
-    input_layer_id: str = Field(..., description="Primary input layer UUID")
-    overlay_layer_id: str = Field(..., description="Overlay/clip/join layer UUID")
+    input_layer_id: str = Field(
+        ...,
+        description="Primary input layer UUID",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
+    overlay_layer_id: str = Field(
+        ...,
+        description="Overlay/clip/join layer UUID",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
 
 
 class ToolOutputBase(BaseModel):

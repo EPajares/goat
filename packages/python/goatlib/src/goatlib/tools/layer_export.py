@@ -28,6 +28,15 @@ import zipfile
 from datetime import datetime
 from typing import Self
 
+from pydantic import ConfigDict, Field
+
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OPTIONS,
+    SECTION_OUTPUT,
+    ui_field,
+    ui_sections,
+)
 from goatlib.tools.base import SimpleToolRunner
 from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
 
@@ -51,11 +60,65 @@ FORMAT_MAP = {
 class LayerExportParams(ToolInputBase):
     """Parameters for LayerExport tool."""
 
-    layer_id: str
-    file_type: str  # gpkg, geojson, csv, kml, shp, parquet
-    file_name: str  # Output filename (without extension)
-    crs: str | None = None  # Target CRS for reprojection
-    query: str | None = None  # WHERE clause filter
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            SECTION_OUTPUT,
+            SECTION_OPTIONS,
+        )
+    )
+
+    layer_id: str = Field(
+        ...,
+        description="ID of the layer to export",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
+    file_type: str = Field(
+        ...,
+        description="Output file format (gpkg, geojson, csv, kml, shp, parquet)",
+        json_schema_extra=ui_field(
+            section="output",
+            field_order=1,
+            widget="select",
+            widget_options={
+                "options": [
+                    {"value": "gpkg", "label": "GeoPackage"},
+                    {"value": "geojson", "label": "GeoJSON"},
+                    {"value": "csv", "label": "CSV"},
+                    {"value": "kml", "label": "KML"},
+                    {"value": "shp", "label": "Shapefile"},
+                    {"value": "parquet", "label": "Parquet"},
+                ]
+            },
+        ),
+    )
+    file_name: str = Field(
+        ...,
+        description="Output filename (without extension)",
+        json_schema_extra=ui_field(section="output", field_order=2),
+    )
+    crs: str | None = Field(
+        None,
+        description="Target CRS for reprojection (e.g., EPSG:4326)",
+        json_schema_extra=ui_field(
+            section="options",
+            field_order=1,
+            widget="crs-selector",
+        ),
+    )
+    query: str | None = Field(
+        None,
+        description="WHERE clause to filter features",
+        json_schema_extra=ui_field(
+            section="options",
+            field_order=2,
+            widget="sql-editor",
+        ),
+    )
     # user_id inherited from ToolInputBase
 
 

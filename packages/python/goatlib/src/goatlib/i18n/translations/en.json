@@ -1,0 +1,415 @@
+{
+  "sections": {
+    "routing": {
+      "label": "Routing"
+    },
+    "configuration": {
+      "label": "Configuration"
+    },
+    "opportunities": {
+      "label": "Opportunities"
+    },
+    "scenario": {
+      "label": "Scenario"
+    },
+    "input": {
+      "label": "Input"
+    },
+    "output": {
+      "label": "Output"
+    },
+    "options": {
+      "label": "Options"
+    },
+    "statistics": {
+      "label": "Statistics"
+    },
+    "time": {
+      "label": "Time"
+    },
+    "area": {
+      "label": "Area"
+    },
+    "buffer": {
+      "label": "Buffer Settings"
+    },
+    "overlay": {
+      "label": "Overlay"
+    },
+    "field_selection": {
+      "label": "Field Selection"
+    },
+    "matrix": {
+      "label": "Matrix Data"
+    },
+    "columns": {
+      "label": "Column Mapping"
+    },
+    "source": {
+      "label": "Import Source"
+    },
+    "wfs_options": {
+      "label": "WFS Options"
+    },
+    "metadata": {
+      "label": "Metadata"
+    }
+  },
+  "fields": {
+    "routing_mode": {
+      "label": "Transport Mode",
+      "description": "Select the transport mode for accessibility analysis"
+    },
+    "impedance": {
+      "label": "Impedance Function",
+      "description": "Distance decay function for gravity calculation"
+    },
+    "max_sensitivity": {
+      "label": "Maximum Sensitivity",
+      "description": "Maximum sensitivity value used for normalization"
+    },
+    "opportunities": {
+      "label": "Opportunities",
+      "description": "List of opportunity datasets with gravity parameters"
+    },
+    "input_path": {
+      "label": "Input Layer",
+      "description": "Select the input layer for analysis"
+    },
+    "input_layer_id": {
+      "label": "Input Layer",
+      "description": "Select the input layer for analysis"
+    },
+    "overlay_layer_id": {
+      "label": "Overlay Layer",
+      "description": "Select the overlay layer"
+    },
+    "output_name": {
+      "label": "Output Name",
+      "description": "Name for the output layer"
+    },
+    "max_cost": {
+      "label": "Travel Time Limit",
+      "description": "Maximum travel time in minutes"
+    },
+    "sensitivity": {
+      "label": "Sensitivity",
+      "description": "Decay sensitivity parameter for gravity model"
+    },
+    "potential_field": {
+      "label": "Potential Field",
+      "description": "Field name containing destination potential values"
+    },
+    "potential_constant": {
+      "label": "Constant Potential",
+      "description": "Use a constant value for all destinations"
+    },
+    "potential_expression": {
+      "label": "Potential Expression",
+      "description": "Expression to calculate potential (e.g., 'area', 'perimeter')"
+    },
+    "n_destinations": {
+      "label": "Number of Destinations",
+      "description": "Number of closest destinations to average"
+    },
+    "reference_area_path": {
+      "label": "Reference Area",
+      "description": "Layer defining the reference area for connectivity analysis"
+    },
+    "distances": {
+      "label": "Buffer Distances",
+      "description": "List of buffer distances to create"
+    },
+    "field": {
+      "label": "Distance Field",
+      "description": "Field containing buffer distance for each feature"
+    },
+    "units": {
+      "label": "Distance Units",
+      "description": "Unit of measurement for distances"
+    },
+    "dissolve": {
+      "label": "Dissolve",
+      "description": "Merge overlapping buffers into single geometry"
+    },
+    "num_triangles": {
+      "label": "Curve Smoothness",
+      "description": "Number of segments to approximate curves"
+    },
+    "cap_style": {
+      "label": "Cap Style",
+      "description": "Style for line endpoints"
+    },
+    "join_style": {
+      "label": "Join Style",
+      "description": "Style for corner joins between segments"
+    },
+    "mitre_limit": {
+      "label": "Mitre Limit",
+      "description": "Ratio for mitred join length"
+    },
+    "scenario_id": {
+      "label": "Scenario",
+      "description": "Select a scenario for analysis"
+    },
+    "od_matrix_path": {
+      "label": "OD Matrix",
+      "description": "Path to origin-destination matrix"
+    },
+    "overlay_path": {
+      "label": "Overlay Layer",
+      "description": "Select the overlay layer"
+    },
+    "input_fields": {
+      "label": "Input Fields",
+      "description": "Fields to keep from input layer"
+    },
+    "overlay_fields": {
+      "label": "Overlay Fields",
+      "description": "Fields to keep from overlay layer"
+    },
+    "overlay_fields_prefix": {
+      "label": "Overlay Fields Prefix",
+      "description": "Prefix for overlay field names"
+    },
+    "geometry_path": {
+      "label": "Geometry Layer",
+      "description": "Layer containing origin/destination geometries"
+    },
+    "matrix_path": {
+      "label": "Matrix File",
+      "description": "Origin-destination matrix file (parquet/csv)"
+    },
+    "unique_id_column": {
+      "label": "Unique ID Column",
+      "description": "Column with unique feature IDs"
+    },
+    "origin_column": {
+      "label": "Origin Column",
+      "description": "Column containing origin IDs"
+    },
+    "destination_column": {
+      "label": "Destination Column",
+      "description": "Column containing destination IDs"
+    },
+    "weight_column": {
+      "label": "Weight Column",
+      "description": "Column containing flow weights"
+    },
+    "output_path": {
+      "label": "Output Path",
+      "description": "Destination path for output"
+    },
+    "output_crs": {
+      "label": "Output CRS",
+      "description": "Coordinate reference system for output"
+    },
+    "layer_id": {
+      "label": "Layer",
+      "description": "Select the layer"
+    },
+    "s3_key": {
+      "label": "File",
+      "description": "Uploaded file to import"
+    },
+    "wfs_url": {
+      "label": "WFS URL",
+      "description": "URL of the WFS service"
+    },
+    "wfs_layer_name": {
+      "label": "WFS Layer Name",
+      "description": "Name of the layer in WFS service"
+    },
+    "data_type": {
+      "label": "Data Type",
+      "description": "Type of data for WFS layer"
+    },
+    "name": {
+      "label": "Name",
+      "description": "Layer name"
+    },
+    "description": {
+      "label": "Description",
+      "description": "Layer description"
+    },
+    "tags": {
+      "label": "Tags",
+      "description": "Tags for categorizing the layer"
+    },
+    "file_type": {
+      "label": "File Format",
+      "description": "Output file format"
+    },
+    "file_name": {
+      "label": "File Name",
+      "description": "Name for the exported file"
+    },
+    "crs": {
+      "label": "Target CRS",
+      "description": "Coordinate reference system for reprojection"
+    },
+    "query": {
+      "label": "Filter Query",
+      "description": "SQL WHERE clause to filter features"
+    },
+    "collection": {
+      "label": "Layer",
+      "description": "Select the layer to analyze"
+    },
+    "attribute": {
+      "label": "Attribute",
+      "description": "Attribute/column name to analyze"
+    },
+    "filter": {
+      "label": "Filter",
+      "description": "CQL2 filter expression"
+    },
+    "order": {
+      "label": "Sort Order",
+      "description": "Sort order by count"
+    },
+    "limit": {
+      "label": "Limit",
+      "description": "Maximum values to return"
+    },
+    "offset": {
+      "label": "Offset",
+      "description": "Offset for pagination"
+    },
+    "method": {
+      "label": "Classification Method",
+      "description": "Method for calculating class breaks"
+    },
+    "breaks": {
+      "label": "Number of Classes",
+      "description": "Number of classes to create"
+    },
+    "strip_zeros": {
+      "label": "Exclude Zeros",
+      "description": "Exclude zero values from analysis"
+    },
+    "operation": {
+      "label": "Operation",
+      "description": "Statistical operation to perform"
+    }
+  },
+  "enums": {
+    "routing_mode": {
+      "walking": "Walking",
+      "bicycle": "Bicycle",
+      "pedelec": "Pedelec (E-Bike)",
+      "public_transport": "Public Transport",
+      "car": "Car"
+    },
+    "impedance_function": {
+      "gaussian": "Gaussian",
+      "linear": "Linear",
+      "exponential": "Exponential",
+      "power": "Power"
+    },
+    "units": {
+      "meters": "Meters",
+      "kilometers": "Kilometers",
+      "feet": "Feet",
+      "miles": "Miles",
+      "nautical_miles": "Nautical Miles",
+      "yards": "Yards"
+    },
+    "cap_style": {
+      "CAP_ROUND": "Round",
+      "CAP_FLAT": "Flat",
+      "CAP_SQUARE": "Square"
+    },
+    "join_style": {
+      "JOIN_ROUND": "Round",
+      "JOIN_MITRE": "Mitre",
+      "JOIN_BEVEL": "Bevel"
+    },
+    "sort_order": {
+      "ascendent": "Ascending",
+      "descendent": "Descending"
+    },
+    "class_break_method": {
+      "quantile": "Quantile",
+      "equal_interval": "Equal Interval",
+      "standard_deviation": "Standard Deviation",
+      "heads_and_tails": "Heads and Tails"
+    },
+    "area_operation": {
+      "sum": "Sum",
+      "mean": "Mean",
+      "min": "Minimum",
+      "max": "Maximum"
+    }
+  },
+  "tools": {
+    "buffer": {
+      "title": "Buffer",
+      "description": "Create buffer zones around features"
+    },
+    "clip": {
+      "title": "Clip",
+      "description": "Clip features using overlay geometry"
+    },
+    "centroid": {
+      "title": "Centroid",
+      "description": "Compute centroid points for features"
+    },
+    "intersection": {
+      "title": "Intersection",
+      "description": "Compute geometric intersection of two layers"
+    },
+    "union": {
+      "title": "Union",
+      "description": "Combine geometries from two layers"
+    },
+    "difference": {
+      "title": "Difference",
+      "description": "Subtract overlay geometry from input"
+    },
+    "origin_destination": {
+      "title": "Origin-Destination",
+      "description": "Visualize flow data between origins and destinations"
+    },
+    "heatmap_gravity": {
+      "title": "Heatmap Gravity",
+      "description": "Compute gravity-based accessibility heatmaps"
+    },
+    "heatmap_closest_average": {
+      "title": "Heatmap Closest Average",
+      "description": "Compute accessibility based on closest destinations"
+    },
+    "heatmap_connectivity": {
+      "title": "Heatmap Connectivity",
+      "description": "Compute connectivity to reference areas"
+    },
+    "layer_import": {
+      "title": "Import Layer",
+      "description": "Import geospatial data from external sources"
+    },
+    "layer_export": {
+      "title": "Export Layer",
+      "description": "Export layer to file format"
+    },
+    "layer_delete": {
+      "title": "Delete Layer",
+      "description": "Remove layer from storage"
+    },
+    "feature_count": {
+      "title": "Feature Count",
+      "description": "Count features in a collection with optional filtering"
+    },
+    "unique_values": {
+      "title": "Unique Values",
+      "description": "Get unique values for an attribute with occurrence counts"
+    },
+    "class_breaks": {
+      "title": "Class Breaks",
+      "description": "Calculate classification breaks for a numeric attribute"
+    },
+    "area_statistics": {
+      "title": "Area Statistics",
+      "description": "Calculate area statistics for polygon features"
+    }
+  }
+}

@@ -4,6 +4,10 @@ Tool registry for goatlib Windmill tools.
 This module uses goatlib.tools.*ToolParams classes as the single source of truth
 for both OGC Processes API and Windmill script generation.
 
+Includes support for:
+- UI metadata extraction (x-ui-sections, x-ui field config)
+- i18n translation resolution based on Accept-Language header
+
 Usage:
     from geoapi.services.tool_registry import tool_registry
 
@@ -13,13 +17,13 @@ Usage:
     # Get all available tools
     tools = tool_registry.get_all_tools()
 
-    # Get OGC process description
-    process_desc = tool_registry.get_process_description("buffer", base_url)
+    # Get OGC process description with translations
+    process_desc = tool_registry.get_process_description("buffer", base_url, language="de")
 """
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Type
+from typing import Any, Self
 
 from pydantic import BaseModel
 
@@ -39,6 +43,9 @@ logger = logging.getLogger(__name__)
 # Fields to exclude from OGC Process inputs (internal implementation details)
 EXCLUDED_FIELDS = {"input_path", "output_path", "overlay_path", "output_crs"}
 
+# Default language for translations
+DEFAULT_LANGUAGE = "en"
+
 
 @dataclass
 class ToolInfo:
@@ -47,11 +54,12 @@ class ToolInfo:
     name: str  # Short name (e.g., "buffer")
     display_name: str  # Human readable (e.g., "Buffer")
     description: str  # Tool description
-    params_class: Type[BaseModel]  # *ToolParams class from goatlib.tools
+    params_class: type[BaseModel]  # *ToolParams class from goatlib.tools
     windmill_path: str  # Windmill script path (e.g., "f/goat/buffer")
     category: str = "geoprocessing"
     job_control_options: list[str] = field(default_factory=lambda: ["async-execute"])
     keywords: list[str] = field(default_factory=list)
+    toolbox_hidden: bool = False  # Hide from toolbox UI
 
     @property
     def supports_sync(self) -> bool:
@@ -65,13 +73,29 @@ class ToolInfo:
 
 
 class ToolRegistry:
-    """Registry for goatlib tools using *ToolParams as single source of truth."""
+    """Registry for goatlib tools using *ToolParams as single source of truth.
 
-    def __init__(self):
+    Supports UI metadata extraction and i18n translations.
+    """
+
+    def __init__(self: Self) -> None:
         self._registry: dict[str, ToolInfo] = {}
         self._initialized = False
+        self._translator_cache: dict[str, Any] = {}
 
-    def _get_description(self, cls: Type) -> str:
+    def _get_translator(self: Self, language: str) -> Any:
+        """Get cached translator for a language."""
+        if language not in self._translator_cache:
+            try:
+                from goatlib.i18n import get_translator
+
+                self._translator_cache[language] = get_translator(language)
+            except ImportError:
+                logger.warning("goatlib.i18n not available, translations disabled")
+                self._translator_cache[language] = None
+        return self._translator_cache[language]
+
+    def _get_description(self: Self, cls: type) -> str:
         """Extract first paragraph from class docstring."""
         if cls.__doc__:
             lines = cls.__doc__.strip().split("\n")
@@ -85,7 +109,7 @@ class ToolRegistry:
             return " ".join(first_para)
         return f"{cls.__name__} tool"
 
-    def _init_tools(self) -> None:
+    def _init_tools(self: Self) -> None:
         """Initialize tools from goatlib.tools.registry."""
         if self._initialized:
             return
@@ -103,6 +127,7 @@ class ToolRegistry:
                     windmill_path=tool_def.windmill_path,
                     category=tool_def.category,
                     keywords=list(tool_def.keywords),
+                    toolbox_hidden=tool_def.toolbox_hidden,
                 )
 
             self._initialized = True
@@ -112,23 +137,61 @@ class ToolRegistry:
             logger.error(f"Could not initialize tool registry: {e}")
             self._initialized = True
 
-    def get_tool(self, name: str) -> ToolInfo | None:
+    def get_tool(self: Self, name: str) -> ToolInfo | None:
         """Get tool info by name."""
         self._init_tools()
         return self._registry.get(name.lower())
 
-    def get_all_tools(self) -> dict[str, ToolInfo]:
+    def get_all_tools(self: Self) -> dict[str, ToolInfo]:
         """Get all registered tools."""
         self._init_tools()
         return self._registry.copy()
 
-    def get_tool_names(self) -> list[str]:
+    def get_tool_names(self: Self) -> list[str]:
         """Get list of all tool names."""
         self._init_tools()
         return list(self._registry.keys())
 
+    def get_full_json_schema(
+        self: Self,
+        tool_name: str,
+        language: str = DEFAULT_LANGUAGE,
+    ) -> dict[str, Any] | None:
+        """Get full JSON schema with UI metadata and translations.
+
+        This returns the complete Pydantic JSON schema including:
+        - x-ui-sections from model_config
+        - x-ui field metadata from json_schema_extra
+        - Resolved translations for labels/descriptions
+
+        Args:
+            tool_name: Tool name (e.g., "buffer")
+            language: ISO 639-1 language code (e.g., "en", "de")
+
+        Returns:
+            JSON schema dict with UI metadata and translations, or None if tool not found
+        """
+        tool = self.get_tool(tool_name)
+        if not tool:
+            return None
+
+        # Get the full Pydantic JSON schema (includes x-ui metadata)
+        schema = tool.params_class.model_json_schema()
+
+        # Apply translations if available
+        translator = self._get_translator(language)
+        if translator:
+            try:
+                from goatlib.i18n import resolve_schema_translations
+
+                schema = resolve_schema_translations(schema, language, translator)
+            except ImportError:
+                logger.debug("Translation resolution not available")
+
+        return schema
+
     def _json_schema_for_field(
-        self, field_name: str, field_info: Any
+        self: Self, field_name: str, field_info: Any
     ) -> dict[str, Any]:
         """Convert Pydantic field to JSON Schema."""
         from typing import Union, get_args, get_origin
@@ -162,7 +225,7 @@ class ToolRegistry:
 
         return inner_schema
 
-    def _type_to_json_schema(self, python_type: Any) -> dict[str, Any]:
+    def _type_to_json_schema(self: Self, python_type: Any) -> dict[str, Any]:
         """Convert Python type to JSON Schema."""
         from typing import Literal, get_args, get_origin
 
@@ -190,23 +253,45 @@ class ToolRegistry:
             return {"type": "string"}
 
     def get_process_summary(
-        self, tool_name: str, base_url: str
+        self: Self,
+        tool_name: str,
+        base_url: str,
+        language: str = DEFAULT_LANGUAGE,
     ) -> ProcessSummary | None:
-        """Get OGC process summary for a tool."""
+        """Get OGC process summary for a tool.
+
+        Args:
+            tool_name: Tool name
+            base_url: Base URL for links
+            language: Language code for translations
+        """
         tool = self.get_tool(tool_name)
         if not tool:
             return None
 
+        # Get translated title/description if available
+        title = tool.display_name
+        description = tool.description
+        translator = self._get_translator(language)
+        if translator:
+            translated_title = translator.get_tool_title(tool.name)
+            translated_desc = translator.get_tool_description(tool.name)
+            if translated_title:
+                title = translated_title
+            if translated_desc:
+                description = translated_desc
+
         return ProcessSummary(
             id=tool.name,
-            title=tool.display_name,
-            description=tool.description,
+            title=title,
+            description=description,
             version="1.0.0",
             keywords=tool.keywords,
             jobControlOptions=[
                 JobControlOptions(opt) for opt in tool.job_control_options
             ],
             outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
+            x_ui_toolbox_hidden=tool.toolbox_hidden,
             links=[
                 Link(
                     href=f"{base_url}/processes/{tool.name}",
@@ -218,17 +303,36 @@ class ToolRegistry:
         )
 
     def get_process_description(
-        self, tool_name: str, base_url: str
+        self: Self,
+        tool_name: str,
+        base_url: str,
+        language: str = DEFAULT_LANGUAGE,
     ) -> ProcessDescription | None:
         """Get full OGC process description for a tool.
 
         Uses Pydantic's model_fields to generate OGC-compliant input descriptions.
         Excludes internal fields (input_path, output_path, etc.) that are
         implementation details not exposed to users.
+
+        Includes UI metadata (x-ui-sections, x-ui) and resolved translations.
+
+        Args:
+            tool_name: Tool name (e.g., "buffer")
+            base_url: Base URL for links
+            language: ISO 639-1 language code for translations
         """
         tool = self.get_tool(tool_name)
         if not tool:
             return None
+
+        # Get full JSON schema with UI metadata and translations
+        full_schema = self.get_full_json_schema(tool_name, language)
+
+        # Get translator for field labels
+        translator = self._get_translator(language)
+
+        # Extract x-ui-sections from schema
+        ui_sections = full_schema.get("x-ui-sections", []) if full_schema else []
 
         # Build inputs from params class model_fields
         inputs: dict[str, InputDescription] = {}
@@ -238,8 +342,22 @@ class ToolRegistry:
             if field_name in EXCLUDED_FIELDS:
                 continue
 
-            # Get JSON schema for field
+            # Check if field is hidden via x-ui metadata
+            field_schema = (
+                full_schema.get("properties", {}).get(field_name, {})
+                if full_schema
+                else {}
+            )
+            x_ui = field_schema.get("x-ui", {})
+            if x_ui.get("hidden", False):
+                continue
+
+            # Get JSON schema for field (includes x-ui from Pydantic)
             json_schema = self._json_schema_for_field(field_name, field_info)
+
+            # Merge x-ui metadata from full schema
+            if x_ui:
+                json_schema["x-ui"] = x_ui
 
             # Detect layer fields - these get special UI treatment (dropdown selector)
             is_layer_field = field_name.endswith("_layer_id") or field_name.endswith(
@@ -252,9 +370,21 @@ class ToolRegistry:
             elif field_name in ("user_id", "folder_id", "project_id"):
                 json_schema["format"] = "uuid"
 
+            # Get translated title/description
+            title = field_info.title or field_name.replace("_", " ").title()
+            description = field_info.description or f"Parameter: {field_name}"
+
+            if translator:
+                translated_label = translator.get_field_label(field_name)
+                translated_desc = translator.get_field_description(field_name)
+                if translated_label:
+                    title = translated_label
+                if translated_desc:
+                    description = translated_desc
+
             inputs[field_name] = InputDescription(
-                title=field_info.title or field_name.replace("_", " ").title(),
-                description=field_info.description or f"Parameter: {field_name}",
+                title=title,
+                description=description,
                 schema_=json_schema,
                 minOccurs=1 if field_info.is_required() else 0,
                 maxOccurs=1,
@@ -278,10 +408,22 @@ class ToolRegistry:
             ),
         }
 
-        return ProcessDescription(
+        # Get translated tool title/description
+        title = tool.display_name
+        description = tool.description
+        if translator:
+            translated_title = translator.get_tool_title(tool.name)
+            translated_desc = translator.get_tool_description(tool.name)
+            if translated_title:
+                title = translated_title
+            if translated_desc:
+                description = translated_desc
+
+        # Build process description with UI sections
+        process_desc = ProcessDescription(
             id=tool.name,
-            title=tool.display_name,
-            description=tool.description,
+            title=title,
+            description=description,
             version="1.0.0",
             keywords=tool.keywords,
             jobControlOptions=[
@@ -290,6 +432,7 @@ class ToolRegistry:
             outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
             inputs=inputs,
             outputs=outputs,
+            x_ui_sections=ui_sections,
             links=[
                 Link(
                     href=f"{base_url}/processes/{tool.name}",
@@ -312,13 +455,26 @@ class ToolRegistry:
             ],
         )
 
-    def get_process_list(self, base_url: str, limit: int = 100) -> ProcessList:
-        """Get OGC process list with all tools."""
+        return process_desc
+
+    def get_process_list(
+        self: Self,
+        base_url: str,
+        limit: int = 100,
+        language: str = DEFAULT_LANGUAGE,
+    ) -> ProcessList:
+        """Get OGC process list with all tools.
+
+        Args:
+            base_url: Base URL for links
+            limit: Maximum number of processes to return
+            language: Language code for translations
+        """
         self._init_tools()
 
         processes = []
         for tool_name in list(self._registry.keys())[:limit]:
-            summary = self.get_process_summary(tool_name, base_url)
+            summary = self.get_process_summary(tool_name, base_url, language)
             if summary:
                 processes.append(summary)
 

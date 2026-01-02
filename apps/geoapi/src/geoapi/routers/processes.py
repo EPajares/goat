@@ -201,6 +201,22 @@ async def conformance() -> ConformanceDeclaration:
 # === Process List and Description ===
 
 
+def get_language_from_request(request: Request) -> str:
+    """Extract language from Accept-Language header.
+
+    Returns the first supported language or 'en' as default.
+    """
+    accept_language = request.headers.get("accept-language", "en")
+    # Parse first language preference (e.g., "de-DE,de;q=0.9,en;q=0.8" -> "de")
+    if accept_language:
+        first_lang = accept_language.split(",")[0].split(";")[0].strip()
+        # Extract base language (e.g., "de-DE" -> "de")
+        lang_code = first_lang.split("-")[0].lower()
+        if lang_code in ("en", "de"):  # Supported languages
+            return lang_code
+    return "en"
+
+
 @router.get(
     "/processes",
     summary="List available processes",
@@ -210,14 +226,18 @@ async def list_processes(
     request: Request,
     limit: Annotated[int, Query(ge=1, le=1000)] = 100,
 ) -> ProcessList:
-    """Get list of all available processes (analytics + async tools)."""
+    """Get list of all available processes (analytics + async tools).
+
+    Supports i18n via Accept-Language header (en, de).
+    """
     base_url = get_base_url(request)
+    language = get_language_from_request(request)
 
     # Get analytics processes (sync) - auto-generated from goatlib schemas
-    analytics_summaries = analytics_registry.get_all_summaries(base_url)
+    analytics_summaries = analytics_registry.get_all_summaries(base_url, language)
 
-    # Get async tool processes from registry
-    tool_list = tool_registry.get_process_list(base_url, limit=limit)
+    # Get async tool processes from registry (with translations)
+    tool_list = tool_registry.get_process_list(base_url, limit=limit, language=language)
 
     # Combine both
     all_processes = analytics_summaries + tool_list.processes
@@ -247,15 +267,24 @@ async def list_processes(
     },
 )
 async def get_process(request: Request, process_id: str) -> ProcessDescription:
-    """Get detailed description of a specific process."""
+    """Get detailed description of a specific process.
+
+    Supports i18n via Accept-Language header (en, de).
+    Returns x-ui-sections and x-ui field metadata for dynamic UI rendering.
+    """
     base_url = get_base_url(request)
+    language = get_language_from_request(request)
 
     # Check analytics processes first (auto-generated from goatlib schemas)
     if analytics_registry.is_analytics_process(process_id):
-        return analytics_registry.get_process_description(process_id, base_url)
+        return analytics_registry.get_process_description(
+            process_id, base_url, language
+        )
 
-    # Check async tool processes
-    process_desc = tool_registry.get_process_description(process_id, base_url)
+    # Check async tool processes (with translations)
+    process_desc = tool_registry.get_process_description(
+        process_id, base_url, language=language
+    )
 
     if not process_desc:
         raise HTTPException(

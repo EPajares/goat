@@ -1,8 +1,8 @@
 import json
 import logging
 import tempfile
-import urllib.request
 import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse

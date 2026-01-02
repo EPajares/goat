@@ -3,28 +3,55 @@
 This module contains parameter schemas for geoprocessing operations like
 buffer, clip, intersection, union, difference, centroid, merge, and
 origin-destination analysis.
+
+Includes UI metadata for dynamic form rendering via x-ui fields.
 """
 
 from typing import List, Literal, Optional, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from goatlib.analysis.schemas.base import (
     ALL_GEOMETRY_TYPES,
     POLYGON_TYPES,
     GeometryType,
 )
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OPTIONS,
+    SECTION_OUTPUT,
+    UISection,
+    ui_field,
+    ui_sections,
+)
 
 
 class BufferParams(BaseModel):
-    """
-    Parameters for performing buffer operation
-    """
+    """Parameters for performing buffer operation."""
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="buffer", order=2, icon="hexagon"),
+            SECTION_OPTIONS,
+            SECTION_OUTPUT,
+        )
+    )
 
     # Input and output configuration
-    input_path: str = Field(..., description="Path to the input dataset.")
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
     output_path: str = Field(
-        ..., description="Destination file path or table for buffered output."
+        ...,
+        description="Destination file path or table for buffered output.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
 
     # Buffer distance parameters
@@ -32,10 +59,22 @@ class BufferParams(BaseModel):
         None,
         description="List of buffer distances. Required unless 'field' is specified. "
         "Each distance should be a positive number using the specified 'units'.",
+        json_schema_extra=ui_field(
+            section="buffer",
+            field_order=1,
+            mutually_exclusive_group="distance_source",
+            priority=1,
+        ),
     )
     field: Optional[str] = Field(
         None,
         description="Optional field name in the dataset that provides a per-feature buffer distance.",
+        json_schema_extra=ui_field(
+            section="buffer",
+            field_order=2,
+            mutually_exclusive_group="distance_source",
+            priority=2,
+        ),
     )
 
     units: Literal[
@@ -43,12 +82,14 @@ class BufferParams(BaseModel):
     ] = Field(
         "meters",
         description="Measurement units for buffer distances.",
+        json_schema_extra=ui_field(section="buffer", field_order=3),
     )
 
     # Controls whether overlapping buffers are dissolved into a single geometry
     dissolve: bool = Field(
         False,
         description="If True, overlapping buffers will be merged (dissolved) into a single geometry.",
+        json_schema_extra=ui_field(section="buffer", field_order=4),
     )
 
     # Parameters corresponding to GEOS / ST_Buffer options
@@ -56,28 +97,39 @@ class BufferParams(BaseModel):
         8,
         description="Number of triangles used to approximate a quarter circle. "
         "Higher values yield smoother buffer edges but increase computation cost.",
+        json_schema_extra=ui_field(section="options", field_order=1),
     )
     cap_style: Literal["CAP_ROUND", "CAP_FLAT", "CAP_SQUARE"] = Field(
         "CAP_ROUND",
         description="Style for line endpoints: 'CAP_ROUND', 'CAP_FLAT', or 'CAP_SQUARE'.",
+        json_schema_extra=ui_field(section="options", field_order=2),
     )
     join_style: Literal["JOIN_ROUND", "JOIN_MITRE", "JOIN_BEVEL"] = Field(
         "JOIN_ROUND",
         description="Corner join style between line segments. Options: 'JOIN_ROUND', 'JOIN_MITRE', 'JOIN_BEVEL'.",
+        json_schema_extra=ui_field(section="options", field_order=3),
     )
     mitre_limit: float = Field(
         1.0,
         description="Ratio controlling the length of mitred joins. "
         "Only applicable when join_style='JOIN_MITRE'. Default = 1.0.",
+        json_schema_extra=ui_field(
+            section="options",
+            field_order=4,
+            visible_when={"join_style": "JOIN_MITRE"},
+        ),
     )
 
     # Output metadata
     output_crs: Optional[str] = Field(
         "EPSG:4326",
         description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
     output_name: Optional[str] = Field(
-        None, description="Optional name of the output dataset."
+        None,
+        description="Optional name of the output dataset.",
+        json_schema_extra=ui_field(section="output", field_order=1),
     )
 
     # Validation logic
@@ -110,197 +162,369 @@ class BufferParams(BaseModel):
 
 
 class ClipParams(BaseModel):
-    """
-    Parameters for performing clip (zuschneiden) operation
-    """
+    """Parameters for performing clip (zuschneiden) operation."""
 
-    input_path: str = Field(..., description="Path to the input dataset to be clipped.")
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            SECTION_OUTPUT,
+        )
+    )
+
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset to be clipped.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
     overlay_path: str = Field(
-        ..., description="Path to the overlay dataset used for clipping."
+        ...,
+        description="Path to the overlay dataset used for clipping.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+            widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
+        ),
     )
     output_path: Optional[str] = Field(
         None,
         description="Destination file path for clipped output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
 
     # Hardcoded accepted geometry types for each layer
     @property
-    def accepted_input_geometry_types(self) -> List[GeometryType]:
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for input layer in clip operation."""
         return ALL_GEOMETRY_TYPES
 
     @property
-    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+    def accepted_overlay_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in clip operation (must be polygon)."""
         return POLYGON_TYPES
 
 
 class IntersectionParams(BaseModel):
-    """
-    Parameters for performing intersection (verschneiden) operation
-    """
+    """Parameters for performing intersection (verschneiden) operation."""
 
-    input_path: str = Field(..., description="Path to the input dataset.")
-    overlay_path: str = Field(
-        ..., description="Path to the overlay dataset to intersect with."
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            UISection(id="field_selection", order=3, icon="list"),
+            SECTION_OUTPUT,
+        )
     )
-    output_path: Optional[str] = Field(
-        None,
-        description="Destination file path for intersection output. If not provided, will be auto-generated.",
+
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
+    overlay_path: str = Field(
+        ...,
+        description="Path to the overlay dataset to intersect with.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+        ),
     )
     input_fields: Optional[List[str]] = Field(
         None,
         description="List of field names from input layer to keep in output. If None, all fields are kept.",
+        json_schema_extra=ui_field(
+            section="field_selection",
+            field_order=1,
+            widget="field-selector",
+            widget_options={"source_layer": "input_path", "multi": True},
+        ),
     )
     overlay_fields: Optional[List[str]] = Field(
         None,
         description="List of field names from overlay layer to keep in output. If None, all fields are kept.",
+        json_schema_extra=ui_field(
+            section="field_selection",
+            field_order=2,
+            widget="field-selector",
+            widget_options={"source_layer": "overlay_path", "multi": True},
+        ),
     )
     overlay_fields_prefix: Optional[str] = Field(
         "intersection_",
         description="Prefix to add to overlay field names to avoid naming conflicts. Default is 'intersection_'.",
+        json_schema_extra=ui_field(section="field_selection", field_order=3),
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for intersection output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
 
     # Hardcoded accepted geometry types for each layer
     @property
-    def accepted_input_geometry_types(self) -> List[GeometryType]:
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for input layer in intersection operation."""
         return ALL_GEOMETRY_TYPES
 
     @property
-    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+    def accepted_overlay_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in intersection operation."""
         return ALL_GEOMETRY_TYPES
 
 
 class UnionParams(BaseModel):
-    """
-    Parameters for performing union (vereinigen) operation
-    """
+    """Parameters for performing union (vereinigen) operation."""
 
-    input_path: str = Field(..., description="Path to the input dataset.")
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            SECTION_OUTPUT,
+        )
+    )
+
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
     overlay_path: Optional[str] = Field(
         None,
         description="Path to the overlay dataset to union with. If None, performs self-union on input.",
-    )
-    output_path: Optional[str] = Field(
-        None,
-        description="Destination file path for union output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+        ),
     )
     overlay_fields_prefix: Optional[str] = Field(
         None,
         description="Prefix to add to overlay field names to avoid naming conflicts.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=2,
+            visible_when={"overlay_path": {"$ne": None}},
+        ),
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for union output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
 
     # Hardcoded accepted geometry types for each layer
     @property
-    def accepted_input_geometry_types(self) -> List[GeometryType]:
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for input layer in union operation."""
         return ALL_GEOMETRY_TYPES
 
     @property
-    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+    def accepted_overlay_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in union operation."""
         return ALL_GEOMETRY_TYPES
 
 
 class DifferenceParams(BaseModel):
-    """
-    Parameters for performing difference (differenz) operation
-    """
+    """Parameters for performing difference (differenz) operation."""
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            SECTION_OUTPUT,
+        )
+    )
 
     input_path: str = Field(
-        ..., description="Path to the input dataset to subtract from."
+        ...,
+        description="Path to the input dataset to subtract from.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
     )
     overlay_path: str = Field(
-        ..., description="Path to the overlay dataset to subtract."
+        ...,
+        description="Path to the overlay dataset to subtract.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+            widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
+        ),
     )
     output_path: Optional[str] = Field(
         None,
         description="Destination file path for difference output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
 
     # Hardcoded accepted geometry types for each layer
     @property
-    def accepted_input_geometry_types(self) -> List[GeometryType]:
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for input layer in difference operation."""
         return ALL_GEOMETRY_TYPES
 
     @property
-    def accepted_overlay_geometry_types(self) -> List[GeometryType]:
+    def accepted_overlay_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in difference operation (typically polygon)."""
         return POLYGON_TYPES
 
 
 class CentroidParams(BaseModel):
-    """
-    Parameters for computing centroid of features.
-    """
+    """Parameters for computing centroid of features."""
 
-    input_path: str = Field(..., description="Path to the input dataset.")
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            SECTION_OUTPUT,
+        )
+    )
+
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
     output_path: Optional[str] = Field(
         None,
         description="Destination file path for centroid output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
 
     @property
-    def accepted_input_geometry_types(self) -> List[GeometryType]:
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for input layer."""
         return ALL_GEOMETRY_TYPES
 
 
 class OriginDestinationParams(BaseModel):
-    """
-    Parameters for performing origin-destination analysis.
-    """
+    """Parameters for performing origin-destination analysis."""
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="matrix", order=2, icon="grid"),
+            UISection(id="columns", order=3, icon="list"),
+            SECTION_OUTPUT,
+        )
+    )
 
     geometry_path: str = Field(
         ...,
         description="Path to the geometry layer (points or polygons) containing origins and destinations.",
-    )
-    matrix_path: str = Field(
-        ...,
-        description="Path to the origin-destination matrix file (parquet/csv).",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
     )
     unique_id_column: str = Field(
         ...,
         description="The column that contains the unique IDs in geometry layer.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=2,
+            widget="field-selector",
+            widget_options={"source_layer": "geometry_path"},
+        ),
+    )
+    matrix_path: str = Field(
+        ...,
+        description="Path to the origin-destination matrix file (parquet/csv).",
+        json_schema_extra=ui_field(
+            section="matrix",
+            field_order=1,
+            widget="file-selector",
+            widget_options={"file_types": [".parquet", ".csv"]},
+        ),
     )
     origin_column: str = Field(
         ...,
         description="The column that contains the origins in the origin destination matrix.",
+        json_schema_extra=ui_field(
+            section="columns",
+            field_order=1,
+            widget="field-selector",
+            widget_options={"source_layer": "matrix_path"},
+        ),
     )
     destination_column: str = Field(
         ...,
         description="The column that contains the destinations in the origin destination matrix.",
+        json_schema_extra=ui_field(
+            section="columns",
+            field_order=2,
+            widget="field-selector",
+            widget_options={"source_layer": "matrix_path"},
+        ),
     )
     weight_column: str = Field(
         ...,
         description="The column that contains the weights in the origin destination matrix.",
+        json_schema_extra=ui_field(
+            section="columns",
+            field_order=3,
+            widget="field-selector",
+            widget_options={"source_layer": "matrix_path"},
+        ),
     )
     output_path_lines: Optional[str] = Field(
         None,
         description="Destination file path for the lines output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=1, hidden=True),
     )
     output_path_points: Optional[str] = Field(
         None,
         description="Destination file path for the points output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
     )
     output_crs: Optional[str] = Field(
-        None, description="Target coordinate reference system for the output geometry."
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=3, hidden=True),
     )

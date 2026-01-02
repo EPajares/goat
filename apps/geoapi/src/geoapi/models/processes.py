@@ -122,6 +122,14 @@ class ProcessSummary(BaseModel):
         default_factory=lambda: [TransmissionMode.value]
     )
     links: list[Link] = Field(default_factory=list)
+    # UI metadata extension
+    x_ui_toolbox_hidden: bool = Field(
+        default=False,
+        alias="x-ui-toolbox-hidden",
+        description="Hide this process from the toolbox UI",
+    )
+
+    model_config = {"populate_by_name": True}
 
 
 class ProcessList(BaseModel):
@@ -156,10 +164,21 @@ class OutputDescription(BaseModel):
 
 
 class ProcessDescription(ProcessSummary):
-    """Full description of a process with inputs/outputs."""
+    """Full description of a process with inputs/outputs.
+
+    Extended with UI metadata for dynamic form rendering:
+    - x_ui_sections: Section definitions with icons and ordering
+    """
 
     inputs: dict[str, InputDescription] = Field(default_factory=dict)
     outputs: dict[str, OutputDescription] = Field(default_factory=dict)
+    x_ui_sections: list[dict[str, Any]] = Field(
+        default_factory=list,
+        alias="x-ui-sections",
+        description="UI section definitions for form rendering",
+    )
+
+    model_config = {"populate_by_name": True}
 
 
 # === Execution Models ===

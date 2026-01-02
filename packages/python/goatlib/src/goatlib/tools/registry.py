@@ -35,6 +35,7 @@ class ToolDefinition:
         windmill_path: Windmill script path (e.g., "f/goat/buffer")
         category: Tool category for grouping (e.g., "geoprocessing", "data")
         keywords: Search keywords for discovery
+        toolbox_hidden: If True, hide from toolbox UI (still available via API)
     """
 
     name: str
@@ -45,6 +46,7 @@ class ToolDefinition:
     windmill_path: str
     category: str = "geoprocessing"
     keywords: tuple[str, ...] = ()
+    toolbox_hidden: bool = False
 
     def get_params_class(self: Self) -> type["ToolInputBase"]:
         """Dynamically import and return the params class."""
@@ -87,6 +89,46 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         keywords=("geoprocessing", "centroid", "point"),
     ),
     ToolDefinition(
+        name="intersection",
+        display_name="Intersection",
+        description="Compute the geometric intersection of features from two layers",
+        module_path="goatlib.tools.intersection",
+        params_class_name="IntersectionToolParams",
+        windmill_path="f/goat/intersection",
+        category="geoprocessing",
+        keywords=("geoprocessing", "intersection", "overlay"),
+    ),
+    ToolDefinition(
+        name="union",
+        display_name="Union",
+        description="Compute the geometric union of features from two layers",
+        module_path="goatlib.tools.union",
+        params_class_name="UnionToolParams",
+        windmill_path="f/goat/union",
+        category="geoprocessing",
+        keywords=("geoprocessing", "union", "overlay", "merge"),
+    ),
+    ToolDefinition(
+        name="difference",
+        display_name="Difference",
+        description="Compute the geometric difference between features from two layers",
+        module_path="goatlib.tools.difference",
+        params_class_name="DifferenceToolParams",
+        windmill_path="f/goat/difference",
+        category="geoprocessing",
+        keywords=("geoprocessing", "difference", "overlay", "subtract"),
+    ),
+    ToolDefinition(
+        name="origin_destination",
+        display_name="Origin-Destination",
+        description="Create origin-destination lines and points from geometry and OD matrix",
+        module_path="goatlib.tools.origin_destination",
+        params_class_name="OriginDestinationToolParams",
+        windmill_path="f/goat/origin_destination",
+        category="geoprocessing",
+        keywords=("geoprocessing", "od", "origin", "destination", "matrix", "flow"),
+    ),
+    ToolDefinition(
         name="layerimport",
         display_name="LayerImport",
         description="Import geospatial data from S3 or WFS into DuckLake",
@@ -95,6 +137,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/layer_import",
         category="data",
         keywords=("import", "upload", "s3", "wfs", "data"),
+        toolbox_hidden=True,
     ),
     ToolDefinition(
         name="layerdelete",
@@ -105,6 +148,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/layer_delete",
         category="data",
         keywords=("delete", "remove", "layer", "data"),
+        toolbox_hidden=True,
     ),
     ToolDefinition(
         name="layerexport",
@@ -115,6 +159,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/layer_export",
         category="data",
         keywords=("export", "download", "gpkg", "geojson", "data"),
+        toolbox_hidden=True,
     ),
 )
 

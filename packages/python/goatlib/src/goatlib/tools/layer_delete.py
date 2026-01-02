@@ -17,6 +17,13 @@ import asyncio
 import logging
 from typing import Self
 
+from pydantic import ConfigDict, Field
+
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    ui_field,
+    ui_sections,
+)
 from goatlib.tools.base import SimpleToolRunner
 from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
 
@@ -26,7 +33,17 @@ logger = logging.getLogger(__name__)
 class LayerDeleteParams(ToolInputBase):
     """Parameters for LayerDelete tool."""
 
-    layer_id: str
+    model_config = ConfigDict(json_schema_extra=ui_sections(SECTION_INPUT))
+
+    layer_id: str = Field(
+        ...,
+        description="ID of the layer to delete",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
     # user_id inherited from ToolInputBase
     # project_id, folder_id, output_name not used for delete
 

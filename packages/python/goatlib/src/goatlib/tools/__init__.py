@@ -27,11 +27,20 @@ Example usage:
 """
 
 from goatlib.tools.base import BaseToolRunner, ToolSettings
+from goatlib.tools.buffer import BufferToolParams, BufferToolRunner
+from goatlib.tools.centroid import CentroidToolParams, CentroidToolRunner
+from goatlib.tools.clip import ClipToolParams, ClipToolRunner
 from goatlib.tools.codegen import generate_windmill_script, python_type_to_str
 from goatlib.tools.db import ToolDatabaseService
+from goatlib.tools.difference import DifferenceToolParams, DifferenceToolRunner
+from goatlib.tools.intersection import IntersectionToolParams, IntersectionToolRunner
 from goatlib.tools.layer_delete import LayerDeleteParams, LayerDeleteRunner
 from goatlib.tools.layer_export import LayerExportParams, LayerExportRunner
 from goatlib.tools.layer_import import LayerImportParams, LayerImportRunner
+from goatlib.tools.origin_destination import (
+    OriginDestinationToolParams,
+    OriginDestinationToolRunner,
+)
 from goatlib.tools.registry import TOOL_REGISTRY, ToolDefinition, get_tool
 from goatlib.tools.schemas import (
     LayerInputMixin,
@@ -39,6 +48,7 @@ from goatlib.tools.schemas import (
     ToolOutputBase,
     TwoLayerInputMixin,
 )
+from goatlib.tools.union import UnionToolParams, UnionToolRunner
 
 __all__ = [
     "BaseToolRunner",
@@ -48,6 +58,20 @@ __all__ = [
     "ToolOutputBase",
     "LayerInputMixin",
     "TwoLayerInputMixin",
+    "BufferToolParams",
+    "BufferToolRunner",
+    "CentroidToolParams",
+    "CentroidToolRunner",
+    "ClipToolParams",
+    "ClipToolRunner",
+    "IntersectionToolParams",
+    "IntersectionToolRunner",
+    "UnionToolParams",
+    "UnionToolRunner",
+    "DifferenceToolParams",
+    "DifferenceToolRunner",
+    "OriginDestinationToolParams",
+    "OriginDestinationToolRunner",
     "LayerImportParams",
     "LayerImportRunner",
     "LayerDeleteParams",
