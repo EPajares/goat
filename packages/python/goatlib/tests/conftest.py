@@ -1,4 +1,5 @@
 import logging
+import urllib.request
 from pathlib import Path
 from typing import Literal
 
@@ -8,6 +9,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Global root
@@ -209,3 +212,53 @@ def network_file(network_extractor_data_dir: Path) -> Path:
 def extracted_network_file(network_extractor_data_dir: Path) -> Path:
     """Path to the test network parquet file."""
     return network_extractor_data_dir / "extracted_network.parquet"
+
+
+# ---------------------------------------------------------------------------
+# Travel time matrices fixtures (auto-download from S3 if not present)
+# ---------------------------------------------------------------------------
+
+TRAVELTIME_MATRICES_BASE_URL = (
+    "https://assets.plan4better.de/goat/fixtures/traveltime_matrices"
+)
+TRAVELTIME_MATRICES_FILES = [
+    "walking/h3_3=8077/h3_r10_munich.parquet",
+]
+
+
+def _download_file(url: str, dest: Path) -> None:
+    """Download a file from URL to destination path."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Downloading {url} to {dest}...")
+    urllib.request.urlretrieve(url, dest)
+    logger.info(f"Downloaded {dest.name} ({dest.stat().st_size / 1024 / 1024:.1f} MB)")
+
+
+@pytest.fixture(scope="session")
+def traveltime_matrices_dir() -> Path:
+    """
+    Directory containing travel time matrices for heatmap tests.
+
+    Downloads the matrices from S3 if not already present locally.
+    The matrices are stored in /app/data/traveltime_matrices/ with hive partitioning.
+    """
+    # Use root data folder for shared test data
+    matrices_dir = (
+        Path(__file__).parent.parent.parent.parent.parent
+        / "data"
+        / "traveltime_matrices"
+    )
+
+    for rel_path in TRAVELTIME_MATRICES_FILES:
+        local_path = matrices_dir / rel_path
+        if not local_path.exists():
+            url = f"{TRAVELTIME_MATRICES_BASE_URL}/{rel_path}"
+            _download_file(url, local_path)
+
+    return matrices_dir
+
+
+@pytest.fixture(scope="session")
+def walking_matrix_dir(traveltime_matrices_dir: Path) -> Path:
+    """Directory containing walking travel time matrices."""
+    return traveltime_matrices_dir / "walking"

@@ -2,9 +2,9 @@ import math
 from pathlib import Path
 
 import pytest
-from goatlib.analysis.heatmap.closest_average import HeatmapClosestAverageTool
-from goatlib.analysis.heatmap.connectivity import HeatmapConnectivityTool
-from goatlib.analysis.heatmap.gravity import HeatmapGravityTool
+from goatlib.analysis.accessibility.closest_average import HeatmapClosestAverageTool
+from goatlib.analysis.accessibility.connectivity import HeatmapConnectivityTool
+from goatlib.analysis.accessibility.gravity import HeatmapGravityTool
 from goatlib.analysis.schemas.heatmap import (
     HeatmapClosestAverageParams,
     HeatmapConnectivityParams,
@@ -234,28 +234,21 @@ def test_gravity_tool_computes_expected_values(imp_func: ImpedanceFunction) -> N
     )
 
 
-def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
+def test_heatmap_gravity_tool(data_root: Path, walking_matrix_dir: Path) -> None:
     """Test HeatmapGravityTool"""
 
-    work_dir = tmp_path / "heatmap_gravity_test"
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-    od_matrix_path = str(
-        data_root.parent.parent.parent.parent.parent
-        / "data"
-        / "traveltime_matrices"
-        / "walking"
-    )
+    result_dir = Path(__file__).parent.parent.parent / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
 
     params = HeatmapGravityParams(
         routing_mode="walking",
-        od_matrix_path=od_matrix_path,
+        od_matrix_path=str(walking_matrix_dir),
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",
             "dest_id": "dest_id",
         },
-        output_path=str(work_dir / "heatmap_gravity.parquet"),
+        output_path=str(result_dir / "unit_heatmap_gravity.parquet"),
         impedance="linear",
         opportunities=[
             OpportunityGravity(
@@ -276,28 +269,23 @@ def test_heatmap_gravity_tool(tmp_path: Path, data_root: Path) -> None:
     assert path.exists()
 
 
-def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
+def test_heatmap_closest_average_tool(
+    data_root: Path, walking_matrix_dir: Path
+) -> None:
     """Test HeatmapClosestAverageTool"""
 
-    work_dir = tmp_path / "heatmap_closest_average_test"
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-    od_matrix_path = str(
-        data_root.parent.parent.parent.parent.parent
-        / "data"
-        / "traveltime_matrices"
-        / "walking"
-    )
+    result_dir = Path(__file__).parent.parent.parent / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
 
     params = HeatmapClosestAverageParams(
         routing_mode="walking",
-        od_matrix_path=od_matrix_path,
+        od_matrix_path=str(walking_matrix_dir),
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",
             "dest_id": "dest_id",
         },
-        output_path=str(work_dir / "heatmap_closest_average.parquet"),
+        output_path=str(result_dir / "unit_heatmap_closest_average.parquet"),
         opportunities=[
             OpportunityClosestAverage(
                 input_path=str(data_root / "analysis" / "de_weihnachsmaerkte_25.gpkg"),
@@ -316,28 +304,21 @@ def test_heatmap_closest_average_tool(tmp_path: Path, data_root: Path) -> None:
     assert path.exists()
 
 
-def test_heatmap_connectivity_tool(tmp_path: Path, data_root: Path) -> None:
+def test_heatmap_connectivity_tool(data_root: Path, walking_matrix_dir: Path) -> None:
     """Test HeatmapConnectivityTool"""
 
-    work_dir = tmp_path / "heatmap_connectivity_test"
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-    od_matrix_path = str(
-        data_root.parent.parent.parent.parent.parent
-        / "data"
-        / "traveltime_matrices"
-        / "walking"
-    )
+    result_dir = Path(__file__).parent.parent.parent / "result"
+    result_dir.mkdir(parents=True, exist_ok=True)
 
     params = HeatmapConnectivityParams(
         routing_mode="walking",
-        od_matrix_path=od_matrix_path,
+        od_matrix_path=str(walking_matrix_dir),
         od_column_map={
             "cost": "traveltime",
             "orig_id": "orig_id",
             "dest_id": "dest_id",
         },
-        output_path=str(work_dir / "heatmap_connectivity.parquet"),
+        output_path=str(result_dir / "unit_heatmap_connectivity.parquet"),
         max_cost=20,
         reference_area_path=str(data_root / "analysis" / "munich_districts.geojson"),
     )

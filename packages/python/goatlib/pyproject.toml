@@ -1,16 +1,10 @@
 [project]
 name = "goatlib"
 version = "2.0.0"
-requires-python = ">=3.11"
+requires-python = ">3.10,<3.12"
 description = "GOAT Library"
 authors = [{ name = "Plan4Better GmbH", email = "dev@plan4better.de" }]
-dependencies = [
-  "duckdb>=1.4.3",
-  "pydantic>=2.11.5",
-  "pydantic-settings>=2.9.1",
-  "pygeofilter>=0.2.4",
-  "pyproj>=3.6.0",
-]
+dependencies = ["duckdb>=1.4.3", "pydantic>=2.11.5", "pydantic-settings>=2.9.1"]
 
 [build-system]
 requires = ["uv_build>=0.9.2,<0.10.0"]
