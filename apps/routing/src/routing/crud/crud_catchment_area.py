@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import polars as pl
 from redis import Redis
+from shapely.geometry import mapping
 from routing.core.config import settings
 from routing.core.isochrone import compute_isochrone, compute_isochrone_h3
 from routing.core.jsoline import generate_jsolines
@@ -26,6 +27,7 @@ from routing.schemas.catchment_area import (
     CatchmentAreaTravelTimeCostMotorizedMobility,
     ICatchmentAreaActiveMobility,
     ICatchmentAreaCar,
+    OutputFormat,
 )
 from routing.schemas.error import BufferExceedsNetworkError, DisconnectedOriginError
 from routing.schemas.status import ProcessingStatus
@@ -198,7 +200,9 @@ class CRUDCatchmentArea:
                     schema_overrides=SEGMENT_DATA_SCHEMA,  # type: ignore
                 )
                 new_segment = new_segment.with_columns(
-                    pl.col("coordinates_3857").str.json_decode()
+                    pl.col("coordinates_3857").str.json_decode(
+                        dtype=pl.List(pl.List(pl.Float64))
+                    )
                 )
                 sub_network.extend(new_segment)
             # Remove segments which are deleted or modified due to the scenario
@@ -264,7 +268,11 @@ class CRUDCatchmentArea:
                 ],
                 schema_overrides=SEGMENT_DATA_SCHEMA,  # type: ignore
             )
-            new_df = new_df.with_columns(pl.col("coordinates_3857").str.json_decode())
+            new_df = new_df.with_columns(
+                pl.col("coordinates_3857").str.json_decode(
+                    dtype=pl.List(pl.List(pl.Float64))
+                )
+            )
             sub_network.extend(new_df)
         if len(origin_point_connectors) == 0:
             raise DisconnectedOriginError(
@@ -522,6 +530,201 @@ class CRUDCatchmentArea:
         y_centroids: np.ndarray = np.array([r[2] for r in result])
         return h3_index, x_centroids, y_centroids
 
+    def format_result(
+        self,
+        obj_in: Union[ICatchmentAreaActiveMobility, ICatchmentAreaCar],
+        shapes: Any,
+        network: Any,
+        grid_index: Optional[List[str]],
+        grid: Optional[np.ndarray],
+    ) -> Dict[str, Any]:
+        """Format the catchment area result as GeoJSON or prepare for Parquet export."""
+        # Compute step size for the catchment area
+        step_size: Union[float, int]
+        if type(obj_in.travel_cost) in [
+            CatchmentAreaTravelTimeCostActiveMobility,
+            CatchmentAreaTravelTimeCostMotorizedMobility,
+        ]:
+            step_size = obj_in.travel_cost.max_traveltime / obj_in.travel_cost.steps
+        else:
+            step_size = obj_in.travel_cost.max_distance / obj_in.travel_cost.steps
+
+        if obj_in.catchment_area_type == "polygon":
+            # Format polygon catchment area as GeoJSON
+            if shapes is None:
+                return {"type": "FeatureCollection", "features": []}
+            # Use incremental shapes if polygon_difference is True, otherwise use full
+            shapes_key = "incremental" if obj_in.polygon_difference else "full"
+            shapes_data = shapes[shapes_key]
+            features = []
+            for i in shapes_data.index:
+                geom = shapes_data["geometry"][i]
+                minute: Union[float, int] = shapes_data["minute"][i]
+                # Convert Shapely geometry to GeoJSON dict
+                geom_dict = mapping(geom)
+                features.append(
+                    {
+                        "type": "Feature",
+                        "geometry": geom_dict,
+                        "properties": {
+                            "minute": round(minute),
+                            "step": math.ceil(minute / step_size) * step_size
+                            if step_size > 0
+                            else minute,
+                        },
+                    }
+                )
+            return {"type": "FeatureCollection", "features": features}
+
+        elif obj_in.catchment_area_type == "network":
+            # Network data is already in GeoJSON-like format
+            if network is None:
+                return {"type": "FeatureCollection", "features": []}
+            # Add step-rounded cost to each feature
+            features = []
+            for feature in network.get("features", []):
+                cost = feature.get("properties", {}).get("cost", 0)
+                rounded_cost = (
+                    math.ceil(cost / step_size) * step_size if step_size > 0 else cost
+                )
+                new_feature = {
+                    "type": "Feature",
+                    "geometry": feature.get("geometry"),
+                    "properties": {
+                        **feature.get("properties", {}),
+                        "cost_step": round(rounded_cost),
+                    },
+                }
+                features.append(new_feature)
+            return {"type": "FeatureCollection", "features": features}
+
+        else:  # rectangular_grid
+            # Format H3 grid data
+            if grid_index is None or grid is None:
+                return {"type": "FeatureCollection", "features": []}
+            features = []
+            for i, h3_idx in enumerate(grid_index):
+                if math.isnan(grid[i]):
+                    continue
+                cost = (
+                    math.ceil(grid[i] / step_size) * step_size
+                    if step_size > 0
+                    else grid[i]
+                )
+                features.append(
+                    {
+                        "type": "Feature",
+                        "geometry": {"h3_index": h3_idx},  # H3 cell index
+                        "properties": {"h3_index": h3_idx, "cost": round(cost)},
+                    }
+                )
+            return {"type": "FeatureCollection", "features": features}
+
+    def format_result_parquet(
+        self,
+        obj_in: Union[ICatchmentAreaActiveMobility, ICatchmentAreaCar],
+        shapes: Any,
+        network: Any,
+        grid_index: Optional[List[str]],
+        grid: Optional[np.ndarray],
+    ) -> bytes:
+        """Format the catchment area result as Parquet bytes."""
+        import io
+
+        # Compute step size for the catchment area
+        step_size: Union[float, int]
+        if type(obj_in.travel_cost) in [
+            CatchmentAreaTravelTimeCostActiveMobility,
+            CatchmentAreaTravelTimeCostMotorizedMobility,
+        ]:
+            step_size = obj_in.travel_cost.max_traveltime / obj_in.travel_cost.steps
+        else:
+            step_size = obj_in.travel_cost.max_distance / obj_in.travel_cost.steps
+
+        if obj_in.catchment_area_type == "polygon":
+            if shapes is None:
+                df = pl.DataFrame({"geometry": [], "minute": [], "cost_step": []})
+            else:
+                # Use incremental shapes if polygon_difference is True, otherwise use full
+                shapes_key = "incremental" if obj_in.polygon_difference else "full"
+                shapes_data = shapes[shapes_key]
+                rows = []
+                for i in shapes_data.index:
+                    geom = shapes_data["geometry"][i]
+                    # Convert Shapely geometry to WKT string
+                    geom_wkt = geom.wkt if hasattr(geom, "wkt") else str(geom)
+                    minute: Union[float, int] = shapes_data["minute"][i]
+                    cost_step = (
+                        math.ceil(minute / step_size) * step_size
+                        if step_size > 0
+                        else minute
+                    )
+                    rows.append(
+                        {
+                            "geometry": geom_wkt,
+                            "minute": round(minute),
+                            "cost_step": round(cost_step),
+                        }
+                    )
+                df = pl.DataFrame(rows)
+
+        elif obj_in.catchment_area_type == "network":
+            if network is None or not network.get("features"):
+                df = pl.DataFrame({"geometry": [], "cost": [], "cost_step": []})
+            else:
+                rows = []
+                for feature in network.get("features", []):
+                    coords = feature.get("geometry", {}).get("coordinates", [])
+                    cost = feature.get("properties", {}).get("cost", 0)
+                    cost_step = (
+                        math.ceil(cost / step_size) * step_size
+                        if step_size > 0
+                        else cost
+                    )
+                    # Convert coordinates to WKT LineString
+                    if coords:
+                        points = ", ".join(f"{c[0]} {c[1]}" for c in coords)
+                        geom_wkt = f"LINESTRING({points})"
+                    else:
+                        geom_wkt = ""
+                    rows.append(
+                        {
+                            "geometry": geom_wkt,
+                            "cost": round(cost),
+                            "cost_step": round(cost_step),
+                        }
+                    )
+                df = pl.DataFrame(rows)
+
+        else:  # rectangular_grid
+            if grid_index is None or grid is None:
+                df = pl.DataFrame({"h3_index": [], "cost": [], "cost_step": []})
+            else:
+                rows = []
+                for i, h3_idx in enumerate(grid_index):
+                    if math.isnan(grid[i]):
+                        continue
+                    cost = grid[i]
+                    cost_step = (
+                        math.ceil(cost / step_size) * step_size
+                        if step_size > 0
+                        else cost
+                    )
+                    rows.append(
+                        {
+                            "h3_index": h3_idx,
+                            "cost": round(cost),
+                            "cost_step": round(cost_step),
+                        }
+                    )
+                df = pl.DataFrame(rows)
+
+        # Write to bytes buffer
+        buffer = io.BytesIO()
+        df.write_parquet(buffer)
+        buffer.seek(0)
+        return buffer.read()
+
     async def save_result(
         self,
         obj_in: Union[ICatchmentAreaActiveMobility, ICatchmentAreaCar],
@@ -680,8 +883,16 @@ class CRUDCatchmentArea:
                             f"Error inserting into table {obj_in.result_table}: {str(e).splitlines()[:5]}"
                         ) from e
 
-    async def run(self, obj_in_dict: Dict[str, Any]) -> None:
-        """Compute catchment areas for the given request parameters."""
+    async def run(
+        self, obj_in_dict: Dict[str, Any]
+    ) -> Union[Dict[str, Any], bytes, None]:
+        """Compute catchment areas for the given request parameters.
+
+        Returns:
+            - Dict[str, Any]: GeoJSON result if output_format is 'geojson'
+            - bytes: Parquet bytes if output_format is 'parquet'
+            - None: If there's an error
+        """
         obj_in: Union[ICatchmentAreaActiveMobility, ICatchmentAreaCar]
         if obj_in_dict["routing_type"] != CatchmentAreaRoutingTypeCar.car.value:
             obj_in = ICatchmentAreaActiveMobility(**obj_in_dict)
@@ -723,16 +934,16 @@ class CRUDCatchmentArea:
             # Delete input table for catchment area origin points
             await self.drop_temp_tables(input_table, network_modifications_table)
         except Exception as e:
-            if self.redis:
+            if self.redis and obj_in.layer_id:
                 self.redis.set(str(obj_in.layer_id), ProcessingStatus.failure.value)
             await self.db_connection.rollback()
             if type(e) == DisconnectedOriginError:
-                if self.redis:
+                if self.redis and obj_in.layer_id:
                     self.redis.set(
                         str(obj_in.layer_id), ProcessingStatus.disconnected_origin.value
                     )
             print(e)
-            return
+            raise e
         print(f"Network read time: {round(time.time() - start_time, 2)} sec")
         # Compute catchment area utilizing processed sub-network
         start_time = time.time()
@@ -819,30 +1030,41 @@ class CRUDCatchmentArea:
                 )
                 print("Computed catchment area shapes.")
         except Exception as e:
-            if self.redis:
+            if self.redis and obj_in.layer_id:
                 self.redis.set(str(obj_in.layer_id), ProcessingStatus.failure.value)
             print(e)
-            return
+            raise e
         print(
             f"Catchment area computation time: {round(time.time() - start_time, 2)} sec"
         )
-        # Write output of catchment area computation to database
+        # Format and return results based on output_format
         start_time = time.time()
+        result: Union[Dict[str, Any], bytes, None] = None
         try:
-            await self.save_result(
-                obj_in,
-                catchment_area_shapes,
-                catchment_area_network,
-                catchment_area_grid_index,
-                catchment_area_grid,
-            )
+            if obj_in.output_format == OutputFormat.parquet:
+                result = self.format_result_parquet(
+                    obj_in,
+                    catchment_area_shapes,
+                    catchment_area_network,
+                    catchment_area_grid_index,
+                    catchment_area_grid,
+                )
+            else:
+                # Default to GeoJSON format
+                result = self.format_result(
+                    obj_in,
+                    catchment_area_shapes,
+                    catchment_area_network,
+                    catchment_area_grid_index,
+                    catchment_area_grid,
+                )
         except Exception as e:
-            if self.redis:
+            if self.redis and obj_in.layer_id:
                 self.redis.set(str(obj_in.layer_id), ProcessingStatus.failure.value)
-            await self.db_connection.rollback()
             print(e)
-            return
-        print(f"Result save time: {round(time.time() - start_time, 2)} sec")
+            raise e
+        print(f"Result format time: {round(time.time() - start_time, 2)} sec")
         print(f"Total time: {round(time.time() - total_start, 2)} sec")
-        if self.redis:
+        if self.redis and obj_in.layer_id:
             self.redis.set(str(obj_in.layer_id), ProcessingStatus.success.value)
+        return result

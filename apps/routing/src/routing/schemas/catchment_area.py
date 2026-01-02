@@ -108,6 +108,13 @@ class CatchmentAreaType(str, Enum):
     rectangular_grid = "rectangular_grid"
 
 
+class OutputFormat(str, Enum):
+    """Output format schema."""
+
+    geojson = "geojson"
+    parquet = "parquet"
+
+
 class CatchmentAreaStartingPoints(BaseModel):
     """Base model for catchment area attributes."""
 
@@ -130,6 +137,7 @@ class CatchmentAreaRoutingTypeActiveMobility(str, Enum):
     bicycle = "bicycle"
     pedelec = "pedelec"
     wheelchair = "wheelchair"
+
 
 class CatchmentAreaRoutingTypeCar(str, Enum):
     """Routing car type schema."""
@@ -323,15 +331,20 @@ class ICatchmentAreaActiveMobility(BaseModel):
         title="Polygon Difference",
         description="If true, the polygons returned will be the geometrical difference of two following calculations.",
     )
-    result_table: str = Field(
-        ...,
+    output_format: OutputFormat = Field(
+        default=OutputFormat.geojson,
+        title="Output Format",
+        description="The output format for the catchment area results (geojson or parquet).",
+    )
+    result_table: str | None = Field(
+        default=None,
         title="Result Table",
-        description="The table name the results should be saved.",
+        description="The table name the results should be saved (deprecated, use output_format instead).",
     )
     layer_id: UUID | None = Field(
-        ...,
+        default=None,
         title="Layer ID",
-        description="The ID of the layer the results should be saved.",
+        description="The ID of the layer the results should be saved (deprecated, use output_format instead).",
     )
 
     @model_validator(mode="after")
@@ -405,15 +418,20 @@ class ICatchmentAreaCar(BaseModel):
         title="Polygon Difference",
         description="If true, the polygons returned will be the geometrical difference of two following calculations.",
     )
-    result_table: str = Field(
-        ...,
+    output_format: OutputFormat = Field(
+        default=OutputFormat.geojson,
+        title="Output Format",
+        description="The output format for the catchment area results (geojson or parquet).",
+    )
+    result_table: str | None = Field(
+        default=None,
         title="Result Table",
-        description="The table name the results should be saved.",
+        description="The table name the results should be saved (deprecated, use output_format instead).",
     )
     layer_id: UUID | None = Field(
-        ...,
+        default=None,
         title="Layer ID",
-        description="The ID of the layer the results should be saved.",
+        description="The ID of the layer the results should be saved (deprecated, use output_format instead).",
     )
 
     @model_validator(mode="after")
@@ -461,8 +479,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
         # 2. Single catchment area for walking (distance based)
@@ -477,8 +494,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
         # 3. Single catchment area for cycling
@@ -494,13 +510,12 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
-        # 4. Single catchment area for walking with scenario
-        "single_point_walking_scenario": {
-            "summary": "Single point catchment area walking",
+        # 4. Single catchment area for walking with parquet output
+        "single_point_walking_parquet": {
+            "summary": "Single point catchment area walking (parquet output)",
             "value": {
                 "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
                 "routing_type": "walking",
@@ -511,9 +526,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "scenario_id": "e7dcaae4-1750-49b7-89a5-9510bf2761ad",
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "parquet",
             },
         },
         # 5. Multi-catchment area walking with more than one starting point
@@ -554,8 +567,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
         # 6. Multi-catchment area cycling with more than one starting point
@@ -596,8 +608,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
     },
@@ -614,8 +625,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
         # 2. Single catchment area for car (distance based)
@@ -630,13 +640,12 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
-        # 3. Single catchment area for car with scenario
-        "single_point_car_scenario": {
-            "summary": "Single point catchment area car",
+        # 3. Single catchment area for car with parquet output
+        "single_point_car_parquet": {
+            "summary": "Single point catchment area car (parquet output)",
             "value": {
                 "starting_points": {"latitude": [52.5200], "longitude": [13.4050]},
                 "routing_type": "car",
@@ -646,9 +655,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "scenario_id": "e7dcaae4-1750-49b7-89a5-9510bf2761ad",
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "parquet",
             },
         },
         # 4. Multi-catchment area car with more than one starting point
@@ -688,8 +695,7 @@ request_examples: dict[str, Any] = {
                 },
                 "catchment_area_type": "polygon",
                 "polygon_difference": True,
-                "result_table": "polygon_744e4fd1685c495c8b02efebce875359",
-                "layer_id": "744e4fd1-685c-495c-8b02-efebce875359",
+                "output_format": "geojson",
             },
         },
     },
