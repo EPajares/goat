@@ -12,6 +12,8 @@ export interface ExportOptions {
   layoutId: string;
   format?: ExportFormat;
   atlasPageIndices?: number[];
+  /** Total number of atlas pages (used by backend when atlasPageIndices is not provided) */
+  totalAtlasPages?: number;
 }
 
 export interface UseExportReportResult {
@@ -34,7 +36,7 @@ export function useExportReport(): UseExportReportResult {
    */
   const exportReport = useCallback(
     async (options: ExportOptions): Promise<void> => {
-      const { projectId, layoutId, format = "pdf", atlasPageIndices } = options;
+      const { projectId, layoutId, format = "pdf", atlasPageIndices, totalAtlasPages } = options;
 
       setIsBusy(true);
 
@@ -49,6 +51,11 @@ export function useExportReport(): UseExportReportResult {
         // Only include atlas_page_indices if provided
         if (atlasPageIndices !== undefined) {
           inputs.atlas_page_indices = atlasPageIndices;
+        }
+
+        // Pass total atlas pages so backend doesn't need to query
+        if (totalAtlasPages !== undefined) {
+          inputs.total_atlas_pages = totalAtlasPages;
         }
 
         const job = await executeProcessAsync("PrintReport", inputs);

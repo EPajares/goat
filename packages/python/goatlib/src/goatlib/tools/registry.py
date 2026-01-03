@@ -37,6 +37,7 @@ class ToolDefinition:
         keywords: Search keywords for discovery
         toolbox_hidden: If True, hide from toolbox UI (still available via API)
         docs_path: Path to documentation (appended to docs base URL)
+        worker_tag: Windmill worker tag for job routing (e.g., "tools", "print")
     """
 
     name: str
@@ -49,6 +50,7 @@ class ToolDefinition:
     keywords: tuple[str, ...] = ()
     toolbox_hidden: bool = False
     docs_path: str | None = None
+    worker_tag: str = "tools"
 
     def get_params_class(self: Self) -> type["ToolInputBase"]:
         """Dynamically import and return the params class."""
@@ -235,6 +237,18 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         category="data",
         keywords=("export", "download", "gpkg", "geojson", "data"),
         toolbox_hidden=True,
+    ),
+    ToolDefinition(
+        name="printreport",
+        display_name="PrintReport",
+        description="Generate PDF/PNG reports from map layouts",
+        module_path="goatlib.tools.print_report",
+        params_class_name="PrintReportParams",
+        windmill_path="f/goat/print_report",
+        category="data",
+        keywords=("print", "report", "pdf", "png", "export"),
+        toolbox_hidden=True,
+        worker_tag="print",
     ),
 )
 

@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     # CORS settings
     CORS_ORIGINS: list[str] = ["*"]
 
+    # Print worker URL (for PrintReport tool to render pages)
+    # Default uses Docker container name; override with PRINT_BASE_URL env var
+    PRINT_BASE_URL: str = os.getenv("PRINT_BASE_URL", "http://goat-web:3000")
+
     @property
     def POSTGRES_DATABASE_URI(self) -> str:
         """Construct PostgreSQL URI."""

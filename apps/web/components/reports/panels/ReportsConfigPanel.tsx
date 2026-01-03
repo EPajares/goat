@@ -42,6 +42,7 @@ import type {
 
 import type { SelectorItem } from "@/types/map/common";
 
+import { useAtlasFeatures } from "@/hooks/reports/useAtlasFeatures";
 import { type ExportFormat, useExportReport } from "@/hooks/useExportReport";
 
 import MoreMenu from "@/components/common/PopperMenu";
@@ -50,7 +51,6 @@ import { SIDE_PANEL_WIDTH, SidePanelContainer } from "@/components/common/SidePa
 import SectionHeader from "@/components/map/panels/common/SectionHeader";
 import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import Selector from "@/components/map/panels/common/Selector";
-import TextFieldInput from "@/components/map/panels/common/TextFieldInput";
 import ConfirmModal from "@/components/modals/Confirm";
 import ReportLayoutRenameModal from "@/components/modals/ReportLayoutRename";
 
@@ -481,6 +481,12 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
   // Print hook (server-side PDF generation via Playwright)
   const { isBusy: isPrinting, exportReport } = useExportReport();
 
+  // Get atlas info for print job (total pages needed by backend)
+  const { totalPages: atlasTotalPages } = useAtlasFeatures({
+    atlasConfig: selectedReport?.config?.atlas,
+    projectLayers,
+  });
+
   const handlePrintReport = useCallback(async () => {
     if (!project?.id || !selectedReport) return;
 
@@ -489,11 +495,12 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
         projectId: project.id,
         layoutId: selectedReport.id,
         format: exportFormat as ExportFormat,
+        totalAtlasPages: atlasTotalPages > 0 ? atlasTotalPages : undefined,
       });
     } catch (error) {
       console.error("Failed to print report:", error);
     }
-  }, [project?.id, selectedReport, exportReport, exportFormat]);
+  }, [project?.id, selectedReport, exportReport, exportFormat, atlasTotalPages]);
 
   return (
     <PanelContainer>

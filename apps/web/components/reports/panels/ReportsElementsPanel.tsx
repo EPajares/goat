@@ -218,47 +218,19 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
   const { jobs, isLoading, mutate } = useJobs(
     projectId
       ? {
-          processID: "print_report",
+          processID: "PrintReport",
         }
       : undefined
   );
 
-  // Helper to parse payload (can be string or object)
-  const parsePayload = (
-    payload: unknown
-  ): {
-    layout_id?: string;
-    s3_key?: string;
-    file_name?: string;
-    format?: string;
-    layout_name?: string;
-  } | null => {
-    if (!payload) return null;
-    if (typeof payload === "string") {
-      try {
-        return JSON.parse(payload);
-      } catch {
-        return null;
-      }
-    }
-    return payload as {
-      layout_id?: string;
-      s3_key?: string;
-      file_name?: string;
-      format?: string;
-      layout_name?: string;
-    };
-  };
-
-  // Filter jobs by type and layout_id from payload
+  // Filter jobs by type and layout_id from inputs
   const printJobs = useMemo(() => {
     if (!jobs?.jobs || !layoutId) return [];
     return jobs.jobs.filter((job) => {
       // Filter by job type first
-      if (job.processID !== "print_report") return false;
-      // Then filter by layout_id in payload (payload can be string or object)
-      const payload = parsePayload(job.payload);
-      return payload?.layout_id === layoutId;
+      if (job.processID !== "PrintReport") return false;
+      // Then filter by layout_id in inputs
+      return job.inputs?.layout_id === layoutId;
     });
   }, [jobs?.jobs, layoutId]);
 
@@ -338,9 +310,12 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
       ) : (
         <Stack direction="column">
           {printJobs.map((job, index) => {
-            const payload = parsePayload(job.payload);
-            // Show download button for finished jobs that have s3_key
-            const canDownload = job.status === "successful" && payload?.s3_key;
+            // Result contains download_url, file_name, format, page_count
+            const result = job.result as
+              | { download_url?: string; file_name?: string; format?: string }
+              | undefined;
+            // Show download button for finished jobs that have a download_url
+            const canDownload = job.status === "successful" && result?.download_url;
             const isDownloading = downloadingJobId === job.jobID;
 
             // Create download button to pass as custom action
@@ -348,7 +323,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
               <Tooltip title={t("download")}>
                 <IconButton
                   size="small"
-                  onClick={() => handleDownload(job.jobID, payload?.file_name || "report.pdf")}
+                  onClick={() => handleDownload(job.jobID, result?.file_name || "report.pdf")}
                   disabled={isDownloading}
                   sx={{ fontSize: "1.2rem", color: "success.main" }}>
                   {isDownloading ? (

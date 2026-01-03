@@ -100,7 +100,8 @@ export interface Job {
   user_id?: string;
   read?: boolean;
   project_id?: string;
-  result?: Record<string, unknown>;
+  inputs?: Record<string, unknown>; // Job inputs (e.g., layout_id for PrintReport)
+  result?: Record<string, unknown>; // Job result/output
 }
 
 /**

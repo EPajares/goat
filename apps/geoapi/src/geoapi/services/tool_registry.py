@@ -71,6 +71,7 @@ class ToolInfo:
     docs_path: str | None = (
         None  # Documentation path (e.g., "/toolbox/geoprocessing/buffer")
     )
+    worker_tag: str = "tools"  # Windmill worker tag for job routing
 
     @property
     def supports_sync(self) -> bool:
@@ -140,6 +141,7 @@ class ToolRegistry:
                     keywords=list(tool_def.keywords),
                     toolbox_hidden=tool_def.toolbox_hidden,
                     docs_path=tool_def.docs_path,
+                    worker_tag=tool_def.worker_tag,
                 )
 
             self._initialized = True
