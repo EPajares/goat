@@ -325,7 +325,6 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
             geometry_type=detected_geom_type,
             feature_count=table_info.get("feature_count", 0),
             extent=table_info.get("extent"),
-            attribute_mapping=table_info.get("columns", {}),
             table_name=table_info["table_name"],
         )
 

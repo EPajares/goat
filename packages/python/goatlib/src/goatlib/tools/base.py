@@ -651,7 +651,6 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             geometry_type=detected_geom_type,
             feature_count=table_info.get("feature_count", 0),
             extent=table_info.get("extent"),
-            attribute_mapping=table_info.get("columns", {}),
             table_name=table_info["table_name"],
         )
 
@@ -893,7 +892,6 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             feature_layer_type=feature_layer_type,
             geometry_type=detected_geom_type,
             extent_wkt=table_info.get("extent_wkt"),
-            attribute_mapping=table_info.get("columns", {}),
             feature_count=table_info.get("feature_count", 0),
             size=table_info.get("size", 0),
             properties=custom_properties,

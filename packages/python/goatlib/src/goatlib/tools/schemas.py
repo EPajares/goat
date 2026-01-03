@@ -121,8 +121,8 @@ class ToolOutputBase(BaseModel):
     )
     feature_count: int = Field(0, description="Number of features/rows")
     extent: Any | None = Field(None, description="Spatial extent (WKT or dict)")
-    attribute_mapping: dict[str, str] | None = Field(
-        None, description="Column name mapping"
+    attribute_mapping: dict[str, str] = Field(
+        default_factory=dict, description="Column name mapping"
     )
 
     # Storage reference
