@@ -1,9 +1,15 @@
 import logging
+import sys
 import urllib.request
 from pathlib import Path
 from typing import Literal
 
 import pytest
+
+# Add tests directory to path for fixture imports
+_tests_dir = Path(__file__).parent
+if str(_tests_dir) not in sys.path:
+    sys.path.insert(0, str(_tests_dir))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -11,6 +17,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Global root
