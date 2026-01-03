@@ -82,6 +82,7 @@ export interface UIFieldMeta {
   label?: string;
   description?: string;
   hidden?: boolean;
+  advanced?: boolean;
   visible_when?: Record<string, unknown>;
   hidden_when?: Record<string, unknown>;
   mutually_exclusive_group?: string;
@@ -199,6 +200,7 @@ export interface ProcessedInput {
   // UI metadata from x-ui
   section?: string;
   fieldOrder: number;
+  advanced?: boolean;
   uiMeta?: UIFieldMeta;
 }
 

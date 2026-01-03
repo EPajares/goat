@@ -84,6 +84,9 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   // Section collapse state
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
+  // Advanced options collapse state (for the settings icon)
+  const [advancedCollapsed, setAdvancedCollapsed] = useState<Record<string, boolean>>({});
+
   // Process inputs into sections
   const sections = useMemo(() => {
     if (!process) {
@@ -100,10 +103,14 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
 
       // Initialize collapsed states from section definitions
       const collapsed: Record<string, boolean> = {};
+      const advCollapsed: Record<string, boolean> = {};
       for (const section of sections) {
         collapsed[section.id] = section.collapsed;
+        // Advanced options start collapsed by default
+        advCollapsed[section.id] = true;
       }
       setCollapsedSections(collapsed);
+      setAdvancedCollapsed(advCollapsed);
     }
   }, [process, sections]);
 
@@ -118,6 +125,14 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
+  }, []);
+
+  // Toggle advanced options collapse
+  const toggleAdvanced = useCallback((sectionId: string) => {
+    setAdvancedCollapsed((prev) => ({
       ...prev,
       [sectionId]: !prev[sectionId],
     }));
@@ -253,7 +268,13 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
               return null;
             }
 
+            // Split into base and advanced inputs
+            const baseInputs = visibleInputs.filter((input) => !input.advanced);
+            const advancedInputs = visibleInputs.filter((input) => input.advanced);
+            const hasAdvancedOptions = advancedInputs.length > 0;
+
             const isCollapsed = collapsedSections[section.id] ?? section.collapsed;
+            const isAdvancedCollapsed = advancedCollapsed[section.id] ?? true;
             const isFirstSection = sections.indexOf(section) === 0;
             const isDisabled = !sectionEnabled;
 
@@ -270,16 +291,23 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                   alwaysActive={!section.collapsible || isFirstSection}
                   label={section.label}
                   icon={getSectionIcon(section)}
-                  disableAdvanceOptions={!section.collapsible}
-                  collapsed={isCollapsed || isDisabled}
-                  setCollapsed={section.collapsible ? () => toggleSection(section.id) : undefined}
+                  disableAdvanceOptions={!hasAdvancedOptions}
+                  collapsed={hasAdvancedOptions ? isAdvancedCollapsed : isCollapsed || isDisabled}
+                  setCollapsed={
+                    hasAdvancedOptions
+                      ? () => toggleAdvanced(section.id)
+                      : section.collapsible
+                        ? () => toggleSection(section.id)
+                        : undefined
+                  }
                 />
                 {!isCollapsed && !isDisabled && (
                   <SectionOptions
                     active={true}
+                    collapsed={isAdvancedCollapsed}
                     baseOptions={
                       <Stack spacing={2}>
-                        {visibleInputs.map((input) => (
+                        {baseInputs.map((input) => (
                           <GenericInput
                             key={input.name}
                             input={input}
@@ -291,6 +319,23 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                           />
                         ))}
                       </Stack>
+                    }
+                    advancedOptions={
+                      hasAdvancedOptions ? (
+                        <Stack spacing={2}>
+                          {advancedInputs.map((input) => (
+                            <GenericInput
+                              key={input.name}
+                              input={input}
+                              value={values[input.name]}
+                              onChange={(value) => handleInputChange(input.name, value)}
+                              disabled={isExecuting}
+                              formValues={values}
+                              schemaDefs={process.$defs}
+                            />
+                          ))}
+                        </Stack>
+                      ) : undefined
                     }
                   />
                 )}

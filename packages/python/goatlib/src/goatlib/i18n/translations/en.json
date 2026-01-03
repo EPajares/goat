@@ -135,11 +135,15 @@
       "label": "Catchment Area Type",
       "description": "Method for calculating catchment areas"
     },
+    "distance_type": {
+      "label": "Distance Source",
+      "description": "How to determine the buffer distance"
+    },
     "distances": {
       "label": "Buffer Distances",
       "description": "List of buffer distances to create"
     },
-    "field": {
+    "distance_field": {
       "label": "Distance Field",
       "description": "Field containing buffer distance for each feature"
     },
@@ -367,12 +371,16 @@
     },
     "catchment_type": {
       "buffer": "Buffer"
+    },
+    "distance_type": {
+      "constant": "Constant",
+      "field": "Field"
     }
   },
   "tools": {
     "buffer": {
       "title": "Buffer",
-      "description": "Create buffer zones around features"
+      "description": "The buffer creates a zone around given points, lines or polygons with a specified buffer distance."
     },
     "clip": {
       "title": "Clip",
@@ -396,19 +404,23 @@
     },
     "origin_destination": {
       "title": "Origin-Destination",
-      "description": "Visualize flow data between origins and destinations"
+      "description": "The Origin-Destination analysis is used in various fields such as transport planning and urban planning to study movements or flows between different locations."
     },
     "heatmap_gravity": {
       "title": "Heatmap Gravity",
-      "description": "Compute gravity-based accessibility heatmaps"
+      "description": "The accessibility is calculated from each grid cell to multiple locations simultaneously. The travel times are weighted and aggregated using an impedance function."
     },
     "heatmap_closest_average": {
       "title": "Heatmap Closest Average",
-      "description": "Compute accessibility based on closest destinations"
+      "description": "The average travel time to the nearest N destinations is shown, starting from each grid cell."
     },
     "heatmap_connectivity": {
       "title": "Heatmap Connectivity",
-      "description": "Compute connectivity to reference areas"
+      "description": "Connectivity of transport routes is determined by calculating catchment areas for each grid cell, where the reached area is the measure for connectivity."
+    },
+    "oev_gueteklassen": {
+      "title": "ÖV-Güteklassen",
+      "description": "The Public Transport Quality Classes (German: ÖV-Güteklassen) show the attractiveness of public transport services for a selected area."
     },
     "layer_import": {
       "title": "Import Layer",

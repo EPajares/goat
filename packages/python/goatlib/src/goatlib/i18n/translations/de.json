@@ -135,11 +135,15 @@
       "label": "Einzugsgebietstyp",
       "description": "Methode zur Berechnung der Einzugsgebiete"
     },
+    "distance_type": {
+      "label": "Abstandsquelle",
+      "description": "Wie der Pufferabstand bestimmt wird"
+    },
     "distances": {
       "label": "Pufferabstände",
       "description": "Liste der zu erstellenden Pufferabstände"
     },
-    "field": {
+    "distance_field": {
       "label": "Abstandsfeld",
       "description": "Feld mit dem Pufferabstand für jedes Feature"
     },
@@ -367,12 +371,16 @@
     },
     "catchment_type": {
       "buffer": "Puffer"
+    },
+    "distance_type": {
+      "constant": "Konstant",
+      "field": "Feld"
     }
   },
   "tools": {
     "buffer": {
       "title": "Puffer",
-      "description": "Erstellen Sie Pufferzonen um Features"
+      "description": "Erzeugt einen Puffer um einen Punkt, Linien oder Polygon-Layer."
     },
     "clip": {
       "title": "Ausschneiden",
@@ -396,19 +404,23 @@
     },
     "origin_destination": {
       "title": "Quell-Ziel-Analyse",
-      "description": "Flussdaten zwischen Quellen und Zielen visualisieren"
+      "description": "Die Quell-Ziel-Beziehungen werden in verschiedenen Bereichen wie der Verkehrsplanung und Stadtplanung verwendet, um Bewegungen oder Flüsse zwischen verschiedenen Orten zu untersuchen."
     },
     "heatmap_gravity": {
       "title": "Heatmap Gravitation",
-      "description": "Gravitationsbasierte Erreichbarkeits-Heatmaps berechnen"
+      "description": "Es wird die Erreichbarkeit ausgehend von jeder Rasterzelle zu mehreren Orten gleichzeitig berechnet. Die Reisezeiten werden hierfür mit einer Widerstandsfunktion gewichtet und aggregiert."
     },
     "heatmap_closest_average": {
       "title": "Heatmap Nächster Durchschnitt",
-      "description": "Erreichbarkeit basierend auf nächsten Zielen berechnen"
+      "description": "Es wird die durchschnittliche Reisezeit zu den nächsten N Zielen aufgezeigt ausgehend von jeder Rasterzelle."
     },
     "heatmap_connectivity": {
       "title": "Heatmap Konnektivität",
-      "description": "Konnektivität zu Referenzgebieten berechnen"
+      "description": "Die Vernetzung der Verkehrswege wird ausgedrückt durch die Berechnung von Einzugsbereichen für jede Rasterzelle, wobei die erreichbare Fläche der Einzugsbereiche die Konnektivität ausdrückt."
+    },
+    "oev_gueteklassen": {
+      "title": "ÖV-Güteklassen",
+      "description": "ÖV-Güteklassen zeigen die Attraktivität des öffentlichen Verkehrs in einem bestimmten Gebiet an."
     },
     "layer_import": {
       "title": "Layer importieren",

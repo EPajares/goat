@@ -136,6 +136,7 @@ class UIFieldConfig:
     label_key: str | None = None
     description_key: str | None = None
     hidden: bool = False
+    advanced: bool = False
     visible_when: dict[str, Any] | None = None
     hidden_when: dict[str, Any] | None = None
     mutually_exclusive_group: str | None = None
@@ -160,6 +161,8 @@ class UIFieldConfig:
             result["description_key"] = self.description_key
         if self.hidden:
             result["hidden"] = True
+        if self.advanced:
+            result["advanced"] = True
         if self.visible_when:
             result["visible_when"] = self.visible_when
         if self.hidden_when:
@@ -189,6 +192,7 @@ def ui_field(
     label_key: str | None = None,
     description_key: str | None = None,
     hidden: bool = False,
+    advanced: bool = False,
     visible_when: dict[str, Any] | None = None,
     hidden_when: dict[str, Any] | None = None,
     mutually_exclusive_group: str | None = None,
@@ -290,6 +294,7 @@ def ui_field(
         label_key=label_key,
         description_key=description_key,
         hidden=hidden,
+        advanced=advanced,
         visible_when=visible_when,
         hidden_when=hidden_when,
         mutually_exclusive_group=mutually_exclusive_group,

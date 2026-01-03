@@ -197,6 +197,7 @@ export function processInput(
     // UI metadata
     section: uiMeta?.section ?? DEFAULT_SECTION_ID,
     fieldOrder: uiMeta?.field_order ?? 100,
+    advanced: uiMeta?.advanced ?? false,
     uiMeta,
   };
 }
