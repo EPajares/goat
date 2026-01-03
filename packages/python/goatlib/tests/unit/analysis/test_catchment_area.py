@@ -1,6 +1,5 @@
 """Tests for catchment area schemas."""
 
-import json
 from pathlib import Path
 
 import pytest
@@ -13,7 +12,6 @@ from goatlib.analysis.schemas import (
     CatchmentAreaResponse,
     CatchmentAreaType,
     Coordinates,
-    MockCatchmentAreaService,
     OutputFormat,
     PTSettings,
     PTTimeWindow,
@@ -22,38 +20,12 @@ from goatlib.analysis.schemas import (
     TravelTimeCost,
     TravelTimeCostPT,
 )
+from goatlib.routing.interfaces.mocks import MockCatchmentAreaService
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def catchment_data_dir() -> Path:
-    """Directory containing catchment area test data."""
-    return Path(__file__).parent.parent.parent / "data" / "analysis" / "catchment_area"
-
-
-@pytest.fixture(scope="module")
-def mock_active_mobility_request_data(catchment_data_dir: Path) -> dict:
-    """Load mock active mobility request from JSON file."""
-    with open(catchment_data_dir / "mock_request_active_mobility.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture(scope="module")
-def mock_pt_request_data(catchment_data_dir: Path) -> dict:
-    """Load mock PT request from JSON file."""
-    with open(catchment_data_dir / "mock_request_pt.json") as f:
-        return json.load(f)
-
-
-@pytest.fixture(scope="module")
-def mock_response_data(catchment_data_dir: Path) -> dict:
-    """Load mock response from JSON file."""
-    with open(catchment_data_dir / "mock_response.json") as f:
-        return json.load(f)
 
 
 @pytest.fixture
@@ -214,11 +186,14 @@ class TestActiveMobilityRequest:
         assert request.mode == "active_mobility"
         assert request.routing_mode == ActiveMobilityMode.walk
 
-    def test_create_from_json_data(
-        self, mock_active_mobility_request_data: dict
-    ) -> None:
-        """Test creating request from JSON data."""
-        request = CatchmentAreaActiveMobilityRequest(**mock_active_mobility_request_data)
+    def test_create_from_json_data(self, starting_points: StartingPoints) -> None:
+        """Test creating request from dict data (simulating JSON deserialization)."""
+        request_data = {
+            "starting_points": {"coordinates": [{"lat": 48.137154, "lon": 11.576124}]},
+            "routing_mode": "walk",
+            "travel_cost": {"max_traveltime": 15, "traveltime_step": 5},
+        }
+        request = CatchmentAreaActiveMobilityRequest(**request_data)
         assert request.routing_mode == ActiveMobilityMode.walk
         assert request.travel_cost.max_traveltime == 15
 
@@ -266,11 +241,17 @@ class TestPTRequest:
         assert request.mode == "pt"
         assert request.routing_provider.value == "r5"
 
-    def test_create_from_json_data(self, mock_pt_request_data: dict) -> None:
-        """Test creating PT request from JSON data."""
-        request = CatchmentAreaPTRequest(**mock_pt_request_data)
+    def test_create_with_all_params(
+        self, starting_points: StartingPoints, pt_settings: PTSettings
+    ) -> None:
+        """Test creating PT request with all parameters."""
+        request = CatchmentAreaPTRequest(
+            starting_points=starting_points,
+            travel_cost=TravelTimeCostPT(max_traveltime=60, traveltime_step=15),
+            settings=pt_settings,
+        )
         assert request.settings.access_mode.value == "walk"
-        assert request.travel_cost.max_traveltime == 45
+        assert request.travel_cost.max_traveltime == 60
 
 
 # ---------------------------------------------------------------------------
@@ -281,9 +262,61 @@ class TestPTRequest:
 class TestCatchmentAreaResponse:
     """Tests for catchment area response."""
 
-    def test_create_from_json_data(self, mock_response_data: dict) -> None:
-        """Test creating response from JSON data."""
-        response = CatchmentAreaResponse(**mock_response_data)
+    def test_create_from_dict_data(self) -> None:
+        """Test creating response from dict data (simulating JSON deserialization)."""
+        response_data = {
+            "starting_point": {"lat": 48.137154, "lon": 11.576124},
+            "catchment_area_type": "polygon",
+            "polygons": [
+                {
+                    "travel_cost": 5,
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [11.57, 48.135],
+                                [11.58, 48.135],
+                                [11.58, 48.14],
+                                [11.57, 48.14],
+                                [11.57, 48.135],
+                            ]
+                        ],
+                    },
+                },
+                {
+                    "travel_cost": 10,
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [11.565, 48.13],
+                                [11.585, 48.13],
+                                [11.585, 48.145],
+                                [11.565, 48.145],
+                                [11.565, 48.13],
+                            ]
+                        ],
+                    },
+                },
+                {
+                    "travel_cost": 15,
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [11.56, 48.125],
+                                [11.59, 48.125],
+                                [11.59, 48.15],
+                                [11.56, 48.15],
+                                [11.56, 48.125],
+                            ]
+                        ],
+                    },
+                },
+            ],
+            "metadata": {"provider": "test"},
+        }
+        response = CatchmentAreaResponse(**response_data)
         assert response.starting_point.lat == 48.137154
         assert response.catchment_area_type == CatchmentAreaType.polygon
         assert len(response.polygons) == 3
@@ -311,7 +344,7 @@ class TestMockCatchmentAreaService:
             routing_mode=ActiveMobilityMode.walk,
             travel_cost=travel_time_cost,
         )
-        response = await mock_service.compute_catchment_area_active_mobility(request)
+        response = await mock_service.compute_active_mobility_catchment(request)
 
         assert response.starting_point.lat == 48.137154
         assert response.catchment_area_type == CatchmentAreaType.polygon
@@ -332,9 +365,12 @@ class TestMockCatchmentAreaService:
         )
 
         assert len(mock_service.call_history) == 0
-        await mock_service.compute_catchment_area_active_mobility(request)
+        await mock_service.compute_active_mobility_catchment(request)
         assert len(mock_service.call_history) == 1
-        assert mock_service.call_history[0]["method"] == "compute_catchment_area_active_mobility"
+        assert (
+            mock_service.call_history[0]["method"]
+            == "compute_active_mobility_catchment"
+        )
 
     @pytest.mark.asyncio
     async def test_reset_clears_history(
@@ -350,7 +386,7 @@ class TestMockCatchmentAreaService:
             travel_cost=travel_time_cost,
         )
 
-        await mock_service.compute_catchment_area_active_mobility(request)
+        await mock_service.compute_active_mobility_catchment(request)
         assert len(mock_service.call_history) == 1
 
         mock_service.reset()

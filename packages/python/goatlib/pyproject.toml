@@ -7,10 +7,14 @@ authors = [{ name = "Plan4Better GmbH", email = "dev@plan4better.de" }]
 dependencies = [
   "boto3>=1.35.0",
   "duckdb>=1.4.3",
+  "geopandas>=1.0.0",
+  "numba>=0.60.0",
+  "numpy>=1.26.0",
   "pydantic>=2.11.5",
   "pydantic-settings>=2.9.1",
   "pygeofilter>=0.2.4",
   "pyproj>=3.6.0",
+  "shapely>=2.0.0",
 ]
 
 [build-system]

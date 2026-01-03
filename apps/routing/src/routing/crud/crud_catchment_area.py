@@ -5,6 +5,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import h3
 import numpy as np
 import polars as pl
 from redis import Redis
@@ -209,8 +210,10 @@ class CRUDCatchmentArea:
             sub_network = sub_network.filter(~pl.col("id").is_in(segments_to_discard))
         # Create necessary artifical segments and add them to our sub network
         origin_point_connectors: List[int] = []
-        origin_point_cell_index: List[int] = []
-        origin_point_h3_3: List[str] = []
+        origin_point_cell_index: List[
+            str
+        ] = []  # H3 index at specified resolution (e.g., H3_10)
+        origin_point_h3_3: List[int] = []  # Short H3_3 index
         segments_to_discard = []
         additional_filters: str = ""
         if type(obj_in) is ICatchmentAreaActiveMobility:
@@ -559,6 +562,9 @@ class CRUDCatchmentArea:
             features = []
             for i in shapes_data.index:
                 geom = shapes_data["geometry"][i]
+                # Skip empty geometries
+                if geom is None or geom.is_empty:
+                    continue
                 minute: Union[float, int] = shapes_data["minute"][i]
                 # Convert Shapely geometry to GeoJSON dict
                 geom_dict = mapping(geom)
@@ -599,23 +605,35 @@ class CRUDCatchmentArea:
             return {"type": "FeatureCollection", "features": features}
 
         else:  # rectangular_grid
-            # Format H3 grid data
+            # Format H3 grid data with proper polygon geometries
             if grid_index is None or grid is None:
                 return {"type": "FeatureCollection", "features": []}
             features = []
             for i, h3_idx in enumerate(grid_index):
                 if math.isnan(grid[i]):
                     continue
-                cost = (
-                    math.ceil(grid[i] / step_size) * step_size
-                    if step_size > 0
-                    else grid[i]
+                cost = grid[i]
+                cost_step = (
+                    math.ceil(cost / step_size) * step_size if step_size > 0 else cost
                 )
+                # Get H3 cell boundary as polygon coordinates
+                boundary = h3.cell_to_boundary(h3_idx)
+                # h3 returns (lat, lon) tuples, GeoJSON needs [lon, lat]
+                # Close the ring by repeating the first point
+                coords = [[pt[1], pt[0]] for pt in boundary]
+                coords.append(coords[0])  # Close the polygon ring
                 features.append(
                     {
                         "type": "Feature",
-                        "geometry": {"h3_index": h3_idx},  # H3 cell index
-                        "properties": {"h3_index": h3_idx, "cost": round(cost)},
+                        "geometry": {
+                            "type": "Polygon",
+                            "coordinates": [coords],
+                        },
+                        "properties": {
+                            "h3_index": h3_idx,
+                            "cost": round(cost),
+                            "cost_step": round(cost_step),
+                        },
                     }
                 )
             return {"type": "FeatureCollection", "features": features}
@@ -651,6 +669,9 @@ class CRUDCatchmentArea:
                 rows = []
                 for i in shapes_data.index:
                     geom = shapes_data["geometry"][i]
+                    # Skip empty geometries
+                    if geom is None or geom.is_empty:
+                        continue
                     # Convert Shapely geometry to WKT string
                     geom_wkt = geom.wkt if hasattr(geom, "wkt") else str(geom)
                     minute: Union[float, int] = shapes_data["minute"][i]
@@ -696,9 +717,11 @@ class CRUDCatchmentArea:
                     )
                 df = pl.DataFrame(rows)
 
-        else:  # rectangular_grid
+        else:  # rectangular_grid (h3_grid)
             if grid_index is None or grid is None:
-                df = pl.DataFrame({"h3_index": [], "cost": [], "cost_step": []})
+                df = pl.DataFrame(
+                    {"geometry": [], "h3_index": [], "cost": [], "cost_step": []}
+                )
             else:
                 rows = []
                 for i, h3_idx in enumerate(grid_index):
@@ -710,8 +733,16 @@ class CRUDCatchmentArea:
                         if step_size > 0
                         else cost
                     )
+                    # Get H3 cell boundary and convert to WKT polygon
+                    boundary = h3.cell_to_boundary(h3_idx)
+                    # h3 returns (lat, lon) tuples, WKT needs lon lat
+                    # Close the ring by repeating the first point
+                    points = [f"{pt[1]} {pt[0]}" for pt in boundary]
+                    points.append(points[0])  # Close the polygon ring
+                    geom_wkt = f"POLYGON(({', '.join(points)}))"
                     rows.append(
                         {
+                            "geometry": geom_wkt,
                             "h3_index": h3_idx,
                             "cost": round(cost),
                             "cost_step": round(cost_step),
@@ -922,8 +953,8 @@ class CRUDCatchmentArea:
                 sub_routing_network,
                 network_modifications_table,
                 origin_connector_ids,
-                _,  # Type is origin_point_cell_index, not used here
-                origin_point_h3_10,
+                origin_point_h3_10,  # H3 index at resolution defined by H3_CELL_RESOLUTION
+                _,  # origin_point_h3_3, not used here
             ) = await self.read_network(
                 routing_network,
                 obj_in,
