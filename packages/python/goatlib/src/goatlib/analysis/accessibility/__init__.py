@@ -5,13 +5,10 @@ This module contains tools for accessibility/heatmap analysis:
 - HeatmapConnectivityTool: Connectivity heatmap (reachable area)
 - HeatmapClosestAverageTool: Average distance to N closest destinations
 - OevGueteklasseTool: Public Transport Quality Classes (ÖV-Güteklassen)
-- CatchmentAreaTool: Catchment area / isochrone generation
-- CatchmentAreaService: HTTP client for R5 and GOAT routing
+- CatchmentAreaTool: Catchment area / isochrone generation (unified tool)
 """
 
 from .catchment_area import (
-    CatchmentAreaParams,
-    CatchmentAreaService,
     CatchmentAreaTool,
     compute_r5_surface,
     decode_r5_grid,
