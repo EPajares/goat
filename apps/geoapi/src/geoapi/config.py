@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     # Must match core app's data path since they share the same catalog
     DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
 
+    # Traveltime matrices directory for heatmap tools
+    TRAVELTIME_MATRICES_DIR: str = os.getenv(
+        "TRAVELTIME_MATRICES_DIR", "/app/data/traveltime_matrices"
+    )
+
     # S3/MinIO settings (shared for DuckLake and uploads)
     S3_PROVIDER: str = os.getenv("S3_PROVIDER", "hetzner").lower()
     S3_ENDPOINT_URL: Optional[str] = os.getenv("S3_ENDPOINT_URL")

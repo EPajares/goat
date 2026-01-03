@@ -279,4 +279,16 @@ def get_metadata(con: DuckDBPyConnection, input_path: str) -> Metadata:
             except Exception as e:
                 logger.debug("ST_GeometryType fallback failed for spatial file: %s", e)
 
+    # ----------------------------------------------------------------------
+    # GLOBAL FALLBACK: Default to WGS84 if CRS is missing but geometry exists
+    # ----------------------------------------------------------------------
+    # This handles layers exported from DuckLake which don't preserve CRS metadata
+    # Since all DuckLake layers are stored in WGS84, this is a safe assumption
+    if meta.geometry_column and meta.crs is None:
+        logger.info(
+            "No CRS information found for %s, defaulting to WGS84 (EPSG:4326)",
+            input_path_str,
+        )
+        meta.crs = CRS.from_epsg(4326)
+
     return meta

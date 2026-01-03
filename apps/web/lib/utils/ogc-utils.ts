@@ -50,6 +50,28 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
   // Get the effective schema (handle anyOf/oneOf for nullable types)
   const effectiveSchema = getEffectiveSchema(schema);
 
+  // Check for explicit widget types in x-ui metadata
+  const uiMeta = effectiveSchema["x-ui"];
+  if (uiMeta?.widget === "time-picker") {
+    return "time-picker";
+  }
+
+  // Check for repeatable array of objects (e.g., opportunities in heatmap)
+  if (effectiveSchema.type === "array") {
+    const itemSchema = effectiveSchema.items;
+
+    // Check if it's a repeatable array of objects
+    if (
+      uiMeta?.repeatable &&
+      itemSchema &&
+      (itemSchema.type === "object" || itemSchema.$ref || itemSchema.properties)
+    ) {
+      return "repeatable-object";
+    }
+
+    return "array";
+  }
+
   // Check schema type
   if (effectiveSchema.enum && effectiveSchema.enum.length > 0) {
     return "enum";
@@ -65,10 +87,6 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
 
   if (effectiveSchema.type === "string") {
     return "string";
-  }
-
-  if (effectiveSchema.type === "array") {
-    return "array";
   }
 
   if (effectiveSchema.type === "object" || effectiveSchema.properties) {
@@ -124,25 +142,42 @@ export function extractGeometryConstraints(input: OGCInputDescription): string[]
 
 /**
  * Extract enum values from schema
+ * @param schema - The input schema
+ * @param schemaDefs - Schema $defs for resolving $ref
  */
-export function extractEnumValues(schema: OGCInputSchema): (string | number | boolean)[] | undefined {
+export function extractEnumValues(
+  schema: OGCInputSchema,
+  schemaDefs?: Record<string, OGCInputSchema>
+): (string | number | boolean)[] | undefined {
   const effectiveSchema = getEffectiveSchema(schema);
 
   if (effectiveSchema.enum) {
     return effectiveSchema.enum;
   }
 
-  // Check for $ref to $defs (common pattern for enum types)
-  // Note: This would need the full schema with $defs to resolve
-  // For now, return undefined and handle in the component
+  // Resolve $ref to $defs if available
+  if (effectiveSchema.$ref && schemaDefs) {
+    const refName = effectiveSchema.$ref.replace("#/$defs/", "");
+    const refSchema = schemaDefs[refName];
+    if (refSchema?.enum) {
+      return refSchema.enum;
+    }
+  }
 
   return undefined;
 }
 
 /**
  * Process a single OGC input description into UI-friendly format
+ * @param name - Input field name
+ * @param input - OGC input description
+ * @param schemaDefs - Schema $defs for resolving $ref
  */
-export function processInput(name: string, input: OGCInputDescription): ProcessedInput {
+export function processInput(
+  name: string,
+  input: OGCInputDescription,
+  schemaDefs?: Record<string, OGCInputSchema>
+): ProcessedInput {
   const inputType = inferInputType(input, name);
   const effectiveSchema = getEffectiveSchema(input.schema);
   const uiMeta = input.schema["x-ui"] as UIFieldMeta | undefined;
@@ -155,7 +190,7 @@ export function processInput(name: string, input: OGCInputDescription): Processe
     required: input.minOccurs > 0,
     schema: input.schema,
     defaultValue: effectiveSchema.default,
-    enumValues: extractEnumValues(input.schema),
+    enumValues: extractEnumValues(input.schema, schemaDefs),
     isLayerInput: input.keywords.includes("layer"),
     geometryConstraints: extractGeometryConstraints(input),
     metadata: input.metadata,
@@ -207,6 +242,9 @@ export function processInputsWithSections(process: OGCProcessDescription): Proce
   // Get section definitions from process or use defaults
   const sectionDefs = process["x-ui-sections"] ?? DEFAULT_SECTIONS;
 
+  // Get $defs for resolving $ref in schemas
+  const schemaDefs = process.$defs;
+
   // Create section map
   const sectionMap = new Map<string, ProcessedSection>();
 
@@ -219,6 +257,7 @@ export function processInputsWithSections(process: OGCProcessDescription): Proce
       collapsible: def.collapsible ?? false,
       collapsed: def.collapsed ?? false,
       inputs: [],
+      dependsOn: def.depends_on,
     });
   }
 
@@ -229,7 +268,7 @@ export function processInputsWithSections(process: OGCProcessDescription): Proce
       continue;
     }
 
-    const processed = processInput(name, input);
+    const processed = processInput(name, input, schemaDefs);
 
     // Skip fields marked as hidden in UI metadata
     if (processed.uiMeta?.hidden) {
@@ -395,7 +434,15 @@ export function evaluateCondition(
             if (value !== expected) return false;
             break;
           case "$ne":
-            if (value === expected) return false;
+            // Treat undefined, null, and empty string as equivalent for $ne null checks
+            const isNullish = value === null || value === undefined || value === "";
+            const expectedNullish = expected === null || expected === undefined || expected === "";
+            if (expectedNullish) {
+              // $ne: null means "has a value"
+              if (isNullish) return false;
+            } else {
+              if (value === expected) return false;
+            }
             break;
           case "$gt":
             if (typeof value !== "number" || typeof expected !== "number" || value <= expected) return false;
@@ -470,6 +517,14 @@ export function getVisibleInputs(
   values: Record<string, unknown>
 ): ProcessedInput[] {
   return inputs.filter((input) => isInputVisible(input, values));
+}
+
+/**
+ * Check if a section is enabled based on its depends_on condition
+ */
+export function isSectionEnabled(section: ProcessedSection, values: Record<string, unknown>): boolean {
+  if (!section.dependsOn) return true;
+  return evaluateCondition(section.dependsOn, values);
 }
 
 /**

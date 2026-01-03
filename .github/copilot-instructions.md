@@ -16,7 +16,6 @@ Please follow these guidelines when contributing:
   - `core/`: The main FastAPI/Python backend application.
   - `docs/`: Documentation for the project. It's using docusaurus
   - `geoapi/`: A separate FastAPI/Python API service for geodata services. It's serving OGC data to the frontend.
-  - `processes/`: OGC API Processes service for geospatial analysis. Uses the Motia framework for event-driven workflows with Python analysis tools from goatlib.
   - `routing/`: A separate FastAPI/Python API service for routing services. It's serving OGC data to the frontend.
   - `storybook/`: A separate React/NextJS/TypeScript application for Storybook, used for UI component development and testing.
   - `web/`: The main frontend application built with React/NextJS/TypeScript

@@ -20,6 +20,75 @@ class HeatmapToolBase(AnalysisTool):
         self.con.execute("INSTALL h3 FROM community; LOAD h3;")
         logger.debug("H3 extensions and helper UDFs loaded.")
 
+    def _detect_od_columns(
+        self: Self,
+        od_matrix_path: str,
+    ) -> dict[str, str]:
+        """Auto-detect column mapping from OD matrix parquet schema.
+
+        Looks for standard column names and common alternatives:
+        - orig_id: origin_id, from_id, source_id, orig
+        - dest_id: destination_id, to_id, target_id, dest
+        - cost: traveltime, travel_time, time, duration, distance
+
+        Returns:
+            Column mapping dict with keys: orig_id, dest_id, cost
+        """
+        # Normalize path for glob pattern (handle directories)
+        path = od_matrix_path.rstrip("/")
+        if not path.endswith(".parquet") and "*" not in path:
+            path = f"{path}/**/*.parquet"
+
+        # Get schema from parquet file(s)
+        try:
+            schema_result = self.con.execute(f"""
+                SELECT DISTINCT column_name
+                FROM parquet_schema('{path}')
+            """).fetchall()
+            columns = {row[0].lower() for row in schema_result}
+            logger.debug(f"Detected parquet columns: {sorted(columns)}")
+        except Exception as e:
+            logger.warning(f"Could not read parquet schema: {e}, using defaults")
+            return {"orig_id": "orig_id", "dest_id": "dest_id", "cost": "traveltime"}
+
+        # Define candidate names for each required column (in priority order)
+        candidates = {
+            "orig_id": ["orig_id", "origin_id", "from_id", "source_id", "orig", "o_id"],
+            "dest_id": [
+                "dest_id",
+                "destination_id",
+                "to_id",
+                "target_id",
+                "dest",
+                "d_id",
+            ],
+            "cost": [
+                "cost",
+                "traveltime",
+                "travel_time",
+                "time",
+                "duration",
+                "distance",
+            ],
+        }
+
+        mapping = {}
+        for target, options in candidates.items():
+            for option in options:
+                if option in columns:
+                    mapping[target] = option
+                    logger.debug(f"Auto-detected {target} -> {option}")
+                    break
+            if target not in mapping:
+                raise ValueError(
+                    f"Could not auto-detect '{target}' column. "
+                    f"Available columns: {sorted(columns)}. "
+                    f"Expected one of: {options}"
+                )
+
+        logger.info(f"Auto-detected OD matrix columns: {mapping}")
+        return mapping
+
     def _prepare_od_matrix(
         self: Self,
         od_matrix_path: str,
@@ -32,21 +101,36 @@ class HeatmapToolBase(AnalysisTool):
         Returns (view_name, h3_resolution)
         """
         view_name = od_matrix_view_name
-        # default mapping
-        mapping = od_column_map or {
-            "orig_id": "orig_id",
-            "dest_id": "dest_id",
-            "cost": "cost",
-        }
+
+        # Normalize path for glob pattern (handle directories)
+        path = od_matrix_path.rstrip("/")
+        if not path.endswith(".parquet") and "*" not in path:
+            path = f"{path}/**/*.parquet"
+
+        # Default mapping that should trigger auto-detection
+        default_mapping = {"orig_id": "orig_id", "dest_id": "dest_id", "cost": "cost"}
+
+        # Auto-detect column mapping if not provided or using defaults
+        if od_column_map is None or od_column_map == default_mapping:
+            od_column_map = self._detect_od_columns(od_matrix_path)
+
+        mapping = od_column_map
+
+        # Build column selections - only alias if source != target name
+        def col_expr(target: str) -> str:
+            source = mapping[target]
+            if source == target:
+                return f'"{source}"'
+            return f'"{source}" AS {target}'
 
         try:
             self.con.execute(f"""
                 CREATE OR REPLACE TEMP VIEW {view_name} AS
                 SELECT
-                    "{mapping['orig_id']}" AS orig_id,
-                    "{mapping['dest_id']}" AS dest_id,
-                    "{mapping['cost']}" AS cost
-                FROM read_parquet('{od_matrix_path}')
+                    {col_expr('orig_id')},
+                    {col_expr('dest_id')},
+                    {col_expr('cost')}
+                FROM read_parquet('{path}')
             """)
         except Exception as e:
             raise ValueError(

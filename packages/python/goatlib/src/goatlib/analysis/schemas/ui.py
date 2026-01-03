@@ -49,6 +49,8 @@ class UISection:
         icon: Icon name from @p4b/ui/components/Icon (optional)
         collapsible: Whether section can be collapsed (default: False)
         collapsed: Initial collapsed state (default: False)
+        depends_on: Condition for section to be enabled, MongoDB-like syntax
+            e.g., {"routing_mode": {"$ne": None}} - enabled when routing_mode is set
     """
 
     id: str
@@ -57,6 +59,7 @@ class UISection:
     icon: str | None = None
     collapsible: bool = False
     collapsed: bool = False
+    depends_on: dict[str, Any] | None = None
 
     def to_dict(self: Self) -> dict[str, Any]:
         """Convert to dictionary for JSON schema."""
@@ -70,16 +73,28 @@ class UISection:
         if self.collapsible:
             result["collapsible"] = self.collapsible
             result["collapsed"] = self.collapsed
+        if self.depends_on:
+            result["depends_on"] = self.depends_on
         return result
 
 
 # Common section definitions for reuse
 SECTION_ROUTING = UISection(id="routing", order=1, icon="route")
-SECTION_CONFIGURATION = UISection(id="configuration", order=2, icon="settings")
+SECTION_CONFIGURATION = UISection(
+    id="configuration",
+    order=2,
+    icon="settings",
+    depends_on={"routing_mode": {"$ne": None}},
+)
 SECTION_INPUT = UISection(id="input", order=1, icon="layers")
 SECTION_OUTPUT = UISection(id="output", order=10, icon="table")
 SECTION_OPTIONS = UISection(id="options", order=5, icon="settings", collapsible=True)
-SECTION_OPPORTUNITIES = UISection(id="opportunities", order=3, icon="location-marker")
+SECTION_OPPORTUNITIES = UISection(
+    id="opportunities",
+    order=3,
+    icon="location-marker",
+    depends_on={"routing_mode": {"$ne": None}},
+)
 SECTION_SCENARIO = UISection(id="scenario", order=4, icon="scenario")
 SECTION_STATISTICS = UISection(id="statistics", order=3, icon="chart")
 SECTION_TIME = UISection(id="time", order=3, icon="clock")
@@ -130,6 +145,7 @@ class UIFieldConfig:
     max_items: int | None = None
     widget: str | None = None
     widget_options: dict[str, Any] | None = None
+    enum_icons: dict[str, str] | None = None
 
     def to_dict(self: Self) -> dict[str, Any]:
         """Convert to dictionary for JSON schema x-ui field."""
@@ -159,8 +175,10 @@ class UIFieldConfig:
                 result["max_items"] = self.max_items
         if self.widget:
             result["widget"] = self.widget
-            if self.widget_options:
-                result["widget_options"] = self.widget_options
+        if self.widget_options:
+            result["widget_options"] = self.widget_options
+        if self.enum_icons:
+            result["enum_icons"] = self.enum_icons
 
         return result
 
@@ -180,6 +198,7 @@ def ui_field(
     max_items: int | None = None,
     widget: str | None = None,
     widget_options: dict[str, Any] | None = None,
+    enum_icons: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Generate json_schema_extra dict for UI field configuration.
 
@@ -205,6 +224,7 @@ def ui_field(
         max_items: Maximum items for repeatable fields
         widget: Custom widget type (e.g., "layer-selector", "color-picker")
         widget_options: Options passed to custom widget
+        enum_icons: Mapping of enum values to icon names for enum fields
 
     Returns:
         Dict to use as json_schema_extra in Field()
@@ -279,6 +299,7 @@ def ui_field(
         max_items=max_items,
         widget=widget,
         widget_options=widget_options,
+        enum_icons=enum_icons,
     )
     return {"x-ui": config.to_dict()}
 

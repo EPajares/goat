@@ -5,7 +5,7 @@
  */
 import { Typography } from "@mui/material";
 
-import type { ProcessedInput } from "@/types/map/ogc-processes";
+import type { OGCInputSchema, ProcessedInput } from "@/types/map/ogc-processes";
 
 import ArrayInput from "@/components/map/panels/toolbox/generic/inputs/ArrayInput";
 import BooleanInput from "@/components/map/panels/toolbox/generic/inputs/BooleanInput";
@@ -13,7 +13,9 @@ import EnumInput from "@/components/map/panels/toolbox/generic/inputs/EnumInput"
 import FieldInput from "@/components/map/panels/toolbox/generic/inputs/FieldInput";
 import LayerInput from "@/components/map/panels/toolbox/generic/inputs/LayerInput";
 import NumberInput from "@/components/map/panels/toolbox/generic/inputs/NumberInput";
+import RepeatableObjectInput from "@/components/map/panels/toolbox/generic/inputs/RepeatableObjectInput";
 import StringInput from "@/components/map/panels/toolbox/generic/inputs/StringInput";
+import TimePickerInput from "@/components/map/panels/toolbox/generic/inputs/TimePickerInput";
 
 interface GenericInputProps {
   input: ProcessedInput;
@@ -22,6 +24,10 @@ interface GenericInputProps {
   disabled?: boolean;
   /** All current form values - needed for field inputs to know the selected layer */
   formValues?: Record<string, unknown>;
+  /** Schema definitions ($defs) for resolving $ref in nested objects */
+  schemaDefs?: Record<string, OGCInputSchema>;
+  /** Layer IDs to exclude from layer selectors (for repeatable objects) */
+  excludedLayerIds?: string[];
 }
 
 export default function GenericInput({
@@ -30,6 +36,8 @@ export default function GenericInput({
   onChange,
   disabled,
   formValues = {},
+  schemaDefs,
+  excludedLayerIds,
 }: GenericInputProps) {
   switch (input.inputType) {
     case "layer":
@@ -39,6 +47,7 @@ export default function GenericInput({
           value={value as string | undefined}
           onChange={onChange}
           disabled={disabled}
+          excludedLayerIds={excludedLayerIds}
         />
       );
 
@@ -60,6 +69,7 @@ export default function GenericInput({
           value={value as string | number | boolean | undefined}
           onChange={onChange}
           disabled={disabled}
+          formValues={formValues}
         />
       );
 
@@ -76,6 +86,16 @@ export default function GenericInput({
     case "number":
       return (
         <NumberInput
+          input={input}
+          value={value as number | undefined}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      );
+
+    case "time-picker":
+      return (
+        <TimePickerInput
           input={input}
           value={value as number | undefined}
           onChange={onChange}
@@ -100,6 +120,18 @@ export default function GenericInput({
           value={value as unknown[] | undefined}
           onChange={onChange}
           disabled={disabled}
+        />
+      );
+
+    case "repeatable-object":
+      return (
+        <RepeatableObjectInput
+          input={input}
+          value={value as Record<string, unknown>[] | undefined}
+          onChange={onChange}
+          disabled={disabled}
+          schemaDefs={schemaDefs}
+          formValues={formValues}
         />
       );
 

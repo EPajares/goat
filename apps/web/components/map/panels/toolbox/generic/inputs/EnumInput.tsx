@@ -2,33 +2,103 @@
  * Generic Enum Input Component
  *
  * Renders a dropdown selector for enum values from OGC process schema.
+ * Supports filtering enum values based on layer geometry types.
  */
+import { useParams } from "next/navigation";
 import { useMemo } from "react";
+
+import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { formatInputName } from "@/lib/utils/ogc-utils";
 
 import type { SelectorItem } from "@/types/map/common";
 import type { ProcessedInput } from "@/types/map/ogc-processes";
 
+import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
+
 import Selector from "@/components/map/panels/common/Selector";
+
+// Set of valid icon names for runtime validation
+const VALID_ICONS = new Set(Object.values(ICON_NAME));
 
 interface EnumInputProps {
   input: ProcessedInput;
   value: string | number | boolean | undefined;
   onChange: (value: string | number | boolean | undefined) => void;
   disabled?: boolean;
+  /** Form values for geometry-based filtering */
+  formValues?: Record<string, unknown>;
 }
 
-export default function EnumInput({ input, value, onChange, disabled }: EnumInputProps) {
-  // Convert enum values to selector items
-  const enumItems: SelectorItem[] = useMemo(() => {
+export default function EnumInput({ input, value, onChange, disabled, formValues = {} }: EnumInputProps) {
+  const { projectId } = useParams();
+  const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
+
+  // Get icon mapping from x-ui metadata
+  const enumIcons = input.uiMeta?.enum_icons;
+
+  // Check for geometry-based enum filtering
+  const enumGeometryFilter = input.uiMeta?.widget_options?.enum_geometry_filter as
+    | { source_layer: string; [enumValue: string]: string | string[] }
+    | undefined;
+
+  // Get the geometry type of the selected layer (if filtering is enabled)
+  const selectedLayerGeometry = useMemo(() => {
+    if (!enumGeometryFilter || !projectLayers) return null;
+
+    const sourceLayerField = enumGeometryFilter.source_layer;
+    const selectedLayerId = formValues[sourceLayerField];
+
+    if (!selectedLayerId || typeof selectedLayerId !== "string") return null;
+
+    const layer = projectLayers.find(
+      (l) => l.id === Number(selectedLayerId) || l.layer_id === selectedLayerId
+    );
+
+    return layer?.feature_layer_geometry_type || null;
+  }, [enumGeometryFilter, formValues, projectLayers]);
+
+  // Filter enum values based on geometry constraints
+  const filteredEnumValues = useMemo(() => {
     if (!input.enumValues) return [];
 
-    return input.enumValues.map((enumValue) => ({
-      value: enumValue as string | number,
-      label: formatInputName(String(enumValue)),
-    }));
-  }, [input.enumValues]);
+    // If no geometry filter or no layer selected, show all options
+    if (!enumGeometryFilter || !selectedLayerGeometry) {
+      return input.enumValues;
+    }
+
+    return input.enumValues.filter((enumValue) => {
+      const allowedGeometries = enumGeometryFilter[String(enumValue)];
+
+      // If no constraint for this enum value, always show it
+      if (!allowedGeometries) return true;
+
+      // Check if the selected layer's geometry matches allowed types
+      const allowedList = Array.isArray(allowedGeometries) ? allowedGeometries : [allowedGeometries];
+      return allowedList.some((allowed) =>
+        selectedLayerGeometry.toLowerCase().includes(allowed.toLowerCase())
+      );
+    });
+  }, [input.enumValues, enumGeometryFilter, selectedLayerGeometry]);
+
+  // Convert enum values to selector items
+  const enumItems: SelectorItem[] = useMemo(() => {
+    return filteredEnumValues.map((enumValue) => {
+      const item: SelectorItem = {
+        value: enumValue as string | number,
+        label: formatInputName(String(enumValue)),
+      };
+      // Add icon if available from x-ui metadata and valid
+      if (enumIcons && typeof enumValue === "string" && enumIcons[enumValue]) {
+        const iconName = enumIcons[enumValue];
+        // Only add icon if it's a valid ICON_NAME, otherwise skip (graceful fallback)
+        if (VALID_ICONS.has(iconName as ICON_NAME)) {
+          item.icon = iconName as ICON_NAME;
+        }
+      }
+      return item;
+    });
+  }, [filteredEnumValues, enumIcons]);
 
   // Find selected item
   const selectedItem = useMemo(() => {

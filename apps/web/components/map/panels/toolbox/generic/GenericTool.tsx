@@ -19,6 +19,7 @@ import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import {
   getDefaultValues,
   getVisibleInputs,
+  isSectionEnabled,
   processInputsWithSections,
   validateInputs,
 } from "@/lib/utils/ogc-utils";
@@ -245,6 +246,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
           {/* Render sections dynamically */}
           {sections.map((section) => {
             const visibleInputs = getVisibleInputs(section.inputs, values);
+            const sectionEnabled = isSectionEnabled(section, values);
 
             // Skip empty sections
             if (visibleInputs.length === 0) {
@@ -253,19 +255,26 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
 
             const isCollapsed = collapsedSections[section.id] ?? section.collapsed;
             const isFirstSection = sections.indexOf(section) === 0;
+            const isDisabled = !sectionEnabled;
 
             return (
-              <Box key={section.id}>
+              <Box
+                key={section.id}
+                sx={{
+                  opacity: isDisabled ? 0.5 : 1,
+                  pointerEvents: isDisabled ? "none" : "auto",
+                  transition: "opacity 0.2s ease",
+                }}>
                 <SectionHeader
-                  active={!isCollapsed}
+                  active={!isCollapsed && !isDisabled}
                   alwaysActive={!section.collapsible || isFirstSection}
                   label={section.label}
                   icon={getSectionIcon(section)}
                   disableAdvanceOptions={!section.collapsible}
-                  collapsed={isCollapsed}
+                  collapsed={isCollapsed || isDisabled}
                   setCollapsed={section.collapsible ? () => toggleSection(section.id) : undefined}
                 />
-                {!isCollapsed && (
+                {!isCollapsed && !isDisabled && (
                   <SectionOptions
                     active={true}
                     baseOptions={
@@ -278,6 +287,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                             onChange={(value) => handleInputChange(input.name, value)}
                             disabled={isExecuting}
                             formValues={values}
+                            schemaDefs={process.$defs}
                           />
                         ))}
                       </Stack>

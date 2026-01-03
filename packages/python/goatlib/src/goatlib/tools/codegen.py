@@ -4,16 +4,86 @@ Converts Pydantic models to Windmill-compatible function signatures.
 Windmill parses function signatures statically and only understands primitive types.
 """
 
+import tomllib
+from enum import Enum
+from pathlib import Path
 from typing import Literal, Union
 
 
+def _get_goatlib_dependencies() -> list[str]:
+    """Read dependencies from goatlib's pyproject.toml."""
+    # Find pyproject.toml relative to this file
+    codegen_path = Path(__file__).resolve()
+    # Go up: codegen.py -> tools -> goatlib -> src -> goatlib -> pyproject.toml
+    pyproject_path = codegen_path.parent.parent.parent.parent / "pyproject.toml"
+
+    if not pyproject_path.exists():
+        # Fallback to hardcoded if pyproject.toml not found
+        return [
+            "asyncpg>=0.29.0",
+            "boto3>=1.35.0",
+            "duckdb>=1.4.3",
+            "pydantic>=2.11.5",
+            "pydantic-settings>=2.9.1",
+            "pygeofilter>=0.2.4",
+            "pyproj>=3.6.0",
+            "pytz>=2024.1",
+            "wmill>=1.0.0",
+        ]
+
+    with open(pyproject_path, "rb") as f:
+        pyproject = tomllib.load(f)
+
+    return pyproject.get("project", {}).get("dependencies", [])
+
+
+def _build_requirements_comment() -> str:
+    """Build the requirements comment for Windmill scripts."""
+    deps = _get_goatlib_dependencies()
+    all_deps = sorted(set(deps))
+    lines = ["# requirements:"] + [f"# {dep}" for dep in all_deps]
+    return "\n".join(lines)
+
+
+def _is_pydantic_model(annotation: type) -> bool:
+    """Check if a type is a Pydantic BaseModel."""
+    try:
+        from pydantic import BaseModel
+
+        return isinstance(annotation, type) and issubclass(annotation, BaseModel)
+    except (TypeError, ImportError):
+        return False
+
+
+def _is_enum(annotation: type) -> bool:
+    """Check if a type is an Enum."""
+    try:
+        return isinstance(annotation, type) and issubclass(annotation, Enum)
+    except TypeError:
+        return False
+
+
 def python_type_to_str(annotation: type) -> str:
-    """Convert a Python type annotation to a string for code generation."""
+    """Convert a Python type annotation to a string for code generation.
+
+    Windmill only understands primitive types, so we convert:
+    - Pydantic models -> dict
+    - Enums/StrEnums -> str
+    - list[Model] -> list[dict]
+    """
     import types
     from typing import get_args, get_origin
 
     if annotation is type(None):
         return "None"
+
+    # Handle Pydantic models as dict
+    if _is_pydantic_model(annotation):
+        return "dict"
+
+    # Handle Enums as str (their values are strings)
+    if _is_enum(annotation):
+        return "str"
 
     origin = get_origin(annotation)
 
@@ -28,8 +98,12 @@ def python_type_to_str(annotation: type) -> str:
     if origin is list:
         args = get_args(annotation)
         if args:
-            return f"list[{python_type_to_str(args[0])}]"
+            inner_type = python_type_to_str(args[0])
+            return f"list[{inner_type}]"
         return "list"
+
+    if origin is dict:
+        return "dict"
 
     if origin is Literal:
         args = get_args(annotation)
@@ -39,6 +113,17 @@ def python_type_to_str(annotation: type) -> str:
         return annotation.__name__
 
     return str(annotation)
+
+
+def _format_default_value(value: object) -> str:
+    """Format a default value for code generation.
+
+    Handles enums specially to use their .value instead of repr().
+    """
+    if isinstance(value, Enum):
+        # Use the enum's value (e.g., "gaussian" instead of <ImpedanceFunction.gaussian>)
+        return repr(value.value)
+    return repr(value)
 
 
 def generate_windmill_script(
@@ -95,7 +180,7 @@ def generate_windmill_script(
             field_info.default is not None
             and field_info.default is not PydanticUndefined
         ):
-            default_val = repr(field_info.default)
+            default_val = _format_default_value(field_info.default)
             optional_args.append(f"{name}: {type_str} = {default_val}")
         else:
             optional_args.append(f"{name}: {type_str} = None")
@@ -112,14 +197,9 @@ def generate_windmill_script(
 
     imports_str = "\n".join(imports)
 
-    script = f'''# requirements:
-# boto3>=1.35.0
-# duckdb>=1.1.0
-# pydantic>=2.0.0
-# pydantic-settings>=2.0.0
-# asyncpg>=0.29.0
-# pyproj>=3.6.0
-# wmill>=1.0.0
+    requirements = _build_requirements_comment()
+
+    script = f'''{requirements}
 
 {imports_str}
 sys.path.insert(0, "/app/workspace/packages/python/goatlib/src")

@@ -275,13 +275,17 @@ def _resolve_property(
     # Get field translations
     field_trans = translator.get_field(field_name)
 
+    # Track label_key for potential description lookup
+    label_key = None
+
     # Resolve x-ui metadata
     if "x-ui" in result:
         x_ui = result["x-ui"]
 
         # Resolve label_key
         if "label_key" in x_ui:
-            label = translator.get_field_label(x_ui["label_key"])
+            label_key = x_ui["label_key"]
+            label = translator.get_field_label(label_key)
             if label:
                 x_ui["label"] = label
             del x_ui["label_key"]
@@ -289,7 +293,7 @@ def _resolve_property(
             # Apply translation if available
             x_ui["label"] = field_trans["label"]
 
-        # Resolve description_key
+        # Resolve description_key (or fallback to label_key for description)
         if "description_key" in x_ui:
             desc = translator.get_field_description(x_ui["description_key"])
             if desc:
@@ -298,10 +302,19 @@ def _resolve_property(
         elif field_trans.get("description"):
             # Apply translation if available
             x_ui["description"] = field_trans["description"]
+        elif label_key:
+            # Fallback: use label_key to also get description
+            desc = translator.get_field_description(label_key)
+            if desc:
+                x_ui["description"] = desc
 
     # Apply translations to top-level title/description (override defaults)
-    if field_trans.get("label"):
+    # First check if label_key was provided and resolved in x-ui
+    if "x-ui" in result and result["x-ui"].get("label"):
+        result["title"] = result["x-ui"]["label"]
+    elif field_trans.get("label"):
         result["title"] = field_trans["label"]
+
     if field_trans.get("description"):
         result["description"] = field_trans["description"]
 

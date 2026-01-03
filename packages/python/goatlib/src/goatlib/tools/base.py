@@ -71,6 +71,9 @@ class ToolSettings:
     ducklake_catalog_schema: str
     ducklake_data_dir: str
 
+    # OD matrix / travel time matrices
+    od_matrix_base_path: str = "/app/data/traveltime_matrices"
+
     # S3 settings (shared for DuckLake and uploads)
     s3_provider: str = "hetzner"  # hetzner, aws, minio
     s3_endpoint_url: str | None = None
@@ -161,6 +164,9 @@ class ToolSettings:
                 "DUCKLAKE_CATALOG_SCHEMA", "ducklake"
             ),
             ducklake_data_dir=os.environ.get("DUCKLAKE_DATA_DIR", "/app/data/ducklake"),
+            od_matrix_base_path=os.environ.get(
+                "OD_MATRIX_BASE_PATH", "/app/data/traveltime_matrices"
+            ),
             s3_provider=os.environ.get("S3_PROVIDER", "hetzner").lower(),
             s3_endpoint_url=os.environ.get("S3_ENDPOINT_URL"),
             s3_access_key_id=cls._get_secret("S3_ACCESS_KEY_ID", ""),
@@ -246,6 +252,56 @@ class SimpleToolRunner:
             )
         """)
         return con
+
+    def _is_retriable_ducklake_error(self: Self, error: Exception) -> bool:
+        """Check if a DuckLake error is retriable (connection/transaction issues)."""
+        error_msg = str(error).lower()
+        return (
+            "ssl syscall error" in error_msg
+            or "eof detected" in error_msg
+            or "connection" in error_msg
+            or "transactioncontext" in error_msg
+            or "failed to commit" in error_msg
+            or "rollback" in error_msg
+        )
+
+    def _execute_with_retry(
+        self: Self,
+        operation: str,
+        sql: str,
+        max_retries: int = 2,
+    ) -> Any:
+        """Execute a DuckDB/DuckLake SQL statement with retry logic.
+
+        Args:
+            operation: Description of the operation for logging
+            sql: SQL statement to execute
+            max_retries: Maximum number of retry attempts
+
+        Returns:
+            Result of the execute() call
+        """
+        for attempt in range(max_retries + 1):
+            try:
+                return self.duckdb_con.execute(sql)
+            except Exception as e:
+                if self._is_retriable_ducklake_error(e) and attempt < max_retries:
+                    logger.warning(
+                        "DuckLake %s error (attempt %d/%d), reconnecting: %s",
+                        operation,
+                        attempt + 1,
+                        max_retries + 1,
+                        e,
+                    )
+                    # Force reconnection by clearing the cached connection
+                    if self._duckdb_con:
+                        try:
+                            self._duckdb_con.close()
+                        except Exception:
+                            pass
+                    self._duckdb_con = None
+                    continue
+                raise
 
     @property
     def duckdb_con(self: Self) -> duckdb.DuckDBPyConnection:
@@ -351,6 +407,79 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         """
         return "tool"
 
+    def compute_quantile_breaks(
+        self: Self,
+        table_name: str,
+        column_name: str,
+        num_breaks: int = 6,
+        strip_zeros: bool = True,
+    ) -> dict[str, Any] | None:
+        """Compute quantile breaks for a column using DuckDB.
+
+        Args:
+            table_name: Full table path (e.g., "lake.user_xxx.t_yyy")
+            column_name: Column name to compute breaks for
+            num_breaks: Number of break values (default 6 to match 7-color palette)
+            strip_zeros: Whether to exclude zero values (default True)
+
+        Returns:
+            Dict with breaks, min, max, mean, std_dev, method, attribute
+        """
+        from goatlib.analysis.schemas.statistics import ClassBreakMethod
+        from goatlib.analysis.statistics import calculate_class_breaks
+
+        try:
+            result = calculate_class_breaks(
+                con=self.duckdb_con,
+                table_name=table_name,
+                attribute=column_name,
+                method=ClassBreakMethod.quantile,
+                num_breaks=num_breaks,
+                strip_zeros=strip_zeros,
+            )
+
+            if result.breaks:
+                # Remove duplicates and sort
+                unique_breaks = sorted(set(result.breaks))
+                # Remove min from breaks if present (keep max as last break)
+                if result.min is not None and result.min in unique_breaks:
+                    unique_breaks.remove(result.min)
+
+                return {
+                    "breaks": unique_breaks,
+                    "min": result.min,
+                    "max": result.max,
+                    "mean": result.mean,
+                    "std_dev": result.std_dev,
+                    "method": "quantile",
+                    "attribute": column_name,
+                }
+        except Exception as e:
+            logger.warning("Failed to compute quantile breaks: %s", e)
+
+        return None
+
+    def get_layer_properties(
+        self: Self,
+        params: TParams,
+        metadata: DatasetMetadata,
+        table_info: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Return custom layer properties (style) for the output.
+
+        Override in subclasses to provide tool-specific styles (e.g., heatmaps).
+        If None is returned, default style will be generated based on geometry type.
+
+        Args:
+            params: Tool parameters
+            metadata: Dataset metadata from analysis
+            table_info: DuckLake table info (for computing quantile breaks)
+
+        Returns:
+            Style dict or None for default style
+        """
+        return None
+
     def export_layer_to_parquet(self: Self, layer_id: str, user_id: str) -> str:
         """Export a DuckLake layer to a temporary parquet file.
 
@@ -371,12 +500,73 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         temp_path = temp_file.name
         temp_file.close()
 
-        self.duckdb_con.execute(f"""
-            COPY {table_name} TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-        """)
+        self._execute_with_retry(
+            "export layer",
+            f"COPY {table_name} TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+        )
         logger.info("Exported layer %s to %s", layer_id, temp_path)
 
         return temp_path
+
+    def is_layer_id(self: Self, value: str | None) -> bool:
+        """Check if a string value looks like a layer UUID.
+
+        Args:
+            value: String to check
+
+        Returns:
+            True if the value appears to be a UUID (36 chars with dashes)
+        """
+        if not value or not isinstance(value, str):
+            return False
+        # UUIDs are 36 characters with format: 8-4-4-4-12
+        return len(value) == 36 and value.count("-") == 4
+
+    def resolve_layer_paths(
+        self: Self,
+        items: list,
+        user_id: str,
+        path_field: str = "input_path",
+    ) -> list:
+        """Resolve layer IDs to parquet file paths in a list of Pydantic models.
+
+        For each item in the list, if the path_field contains a layer UUID,
+        export it to a parquet file and update the field with the file path.
+        Also fetches and sets the layer name if not already provided.
+
+        Args:
+            items: List of Pydantic model instances (e.g., opportunities)
+            user_id: User UUID for accessing layers
+            path_field: Name of the field containing the layer ID/path
+
+        Returns:
+            New list with resolved paths and names
+        """
+        resolved = []
+        for item in items:
+            input_value = getattr(item, path_field, None)
+            if self.is_layer_id(input_value):
+                # Export the layer to parquet
+                parquet_path = self.export_layer_to_parquet(input_value, user_id)
+                logger.info(f"Exported layer {input_value} to {parquet_path}")
+
+                # Fetch layer name if item has 'name' field and it's not set
+                item_dict = item.model_dump()
+                if "name" in item_dict and not item_dict.get("name"):
+                    layer_info = asyncio.get_event_loop().run_until_complete(
+                        self.db_service.get_layer_info(input_value)
+                    )
+                    if layer_info and layer_info.get("name"):
+                        item_dict["name"] = layer_info["name"]
+                        logger.info(
+                            f"Set layer name from database: {layer_info['name']}"
+                        )
+
+                item_dict[path_field] = parquet_path
+                resolved.append(type(item)(**item_dict))
+            else:
+                resolved.append(item)
+        return resolved
 
     def run(self: Self, params: TParams) -> dict[str, Any]:
         """Main entry point - runs the full tool workflow.
@@ -402,6 +592,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             f"(user={params.user_id}, output={output_layer_id})"
         )
 
+        # Initialize db_service early so it's available in process() for resolve_layer_paths
+        asyncio.get_event_loop().run_until_complete(self._init_db_service())
+
         with tempfile.TemporaryDirectory(
             prefix=f"{self.__class__.__name__.lower()}_"
         ) as temp_dir:
@@ -422,6 +615,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             )
             logger.info(f"DuckLake table created: {table_info['table_name']}")
 
+            # Refresh database pool - connections may have gone stale during long analysis
+            asyncio.get_event_loop().run_until_complete(self._close_db_service())
+
             # Step 3 & 4: Create layer + optional project link
             result_info = asyncio.get_event_loop().run_until_complete(
                 self._create_db_records(
@@ -432,6 +628,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                     table_info=table_info,
                 )
             )
+
+        # Close the database pool
+        asyncio.get_event_loop().run_until_complete(self._close_db_service())
 
         # Step 5: Build and return output
         # Note: folder_id is resolved inside _create_db_records if not provided
@@ -478,29 +677,58 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         Returns:
             Table info dict with table_name, feature_count, extent, geometry_type, columns, size
         """
-        con = self.duckdb_con
         table_name = self.get_layer_table_path(user_id, layer_id)
         user_schema = f"user_{user_id.replace('-', '')}"
 
         # Get file size before ingestion
         file_size = parquet_path.stat().st_size if parquet_path.exists() else 0
 
-        # Ensure user schema exists
-        con.execute(f"CREATE SCHEMA IF NOT EXISTS lake.{user_schema}")
+        # Retry logic for connection issues with DuckLake
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                con = self.duckdb_con
 
-        # Create table from parquet
-        con.execute(f"""
-            CREATE TABLE {table_name} AS
-            SELECT * FROM read_parquet('{parquet_path}')
-        """)
-        logger.info("Created DuckLake table: %s from %s", table_name, parquet_path)
+                # Ensure user schema exists
+                con.execute(f"CREATE SCHEMA IF NOT EXISTS lake.{user_schema}")
 
-        # Get table info
-        table_info = self._get_table_info(con, table_name)
-        table_info["table_name"] = table_name
-        table_info["size"] = file_size
+                # Create table from parquet (use OR REPLACE for retry safety)
+                con.execute(f"""
+                    CREATE TABLE {table_name} AS
+                    SELECT * FROM read_parquet('{parquet_path}')
+                """)
+                logger.info(
+                    "Created DuckLake table: %s from %s", table_name, parquet_path
+                )
 
-        return table_info
+                # Get table info
+                table_info = self._get_table_info(con, table_name)
+                table_info["table_name"] = table_name
+                table_info["size"] = file_size
+
+                return table_info
+
+            except Exception as e:
+                if self._is_retriable_ducklake_error(e) and attempt < max_retries:
+                    logger.warning(
+                        "DuckLake ingest error (attempt %d/%d), reconnecting: %s",
+                        attempt + 1,
+                        max_retries + 1,
+                        e,
+                    )
+                    # Force reconnection by clearing the cached connection
+                    if self._duckdb_con:
+                        try:
+                            self._duckdb_con.close()
+                        except Exception:
+                            pass
+                    self._duckdb_con = None
+                    # Small delay before retry to let connection issues settle
+                    import time
+
+                    time.sleep(0.5)
+                    continue
+                raise
 
     def _get_table_info(
         self: Self, con: duckdb.DuckDBPyConnection, table_name: str
@@ -569,30 +797,19 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             "extent_wkt": extent_wkt,
         }
 
-    async def _create_db_records(
-        self: Self,
-        output_layer_id: str,
-        params: TParams,
-        output_name: str,
-        metadata: DatasetMetadata,
-        table_info: dict[str, Any],
-    ) -> dict[str, Any]:
-        """Create layer record and optionally link to project.
+    async def _init_db_service(self: Self) -> None:
+        """Initialize database service and connection pool.
 
-        Args:
-            output_layer_id: UUID for the new layer
-            params: Tool parameters
-            output_name: Layer display name
-            metadata: Dataset metadata from analysis
-            table_info: DuckLake table info
-
-        Returns:
-            Dict with folder_id and layer_project_id (if added to project)
+        This is called early in run() so db_service is available for
+        resolve_layer_paths() during process().
         """
         if self.settings is None:
             raise RuntimeError("Settings not initialized. Call init_from_env() first.")
 
-        pool = await asyncpg.create_pool(
+        if self.db_service is not None:
+            return  # Already initialized
+
+        self._db_pool = await asyncpg.create_pool(
             host=self.settings.postgres_server,
             port=self.settings.postgres_port,
             user=self.settings.postgres_user,
@@ -602,64 +819,94 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             max_size=5,
         )
 
-        try:
-            self.db_service = ToolDatabaseService(
-                pool, schema=self.settings.customer_schema
-            )
+        self.db_service = ToolDatabaseService(
+            self._db_pool, schema=self.settings.customer_schema
+        )
 
-            # Resolve folder_id: use provided value, or derive from project_id
-            folder_id = params.folder_id
-            if not folder_id and params.project_id:
-                folder_id = await self.db_service.get_project_folder_id(
-                    params.project_id
-                )
-                if not folder_id:
-                    raise ValueError(
-                        f"Could not find folder for project {params.project_id}"
-                    )
-                logger.info(
-                    f"Derived folder_id={folder_id} from project_id={params.project_id}"
-                )
+    async def _close_db_service(self: Self) -> None:
+        """Close database connection pool."""
+        if hasattr(self, "_db_pool") and self._db_pool is not None:
+            await self._db_pool.close()
+            self._db_pool = None
+            self.db_service = None
 
+    async def _create_db_records(
+        self: Self,
+        output_layer_id: str,
+        params: TParams,
+        output_name: str,
+        metadata: DatasetMetadata,
+        table_info: dict[str, Any],
+        custom_properties: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create layer record and optionally link to project.
+
+        Args:
+            output_layer_id: UUID for the new layer
+            params: Tool parameters
+            output_name: Layer display name
+            metadata: Dataset metadata from analysis
+            table_info: DuckLake table info
+            custom_properties: Optional custom layer properties (style).
+                               If None, get_layer_properties() is called.
+
+        Returns:
+            Dict with folder_id and layer_project_id (if added to project)
+        """
+        if self.db_service is None:
+            await self._init_db_service()
+
+        # Resolve folder_id: use provided value, or derive from project_id
+        folder_id = params.folder_id
+        if not folder_id and params.project_id:
+            folder_id = await self.db_service.get_project_folder_id(params.project_id)
             if not folder_id:
                 raise ValueError(
-                    "folder_id is required, or project_id must be provided to derive it"
+                    f"Could not find folder for project {params.project_id}"
                 )
-
-            # Determine layer type from actual geometry in the data
-            detected_geom_type = table_info.get("geometry_type")
-            is_feature = bool(detected_geom_type)
-            layer_type = "feature" if is_feature else "table"
-            feature_layer_type = (
-                self.get_feature_layer_type(params) if is_feature else None
+            logger.info(
+                f"Derived folder_id={folder_id} from project_id={params.project_id}"
             )
 
-            # Create layer metadata (returns generated properties)
-            layer_properties = await self.db_service.create_layer(
+        if not folder_id:
+            raise ValueError(
+                "folder_id is required, or project_id must be provided to derive it"
+            )
+
+        # Determine layer type from actual geometry in the data
+        detected_geom_type = table_info.get("geometry_type")
+        is_feature = bool(detected_geom_type)
+        layer_type = "feature" if is_feature else "table"
+        feature_layer_type = self.get_feature_layer_type(params) if is_feature else None
+
+        # Get custom layer properties (style) from parameter or subclass
+        if custom_properties is None:
+            custom_properties = self.get_layer_properties(params, metadata, table_info)
+
+        # Create layer metadata (returns generated properties)
+        layer_properties = await self.db_service.create_layer(
+            layer_id=output_layer_id,
+            user_id=params.user_id,
+            folder_id=folder_id,
+            name=output_name,
+            layer_type=layer_type,
+            feature_layer_type=feature_layer_type,
+            geometry_type=detected_geom_type,
+            extent_wkt=table_info.get("extent_wkt"),
+            attribute_mapping=table_info.get("columns", {}),
+            feature_count=table_info.get("feature_count", 0),
+            size=table_info.get("size", 0),
+            properties=custom_properties,
+        )
+
+        # Add to project if requested
+        layer_project_id = None
+        if params.project_id:
+            layer_project_id = await self.db_service.add_to_project(
                 layer_id=output_layer_id,
-                user_id=params.user_id,
-                folder_id=folder_id,
+                project_id=params.project_id,
                 name=output_name,
-                layer_type=layer_type,
-                feature_layer_type=feature_layer_type,
-                geometry_type=detected_geom_type,
-                extent_wkt=table_info.get("extent_wkt"),
-                attribute_mapping=table_info.get("columns", {}),
-                feature_count=table_info.get("feature_count", 0),
-                size=table_info.get("size", 0),
+                properties=layer_properties,
             )
 
-            # Add to project if requested
-            layer_project_id = None
-            if params.project_id:
-                layer_project_id = await self.db_service.add_to_project(
-                    layer_id=output_layer_id,
-                    project_id=params.project_id,
-                    name=output_name,
-                    properties=layer_properties,
-                )
-
-            return {"folder_id": folder_id, "layer_project_id": layer_project_id}
-
-        finally:
-            await pool.close()
+        return {"folder_id": folder_id, "layer_project_id": layer_project_id}

@@ -27,6 +27,9 @@
     "time": {
       "label": "Zeit"
     },
+    "calculation_time": {
+      "label": "Berechnungszeit"
+    },
     "area": {
       "label": "Fläche"
     },
@@ -115,6 +118,22 @@
     "reference_area_path": {
       "label": "Referenzgebiet",
       "description": "Layer, der das Referenzgebiet für die Konnektivitätsanalyse definiert"
+    },
+    "weekday": {
+      "label": "Tag",
+      "description": "Art des Tages für den ÖV-Fahrplan"
+    },
+    "from_time": {
+      "label": "Startzeit",
+      "description": "Beginn des Analysezeitraums"
+    },
+    "to_time": {
+      "label": "Endzeit",
+      "description": "Ende des Analysezeitraums"
+    },
+    "catchment_type": {
+      "label": "Einzugsgebietstyp",
+      "description": "Methode zur Berechnung der Einzugsgebiete"
     },
     "distances": {
       "label": "Pufferabstände",
@@ -340,6 +359,14 @@
       "mean": "Mittelwert",
       "min": "Minimum",
       "max": "Maximum"
+    },
+    "weekday": {
+      "weekday": "Wochentag",
+      "saturday": "Samstag",
+      "sunday": "Sonntag"
+    },
+    "catchment_type": {
+      "buffer": "Puffer"
     }
   },
   "tools": {

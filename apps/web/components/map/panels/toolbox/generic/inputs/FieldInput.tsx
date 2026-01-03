@@ -3,8 +3,9 @@
  *
  * Renders a field selector that shows fields from a related layer.
  * The related layer is determined by:
- * 1. Explicit metadata (relatedLayer) in the input schema
- * 2. Naming convention: {prefix}_field -> {prefix}_layer_id
+ * 1. Explicit widget_options.source_layer in the x-ui schema
+ * 2. Explicit metadata (relatedLayer) in the input schema
+ * 3. Naming convention: {prefix}_field -> {prefix}_layer_id
  */
 import { Box, Typography } from "@mui/material";
 import { useParams } from "next/navigation";
@@ -67,7 +68,13 @@ export default function FieldInput({
 
   // Determine which layer this field relates to
   const relatedLayerInputName = useMemo(() => {
-    // 1. Check metadata for explicit relationship
+    // 1. Check widget_options.source_layer (preferred method from schema)
+    const sourceLayer = input.uiMeta?.widget_options?.source_layer;
+    if (typeof sourceLayer === "string") {
+      return sourceLayer;
+    }
+
+    // 2. Check metadata for explicit relationship
     const relatedLayerMeta = input.metadata?.find(
       (m) => m.role === "relatedLayer" || m.title === "relatedLayer"
     );
@@ -75,9 +82,9 @@ export default function FieldInput({
       return relatedLayerMeta.value as string;
     }
 
-    // 2. Fall back to naming convention
+    // 3. Fall back to naming convention
     return inferRelatedLayerInput(input.name);
-  }, [input.name, input.metadata]);
+  }, [input.name, input.metadata, input.uiMeta]);
 
   // Get the selected layer ID from form values
   const selectedLayerId = useMemo(() => {
@@ -112,13 +119,30 @@ export default function FieldInput({
   // Fetch fields for the layer
   const { layerFields, isLoading } = useLayerFields(datasetId);
 
+  // Get field type filter from widget_options
+  const fieldTypeFilter = useMemo(() => {
+    const fieldTypes = input.uiMeta?.widget_options?.field_types;
+    if (Array.isArray(fieldTypes)) {
+      return fieldTypes as string[];
+    }
+    return null;
+  }, [input.uiMeta]);
+
+  // Filter fields by type if specified
+  const filteredFields = useMemo(() => {
+    if (!fieldTypeFilter || fieldTypeFilter.length === 0) {
+      return layerFields;
+    }
+    return layerFields.filter((field) => fieldTypeFilter.includes(field.type));
+  }, [layerFields, fieldTypeFilter]);
+
   // Convert value to LayerFieldType format
   const selectedField = useMemo((): LayerFieldType | undefined => {
     if (!value) return undefined;
 
     // Value might be just the field name (string) or a full object
     if (typeof value === "string") {
-      return layerFields.find((f) => f.name === value);
+      return filteredFields.find((f) => f.name === value);
     }
 
     // If it's already an object with name/type
@@ -127,7 +151,7 @@ export default function FieldInput({
     }
 
     return undefined;
-  }, [value, layerFields]);
+  }, [value, filteredFields]);
 
   const handleChange = (field: LayerFieldType | undefined) => {
     // Store just the field name for the API
@@ -156,22 +180,11 @@ export default function FieldInput({
     );
   }
 
-  // Show message if no fields available
-  if (layerFields.length === 0) {
-    return (
-      <Box>
-        <Typography variant="body2" color="text.secondary">
-          {input.title || input.name}: {t("no_fields_available")}
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
     <LayerFieldSelector
       selectedField={selectedField}
       setSelectedField={handleChange}
-      fields={layerFields}
+      fields={filteredFields}
       label={input.title || input.name}
       tooltip={input.description}
       disabled={disabled}

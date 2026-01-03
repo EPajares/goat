@@ -299,13 +299,22 @@ export async function setJobsReadStatus(jobIds: string[]): Promise<void> {
 
 /**
  * Hook to fetch and poll jobs list
+ * Only polls when there are running/accepted jobs
  */
 export function useJobs(queryParams?: GetJobsQueryParams) {
   const { data, isLoading, error, mutate, isValidating } = useSWR<JobsResponse>(
     [`${JOBS_API_BASE_URL}`, queryParams],
     fetcher,
     {
-      refreshInterval: 5000, // Poll every 5 seconds
+      refreshInterval: (latestData) => {
+        if (!latestData?.jobs) return 0;
+        // Check if there are any running or accepted jobs
+        const hasActiveJobs = latestData.jobs.some(
+          (job) => job.status === "running" || job.status === "accepted"
+        );
+        // Poll every 2 seconds if there are active jobs, otherwise stop polling
+        return hasActiveJobs ? 2000 : 0;
+      },
     }
   );
 

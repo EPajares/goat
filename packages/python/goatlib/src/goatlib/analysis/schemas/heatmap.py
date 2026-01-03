@@ -1,6 +1,6 @@
 import logging
 from enum import StrEnum
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -21,6 +21,89 @@ class RoutingMode(StrEnum):
     pedelec = "pedelec"
     public_transport = "public_transport"
     car = "car"
+
+
+# Travel time limit options (3-30 minutes)
+TravelTimeLimit = Literal[
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+]
+
+# Sensitivity options (50k-1M in 50k increments)
+SensitivityValue = Literal[
+    50000,
+    100000,
+    150000,
+    200000,
+    250000,
+    300000,
+    350000,
+    400000,
+    450000,
+    500000,
+    550000,
+    600000,
+    650000,
+    700000,
+    750000,
+    800000,
+    850000,
+    900000,
+    950000,
+    1000000,
+]
+
+
+class PotentialType(StrEnum):
+    """Type of potential value source."""
+
+    field = "field"
+    constant = "constant"
+    expression = "expression"
+
+
+class PotentialExpression(StrEnum):
+    """Expression options for computing potential from polygon geometry."""
+
+    area = "area"
+    perimeter = "perimeter"
+
+
+# Icon mapping for routing modes (matches @p4b/ui ICON_NAME values)
+# Values must be lowercase to match the enum values in Icon.tsx
+ROUTING_MODE_ICONS: dict[str, str] = {
+    "walking": "run",
+    "bicycle": "bicycle",
+    "pedelec": "pedelec",
+    "public_transport": "bus",
+    "car": "car",
+}
 
 
 class ImpedanceFunction(StrEnum):
@@ -47,6 +130,7 @@ class HeatmapCommon(BaseModel):
         json_schema_extra=ui_field(
             section="routing",
             field_order=1,
+            enum_icons=ROUTING_MODE_ICONS,
         ),
     )
     od_matrix_path: str = Field(
@@ -122,17 +206,17 @@ class OpportunityBase(BaseModel):
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=2,
+            hidden=True,  # Auto-populated from layer filename
         ),
     )
-    max_cost: int = Field(
-        ...,
-        ge=1,
-        le=60,
-        description="Max cost.",
+    max_cost: TravelTimeLimit = Field(
+        default=20,
+        description="Travel time limit in minutes.",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=3,
             label_key="max_cost",
+            visible_when={"input_path": {"$ne": None}},
         ),
     )
 
@@ -140,12 +224,29 @@ class OpportunityBase(BaseModel):
 class OpportunityGravity(OpportunityBase):
     """Opportunity dataset parameters for gravity-based heatmaps."""
 
-    sensitivity: float = Field(
-        ...,
-        gt=0.0,
+    sensitivity: SensitivityValue = Field(
+        default=300000,
+        description="Sensitivity parameter for gravity decay function.",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=10,
+            visible_when={"input_path": {"$ne": None}},
+        ),
+    )
+    potential_type: PotentialType = Field(
+        default=PotentialType.constant,
+        description="How to determine the potential value for each opportunity.",
+        json_schema_extra=ui_field(
+            section="opportunities",
+            field_order=4,
+            visible_when={"input_path": {"$ne": None}},
+            widget_options={
+                # Only show "expression" option when input_path is a polygon layer
+                "enum_geometry_filter": {
+                    "source_layer": "input_path",
+                    "expression": ["Polygon", "MultiPolygon"],
+                }
+            },
         ),
     )
     potential_field: str | None = Field(
@@ -154,58 +255,49 @@ class OpportunityGravity(OpportunityBase):
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=5,
-            mutually_exclusive_group="potential_source",
-            priority=1,  # Default option (lowest priority number)
+            widget="field-selector",
+            widget_options={"source_layer": "input_path", "field_types": ["number"]},
+            visible_when={"input_path": {"$ne": None}, "potential_type": "field"},
         ),
     )
     potential_constant: float | None = Field(
-        None,
+        1.0,
         gt=0.0,
-        description="Constant potential; overrides field if set.",
+        description="Constant potential value applied to all features.",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=6,
-            mutually_exclusive_group="potential_source",
-            priority=2,
+            visible_when={"input_path": {"$ne": None}, "potential_type": "constant"},
         ),
     )
-    potential_expression: str | None = Field(
+    potential_expression: PotentialExpression | None = Field(
         None,
-        description=(
-            "Expression to compute potential for polygons, e.g. 'area', 'perimeter', or a custom formula. "
-            "Overrides potential_field and potential_constant if set."
-        ),
+        description="Expression to compute potential for polygon layers (e.g. area or perimeter).",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=7,
-            mutually_exclusive_group="potential_source",
-            priority=3,
+            visible_when={"input_path": {"$ne": None}, "potential_type": "expression"},
         ),
     )
 
     @model_validator(mode="after")
     def validate_potential_fields(self: Self) -> Self:
-        set_fields = [
-            f
-            for f in ["potential_expression", "potential_constant", "potential_field"]
-            if getattr(self, f) is not None
-        ]
-        if not set_fields:
-            raise ValueError(
-                "One of potential_expression, potential_constant, or potential_field must be set."
-            )
-        if len(set_fields) > 1:
-            precedence = {
-                "potential_expression": 1,
-                "potential_constant": 2,
-                "potential_field": 3,
-            }
-            chosen = min(set_fields, key=lambda f: precedence[f])
-            logger.warning(
-                f"Multiple potential fields set ({set_fields}); "
-                f"using '{chosen}' due to precedence: "
-                "potential_expression > potential_constant > potential_field."
-            )
+        """Validate that the correct potential field is set based on potential_type."""
+        if self.potential_type == PotentialType.field:
+            if not self.potential_field:
+                raise ValueError(
+                    "potential_field must be set when potential_type is 'field'."
+                )
+        elif self.potential_type == PotentialType.constant:
+            if self.potential_constant is None:
+                raise ValueError(
+                    "potential_constant must be set when potential_type is 'constant'."
+                )
+        elif self.potential_type == PotentialType.expression:
+            if not self.potential_expression:
+                raise ValueError(
+                    "potential_expression must be set when potential_type is 'expression'."
+                )
         return self
 
 
@@ -213,19 +305,20 @@ class HeatmapGravityParams(HeatmapCommon):
     """Parameters for gravity-based accessibility heatmaps."""
 
     impedance: ImpedanceFunction = Field(
-        ...,
+        default=ImpedanceFunction.gaussian,
         json_schema_extra=ui_field(
             section="configuration",
             field_order=1,
         ),
     )
     max_sensitivity: float = Field(
-        300000,
+        1000000,
         gt=0.0,
         description="Max sensitivity used for normalization.",
         json_schema_extra=ui_field(
             section="configuration",
             field_order=2,
+            hidden=True,  # Internal normalization constant
         ),
     )
     opportunities: list[OpportunityGravity] = Field(
@@ -241,13 +334,13 @@ class HeatmapGravityParams(HeatmapCommon):
 class OpportunityClosestAverage(OpportunityBase):
     """Opportunity dataset parameters for closest-average heatmaps."""
 
-    n_destinations: int = Field(
-        ...,
-        ge=1,
+    n_destinations: Literal[1, 2, 3, 4, 5, 6, 7, 8, 9, 10] = Field(
+        1,
         description="Number of closest destinations to average",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=5,
+            visible_when={"input_path": {"$ne": None}},
         ),
     )
 
@@ -268,23 +361,23 @@ class HeatmapClosestAverageParams(HeatmapCommon):
 class HeatmapConnectivityParams(HeatmapCommon):
     """Parameters for connectivity-based heatmaps."""
 
-    reference_area_path: str = Field(
-        ...,
-        description="Path to reference area dataset (polygons/points/lines)",
+    max_cost: TravelTimeLimit = Field(
+        default=20,
+        description="Travel time limit in minutes.",
         json_schema_extra=ui_field(
             section="configuration",
             field_order=3,
-            widget="layer-selector",
-            widget_options={
-                "geometry_types": ["Polygon", "MultiPolygon", "Point", "LineString"]
-            },
+            label_key="max_cost",
         ),
     )
-    max_cost: int = Field(
+    reference_area_path: str = Field(
         ...,
-        description="Max cost. It can be time, distance or any other cost unit.",
+        description="Path to reference area polygon dataset",
         json_schema_extra=ui_field(
             section="configuration",
             field_order=4,
+            label_key="reference_area_path",
+            widget="layer-selector",
+            widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
         ),
     )

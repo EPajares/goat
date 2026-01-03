@@ -21,6 +21,8 @@ interface LayerInputProps {
   value: string | undefined;
   onChange: (value: string | undefined) => void;
   disabled?: boolean;
+  /** Layer IDs to exclude from the selector (e.g., already selected in other items) */
+  excludedLayerIds?: string[];
 }
 
 /**
@@ -34,11 +36,17 @@ function mapGeometryToLayerType(geometry: string): string {
   return normalized;
 }
 
-export default function LayerInput({ input, value, onChange, disabled }: LayerInputProps) {
+export default function LayerInput({
+  input,
+  value,
+  onChange,
+  disabled,
+  excludedLayerIds = [],
+}: LayerInputProps) {
   const { projectId } = useParams();
   const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
 
-  // Filter layers based on geometry constraints
+  // Filter layers based on geometry constraints and exclusions
   const filteredLayers = useMemo(() => {
     if (!projectLayers) return [];
 
@@ -48,7 +56,7 @@ export default function LayerInput({ input, value, onChange, disabled }: LayerIn
     if (input.geometryConstraints && input.geometryConstraints.length > 0) {
       const allowedTypes = input.geometryConstraints.map(mapGeometryToLayerType);
 
-      filtered = projectLayers.filter((layer) => {
+      filtered = filtered.filter((layer) => {
         const layerGeomType = layer.feature_layer_geometry_type?.toLowerCase();
         if (!layerGeomType) return true; // Allow if no geometry type (tables, etc.)
 
@@ -56,8 +64,13 @@ export default function LayerInput({ input, value, onChange, disabled }: LayerIn
       });
     }
 
+    // Exclude already-selected layers (for repeatable objects)
+    if (excludedLayerIds.length > 0) {
+      filtered = filtered.filter((layer) => !excludedLayerIds.includes(layer.layer_id));
+    }
+
     return filtered;
-  }, [projectLayers, input.geometryConstraints]);
+  }, [projectLayers, input.geometryConstraints, excludedLayerIds]);
 
   // Convert layers to selector items
   const layerItems: SelectorItem[] = useMemo(() => {

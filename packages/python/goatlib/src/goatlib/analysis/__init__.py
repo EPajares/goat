@@ -2,6 +2,7 @@
 
 from .core.base import AnalysisTool
 from .data_management import JoinTool
+from .geoanalysis import OriginDestinationTool
 from .geoprocessing import BufferTool
 from .statistics import (
     AreaOperation,
@@ -23,6 +24,8 @@ __all__ = [
     "AnalysisTool",
     # Geoprocessing tools
     "BufferTool",
+    # Geoanalysis tools
+    "OriginDestinationTool",
     # Data management tools
     "JoinTool",
     # Statistics functions

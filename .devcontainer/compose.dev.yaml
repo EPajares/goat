@@ -34,6 +34,7 @@ services:
   # Windmill Worker - executes scripts
   windmill-worker:
     image: ghcr.io/windmill-labs/windmill:main
+    restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
       MODE: worker
@@ -41,6 +42,8 @@ services:
       # Use native Python (no venv) so PYTHONPATH and mounted volumes work
       WORKER_TAGS: python3
       DISABLE_NSJAIL: "true"
+      # Job timeout (in seconds) - 1 minute default
+      JOB_DEFAULT_TIMEOUT: 60
       # Tool environment variables
       POSTGRES_SERVER: ${POSTGRES_SERVER}
       POSTGRES_PORT: 5432
@@ -57,6 +60,10 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
       S3_REGION_NAME: ${S3_REGION_NAME:-${S3_REGION:-us-east-1}}
+      # OD matrix / travel time matrices path
+      OD_MATRIX_BASE_PATH: /app/data/traveltime_matrices
+      # GTFS data path
+      GTFS_DATA_PATH: /app/data/gtfs
       # Add goatlib to Python path
       PYTHONPATH: /app/workspace/packages/python/goatlib/src
     networks:
@@ -65,6 +72,8 @@ services:
     volumes:
       - ../:/app/workspace:ro
       - ../data/ducklake:/app/data/ducklake
+      - ../data/traveltime_matrices:/app/data/traveltime_matrices:ro
+      - ../data/gtfs:/app/data/gtfs:ro
     depends_on:
       - windmill-server
 

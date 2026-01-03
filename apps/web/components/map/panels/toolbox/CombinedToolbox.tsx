@@ -1,11 +1,8 @@
 /**
  * Combined Toolbox Component
  *
- * Shows both:
- * 1. Existing custom tools (for complex UIs like catchment area, heatmaps)
- * 2. Generic tools from OGC API Processes (for simple geoprocessing tools)
- *
- * Uses a tab-based UI to separate them, or can be configured to merge them.
+ * Displays all tools from OGC API Processes, organized by category.
+ * All tools use the generic form renderer based on their JSON schema.
  */
 import {
   Box,
@@ -17,7 +14,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -38,36 +35,6 @@ import { useAppDispatch } from "@/hooks/store/ContextHooks";
 import AccordionWrapper from "@/components/common/AccordionWrapper";
 import Container from "@/components/map/panels/Container";
 import GenericTool from "@/components/map/panels/toolbox/generic/GenericTool";
-// Existing custom tool components
-import Aggregate from "@/components/map/panels/toolbox/tools/aggregate/Aggregate";
-import CatchmentArea from "@/components/map/panels/toolbox/tools/catchment-area/CatchmentArea";
-import HeatmapClosestAverage from "@/components/map/panels/toolbox/tools/heatmap-closest-average/HeatmapClosestAverage";
-import HeatmapConnectivity from "@/components/map/panels/toolbox/tools/heatmap-connectivity/HeatmapConnectivity";
-import HeatmapGravity from "@/components/map/panels/toolbox/tools/heatmap-gravity/HeatmapGravity";
-import NearbyStations from "@/components/map/panels/toolbox/tools/nearby-stations/NearbyStations";
-import OevGueteklassen from "@/components/map/panels/toolbox/tools/oev-gueteklassen/OevGueteklassen";
-import TripCount from "@/components/map/panels/toolbox/tools/trip-count/TripCount";
-
-/**
- * Tools that should use custom components instead of generic form
- * These are complex tools that need special UI handling
- */
-const CUSTOM_TOOL_IDS = new Set([
-  // Accessibility indicators - complex UI with map interactions
-  "catchment_area",
-  "heatmap_connectivity",
-  "heatmap_closest_average",
-  "heatmap_gravity",
-  "oev_guteklassen",
-  "trip_count",
-  "nearby_stations",
-  // These have custom implementations
-  "aggregate",
-  "aggregate_polygon",
-  // Keep existing join/buffer for now since they work
-  // "join", // Can switch to generic
-  // "buffer", // Can switch to generic
-]);
 
 /**
  * Category display configuration
@@ -100,41 +67,15 @@ const CATEGORY_CONFIG: Record<ToolCategory, { name: string; icon: ICON_NAME; ord
   },
 };
 
-/**
- * Custom tools configuration (kept for complex tools)
- */
-interface CustomToolConfig {
-  id: string;
-  category: ToolCategory;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  component: React.ComponentType<any>;
-  props?: Record<string, unknown>;
-}
-
-const CUSTOM_TOOLS: CustomToolConfig[] = [
-  // Accessibility indicators
-  { id: "catchment_area", category: "accessibility_indicators", component: CatchmentArea },
-  { id: "heatmap_connectivity", category: "accessibility_indicators", component: HeatmapConnectivity },
-  { id: "heatmap_closest_average", category: "accessibility_indicators", component: HeatmapClosestAverage },
-  { id: "heatmap_gravity", category: "accessibility_indicators", component: HeatmapGravity },
-  { id: "oev_guteklassen", category: "accessibility_indicators", component: OevGueteklassen },
-  { id: "trip_count", category: "accessibility_indicators", component: TripCount },
-  { id: "nearby_stations", category: "accessibility_indicators", component: NearbyStations },
-  // Geoanalysis
-  { id: "aggregate", category: "geoanalysis", component: Aggregate, props: { type: "point" } },
-  { id: "aggregate_polygon", category: "geoanalysis", component: Aggregate, props: { type: "polygon" } },
-];
-
 interface ToolItem {
   id: string;
   title: string;
   description?: string;
-  isGeneric: boolean;
 }
 
 interface ToolListProps {
   tools: ToolItem[];
-  onSelectTool: (toolId: string, isGeneric: boolean) => void;
+  onSelectTool: (toolId: string) => void;
 }
 
 function ToolList({ tools, onSelectTool }: ToolListProps) {
@@ -143,7 +84,7 @@ function ToolList({ tools, onSelectTool }: ToolListProps) {
   return (
     <List dense sx={{ pt: 0 }}>
       {tools.map((tool) => (
-        <ListItemButton key={tool.id} onClick={() => onSelectTool(tool.id, tool.isGeneric)}>
+        <ListItemButton key={tool.id} onClick={() => onSelectTool(tool.id)}>
           <ListItemText
             primary={t(tool.id, { defaultValue: tool.title })}
             secondary={
@@ -170,18 +111,12 @@ export default function CombinedToolbox() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
-  const [selectedTool, setSelectedTool] = useState<
-    | {
-        id: string;
-        isGeneric: boolean;
-      }
-    | undefined
-  >(undefined);
+  const [selectedToolId, setSelectedToolId] = useState<string | undefined>(undefined);
 
-  // Fetch generic processes from OGC API
+  // Fetch all processes from OGC API
   const { processes: ogcProcesses, isLoading, error } = useCategorizedProcesses();
 
-  // Combine custom tools and generic tools by category
+  // Organize tools by category
   const toolsByCategory = useMemo(() => {
     const categories: Record<ToolCategory, ToolItem[]> = {
       accessibility_indicators: [],
@@ -191,26 +126,14 @@ export default function CombinedToolbox() {
       other: [],
     };
 
-    // Add custom tools first
-    for (const customTool of CUSTOM_TOOLS) {
-      categories[customTool.category].push({
-        id: customTool.id,
-        title: customTool.id.replace(/_/g, " "),
-        isGeneric: false,
-      });
-    }
-
-    // Add generic tools from OGC API (exclude those that have custom implementations)
+    // Add all tools from OGC API
     for (const process of ogcProcesses) {
-      if (!CUSTOM_TOOL_IDS.has(process.id)) {
-        const category = process.category || "other";
-        categories[category].push({
-          id: process.id,
-          title: process.title,
-          description: process.description,
-          isGeneric: true,
-        });
-      }
+      const category = process.category || "other";
+      categories[category].push({
+        id: process.id,
+        title: process.title,
+        description: process.description,
+      });
     }
 
     return categories;
@@ -227,12 +150,12 @@ export default function CombinedToolbox() {
       });
   }, [toolsByCategory]);
 
-  const handleSelectTool = (toolId: string, isGeneric: boolean) => {
-    setSelectedTool({ id: toolId, isGeneric });
+  const handleSelectTool = (toolId: string) => {
+    setSelectedToolId(toolId);
   };
 
   const handleBack = () => {
-    setSelectedTool(undefined);
+    setSelectedToolId(undefined);
     dispatch(setMaskLayer(undefined));
     dispatch(setToolboxStartingPoints(undefined));
     dispatch(setIsMapGetInfoActive(true));
@@ -240,23 +163,13 @@ export default function CombinedToolbox() {
   };
 
   const handleClose = () => {
-    setSelectedTool(undefined);
+    setSelectedToolId(undefined);
     dispatch(setActiveRightPanel(undefined));
   };
 
   // Render selected tool
-  if (selectedTool) {
-    // Check if it's a generic tool
-    if (selectedTool.isGeneric) {
-      return <GenericTool processId={selectedTool.id} onBack={handleBack} onClose={handleClose} />;
-    }
-
-    // Find custom tool config
-    const customTool = CUSTOM_TOOLS.find((t) => t.id === selectedTool.id);
-    if (customTool) {
-      const ToolComponent = customTool.component;
-      return <ToolComponent onBack={handleBack} onClose={handleClose} {...(customTool.props || {})} />;
-    }
+  if (selectedToolId) {
+    return <GenericTool processId={selectedToolId} onBack={handleBack} onClose={handleClose} />;
   }
 
   // Loading state

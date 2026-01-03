@@ -26,6 +26,7 @@ export interface OGCProcessSummary {
   outputTransmission: string[];
   links: OGCLink[];
   "x-ui-toolbox-hidden"?: boolean;
+  "x-ui-category"?: string;
 }
 
 export interface OGCProcessList {
@@ -64,6 +65,8 @@ export interface OGCProcessDescription extends OGCProcessSummary {
   inputs: Record<string, OGCInputDescription>;
   outputs: Record<string, OGCOutputDescription>;
   "x-ui-sections"?: UISection[];
+  /** JSON Schema $defs for resolving $ref references in nested schemas */
+  $defs?: Record<string, OGCInputSchema>;
 }
 
 // ============================================================================
@@ -88,6 +91,7 @@ export interface UIFieldMeta {
   max_items?: number;
   widget?: string;
   widget_options?: Record<string, unknown>;
+  enum_icons?: Record<string, string>;
 }
 
 /**
@@ -101,6 +105,8 @@ export interface UISection {
   label_key?: string;
   collapsible?: boolean;
   collapsed?: boolean;
+  /** Condition for section to be enabled (same syntax as visible_when) */
+  depends_on?: Record<string, unknown>;
 }
 
 export interface OGCInputSchema {
@@ -169,8 +175,10 @@ export type InferredInputType =
   | "boolean" // Switch (type is boolean)
   | "number" // Number input (type is number/integer)
   | "string" // Text input (type is string)
-  | "array" // Array input (type is array)
+  | "array" // Array input (type is array of primitives)
+  | "repeatable-object" // Repeatable array of objects (x-ui.repeatable)
   | "object" // Nested object (type is object)
+  | "time-picker" // Time picker (x-ui.widget is time-picker)
   | "unknown"; // Fallback
 
 /**
@@ -205,6 +213,8 @@ export interface ProcessedSection {
   collapsible: boolean;
   collapsed: boolean;
   inputs: ProcessedInput[];
+  /** Condition for section to be enabled */
+  dependsOn?: Record<string, unknown>;
 }
 
 /**
@@ -230,25 +240,8 @@ export interface CategorizedTool extends OGCProcessSummary {
 // ============================================================================
 
 /**
- * Map tool IDs to categories (client-side mapping until backend provides it)
- */
-export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
-  // Geoprocessing
-  buffer: "geoprocessing",
-  clip: "geoprocessing",
-  difference: "geoprocessing",
-  intersection: "geoprocessing",
-  union: "geoprocessing",
-  merge: "geoprocessing",
-  centroid: "geoprocessing",
-  // Geoanalysis
-  origin_destination: "geoanalysis",
-  // Data management
-  join: "data_management",
-};
-
-/**
  * Map tool IDs to icons (client-side mapping)
+ * TODO: Move to backend x-ui-icon when available
  */
 export const TOOL_ICON_MAP: Record<string, string> = {
   buffer: "BUFFER",
@@ -260,6 +253,10 @@ export const TOOL_ICON_MAP: Record<string, string> = {
   centroid: "CENTROID",
   join: "JOIN",
   origin_destination: "ROUTE",
+  heatmap_gravity: "HEATMAP",
+  heatmap_closest_average: "HEATMAP",
+  heatmap_connectivity: "HEATMAP",
+  oev_gueteklassen: "BUS",
 };
 
 /**
