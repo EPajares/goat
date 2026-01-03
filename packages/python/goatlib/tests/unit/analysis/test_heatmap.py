@@ -263,10 +263,14 @@ def test_heatmap_gravity_tool(data_root: Path, walking_matrix_dir: Path) -> None
 
     # Run the heatmap gravity analysis tool
     tool = HeatmapGravityTool()
-    path = tool.run(params)
+    results = tool.run(params)
 
     # Basic assertions on output
+    assert len(results) == 1
+    path, metadata = results[0]
     assert path.exists()
+    assert metadata.source_type == "vector"
+    # Note: properties are added by tool wrappers, not the analysis layer
 
 
 def test_heatmap_closest_average_tool(
@@ -298,10 +302,13 @@ def test_heatmap_closest_average_tool(
 
     # Run the heatmap closest average analysis tool
     tool = HeatmapClosestAverageTool()
-    path = tool.run(params)
+    results = tool.run(params)
 
     # Basic assertions on output
+    assert len(results) == 1
+    path, metadata = results[0]
     assert path.exists()
+    assert metadata.source_type == "vector"
 
 
 def test_heatmap_connectivity_tool(data_root: Path, walking_matrix_dir: Path) -> None:
@@ -325,7 +332,10 @@ def test_heatmap_connectivity_tool(data_root: Path, walking_matrix_dir: Path) ->
 
     # Run the heatmap connectivity analysis tool
     tool = HeatmapConnectivityTool()
-    path = tool.run(params)
+    results = tool.run(params)
 
     # Basic assertions on output
+    assert len(results) == 1
+    path, metadata = results[0]
     assert path.exists()
+    assert metadata.source_type == "vector"

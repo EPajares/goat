@@ -5,6 +5,7 @@ from typing import Self
 from goatlib.analysis.accessibility.base import HeatmapToolBase
 from goatlib.analysis.schemas.heatmap import HeatmapConnectivityParams
 from goatlib.io.utils import Metadata
+from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,19 @@ class HeatmapConnectivityTool(HeatmapToolBase):
         logger.info("Heatmap connectivity analysis completed successfully")
 
         # --- Export results ---
-        return self._export_h3_results(connectivity_table_full, params.output_path)
+        output_path = self._export_h3_results(
+            connectivity_table_full, params.output_path
+        )
+
+        # Return as list of (path, metadata) tuples for consistency with other tools
+        metadata = DatasetMetadata(
+            path=str(output_path),
+            source_type="vector",
+            format="geoparquet",
+            geometry_type="Polygon",
+            geometry_column="geometry",
+        )
+        return [(output_path, metadata)]
 
     def _process_table_to_h3(
         self: Self,

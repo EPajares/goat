@@ -510,7 +510,7 @@ class OriginDestinationParams(BaseModel):
             section="columns",
             field_order=3,
             widget="field-selector",
-            widget_options={"source_layer": "matrix_path"},
+            widget_options={"source_layer": "matrix_path", "field_types": ["number"]},
         ),
     )
     output_path_lines: Optional[str] = Field(

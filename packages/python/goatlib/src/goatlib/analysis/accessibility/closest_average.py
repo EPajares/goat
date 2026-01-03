@@ -9,6 +9,7 @@ from goatlib.analysis.schemas.heatmap import (
     OpportunityClosestAverage,
 )
 from goatlib.io.utils import Metadata
+from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,17 @@ class HeatmapClosestAverageTool(HeatmapToolBase):
 
         logger.info("Heatmap closest average analysis completed successfully")
 
-        return self._export_h3_results(result_table, output_path)
+        result_path = self._export_h3_results(result_table, output_path)
+
+        # Return as list of (path, metadata) tuples for consistency with other tools
+        metadata = DatasetMetadata(
+            path=str(result_path),
+            source_type="vector",
+            format="geoparquet",
+            geometry_type="Polygon",
+            geometry_column="geometry",
+        )
+        return [(result_path, metadata)]
 
     def _process_opportunities(
         self: Self, opportunities: list[OpportunityClosestAverage], h3_resolution: int

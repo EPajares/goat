@@ -20,8 +20,12 @@ import { toast } from "react-toastify";
 import { mutate } from "swr";
 
 import { LAYERS_API_BASE_URL, deleteLayer, useDataset } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { deleteProjectLayer, useProjectLayers } from "@/lib/api/projects";
+import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { ProjectLayer } from "@/lib/validations/project";
+
+import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 interface ProjectLayerDeleteDialogProps {
   open: boolean;
@@ -42,6 +46,9 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
   const { dataset } = useDataset(projectLayer?.layer_id);
   const { mutate: mutateProjectLayers } = useProjectLayers(projectId);
   const [deleteSourceLayer, setDeleteSourceLayer] = useState(false);
+  const { mutate: mutateJobs } = useJobs({ read: false });
+  const dispatch = useAppDispatch();
+  const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
 
   async function handleDelete() {
     try {
@@ -49,19 +56,18 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
       if (!projectLayer) return;
 
       if (deleteSourceLayer && dataset) {
-        await deleteLayer(dataset.id);
+        const job = await deleteLayer(dataset.id);
+        // Add job to running jobs for error tracking only
+        if (job?.jobID) {
+          mutateJobs();
+          dispatch(setRunningJobIds([...runningJobIds, job.jobID]));
+        }
         // Invalidate dataset layers cache
         mutate(`${LAYERS_API_BASE_URL}`);
       } else {
         await deleteProjectLayer(projectId, projectLayer.id);
-      }
-
-      // Always refresh project layers after deletion
-      mutateProjectLayers();
-
-      if (deleteSourceLayer && dataset) {
-        toast.success(t("delete_layer_success"));
-      } else {
+        // Only refresh project layers immediately for non-async deletion
+        mutateProjectLayers();
         toast.success(t("layer_removed_from_project"));
       }
 

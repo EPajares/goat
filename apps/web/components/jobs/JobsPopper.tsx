@@ -1,22 +1,11 @@
 import DownloadIcon from "@mui/icons-material/Download";
-import {
-  Badge,
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Paper,
-  Stack,
-  Tooltip,
-  Typography,
-  styled,
-} from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { type Job, setJobsReadStatus, useJobs } from "@/lib/api/processes";
+import { type Job, useJobs } from "@/lib/api/processes";
 
 import { ArrowPopper as JobStatusMenu } from "@/components/ArrowPoper";
 import JobProgressItem from "@/components/jobs/JobProgressItem";
@@ -53,60 +42,12 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 export default function JobsPopper() {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
-  const { jobs, mutate } = useJobs();
+  const { jobs } = useJobs({ read: false });
 
   // Filter to get running/accepted jobs using OGC status
   const runningJobs = useMemo(() => {
     return jobs?.jobs?.filter((job) => job.status === "running" || job.status === "accepted");
   }, [jobs?.jobs]);
-
-  // Poll faster (every 2 seconds) when there are pending/running jobs
-  const [intervalId, setIntervalId] = useState<number | null>(null);
-  useEffect(() => {
-    if (!runningJobs) return;
-    const activeJobsCount = runningJobs.length;
-    if (activeJobsCount === 0) {
-      // no running jobs, clear interval and return
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-      return;
-    }
-
-    // at least one running job, set interval if not already set
-    if (!intervalId) {
-      const id = setInterval(() => {
-        mutate();
-      }, 2000) as unknown as number;
-      setIntervalId(id);
-    }
-
-    // cleanup function
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runningJobs, intervalId]);
-
-  const [isBusy, setIsBusy] = useState(false);
-
-  const handleClearAll = async () => {
-    const jobIds = jobs?.jobs?.map((job) => job.jobID);
-    if (!jobIds) return;
-    setIsBusy(true);
-    try {
-      await setJobsReadStatus(jobIds);
-      mutate();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBusy(false);
-    }
-  };
 
   // Handle download for LayerExport jobs
   const handleExportDownload = async (payload: Record<string, unknown> | undefined) => {
@@ -196,20 +137,6 @@ export default function JobsPopper() {
                   })}
                 </Stack>
               </Box>
-              <Divider sx={{ mt: 0 }} />
-              <Stack direction="row" justifyContent="end" alignItems="center" sx={{ py: 1 }}>
-                <Button
-                  disabled={isBusy}
-                  variant="text"
-                  onClick={handleClearAll}
-                  sx={{
-                    mr: 4,
-                  }}>
-                  <Typography variant="body2" fontWeight="bold" color="inherit">
-                    {t("clear_all")}
-                  </Typography>
-                </Button>
-              </Stack>
             </Paper>
           }
           open={open}

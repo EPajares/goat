@@ -153,21 +153,22 @@ export function useProcessExecution() {
 // Utility Hooks
 // ============================================================================
 
-/**
- * Category mapping for tools
- * TODO: Get category from backend API when available
- * For now, all generic tools go into "geoprocessing" category
- */
-const CATEGORY_MAP: Record<string, ToolCategory> = {
-  // All tools default to geoprocessing for now
-  // When backend provides categories, we can remove this hardcoded map
-};
-
 const DEFAULT_CATEGORY: ToolCategory = "geoprocessing";
+
+const isValidCategory = (category: string | undefined): category is ToolCategory => {
+  return (
+    category === "geoprocessing" ||
+    category === "geoanalysis" ||
+    category === "data_management" ||
+    category === "accessibility_indicators" ||
+    category === "other"
+  );
+};
 
 /**
  * Hook to get processes organized by category
- * Filters out processes marked as hidden (x-ui-hidden: true)
+ * Filters out processes marked as hidden (x-ui-toolbox-hidden: true)
+ * Uses x-ui-category from backend API for category assignment
  */
 export function useCategorizedProcesses() {
   const { processes, isLoading, error } = useProcessList();
@@ -175,12 +176,16 @@ export function useCategorizedProcesses() {
   // Filter out processes hidden from toolbox
   const visibleProcesses = processes.filter((process) => !process["x-ui-toolbox-hidden"]);
 
-  const categorizedProcesses = visibleProcesses.map(
-    (process): CategorizedTool => ({
+  const categorizedProcesses = visibleProcesses.map((process): CategorizedTool => {
+    // Use x-ui-category from API, fallback to default
+    const apiCategory = process["x-ui-category"];
+    const category = isValidCategory(apiCategory) ? apiCategory : DEFAULT_CATEGORY;
+
+    return {
       ...process,
-      category: CATEGORY_MAP[process.id] || DEFAULT_CATEGORY,
-    })
-  );
+      category,
+    };
+  });
 
   const byCategory = categorizedProcesses.reduce(
     (acc, process) => {

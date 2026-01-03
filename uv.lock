@@ -542,7 +542,6 @@ dependencies = [
     { name = "duckdb" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastapi-pagination" },
-    { name = "gdal" },
     { name = "geoalchemy2" },
     { name = "geojson" },
     { name = "geopandas" },
@@ -587,7 +586,7 @@ requires-dist = [
     { name = "aiofiles", specifier = "==24.1.0" },
     { name = "aiohttp", specifier = "==3.11.2" },
     { name = "alembic", specifier = "==1.14.0" },
-    { name = "alembic-utils", specifier = "==0.8.5" },
+    { name = "alembic-utils", specifier = ">=0.8.5" },
     { name = "asyncpg", specifier = "==0.30.0" },
     { name = "boto3", specifier = "==1.38.23" },
     { name = "cairosvg", specifier = "==2.7.1" },
@@ -595,7 +594,6 @@ requires-dist = [
     { name = "duckdb", specifier = ">=1.4.3" },
     { name = "fastapi", extras = ["standard"], specifier = "==0.115.12" },
     { name = "fastapi-pagination", specifier = "==0.13.1" },
-    { name = "gdal", specifier = "==3.6.2" },
     { name = "geoalchemy2", specifier = "==0.17.1" },
     { name = "geojson", specifier = "==3.1.0" },
     { name = "geopandas", specifier = "==1.0.1" },
@@ -1002,12 +1000,6 @@ wheels = [
 ]
 
 [[package]]
-name = "gdal"
-version = "3.6.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/49/4f/174743caf64d1999c46ab2ee72b2cb0d77a47bd7ed04f954f863e35a25fd/GDAL-3.6.2.tar.gz", hash = "sha256:a167cde1813707d91a938dad1a22f280f5ad28c45980d42e948fb8c59f890f5a", size = 757691, upload-time = "2023-01-05T07:36:55.213Z" }
-
-[[package]]
 name = "geoalchemy2"
 version = "0.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1157,22 +1149,28 @@ name = "goatlib"
 version = "2.0.0"
 source = { editable = "packages/python/goatlib" }
 dependencies = [
+    { name = "asyncpg" },
     { name = "boto3" },
     { name = "duckdb" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pygeofilter" },
     { name = "pyproj" },
+    { name = "pytz" },
+    { name = "wmill" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "boto3", specifier = ">=1.35.0" },
     { name = "duckdb", specifier = ">=1.4.3" },
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "pydantic-settings", specifier = ">=2.9.1" },
     { name = "pygeofilter", specifier = ">=0.2.4" },
     { name = "pyproj", specifier = ">=3.6.0" },
+    { name = "pytz", specifier = ">=2024.1" },
+    { name = "wmill", specifier = ">=1.0.0" },
 ]
 
 [[package]]

@@ -27,6 +27,9 @@
     "time": {
       "label": "Time"
     },
+    "calculation_time": {
+      "label": "Calculation Time"
+    },
     "area": {
       "label": "Area"
     },
@@ -115,6 +118,22 @@
     "reference_area_path": {
       "label": "Reference Area",
       "description": "Layer defining the reference area for connectivity analysis"
+    },
+    "weekday": {
+      "label": "Day",
+      "description": "Type of day for public transport schedule"
+    },
+    "from_time": {
+      "label": "Start Time",
+      "description": "Start time of the analysis window"
+    },
+    "to_time": {
+      "label": "End Time",
+      "description": "End time of the analysis window"
+    },
+    "catchment_type": {
+      "label": "Catchment Area Type",
+      "description": "Method for calculating catchment areas"
     },
     "distances": {
       "label": "Buffer Distances",
@@ -340,6 +359,14 @@
       "mean": "Mean",
       "min": "Minimum",
       "max": "Maximum"
+    },
+    "weekday": {
+      "weekday": "Weekday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "catchment_type": {
+      "buffer": "Buffer"
     }
   },
   "tools": {

@@ -101,6 +101,8 @@ class ToolDatabaseService:
         size: int = 0,
         properties: dict[str, Any] | None = None,
         other_properties: dict[str, Any] | None = None,
+        thumbnail_url: str
+        | None = "https://assets.plan4better.de/img/goat_new_dataset_thumbnail.png",
     ) -> dict[str, Any] | None:
         """Create a layer record in customer.layer.
 
@@ -118,6 +120,7 @@ class ToolDatabaseService:
             size: Size of the layer data in bytes
             properties: Layer properties (style, etc.)
             other_properties: Additional properties
+            thumbnail_url: Layer thumbnail URL (defaults to standard thumbnail)
 
         Returns:
             The properties dict used (either provided or generated default)
@@ -139,14 +142,14 @@ class ToolDatabaseService:
             INSERT INTO {self.schema}.layer (
                 id, user_id, folder_id, name, type, feature_layer_type,
                 feature_layer_geometry_type, extent, attribute_mapping,
-                size, properties, other_properties, created_at, updated_at
+                size, properties, other_properties, thumbnail_url, created_at, updated_at
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7,
                 CASE WHEN $8::text IS NOT NULL
                     THEN ST_Multi(ST_GeomFromText($8::text, 4326))
                     ELSE NULL
                 END,
-                $9::jsonb, $10, $11::jsonb, $12::jsonb,
+                $9::jsonb, $10, $11::jsonb, $12::jsonb, $13,
                 NOW(), NOW()
             )
             """,
@@ -162,6 +165,7 @@ class ToolDatabaseService:
             size,
             properties_json,
             other_props_json,
+            thumbnail_url,
         )
         logger.info(
             f"Created layer: {layer_id} ({name}) in folder {folder_id} "
@@ -285,3 +289,33 @@ class ToolDatabaseService:
             *params,
         )
         logger.info(f"Updated layer status: {layer_id}")
+
+    async def get_layer_info(self: Self, layer_id: str) -> dict[str, Any] | None:
+        """Get layer information from the database.
+
+        Args:
+            layer_id: Layer UUID
+
+        Returns:
+            Dict with layer info (id, name, user_id, etc.) or None if not found
+        """
+        row = await self.pool.fetchrow(
+            f"""
+            SELECT id, name, user_id, folder_id, type, feature_layer_type,
+                   feature_layer_geometry_type
+            FROM {self.schema}.layer
+            WHERE id = $1
+            """,
+            uuid_module.UUID(layer_id),
+        )
+        if row:
+            return {
+                "id": str(row["id"]),
+                "name": row["name"],
+                "user_id": str(row["user_id"]),
+                "folder_id": str(row["folder_id"]),
+                "type": row["type"],
+                "feature_layer_type": row["feature_layer_type"],
+                "geometry_type": row["feature_layer_geometry_type"],
+            }
+        return None

@@ -122,11 +122,16 @@ class ProcessSummary(BaseModel):
         default_factory=lambda: [TransmissionMode.value]
     )
     links: list[Link] = Field(default_factory=list)
-    # UI metadata extension
+    # UI metadata extensions
     x_ui_toolbox_hidden: bool = Field(
         default=False,
         alias="x-ui-toolbox-hidden",
         description="Hide this process from the toolbox UI",
+    )
+    x_ui_category: str = Field(
+        default="geoprocessing",
+        alias="x-ui-category",
+        description="Category for grouping in toolbox UI",
     )
 
     model_config = {"populate_by_name": True}
@@ -168,6 +173,7 @@ class ProcessDescription(ProcessSummary):
 
     Extended with UI metadata for dynamic form rendering:
     - x_ui_sections: Section definitions with icons and ordering
+    - schema_defs: JSON Schema $defs for resolving $ref in nested schemas
     """
 
     inputs: dict[str, InputDescription] = Field(default_factory=dict)
@@ -176,6 +182,11 @@ class ProcessDescription(ProcessSummary):
         default_factory=list,
         alias="x-ui-sections",
         description="UI section definitions for form rendering",
+    )
+    schema_defs: dict[str, Any] = Field(
+        default_factory=dict,
+        alias="$defs",
+        description="JSON Schema definitions for resolving $ref references in nested schemas",
     )
 
     model_config = {"populate_by_name": True}

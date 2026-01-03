@@ -31,6 +31,7 @@ from geoapi.models.processes import (
     InputDescription,
     JobControlOptions,
     Link,
+    Metadata,
     OutputDescription,
     ProcessDescription,
     ProcessList,
@@ -41,7 +42,14 @@ from geoapi.models.processes import (
 logger = logging.getLogger(__name__)
 
 # Fields to exclude from OGC Process inputs (internal implementation details)
-EXCLUDED_FIELDS = {"input_path", "output_path", "overlay_path", "output_crs"}
+EXCLUDED_FIELDS = {
+    "input_path",
+    "output_path",
+    "output_name",  # Hide for now, use automatic naming
+    "overlay_path",
+    "output_crs",
+    "reference_area_path",  # heatmap_connectivity internal path
+}
 
 # Default language for translations
 DEFAULT_LANGUAGE = "en"
@@ -252,6 +260,30 @@ class ToolRegistry:
         else:
             return {"type": "string"}
 
+    def _extract_geometry_metadata(self: Self, x_ui: dict[str, Any]) -> list[Metadata]:
+        """Extract geometry constraints from x-ui widget_options as metadata.
+
+        Args:
+            x_ui: The x-ui field metadata dict
+
+        Returns:
+            List of Metadata objects (empty if no geometry constraints)
+        """
+        metadata: list[Metadata] = []
+        widget_options = x_ui.get("widget_options", {})
+        geometry_types = widget_options.get("geometry_types")
+
+        if geometry_types and isinstance(geometry_types, list):
+            metadata.append(
+                Metadata(
+                    title="Accepted Geometry Types",
+                    role="constraint",
+                    value=geometry_types,
+                )
+            )
+
+        return metadata
+
     def get_process_summary(
         self: Self,
         tool_name: str,
@@ -292,6 +324,7 @@ class ToolRegistry:
             ],
             outputTransmission=[TransmissionMode.value, TransmissionMode.reference],
             x_ui_toolbox_hidden=tool.toolbox_hidden,
+            x_ui_category=tool.category,
             links=[
                 Link(
                     href=f"{base_url}/processes/{tool.name}",
@@ -342,22 +375,24 @@ class ToolRegistry:
             if field_name in EXCLUDED_FIELDS:
                 continue
 
-            # Check if field is hidden via x-ui metadata
+            # Get field schema from Pydantic-generated full schema (includes $ref, x-ui, etc.)
             field_schema = (
                 full_schema.get("properties", {}).get(field_name, {})
                 if full_schema
                 else {}
             )
+
+            # Check if field is hidden via x-ui metadata
             x_ui = field_schema.get("x-ui", {})
             if x_ui.get("hidden", False):
                 continue
 
-            # Get JSON schema for field (includes x-ui from Pydantic)
-            json_schema = self._json_schema_for_field(field_name, field_info)
-
-            # Merge x-ui metadata from full schema
-            if x_ui:
-                json_schema["x-ui"] = x_ui
+            # Use field schema from full_schema directly (preserves $ref, nested types, x-ui)
+            # Only fallback to manual conversion if not in full_schema
+            if field_schema:
+                json_schema = field_schema.copy()
+            else:
+                json_schema = self._json_schema_for_field(field_name, field_info)
 
             # Detect layer fields - these get special UI treatment (dropdown selector)
             is_layer_field = field_name.endswith("_layer_id") or field_name.endswith(
@@ -371,16 +406,29 @@ class ToolRegistry:
                 json_schema["format"] = "uuid"
 
             # Get translated title/description
-            title = field_info.title or field_name.replace("_", " ").title()
-            description = field_info.description or f"Parameter: {field_name}"
+            # First check if x-ui.label/description was set (from label_key resolution)
+            title = (
+                x_ui.get("label")
+                or field_info.title
+                or field_name.replace("_", " ").title()
+            )
+            description = (
+                x_ui.get("description")
+                or field_info.description
+                or f"Parameter: {field_name}"
+            )
 
             if translator:
-                translated_label = translator.get_field_label(field_name)
-                translated_desc = translator.get_field_description(field_name)
-                if translated_label:
-                    title = translated_label
-                if translated_desc:
-                    description = translated_desc
+                # If no x-ui.label, try translating field_name directly
+                if not x_ui.get("label"):
+                    translated_label = translator.get_field_label(field_name)
+                    if translated_label:
+                        title = translated_label
+                # If no x-ui.description, try translating field_name directly
+                if not x_ui.get("description"):
+                    translated_desc = translator.get_field_description(field_name)
+                    if translated_desc:
+                        description = translated_desc
 
             inputs[field_name] = InputDescription(
                 title=title,
@@ -390,6 +438,8 @@ class ToolRegistry:
                 maxOccurs=1,
                 # Mark layer fields so UI can render layer selector dropdown
                 keywords=["layer"] if is_layer_field else [],
+                # Add geometry constraints as metadata if present in widget_options
+                metadata=self._extract_geometry_metadata(x_ui),
             )
 
         # Define outputs
@@ -419,6 +469,9 @@ class ToolRegistry:
             if translated_desc:
                 description = translated_desc
 
+        # Extract $defs from full schema for nested type resolution
+        schema_defs = full_schema.get("$defs", {}) if full_schema else {}
+
         # Build process description with UI sections
         process_desc = ProcessDescription(
             id=tool.name,
@@ -433,6 +486,7 @@ class ToolRegistry:
             inputs=inputs,
             outputs=outputs,
             x_ui_sections=ui_sections,
+            schema_defs=schema_defs,
             links=[
                 Link(
                     href=f"{base_url}/processes/{tool.name}",

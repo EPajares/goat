@@ -21,6 +21,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
+from geoapi.config import settings
 from geoapi.deps.auth import get_user_id
 from geoapi.models.processes import (
     OGC_EXCEPTION_NO_SUCH_JOB,
@@ -355,6 +356,16 @@ async def execute_process(
 
     # Add user_id to inputs for job tracking
     job_inputs = {**execute_request.inputs, "user_id": str(user_id)}
+
+    # Auto-populate od_matrix_path for heatmap tools based on routing_mode
+    # This allows the field to be hidden in the UI while still being required by the analysis
+    if (
+        "od_matrix_path" not in job_inputs or job_inputs.get("od_matrix_path") is None
+    ) and "routing_mode" in job_inputs:
+        routing_mode = job_inputs["routing_mode"]
+        job_inputs["od_matrix_path"] = (
+            f"{settings.TRAVELTIME_MATRICES_DIR}/{routing_mode}/"
+        )
 
     # Submit job to Windmill
     try:

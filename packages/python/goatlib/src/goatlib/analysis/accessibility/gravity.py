@@ -67,7 +67,17 @@ class HeatmapGravityTool(HeatmapToolBase):
 
         logger.info("Heatmap gravity analysis completed successfully")
 
-        return self._export_h3_results(gravity_results, params.output_path)
+        output_path = self._export_h3_results(gravity_results, params.output_path)
+
+        # Return as list of (path, metadata) tuples for consistency with other tools
+        metadata = DatasetMetadata(
+            path=str(output_path),
+            source_type="vector",
+            format="geoparquet",
+            geometry_type="Polygon",
+            geometry_column="geometry",
+        )
+        return [(output_path, metadata)]
 
     def _process_opportunities(
         self: Self, opportunities: list[OpportunityGravity], h3_resolution: int

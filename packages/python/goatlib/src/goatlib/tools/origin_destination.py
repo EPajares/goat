@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from typing import Self
 
-from goatlib.analysis.geoprocessing.origin_destination import OriginDestinationTool
+from goatlib.analysis.geoanalysis import OriginDestinationTool
 from goatlib.analysis.schemas.geoprocessing import OriginDestinationParams
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
