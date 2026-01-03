@@ -1,8 +1,6 @@
 # Analysis tools
 
 from .accessibility import (
-    CatchmentAreaParams,
-    CatchmentAreaService,
     CatchmentAreaTool,
     compute_r5_surface,
     decode_r5_grid,

@@ -2,10 +2,10 @@
 Catchment Area Analysis - Isochrone/Isoline Generation.
 
 This module provides:
-1. CatchmentAreaTool - A tool for computing catchment areas from R5 or routing responses
-2. CatchmentAreaService - HTTP client for calling R5 and GOAT routing services
-3. Functions to decode binary grid data from R5 routing engine
-4. Functions to generate isolines (isochrones) from travel time grid data using marching squares
+1. CatchmentAreaTool - A tool for computing catchment areas via routing services
+2. Functions to decode binary grid data from R5 routing engine
+3. Functions to generate isolines (isochrones) from travel time grid data using marching squares
+4. R5 region mapping utilities for looking up region config from parquet files
 
 Original isoline implementation from:
 https://github.com/plan4better/goat/blob/0089611acacbebf4e2978c404171ebbae75591e2/app/client/src/utils/Jsolines.js
@@ -15,22 +15,159 @@ import asyncio
 import json
 import logging
 import math
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Self, Sequence
 
+import duckdb
+import httpx
 import numpy as np
 from geopandas import GeoDataFrame
 from numba import njit
 from numpy.typing import NDArray
-from pydantic import BaseModel, Field
 from shapely.geometry import shape
 
 from goatlib.analysis.core.base import AnalysisTool
+from goatlib.analysis.schemas.catchment_area import (
+    AccessEgressMode,
+    CatchmentAreaRoutingMode,
+    CatchmentAreaToolParams,
+    CatchmentAreaType,
+    PTMode,
+)
 from goatlib.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
 MAX_COORDS = 20000
+
+
+# =============================================================================
+# R5 Region Mapping
+# =============================================================================
+
+
+@dataclass
+class R5RegionConfig:
+    """Configuration for an R5 region."""
+
+    region_id: str
+    bundle_id: str
+    host: str
+
+    @classmethod
+    def from_row(cls: type[Self], row: tuple) -> Self:
+        """Create from database row tuple."""
+        return cls(
+            region_id=row[0],
+            bundle_id=row[1],
+            host=row[2],
+        )
+
+
+def get_r5_region_for_point(
+    lat: float,
+    lon: float,
+    parquet_path: str | Path,
+    geometry_column: str = "geometry",
+) -> R5RegionConfig | None:
+    """
+    Look up R5 region configuration for a geographic point.
+
+    Uses DuckDB spatial extension to find which region polygon
+    contains the given point coordinates.
+
+    Args:
+        lat: Latitude of the point
+        lon: Longitude of the point
+        parquet_path: Path to the region mapping parquet file
+        geometry_column: Name of the geometry column in the parquet file
+
+    Returns:
+        R5RegionConfig if a matching region is found, None otherwise
+
+    Raises:
+        FileNotFoundError: If the parquet file doesn't exist
+    """
+    parquet_path = Path(parquet_path)
+    if not parquet_path.exists():
+        raise FileNotFoundError(f"Region mapping parquet not found: {parquet_path}")
+
+    con = duckdb.connect(":memory:")
+    con.install_extension("spatial")
+    con.load_extension("spatial")
+
+    # Query for region containing the point
+    # The geometry column should be GEOMETRY type from the parquet file
+    query = f"""
+        SELECT r5_region_id, r5_bundle_id, r5_host
+        FROM read_parquet('{parquet_path}')
+        WHERE ST_Intersects(
+            ST_Point({lon}, {lat}),
+            {geometry_column}
+        )
+        LIMIT 1
+    """
+
+    try:
+        result = con.execute(query).fetchone()
+        if result:
+            return R5RegionConfig.from_row(result)
+        return None
+    except duckdb.Error as e:
+        logger.error("Failed to query region mapping: %s", e)
+        raise
+    finally:
+        con.close()
+
+
+def compute_bounds_for_point(
+    lat: float,
+    lon: float,
+    buffer_meters: float = 100000,
+) -> dict[str, float]:
+    """
+    Compute bounding box around a point with a buffer distance.
+
+    Args:
+        lat: Latitude of the center point
+        lon: Longitude of the center point
+        buffer_meters: Buffer distance in meters (default 100km)
+
+    Returns:
+        Dictionary with north, south, east, west bounds
+    """
+    con = duckdb.connect(":memory:")
+    con.install_extension("spatial")
+    con.load_extension("spatial")
+
+    try:
+        # Approximate meters to degrees (1 degree ≈ 111,320 meters at equator)
+        buffer_degrees = buffer_meters / 111320.0
+
+        query = f"""
+            WITH buffered AS (
+                SELECT ST_Envelope(
+                    ST_Buffer(ST_Point({lon}, {lat}), {buffer_degrees})
+                ) AS geom
+            )
+            SELECT
+                ST_XMin(geom) AS west,
+                ST_YMin(geom) AS south,
+                ST_XMax(geom) AS east,
+                ST_YMax(geom) AS north
+            FROM buffered
+        """
+
+        result = con.execute(query).fetchone()
+        return {
+            "north": result[3],
+            "south": result[1],
+            "east": result[2],
+            "west": result[0],
+        }
+    finally:
+        con.close()
 
 
 # =============================================================================
@@ -575,7 +712,7 @@ def pointinpolygon(x: float, y: float, poly: NDArray[np.float64]) -> bool:
 
 
 # =============================================================================
-# High-Level API
+# High-Level Isoline API
 # =============================================================================
 
 
@@ -695,292 +832,178 @@ def generate_jsolines(
 # =============================================================================
 
 
-class CatchmentAreaParams(BaseModel):
-    """Parameters for catchment area analysis."""
-
-    r5_binary_path: str | None = Field(
-        default=None,
-        description="Path to R5 binary response file (.bin)",
-    )
-    walking_parquet_path: str | None = Field(
-        default=None,
-        description="Path to walking catchment parquet file from GOAT routing",
-    )
-    travel_time: int = Field(
-        default=30,
-        ge=1,
-        le=120,
-        description="Maximum travel time in minutes",
-    )
-    steps: int = Field(
-        default=6,
-        ge=1,
-        le=20,
-        description="Number of isochrone steps",
-    )
-    percentile: int = Field(
-        default=5,
-        description="Percentile to use for R5 data (5, 25, 50, 75, 95)",
-    )
-    polygon_difference: bool = Field(
-        default=True,
-        description="Whether to compute difference between time steps",
-    )
-    output_path: str = Field(
-        ...,
-        description="Output path for results (parquet or geojson)",
-    )
-
-
 class CatchmentAreaTool(AnalysisTool):
     """
-    Tool for computing catchment areas from routing responses.
+    Tool for computing catchment areas (isochrones) via routing services.
 
-    Supports:
-    - R5 binary responses (public transport)
-    - GOAT Routing parquet responses (walking, cycling, car)
+    This tool calls routing APIs to compute isochrones for various transport modes:
+    - Active mobility: walking, bicycle, pedelec, wheelchair (via GOAT Routing)
+    - Motorized: car (via GOAT Routing)
+    - Public transport: bus, tram, rail, etc. (via R5)
+
+    Routing URL and authorization can be provided either:
+    1. In CatchmentAreaToolParams (per-request)
+    2. In the tool constructor (default for all requests)
+    3. Via environment config (goatlib.config.settings)
+
+    For PT routing, R5 region configuration can be:
+    - Provided explicitly via r5_region_id and r5_bundle_id
+    - Looked up automatically from a region mapping parquet file
 
     Example usage:
+        # Active mobility
         tool = CatchmentAreaTool()
-        result = tool.run(CatchmentAreaParams(
-            r5_binary_path="path/to/r5_response.bin",
-            travel_time=30,
-            steps=6,
+        result = tool.run(CatchmentAreaToolParams(
+            latitude=51.7167,
+            longitude=14.3837,
+            routing_mode=CatchmentAreaRoutingMode.walking,
+            travel_time=15,
+            steps=3,
+            output_path="output/catchment.parquet",
+            routing_url="https://routing.example.com",
+        ))
+
+        # Public transport with automatic region lookup
+        tool = CatchmentAreaTool(
+            r5_region_mapping_path="/path/to/region_mapping.parquet"
+        )
+        result = tool.run(CatchmentAreaToolParams(
+            latitude=51.7167,
+            longitude=14.3837,
+            routing_mode=CatchmentAreaRoutingMode.pt,
+            transit_modes=[PTMode.bus, PTMode.tram],
+            time_window=PTTimeWindow(weekday="weekday", from_time=25200, to_time=32400),
             output_path="output/catchment.parquet"
         ))
     """
 
-    def _run_implementation(self: Self, params: CatchmentAreaParams) -> Path:
-        """Execute catchment area analysis."""
-        logger.info("Starting Catchment Area Analysis")
-
-        if params.r5_binary_path:
-            return self._process_r5_response(params)
-        elif params.walking_parquet_path:
-            return self._process_walking_parquet(params)
-        else:
-            raise ValueError(
-                "Either r5_binary_path or walking_parquet_path must be provided"
-            )
-
-    def _process_r5_response(self: Self, params: CatchmentAreaParams) -> Path:
-        """Process R5 binary response and generate isochrones."""
-        logger.info("Processing R5 binary response: %s", params.r5_binary_path)
-
-        # Load R5 binary data
-        with open(params.r5_binary_path, "rb") as f:
-            r5_data = f.read()
-
-        # Decode the grid
-        grid = decode_r5_grid(r5_data)
-        logger.info(
-            "Decoded R5 grid: %dx%d, depth=%d",
-            grid["width"],
-            grid["height"],
-            grid["depth"],
-        )
-
-        # Generate isochrones
-        isochrones = generate_jsolines(
-            grid=grid,
-            travel_time=params.travel_time,
-            percentile=params.percentile,
-            steps=params.steps,
-        )
-
-        # Select full or incremental based on polygon_difference
-        result_key = "incremental" if params.polygon_difference else "full"
-        result_gdf = isochrones[result_key]
-
-        # Add cost_step column for compatibility
-        result_gdf["cost_step"] = result_gdf["minute"].astype(int)
-
-        # Convert geometry to WKT for parquet storage
-        result_gdf["geometry"] = result_gdf["geometry"].apply(lambda g: g.wkt)
-
-        # Export
-        output_path = Path(params.output_path)
-        if output_path.suffix == ".parquet":
-            result_gdf.to_parquet(output_path, index=False)
-        else:
-            # GeoJSON export
-            result_gdf.to_file(output_path, driver="GeoJSON")
-
-        logger.info("Saved catchment area to: %s", output_path)
-        return output_path
-
-    def _process_walking_parquet(self: Self, params: CatchmentAreaParams) -> Path:
-        """Process walking/cycling parquet from GOAT Routing."""
-        import polars as pl
-
-        logger.info(
-            "Processing walking parquet response: %s", params.walking_parquet_path
-        )
-
-        # Load parquet
-        df = pl.read_parquet(params.walking_parquet_path)
-
-        # Filter out empty geometries and step 0 if present
-        if "cost_step" in df.columns:
-            df = df.filter(pl.col("cost_step") > 0)
-
-        # Ensure output directory exists
-        output_path = Path(params.output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write output
-        if output_path.suffix == ".parquet":
-            df.write_parquet(output_path)
-        else:
-            # Convert to GeoDataFrame for GeoJSON
-            gdf = GeoDataFrame(
-                df.to_pandas(),
-                geometry=GeoDataFrame.from_wkt(
-                    df["geometry"].to_pandas(), crs="EPSG:4326"
-                ).geometry,
-            )
-            gdf.to_file(output_path, driver="GeoJSON")
-
-        logger.info("Saved catchment area to: %s", output_path)
-        return output_path
-
-    def process_r5_binary(
-        self: Self,
-        r5_data: bytes,
-        travel_time: int = 30,
-        percentile: int = 5,
-        steps: int = 6,
-        polygon_difference: bool = True,
-    ) -> GeoDataFrame:
-        """
-        Process R5 binary response directly and return GeoDataFrame.
-
-        This is a convenience method for processing R5 data without file I/O.
-
-        Args:
-            r5_data: Raw binary response from R5
-            travel_time: Maximum travel time in minutes
-            percentile: Percentile to use (5, 25, 50, 75, 95)
-            steps: Number of isochrone steps
-            polygon_difference: Whether to return incremental (True) or full (False) polygons
-
-        Returns:
-            GeoDataFrame with catchment area polygons
-        """
-        grid = decode_r5_grid(r5_data)
-        isochrones = generate_jsolines(
-            grid=grid,
-            travel_time=travel_time,
-            percentile=percentile,
-            steps=steps,
-        )
-        result_key = "incremental" if polygon_difference else "full"
-        result_gdf = isochrones[result_key]
-        result_gdf["cost_step"] = result_gdf["minute"].astype(int)
-        return result_gdf
-
-
-# =============================================================================
-# Catchment Area Service - HTTP Client for Routing Services
-# =============================================================================
-
-
-class CatchmentAreaService:
-    """
-    HTTP client for calling catchment area routing services.
-
-    Supports:
-    - GOAT Routing (active mobility: walk, bicycle, pedelec, wheelchair; car)
-    - R5 (public transport)
-
-    Configuration is loaded from environment variables via goatlib.config.settings:
-    - GOAT_ROUTING_URL: URL for GOAT routing service
-    - R5_URL: URL for R5 service
-    - ROUTING_AUTHORIZATION: Auth header for routing services (shared)
-
-    Example usage:
-        service = CatchmentAreaService()
-
-        # Active mobility catchment
-        result = await service.compute_active_mobility_catchment(
-            lat=51.7167,
-            lon=14.3837,
-            routing_type="walking",
-            max_traveltime=15,
-            speed=5,
-            scenario_id="my-scenario",
-        )
-
-        # PT catchment
-        result = await service.compute_pt_catchment(
-            lat=51.7167,
-            lon=14.3837,
-            max_traveltime=30,
-            transit_modes=["bus", "tram"],
-            r5_region_id="...",
-            r5_bundle_id="...",
-        )
-    """
+    # HTTP request configuration
+    DEFAULT_TIMEOUT = 300.0
+    DEFAULT_RETRIES = 60
+    DEFAULT_RETRY_INTERVAL = 2
 
     def __init__(
         self: Self,
-        goat_routing_url: str | None = None,
-        r5_url: str | None = None,
-        routing_authorization: str | None = None,
+        routing_url: str | None = None,
+        authorization: str | None = None,
+        r5_region_id: str | None = None,
+        r5_bundle_id: str | None = None,
+        r5_region_mapping_path: str | None = None,
     ) -> None:
         """
-        Initialize the service with optional URL overrides.
-
-        If not provided, values are loaded from goatlib.config.settings.routing.
-        """
-        self.goat_routing_url = goat_routing_url or settings.routing.goat_routing_url
-        self.r5_url = r5_url or settings.routing.r5_url
-        self.routing_authorization = (
-            routing_authorization or settings.routing.routing_authorization
-        )
-        self.timeout = settings.routing.request_timeout
-        self.retries = settings.routing.request_retries
-        self.retry_interval = settings.routing.request_retry_interval
-
-    async def compute_active_mobility_catchment(
-        self: Self,
-        lat: float | list[float],
-        lon: float | list[float],
-        routing_type: str = "walking",
-        max_traveltime: int = 15,
-        steps: int = 3,
-        speed: float = 5.0,
-        catchment_area_type: str = "polygon",
-        polygon_difference: bool = True,
-        output_format: str = "parquet",
-        scenario_id: str | None = None,
-    ) -> bytes:
-        """
-        Compute catchment area for active mobility modes via GOAT Routing.
+        Initialize the tool.
 
         Args:
-            lat: Latitude(s) of starting point(s) - single value or list
-            lon: Longitude(s) of starting point(s) - single value or list
-            routing_type: "walking", "bicycle", "pedelec", or "wheelchair"
-            max_traveltime: Maximum travel time in minutes
-            steps: Number of isochrone steps
-            speed: Travel speed in km/h
-            catchment_area_type: "polygon", "network", or "rectangular_grid"
-            polygon_difference: Whether to compute difference between steps
-            output_format: "parquet" or "geojson"
-            scenario_id: Optional scenario ID for network modifications
-
-        Returns:
-            Raw response bytes (parquet or geojson)
+            routing_url: Default routing service URL (GOAT Routing or R5)
+            authorization: Default authorization header
+            r5_region_id: R5 region/project ID (for PT routing without mapping)
+            r5_bundle_id: R5 bundle ID (for PT routing without mapping)
+            r5_region_mapping_path: Path to parquet file with R5 region boundaries.
+                If provided, region/bundle/host will be looked up based on coordinates.
         """
-        import httpx
+        super().__init__()
+        self._default_routing_url = routing_url or settings.routing.goat_routing_url
+        self._default_authorization = (
+            authorization or settings.routing.routing_authorization
+        )
+        self._r5_region_id = r5_region_id
+        self._r5_bundle_id = r5_bundle_id
+        self._r5_region_mapping_path = r5_region_mapping_path
 
-        url = f"{self.goat_routing_url}/active-mobility/catchment-area"
+        # HTTP settings from config
+        self._timeout = getattr(
+            settings.routing, "request_timeout", self.DEFAULT_TIMEOUT
+        )
+        self._retries = getattr(
+            settings.routing, "request_retries", self.DEFAULT_RETRIES
+        )
+        self._retry_interval = getattr(
+            settings.routing, "request_retry_interval", self.DEFAULT_RETRY_INTERVAL
+        )
 
-        # Normalize to lists
-        lat_list = [lat] if isinstance(lat, (int, float)) else list(lat)
-        lon_list = [lon] if isinstance(lon, (int, float)) else list(lon)
+    def _get_routing_url(self: Self, params: CatchmentAreaToolParams) -> str:
+        """Get routing URL from params or defaults."""
+        return params.routing_url or self._default_routing_url
 
+    def _get_authorization(self: Self, params: CatchmentAreaToolParams) -> str | None:
+        """Get authorization from params or defaults."""
+        return params.authorization or self._default_authorization
+
+    def _run_implementation(self: Self, params: CatchmentAreaToolParams) -> Path:
+        """Execute catchment area analysis by calling routing APIs."""
+        routing_mode = (
+            params.routing_mode.value
+            if isinstance(params.routing_mode, CatchmentAreaRoutingMode)
+            else params.routing_mode
+        )
+
+        logger.info(
+            "Computing catchment area: routing_mode=%s, lat=%s, lon=%s",
+            routing_mode,
+            params.latitude,
+            params.longitude,
+        )
+
+        # Get or create event loop
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        if routing_mode == "pt":
+            result_gdf = loop.run_until_complete(self._compute_pt_catchment(params))
+            return self._save_geodataframe(result_gdf, params.output_path)
+        elif routing_mode == "car":
+            result_bytes = loop.run_until_complete(self._compute_car_catchment(params))
+            return self._save_bytes(result_bytes, params.output_path)
+        else:
+            # Active mobility modes (walking, bicycle, pedelec, wheelchair)
+            result_bytes = loop.run_until_complete(
+                self._compute_active_mobility_catchment(params)
+            )
+            return self._save_bytes(result_bytes, params.output_path)
+
+    # =========================================================================
+    # GOAT Routing: Active Mobility
+    # =========================================================================
+
+    async def _compute_active_mobility_catchment(
+        self: Self, params: CatchmentAreaToolParams
+    ) -> bytes:
+        """Compute catchment area for active mobility modes via GOAT Routing."""
+        routing_url = self._get_routing_url(params)
+        authorization = self._get_authorization(params)
+
+        url = f"{routing_url}/active-mobility/catchment-area"
+
+        # Normalize coordinates to lists
+        lat_list = (
+            [params.latitude]
+            if isinstance(params.latitude, (int, float))
+            else list(params.latitude)
+        )
+        lon_list = (
+            [params.longitude]
+            if isinstance(params.longitude, (int, float))
+            else list(params.longitude)
+        )
+
+        # Get routing type string
+        routing_type = (
+            params.routing_mode.value
+            if isinstance(params.routing_mode, CatchmentAreaRoutingMode)
+            else params.routing_mode
+        )
+
+        # Get catchment area type string
+        area_type = (
+            params.catchment_area_type.value
+            if isinstance(params.catchment_area_type, CatchmentAreaType)
+            else params.catchment_area_type
+        )
+
+        # Build payload
         payload = {
             "starting_points": {
                 "latitude": lat_list,
@@ -988,84 +1011,55 @@ class CatchmentAreaService:
             },
             "routing_type": routing_type,
             "travel_cost": {
-                "max_traveltime": max_traveltime,
-                "steps": steps,
-                "speed": speed,
+                "max_traveltime": params.travel_time,
+                "steps": params.steps,
+                "speed": params.speed or 5.0,
             },
-            # Map h3_grid alias to rectangular_grid for the API
-            "catchment_area_type": "rectangular_grid"
-            if catchment_area_type == "h3_grid"
-            else catchment_area_type,
-            "output_format": output_format,
+            "catchment_area_type": area_type,
+            "output_format": "parquet",
         }
 
-        # polygon_difference only applies to polygon type
-        if catchment_area_type == "polygon":
-            payload["polygon_difference"] = polygon_difference
+        if area_type == "polygon":
+            payload["polygon_difference"] = params.polygon_difference
 
-        if scenario_id:
-            payload["scenario_id"] = scenario_id
+        if params.scenario_id:
+            payload["scenario_id"] = params.scenario_id
 
-        headers = {}
-        if self.routing_authorization:
-            headers["Authorization"] = self.routing_authorization
+        return await self._post_with_retry(url, payload, authorization)
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for i in range(self.retries):
-                response = await client.post(url, json=payload, headers=headers)
+    # =========================================================================
+    # GOAT Routing: Car
+    # =========================================================================
 
-                if response.status_code == 202:
-                    # Still processing, retry
-                    if i == self.retries - 1:
-                        raise RuntimeError(
-                            "GOAT routing endpoint took too long to process request."
-                        )
-                    await asyncio.sleep(self.retry_interval)
-                    continue
-                elif response.status_code in (200, 201):
-                    return response.content
-                else:
-                    raise RuntimeError(
-                        f"GOAT routing error ({response.status_code}): {response.text}"
-                    )
-
-        raise RuntimeError("Failed to compute catchment area")
-
-    async def compute_car_catchment(
-        self: Self,
-        lat: float | list[float],
-        lon: float | list[float],
-        max_traveltime: int = 15,
-        steps: int = 3,
-        catchment_area_type: str = "polygon",
-        polygon_difference: bool = True,
-        output_format: str = "parquet",
-        scenario_id: str | None = None,
+    async def _compute_car_catchment(
+        self: Self, params: CatchmentAreaToolParams
     ) -> bytes:
-        """
-        Compute catchment area for car mode via GOAT Routing.
+        """Compute catchment area for car mode via GOAT Routing."""
+        routing_url = self._get_routing_url(params)
+        authorization = self._get_authorization(params)
 
-        Args:
-            lat: Latitude(s) of starting point(s) - single value or list
-            lon: Longitude(s) of starting point(s) - single value or list
-            max_traveltime: Maximum travel time in minutes
-            steps: Number of isochrone steps
-            catchment_area_type: "polygon", "network", or "rectangular_grid"
-            polygon_difference: Whether to compute difference between steps
-            output_format: "parquet" or "geojson"
-            scenario_id: Optional scenario ID for network modifications
+        url = f"{routing_url}/motorized-mobility/catchment-area"
 
-        Returns:
-            Raw response bytes (parquet or geojson)
-        """
-        import httpx
+        # Normalize coordinates to lists
+        lat_list = (
+            [params.latitude]
+            if isinstance(params.latitude, (int, float))
+            else list(params.latitude)
+        )
+        lon_list = (
+            [params.longitude]
+            if isinstance(params.longitude, (int, float))
+            else list(params.longitude)
+        )
 
-        url = f"{self.goat_routing_url}/motorized-mobility/catchment-area"
+        # Get catchment area type string
+        area_type = (
+            params.catchment_area_type.value
+            if isinstance(params.catchment_area_type, CatchmentAreaType)
+            else params.catchment_area_type
+        )
 
-        # Normalize to lists
-        lat_list = [lat] if isinstance(lat, (int, float)) else list(lat)
-        lon_list = [lon] if isinstance(lon, (int, float)) else list(lon)
-
+        # Build payload
         payload = {
             "starting_points": {
                 "latitude": lat_list,
@@ -1073,119 +1067,146 @@ class CatchmentAreaService:
             },
             "routing_type": "car",
             "travel_cost": {
-                "max_traveltime": max_traveltime,
-                "steps": steps,
+                "max_traveltime": params.travel_time,
+                "steps": params.steps,
             },
-            "catchment_area_type": catchment_area_type,
-            "output_format": output_format,
+            "catchment_area_type": area_type,
+            "output_format": "parquet",
         }
 
-        # polygon_difference only applies to polygon type
-        if catchment_area_type == "polygon":
-            payload["polygon_difference"] = polygon_difference
+        if area_type == "polygon":
+            payload["polygon_difference"] = params.polygon_difference
 
-        if scenario_id:
-            payload["scenario_id"] = scenario_id
+        if params.scenario_id:
+            payload["scenario_id"] = params.scenario_id
 
-        headers = {}
-        if self.routing_authorization:
-            headers["Authorization"] = self.routing_authorization
+        return await self._post_with_retry(url, payload, authorization)
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for i in range(self.retries):
-                response = await client.post(url, json=payload, headers=headers)
+    # =========================================================================
+    # R5: Public Transport
+    # =========================================================================
 
-                if response.status_code == 202:
-                    if i == self.retries - 1:
-                        raise RuntimeError(
-                            "GOAT routing endpoint took too long to process request."
-                        )
-                    await asyncio.sleep(self.retry_interval)
-                    continue
-                elif response.status_code in (200, 201):
-                    return response.content
-                else:
-                    raise RuntimeError(
-                        f"GOAT routing error ({response.status_code}): {response.text}"
-                    )
+    async def _compute_pt_catchment(
+        self: Self, params: CatchmentAreaToolParams
+    ) -> GeoDataFrame:
+        """Compute PT catchment via R5 and convert to GeoDataFrame."""
+        # PT only supports single starting point
+        lat = (
+            params.latitude[0] if isinstance(params.latitude, list) else params.latitude
+        )
+        lon = (
+            params.longitude[0]
+            if isinstance(params.longitude, list)
+            else params.longitude
+        )
 
-        raise RuntimeError("Failed to compute car catchment area")
+        # Get R5 region configuration
+        r5_region_id: str | None = self._r5_region_id
+        r5_bundle_id: str | None = self._r5_bundle_id
+        # Always use the routing_url from params/constructor, not from region mapping
+        r5_host: str = self._get_routing_url(params)
 
-    async def compute_pt_catchment(
-        self: Self,
-        lat: float,
-        lon: float,
-        r5_region_id: str,
-        r5_bundle_id: str,
-        max_traveltime: int = 30,
-        steps: int = 6,
-        percentile: int = 5,
-        transit_modes: list[str] | None = None,
-        access_mode: str = "WALK",
-        egress_mode: str = "WALK",
-        walk_speed: float = 5.0,
-        bike_speed: float = 15.0,
-        max_walk_time: int = 20,
-        max_bike_time: int = 20,
-        max_rides: int = 4,
-        from_time: int = 25200,  # 07:00
-        to_time: int = 32400,  # 09:00
-        weekday_date: str = "2024-01-15",
-        bounds: dict | None = None,
-        zoom: int = 9,
-    ) -> bytes:
-        """
-        Compute catchment area for public transport via R5.
+        # Try to look up region/bundle from parquet mapping if available
+        # Params takes precedence over constructor
+        r5_mapping_path = params.r5_region_mapping_path or self._r5_region_mapping_path
+        if r5_mapping_path:
+            region_config = get_r5_region_for_point(
+                lat=lat,
+                lon=lon,
+                parquet_path=r5_mapping_path,
+            )
+            if region_config:
+                r5_region_id = region_config.region_id
+                r5_bundle_id = region_config.bundle_id
+                logger.info(
+                    "Found R5 region from mapping: region=%s, bundle=%s",
+                    r5_region_id,
+                    r5_bundle_id,
+                )
+            else:
+                logger.warning(
+                    "No R5 region found for point (%s, %s) in mapping",
+                    lat,
+                    lon,
+                )
 
-        Args:
-            lat: Latitude of starting point
-            lon: Longitude of starting point
-            r5_region_id: R5 region/project ID
-            r5_bundle_id: R5 bundle ID
-            max_traveltime: Maximum travel time in minutes
-            steps: Number of isochrone steps
-            percentile: Percentile (5, 25, 50, 75, 95)
-            transit_modes: List of transit modes (BUS, TRAM, RAIL, SUBWAY, FERRY, etc.)
-            access_mode: Access mode (WALK, BICYCLE, CAR)
-            egress_mode: Egress mode (WALK, BICYCLE)
-            walk_speed: Walking speed in km/h
-            bike_speed: Biking speed in km/h
-            max_walk_time: Max walk time in minutes
-            max_bike_time: Max bike time in minutes
-            max_rides: Maximum number of transfers + 1
-            from_time: Start time in seconds from midnight
-            to_time: End time in seconds from midnight
-            weekday_date: Date for schedule lookup (YYYY-MM-DD)
-            bounds: Bounding box {north, south, east, west}
-            zoom: Grid zoom level
+        # Validate we have region config
+        if not r5_region_id or not r5_bundle_id:
+            raise ValueError(
+                "R5 region configuration not found. Either provide r5_region_id and "
+                "r5_bundle_id to the tool constructor, or provide r5_region_mapping_path "
+                "with a parquet file containing region boundaries."
+            )
 
-        Returns:
-            Raw R5 binary response (ACCESSGR format)
-        """
-        import httpx
+        authorization = self._get_authorization(params)
 
-        if transit_modes is None:
-            transit_modes = ["BUS", "TRAM", "RAIL", "SUBWAY"]
+        # Convert transit_modes from schema enum to strings
+        transit_modes = ["BUS", "TRAM", "RAIL", "SUBWAY"]
+        if params.transit_modes:
+            transit_modes = [
+                m.value.upper() if isinstance(m, PTMode) else m.upper()
+                for m in params.transit_modes
+            ]
 
-        # Default bounds based on starting point if not provided
-        if bounds is None:
-            bounds = {
-                "north": lat + 0.5,
-                "south": lat - 0.5,
-                "east": lon + 0.5,
-                "west": lon - 0.5,
+        # Convert access/egress modes
+        access_mode = (
+            params.access_mode.value.upper()
+            if isinstance(params.access_mode, AccessEgressMode)
+            else params.access_mode.upper()
+        )
+        egress_mode = (
+            params.egress_mode.value.upper()
+            if isinstance(params.egress_mode, AccessEgressMode)
+            else params.egress_mode.upper()
+        )
+
+        # Extract time window settings
+        from_time = 25200  # 07:00 default
+        to_time = 32400  # 09:00 default
+        weekday_date = "2024-01-15"  # Weekday (Monday) default
+
+        if params.time_window:
+            # Convert time to seconds if needed
+            if hasattr(params.time_window.from_time, "hour"):
+                from_time = (
+                    params.time_window.from_time.hour * 3600
+                    + params.time_window.from_time.minute * 60
+                )
+            else:
+                from_time = params.time_window.from_time
+
+            if hasattr(params.time_window.to_time, "hour"):
+                to_time = (
+                    params.time_window.to_time.hour * 3600
+                    + params.time_window.to_time.minute * 60
+                )
+            else:
+                to_time = params.time_window.to_time
+
+            # Map day type to sample dates (R5 needs actual dates)
+            weekday_dates = {
+                "weekday": "2024-01-15",  # Monday
+                "saturday": "2024-01-20",  # Saturday
+                "sunday": "2024-01-21",  # Sunday
             }
+            weekday_date = weekday_dates.get(params.time_window.weekday, weekday_date)
+
+        # Hardcoded percentile=5 (same as core)
+        percentile = 5
+
+        # Compute bounds dynamically using 100km buffer
+        bounds = compute_bounds_for_point(lat, lon, buffer_meters=100000)
 
         payload = {
             "accessModes": access_mode,
             "transitModes": ",".join(transit_modes),
-            "bikeSpeed": bike_speed,
-            "walkSpeed": walk_speed,
+            "bikeSpeed": 15.0,
+            "walkSpeed": 5.0,
             "bikeTrafficStress": 4,
             "date": weekday_date,
             "fromTime": from_time,
             "toTime": to_time,
-            "maxTripDurationMinutes": max_traveltime,
+            "maxTripDurationMinutes": params.travel_time,
             "decayFunction": {
                 "type": "logistic",
                 "standard_deviation_minutes": 12,
@@ -1197,85 +1218,105 @@ class CatchmentAreaService:
             "egressModes": egress_mode,
             "fromLat": lat,
             "fromLon": lon,
-            "zoom": zoom,
-            "maxBikeTime": max_bike_time,
-            "maxRides": max_rides,
-            "maxWalkTime": max_walk_time,
+            "zoom": 9,
+            "maxBikeTime": 20,
+            "maxRides": 4,
+            "maxWalkTime": 20,
             "monteCarloDraws": 200,
             "percentiles": [5, 25, 50, 75, 95],
-            "variantIndex": settings.routing.r5_variant_index,
-            "workerVersion": settings.routing.r5_worker_version,
+            "variantIndex": getattr(settings.routing, "r5_variant_index", -1),
+            "workerVersion": getattr(settings.routing, "r5_worker_version", "v7.2"),
             "regionId": r5_region_id,
             "projectId": r5_region_id,
             "bundleId": r5_bundle_id,
         }
 
-        headers = {}
-        if self.routing_authorization:
-            headers["Authorization"] = self.routing_authorization
+        url = f"{r5_host}/api/analysis"
+        r5_binary = await self._post_with_retry(url, payload, authorization)
 
-        url = f"{self.r5_url}/api/analysis"
-
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for i in range(self.retries):
-                response = await client.post(url, json=payload, headers=headers)
-
-                if response.status_code == 202:
-                    if i == self.retries - 1:
-                        raise RuntimeError(
-                            "R5 engine took too long to process request."
-                        )
-                    await asyncio.sleep(self.retry_interval)
-                    continue
-                elif response.status_code == 200:
-                    return response.content
-                else:
-                    raise RuntimeError(
-                        f"R5 error ({response.status_code}): {response.text}"
-                    )
-
-        raise RuntimeError("Failed to compute PT catchment area")
-
-    async def compute_pt_catchment_as_geodataframe(
-        self: Self,
-        lat: float,
-        lon: float,
-        r5_region_id: str,
-        r5_bundle_id: str,
-        max_traveltime: int = 30,
-        steps: int = 6,
-        percentile: int = 5,
-        polygon_difference: bool = True,
-        **kwargs: Any,
-    ) -> GeoDataFrame:
-        """
-        Compute PT catchment and return as GeoDataFrame with polygon geometries.
-
-        This is a convenience method that calls compute_pt_catchment and
-        processes the binary response into polygon isochrones.
-
-        Returns:
-            GeoDataFrame with columns: geometry, minute, cost_step
-        """
-        r5_binary = await self.compute_pt_catchment(
-            lat=lat,
-            lon=lon,
-            r5_region_id=r5_region_id,
-            r5_bundle_id=r5_bundle_id,
-            max_traveltime=max_traveltime,
-            percentile=percentile,
-            **kwargs,
+        # Decode R5 binary and generate isolines
+        grid = decode_r5_grid(r5_binary)
+        logger.info(
+            "Decoded R5 grid: %dx%d, depth=%d",
+            grid["width"],
+            grid["height"],
+            grid["depth"],
         )
 
-        grid = decode_r5_grid(r5_binary)
         isochrones = generate_jsolines(
             grid=grid,
-            travel_time=max_traveltime,
+            travel_time=params.travel_time,
             percentile=percentile,
-            steps=steps,
+            steps=params.steps,
         )
 
-        result_key = "incremental" if polygon_difference else "full"
+        result_key = "incremental" if params.polygon_difference else "full"
         result_gdf = isochrones[result_key]
         result_gdf["cost_step"] = result_gdf["minute"].astype(int)
         return result_gdf
+
+    # =========================================================================
+    # HTTP Helper
+    # =========================================================================
+
+    async def _post_with_retry(
+        self: Self,
+        url: str,
+        payload: dict,
+        authorization: str | None,
+    ) -> bytes:
+        """Make POST request with retry logic for 202 responses."""
+        headers = {}
+        if authorization:
+            headers["Authorization"] = authorization
+
+        async with httpx.AsyncClient(timeout=self._timeout) as client:
+            for i in range(self._retries):
+                response = await client.post(url, json=payload, headers=headers)
+
+                if response.status_code == 202:
+                    # Still processing, retry
+                    if i == self._retries - 1:
+                        raise RuntimeError(
+                            f"Routing endpoint took too long to process request: {url}"
+                        )
+                    await asyncio.sleep(self._retry_interval)
+                    continue
+                elif response.status_code in (200, 201):
+                    return response.content
+                else:
+                    raise RuntimeError(
+                        f"Routing error ({response.status_code}): {response.text}"
+                    )
+
+        raise RuntimeError(f"Failed to get response from {url}")
+
+    # =========================================================================
+    # Output Helpers
+    # =========================================================================
+
+    def _save_geodataframe(self: Self, gdf: GeoDataFrame, output_path: str) -> Path:
+        """Save GeoDataFrame to output path."""
+        path = Path(output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        if path.suffix == ".parquet":
+            gdf = gdf.copy()
+            gdf["geometry"] = gdf["geometry"].apply(lambda g: g.wkt)
+            gdf.to_parquet(path, index=False)
+        else:
+            gdf.to_file(path, driver="GeoJSON")
+
+        logger.info("Saved catchment area to: %s", path)
+        return path
+
+    def _save_bytes(self: Self, data: bytes, output_path: str) -> Path:
+        """Save raw bytes to output path."""
+        path = Path(output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(path, "wb") as f:
+            f.write(data)
+
+        logger.info("Saved catchment area to: %s (%d bytes)", path, len(data))
+        return path
