@@ -5,8 +5,19 @@ This module contains tools for accessibility/heatmap analysis:
 - HeatmapConnectivityTool: Connectivity heatmap (reachable area)
 - HeatmapClosestAverageTool: Average distance to N closest destinations
 - OevGueteklasseTool: Public Transport Quality Classes (ÖV-Güteklassen)
+- CatchmentAreaTool: Catchment area / isochrone generation
+- CatchmentAreaService: HTTP client for R5 and GOAT routing
 """
 
+from .catchment_area import (
+    CatchmentAreaParams,
+    CatchmentAreaService,
+    CatchmentAreaTool,
+    compute_r5_surface,
+    decode_r5_grid,
+    generate_jsolines,
+    jsolines,
+)
 from .closest_average import HeatmapClosestAverageTool
 from .connectivity import HeatmapConnectivityTool
 from .gravity import HeatmapGravityTool
@@ -17,14 +28,3 @@ from .oev_gueteklasse import (
     OevGueteklasseTool,
     PTTimeWindow,
 )
-
-__all__ = [
-    "HeatmapGravityTool",
-    "HeatmapConnectivityTool",
-    "HeatmapClosestAverageTool",
-    "OevGueteklasseTool",
-    "OevGueteklasseStationConfig",
-    "PTTimeWindow",
-    "CatchmentType",
-    "STATION_CONFIG_DEFAULT",
-]

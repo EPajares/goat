@@ -1,28 +1,36 @@
 import json
 
 from fastapi import APIRouter, Body
-from fastapi.responses import JSONResponse
-from redis import Redis
+from fastapi.responses import JSONResponse, Response
 from routing.core.config import settings
-from routing.core.worker import run_catchment_area
+from routing.crud.crud_catchment_area import CRUDCatchmentArea
+from routing.db.session import async_session
 from routing.schemas.catchment_area import (
     ICatchmentAreaActiveMobility,
     ICatchmentAreaCar,
+    OutputFormat,
     request_examples,
 )
-from routing.schemas.status import ProcessingStatus
+from routing.schemas.error import DisconnectedOriginError
 
 router = APIRouter()
-redis = Redis(
-    host=settings.REDIS_HOST,
-    port=settings.REDIS_PORT,
-    db=settings.REDIS_DB,
-)
+
+# Shared CRUD instance for caching routing network
+_crud_catchment_area: CRUDCatchmentArea | None = None
+
+
+def get_crud_catchment_area() -> CRUDCatchmentArea:
+    """Get or create CRUD catchment area instance with cached routing network."""
+    global _crud_catchment_area
+    if _crud_catchment_area is None:
+        _crud_catchment_area = CRUDCatchmentArea(async_session(), redis=None)
+    return _crud_catchment_area
 
 
 @router.post(
     "/active-mobility/catchment-area",
     summary="Compute catchment areas for active mobility",
+    response_model=None,
 )
 async def compute_active_mobility_catchment_area(
     *,
@@ -31,7 +39,7 @@ async def compute_active_mobility_catchment_area(
         examples=request_examples["catchment_area_active_mobility"],
         description="The catchment area parameters.",
     ),
-) -> JSONResponse:
+):
     """Compute catchment areas for active mobility."""
 
     return await compute_catchment_area(params)
@@ -40,6 +48,7 @@ async def compute_active_mobility_catchment_area(
 @router.post(
     "/motorized-mobility/catchment-area",
     summary="Compute catchment areas for motorized mobility",
+    response_model=None,
 )
 async def compute_motorized_mobility_catchment_area(
     *,
@@ -48,7 +57,7 @@ async def compute_motorized_mobility_catchment_area(
         examples=request_examples["catchment_area_motorized_mobility"],
         description="The catchment area parameters.",
     ),
-) -> JSONResponse:
+):
     """Compute catchment areas for motorized mobility."""
 
     return await compute_catchment_area(params)
@@ -56,56 +65,49 @@ async def compute_motorized_mobility_catchment_area(
 
 async def compute_catchment_area(
     params: ICatchmentAreaActiveMobility | ICatchmentAreaCar,
-) -> JSONResponse:
-    # Get processing status of catchment area request
-    processing_status = redis.get(str(params.layer_id))
-    processing_status = processing_status.decode("utf-8") if processing_status else None  # type: ignore
+):
+    """Compute catchment area and return results as GeoJSON or Parquet."""
+    try:
+        crud = get_crud_catchment_area()
+        params_dict = json.loads(params.model_dump_json())
+        result = await crud.run(params_dict)
 
-    if processing_status is None:
-        # Initiate catchment area computation for request
-        redis.set(str(params.layer_id), ProcessingStatus.in_progress.value)
-        params = json.loads(params.json()).copy()
-        run_catchment_area.delay(params)
+        if result is None:
+            return JSONResponse(
+                content={
+                    "error": "Failed to compute catchment area.",
+                },
+                status_code=500,
+            )
+
+        if params.output_format == OutputFormat.parquet:
+            # Return Parquet bytes
+            return Response(
+                content=result,
+                media_type="application/octet-stream",
+                headers={
+                    "Content-Disposition": "attachment; filename=catchment_area.parquet"
+                },
+            )
+        else:
+            # Return GeoJSON
+            return JSONResponse(
+                content=result,
+                status_code=200,
+            )
+
+    except DisconnectedOriginError:
         return JSONResponse(
             content={
-                "result": ProcessingStatus.in_progress.value,
-                "message": "Catchment area computation in progress.",
-            },
-            status_code=202,
-        )
-    elif processing_status == ProcessingStatus.in_progress.value:
-        # Catchment area computation is in progress
-        return JSONResponse(
-            content={
-                "result": processing_status,
-                "message": "Catchment area computation in progress.",
-            },
-            status_code=202,
-        )
-    elif processing_status == ProcessingStatus.success.value:
-        # Catchment area computation was successful
-        return JSONResponse(
-            content={
-                "result": processing_status,
-                "message": "Catchment area computed successfully.",
-            },
-            status_code=201,
-        )
-    elif processing_status == ProcessingStatus.disconnected_origin.value:
-        # Catchment area computation failed
-        return JSONResponse(
-            content={
-                "result": processing_status,
-                "message": "Starting point(s) are disconnected from the street network.",
+                "error": "Starting point(s) are disconnected from the street network.",
             },
             status_code=400,
         )
-    else:
-        # Catchment area computation failed
+    except Exception as e:
+        print(f"Error computing catchment area: {e}")
         return JSONResponse(
             content={
-                "result": processing_status,
-                "message": "Failed to compute catchment area.",
+                "error": f"Failed to compute catchment area: {str(e)}",
             },
             status_code=500,
         )

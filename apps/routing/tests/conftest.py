@@ -1,6 +1,12 @@
 # Standard library imports
 import asyncio
+from pathlib import Path
 from typing import AsyncGenerator, Generator
+
+# Load environment from .env file before importing settings
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 # Third party imports
 import pytest_asyncio

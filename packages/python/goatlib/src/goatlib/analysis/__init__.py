@@ -1,5 +1,14 @@
 # Analysis tools
 
+from .accessibility import (
+    CatchmentAreaParams,
+    CatchmentAreaService,
+    CatchmentAreaTool,
+    compute_r5_surface,
+    decode_r5_grid,
+    generate_jsolines,
+    jsolines,
+)
 from .core.base import AnalysisTool
 from .data_management import JoinTool
 from .geoanalysis import OriginDestinationTool

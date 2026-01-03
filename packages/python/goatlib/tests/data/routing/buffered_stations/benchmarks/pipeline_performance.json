@@ -1,9 +1,0 @@
-{
-  "api_latency_sec": 2.9229,
-  "processing_sec": 0.0062,
-  "buffer_setup_sec": 0.025,
-  "buffer_tool_run_sec": 0.3031,
-  "buffering_total_sec": 0.3281,
-  "total_time_sec": 3.2575,
-  "stations_processed": 4431
-}

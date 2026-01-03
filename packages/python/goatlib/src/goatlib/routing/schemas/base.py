@@ -1,47 +1,54 @@
-# In your_package/schemas/base.py
+"""
+Base schemas for routing in goatlib.
+
+This module provides the foundational types and enums used across all routing
+operations - catchment areas, A-B routing, and isochrones.
+"""
 
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
+
+# =============================================================================
+# Routing Providers
+# =============================================================================
 
 
 class RoutingProvider(StrEnum):
     """Supported routing service providers."""
 
-    MOTIS = "motis"
-    OTP = "otp"
-    R5 = "r5"
+    r5 = "r5"
+    goat_routing = "goat_routing"  # Our Rust-based routing in apps/routing
+    motis = "motis"
+    otp = "otp"
 
 
-class CatchmentAreaType(StrEnum):
-    """Catchment area type schema."""
-
-    point = "point"
-    network = "network"
-    grid = "grid"
-    polygon = "polygon"
+# =============================================================================
+# Transport Modes
+# =============================================================================
 
 
-class CatchmentAreaRoutingTypeActiveMobility(StrEnum):
-    """Routing active mobility type schema."""
+class ActiveMobilityMode(StrEnum):
+    """Active mobility routing modes."""
 
-    walking = "walking"
-    wheelchair = "wheelchair"
+    walk = "walk"
     bicycle = "bicycle"
     pedelec = "pedelec"
+    wheelchair = "wheelchair"
 
 
-class CatchmentAreaRoutingTypeCar(StrEnum):
-    """Routing car type schema."""
+class CarMode(StrEnum):
+    """Car routing modes."""
 
     car = "car"
 
 
-class CatchmentAreaRoutingModePT(StrEnum):
-    """Routing public transport mode schema."""
+class PTMode(StrEnum):
+    """Public transport modes."""
 
     bus = "bus"
     tram = "tram"
@@ -58,68 +65,181 @@ class AccessEgressMode(StrEnum):
 
     walk = "walk"
     bicycle = "bicycle"
+    car = "car"
 
 
-class Mode(StrEnum):
+class TransportMode(StrEnum):
+    """
+    All transport modes in a single enum.
+    Use this for general mode references, use specific enums
+    (ActiveMobilityMode, PTMode, etc.) for typed routing requests.
+    """
+
     # Active mobility
-    WALK = "walk"
-    BIKE = "bicycle"
+    walk = "walk"
+    bicycle = "bicycle"
+    pedelec = "pedelec"
+    wheelchair = "wheelchair"
 
     # Public transport
-    TRAM = "tram"
-    SUBWAY = "subway"
-    RAIL = "rail"
-    BUS = "bus"
-    FERRY = "ferry"
-    CABLE_CAR = "cable_car"
-    GONDOLA = "gondola"
-    FUNICULAR = "funicular"
+    bus = "bus"
+    tram = "tram"
+    rail = "rail"
+    subway = "subway"
+    ferry = "ferry"
+    cable_car = "cable_car"
+    gondola = "gondola"
+    funicular = "funicular"
 
     # Private transport
-    CAR = "car"
+    car = "car"
 
-    # TODO decide if keep it and define which public transportation modes are included
     # Meta-modes
-    TRANSIT = "transit"  # Any public transport mode
-    OTHER = "other"  # Fallback for unknown modes
+    transit = "transit"  # Any public transport mode
 
 
-# --- Constants for Validation ---
-MAX_SPEEDS_KMH = {
-    Mode.BUS: 120,
-    Mode.TRAM: 80,
-    Mode.SUBWAY: 120,
-    Mode.RAIL: 400,
-}
-DEFAULT_MAX_SPEED_KMH = 250
+# =============================================================================
+# Catchment Area Types
+# =============================================================================
 
 
-class Location(BaseModel):
-    """Geographic location using WGS84 coordinates."""
+class CatchmentAreaType(StrEnum):
+    """Output geometry type for catchment areas."""
+
+    polygon = "polygon"
+    network = "network"
+    rectangular_grid = "rectangular_grid"
+
+
+class OutputFormat(StrEnum):
+    """Output format for routing results."""
+
+    geojson = "geojson"
+    parquet = "parquet"
+
+
+# =============================================================================
+# Geographic Types
+# =============================================================================
+
+
+class Coordinates(BaseModel):
+    """Geographic coordinates using WGS84."""
 
     lat: float = Field(..., description="Latitude", ge=-90.0, le=90.0)
     lon: float = Field(..., description="Longitude", ge=-180.0, le=180.0)
 
 
-class Route(BaseModel):
-    """Base model for a route."""
+class StartingPoints(BaseModel):
+    """
+    Starting points for routing computations.
 
-    route_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    distance: float = Field(..., description="Distance in meters", ge=0)
-    duration: float = Field(..., description="Duration in seconds", ge=0)
-    departure_time: datetime = Field(..., description="Departure time")
+    Supports both the legacy lat/lon list format (for compatibility with core)
+    and the new Coordinates list format.
+    """
 
-
-class CatchmentAreaStartingPoints(BaseModel):
-    """Base model for catchment area attributes."""
-
-    latitude: List[float] | None = Field(
+    # Legacy format (compatible with core)
+    latitude: Optional[List[float]] = Field(
         None,
         title="Latitude",
-        description="The latitude of the catchment area center.",
+        description="List of latitudes for starting points (legacy format).",
     )
-    longitude: List[float] | None = Field(
+    longitude: Optional[List[float]] = Field(
         None,
         title="Longitude",
-        description="The longitude of the catchment area center.",
+        description="List of longitudes for starting points (legacy format).",
     )
+
+    # New format
+    coordinates: Optional[List[Coordinates]] = Field(
+        None,
+        title="Coordinates",
+        description="List of coordinate objects for starting points.",
+    )
+
+    def to_coordinates(self) -> List[Coordinates]:
+        """Convert to list of Coordinates, handling both formats."""
+        if self.coordinates:
+            return self.coordinates
+        if self.latitude and self.longitude:
+            return [
+                Coordinates(lat=lat, lon=lon)
+                for lat, lon in zip(self.latitude, self.longitude)
+            ]
+        return []
+
+    @property
+    def count(self) -> int:
+        """Get the number of starting points."""
+        return len(self.to_coordinates())
+
+
+# =============================================================================
+# Time Window (for PT routing)
+# =============================================================================
+
+
+class PTTimeWindow(BaseModel):
+    """Time window configuration for public transport routing."""
+
+    weekday: str = Field(
+        ...,
+        title="Weekday",
+        description="The weekday type: 'weekday', 'saturday', or 'sunday'.",
+    )
+    from_time: int = Field(
+        ...,
+        title="From Time",
+        description="Start time in seconds from midnight (e.g., 25200 = 7:00 AM).",
+        ge=0,
+        le=86400,
+    )
+    to_time: int = Field(
+        ...,
+        title="To Time",
+        description="End time in seconds from midnight (e.g., 32400 = 9:00 AM).",
+        ge=0,
+        le=86400,
+    )
+
+    @property
+    def weekday_date(self) -> str:
+        """Get a representative date for the weekday type."""
+        # Use fixed reference dates for consistent routing
+        weekday_dates = {
+            "weekday": "2024-01-15",  # Monday
+            "saturday": "2024-01-13",
+            "sunday": "2024-01-14",
+        }
+        return weekday_dates.get(self.weekday, "2024-01-15")
+
+
+# =============================================================================
+# Route Response Types
+# =============================================================================
+
+
+class Route(BaseModel):
+    """Base model for a computed route."""
+
+    route_id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
+        description="Unique route identifier",
+    )
+    duration: float = Field(..., description="Total duration in seconds", ge=0)
+    distance: Optional[float] = Field(
+        None, description="Total distance in meters", ge=0
+    )
+    departure_time: datetime = Field(..., description="Route departure time")
+    arrival_time: Optional[datetime] = Field(None, description="Route arrival time")
+
+
+# =============================================================================
+# Legacy Aliases (for backward compatibility)
+# =============================================================================
+
+# These aliases help with migration from older code
+Location = Coordinates  # Alias for older code using Location
+CatchmentAreaRoutingTypeActiveMobility = ActiveMobilityMode
+CatchmentAreaRoutingTypeCar = CarMode
+CatchmentAreaRoutingModePT = PTMode
