@@ -34,9 +34,6 @@ class Settings(BaseSettings):
     WINDMILL_URL: str = os.getenv("WINDMILL_URL", "http://windmill-server:8000")
     WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "plan4better")
     WINDMILL_TOKEN: str = os.getenv("WINDMILL_TOKEN", "")
-    WINDMILL_SYNC_TOOLS: bool = (
-        os.getenv("WINDMILL_SYNC_TOOLS", "false").lower() == "true"
-    )
 
     # DuckLake settings
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")

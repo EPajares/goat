@@ -134,6 +134,21 @@
       "jinja": true,
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "uv-sync",
+    },
+    {
+      "name": "Sync Windmill Scripts",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "goatlib.tools.sync_windmill",
+      "cwd": "${workspaceFolder}",
+      "justMyCode": true,
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "tools",
+        "order": 4
+      }
     }
   ],
   "compounds": [
