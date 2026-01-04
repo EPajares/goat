@@ -55,3 +55,4 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/routing/src/routing/main.py"]
+
