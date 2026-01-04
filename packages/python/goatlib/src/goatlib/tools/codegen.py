@@ -5,45 +5,7 @@ Windmill parses function signatures statically and only understands primitive ty
 """
 
 from enum import Enum
-from pathlib import Path
 from typing import Literal, Union
-
-import tomllib
-
-
-def _get_goatlib_dependencies() -> list[str]:
-    """Read dependencies from goatlib's pyproject.toml."""
-    # Find pyproject.toml relative to this file
-    codegen_path = Path(__file__).resolve()
-    # Go up: codegen.py -> tools -> goatlib -> src -> goatlib -> pyproject.toml
-    pyproject_path = codegen_path.parent.parent.parent.parent / "pyproject.toml"
-
-    if not pyproject_path.exists():
-        # Fallback to hardcoded if pyproject.toml not found
-        return [
-            "asyncpg>=0.29.0",
-            "boto3>=1.35.0",
-            "duckdb>=1.4.3",
-            "pydantic>=2.11.5",
-            "pydantic-settings>=2.9.1",
-            "pygeofilter>=0.2.4",
-            "pyproj>=3.6.0",
-            "pytz>=2024.1",
-            "wmill>=1.0.0",
-        ]
-
-    with open(pyproject_path, "rb") as f:
-        pyproject = tomllib.load(f)
-
-    return pyproject.get("project", {}).get("dependencies", [])
-
-
-def _build_requirements_comment() -> str:
-    """Build the requirements comment for Windmill scripts."""
-    deps = _get_goatlib_dependencies()
-    all_deps = sorted(set(deps))
-    lines = ["# requirements:"] + [f"# {dep}" for dep in all_deps]
-    return "\n".join(lines)
 
 
 def _is_pydantic_model(annotation: type) -> bool:
@@ -197,21 +159,17 @@ def generate_windmill_script(
     params_class_name = params_class.__name__
 
     # Build imports
-    imports = ["import sys"]
+    imports = []
     if needs_literal:
         imports.append("from typing import Literal")
 
-    imports_str = "\n".join(imports)
+    imports_str = "\n".join(imports) if imports else ""
+    imports_block = f"{imports_str}\n\n" if imports_str else ""
 
-    requirements = _build_requirements_comment()
+    # Python version directive at top - deps pre-installed in worker image
+    script = f'''# py311
 
-    script = f'''{requirements}
-
-{imports_str}
-sys.path.insert(0, "/app/workspace/packages/python/goatlib/src")
-
-
-def main(
+{imports_block}def main(
     {args_str}
 ) -> dict:
     """Run tool."""
