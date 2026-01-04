@@ -31,6 +31,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 
 # Create virtual environment and install dependencies
 COPY apps/geoapi /app/apps/geoapi
+COPY packages/python/goatlib /app/packages/python/goatlib
 COPY pyproject.toml uv.lock /app/
 
 WORKDIR /app
