@@ -13,6 +13,7 @@ from pydantic import Field
 
 from goatlib.analysis.accessibility import (
     STATION_CONFIG_DEFAULT,
+    OevGueteklasseParams,
     OevGueteklasseTool,
     PTTimeWindow,
 )
@@ -185,34 +186,34 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
             to_time=params.to_time,
         )
 
+        # Build params for the analysis tool
+        analysis_params = OevGueteklasseParams(
+            reference_area_path=reference_area_path,
+            stops_path=stops_path,
+            stop_times_path=stop_times_path,
+            time_window=time_window,
+            output_path=str(output_path),
+            station_config=STATION_CONFIG_DEFAULT,
+            stations_output_path=str(stations_output_path),
+        )
+
         tool = self.tool_class()
-        try:
-            stats = tool.run(
-                reference_area_path=reference_area_path,
-                stops_path=stops_path,
-                stop_times_path=stop_times_path,
-                time_window=time_window,
-                output_path=str(output_path),
-                station_config=STATION_CONFIG_DEFAULT,
-                stations_output_path=str(stations_output_path),
-            )
-            logger.info("OevGueteklassen stats: %s", stats)
+        stats = tool.run(analysis_params)
+        logger.info("OevGueteklassen stats: %s", stats)
 
-            # Store stations path for secondary layer creation
-            if stations_output_path.exists():
-                self._stations_parquet = stations_output_path
-                logger.info("Stations output available at: %s", stations_output_path)
+        # Store stations path for secondary layer creation
+        if stations_output_path.exists():
+            self._stations_parquet = stations_output_path
+            logger.info("Stations output available at: %s", stations_output_path)
 
-            # Create metadata for the output parquet
-            metadata = DatasetMetadata(
-                path=str(output_path),
-                source_type="vector",
-                geometry_type="Polygon",
-                crs="EPSG:4326",
-            )
-            return output_path, metadata
-        finally:
-            tool.cleanup()
+        # Create metadata for the output parquet
+        metadata = DatasetMetadata(
+            path=str(output_path),
+            source_type="vector",
+            geometry_type="Polygon",
+            crs="EPSG:4326",
+        )
+        return output_path, metadata
 
     def run(self: Self, params: OevGueteklassenToolParams) -> dict:
         """Run tool and create both polygon and station layers."""
