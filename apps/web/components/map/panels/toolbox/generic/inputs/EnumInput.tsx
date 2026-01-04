@@ -140,7 +140,7 @@ export default function EnumInput({ input, value, onChange, disabled, formValues
       items={enumItems}
       label={label}
       tooltip={description}
-      placeholder={`${t("select")} ${label.toLowerCase()}`}
+      placeholder={t("select_option")}
       disabled={disabled}
     />
   );

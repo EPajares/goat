@@ -54,6 +54,10 @@ const SECTION_ICON_MAP: Record<string, ICON_NAME> = {
   download: ICON_NAME.DOWNLOAD,
   location: ICON_NAME.LOCATION,
   "location-marker": ICON_NAME.LOCATION_MARKER,
+  aggregate: ICON_NAME.AGGREGATE,
+  chart: ICON_NAME.CHART,
+  scenario: ICON_NAME.SCENARIO,
+  clock: ICON_NAME.CLOCK,
 };
 
 interface GenericToolProps extends IndicatorBaseProps {

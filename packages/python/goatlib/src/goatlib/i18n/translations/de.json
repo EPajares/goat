@@ -15,6 +15,9 @@
     "input": {
       "label": "Eingabe"
     },
+    "pick_source_layer": {
+      "label": "Zu aggregierender Layer"
+    },
     "output": {
       "label": "Ausgabe"
     },
@@ -32,6 +35,9 @@
     },
     "area": {
       "label": "Fläche"
+    },
+    "summary_areas": {
+      "label": "Aggregierungspolygone"
     },
     "buffer": {
       "label": "Puffer-Einstellungen"
@@ -361,6 +367,62 @@
     "max_distance": {
       "label": "Reiseentfernung",
       "description": "Definieren Sie die maximale Reiseentfernung in Metern"
+    },
+    "source_layer_id": {
+      "label": "Eingabe-Punkt-Layer",
+      "description": "Wählen Sie den zu aggregierenden Layer"
+    },
+    "select_source_layer": {
+      "label": "Eingabe-Punkt-Layer",
+      "description": "Wählen Sie den zu aggregierenden Layer"
+    },
+    "area_type": {
+      "label": "Flächentyp",
+      "description": "Art der Fläche für die Aggregation"
+    },
+    "select_area_type": {
+      "label": "Flächentyp",
+      "description": "Art der Fläche für die Aggregation"
+    },
+    "area_layer_id": {
+      "label": "Flächen-Layer",
+      "description": "Wählen Sie den Polygon-Layer für die Aggregation"
+    },
+    "select_area_layer": {
+      "label": "Flächen-Layer",
+      "description": "Wählen Sie den Polygon-Layer für die Aggregation"
+    },
+    "h3_resolution": {
+      "label": "H3-Auflösung",
+      "description": "H3-Gitterauflösung (3-10). Höhere Werte erzeugen kleinere Hexagone."
+    },
+    "select_h3_grid_resolution": {
+      "label": "H3-Gitterauflösung",
+      "description": "H3-Gitterauflösung (3-10). Höhere Werte erzeugen kleinere Hexagone."
+    },
+    "statistics_operation": {
+      "label": "Operation",
+      "description": "Durchzuführende statistische Operation"
+    },
+    "select_statistic_method": {
+      "label": "Statistische Methode",
+      "description": "Statistische Operation: Anzahl, Summe, Mittelwert, Min oder Max."
+    },
+    "statistics_field": {
+      "label": "Statistikfeld",
+      "description": "Feld für die Statistikberechnung"
+    },
+    "select_field_to_calculate_statistics": {
+      "label": "Feld-Statistik",
+      "description": "Wählen Sie das Feld für die Statistikberechnung."
+    },
+    "group_by_field": {
+      "label": "Gruppieren nach",
+      "description": "Feld(er) zur Gruppierung der aggregierten Ergebnisse"
+    },
+    "select_group_fields": {
+      "label": "Gruppenfelder",
+      "description": "Optionale Feld(er) zur Gruppierung der aggregierten Ergebnisse."
     }
   },
   "enums": {
@@ -431,6 +493,17 @@
       "polygon": "Polygon",
       "network": "Netzwerk",
       "rectangular_grid": "Sechseckiges Gitter"
+    },
+    "aggregation_area_type": {
+      "polygon": "Polygon",
+      "h3_grid": "H3-Gitter"
+    },
+    "statistics_operation": {
+      "count": "Anzahl",
+      "sum": "Summe",
+      "mean": "Mittelwert",
+      "min": "Minimum",
+      "max": "Maximum"
     }
   },
   "tools": {
@@ -443,12 +516,16 @@
       "description": "Features mit Überlagerungsgeometrie ausschneiden"
     },
     "centroid": {
-      "title": "Schwerpunkt",
-      "description": "Schwerpunkte für Features berechnen"
+      "title": "Mittelpunkt",
+      "description": "Mittelpunkte für Features berechnen"
     },
     "intersection": {
       "title": "Verschneiden",
       "description": "Geometrische Verschneidung zweier Layer berechnen"
+    },
+    "aggregate_points": {
+      "title": "Punkte aggregieren",
+      "description": "Fasst Punkt-Features innerhalb festgelegter Bereiche zusammen. Berechnet die Gesamtanzahl der Punkte und ermittelt Statistiken wie Summe, Mittelwert, Min oder Max für jeden Bereich."
     },
     "union": {
       "title": "Vereinigen",

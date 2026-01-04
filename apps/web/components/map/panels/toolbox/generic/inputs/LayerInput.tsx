@@ -6,6 +6,7 @@
  */
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
@@ -43,6 +44,7 @@ export default function LayerInput({
   disabled,
   excludedLayerIds = [],
 }: LayerInputProps) {
+  const { t } = useTranslation("common");
   const { projectId } = useParams();
   const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
 
@@ -96,23 +98,27 @@ export default function LayerInput({
 
   // Build tooltip with geometry constraints info
   const tooltip = useMemo(() => {
-    let tip = input.description || "";
+    // Use uiMeta description (already translated) or fallback to input.description
+    let tip = input.uiMeta?.description || input.description || "";
     if (input.geometryConstraints && input.geometryConstraints.length > 0) {
       tip += tip ? "\n\n" : "";
-      tip += `Accepted geometry types: ${input.geometryConstraints.join(", ")}`;
+      tip += `${t("accepted_geometry_types")}: ${input.geometryConstraints.join(", ")}`;
     }
     return tip;
-  }, [input.description, input.geometryConstraints]);
+  }, [input.uiMeta?.description, input.description, input.geometryConstraints, t]);
+
+  // Get label from uiMeta (already translated) or fallback to title
+  const label = input.uiMeta?.label || input.title;
 
   return (
     <Selector
       selectedItems={selectedItem}
       setSelectedItems={handleChange}
       items={layerItems}
-      label={input.title}
+      label={label}
       tooltip={tooltip}
-      placeholder={`Select ${input.title.toLowerCase()}`}
-      emptyMessage="No matching layers found"
+      placeholder={t("select_layer")}
+      emptyMessage={t("no_layers_found")}
       emptyMessageIcon={ICON_NAME.LAYERS}
       disabled={disabled}
     />

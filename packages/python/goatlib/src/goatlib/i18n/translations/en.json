@@ -15,6 +15,9 @@
     "input": {
       "label": "Input"
     },
+    "pick_source_layer": {
+      "label": "Layer to Aggregate"
+    },
     "output": {
       "label": "Output"
     },
@@ -32,6 +35,9 @@
     },
     "area": {
       "label": "Area"
+    },
+    "summary_areas": {
+      "label": "Summary Areas"
     },
     "buffer": {
       "label": "Buffer Settings"
@@ -361,6 +367,62 @@
     "max_distance": {
       "label": "Travel distance",
       "description": "Define the maximum travel distance in meters"
+    },
+    "source_layer_id": {
+      "label": "Input Point Layer",
+      "description": "Select the point layer to aggregate"
+    },
+    "select_source_layer": {
+      "label": "Input Point Layer",
+      "description": "Select the point layer to aggregate"
+    },
+    "area_type": {
+      "label": "Area Type",
+      "description": "Type of area to aggregate points into"
+    },
+    "select_area_type": {
+      "label": "Area Type",
+      "description": "Type of area to aggregate points into"
+    },
+    "area_layer_id": {
+      "label": "Area Layer",
+      "description": "Select the polygon layer for aggregation"
+    },
+    "select_area_layer": {
+      "label": "Area Layer",
+      "description": "Select the polygon layer for aggregation"
+    },
+    "h3_resolution": {
+      "label": "H3 Resolution",
+      "description": "H3 grid resolution (3-10). Higher values create smaller hexagons."
+    },
+    "select_h3_grid_resolution": {
+      "label": "H3 Grid Resolution",
+      "description": "H3 grid resolution (3-10). Higher values create smaller hexagons."
+    },
+    "statistics_operation": {
+      "label": "Operation",
+      "description": "Statistical operation to perform"
+    },
+    "select_statistic_method": {
+      "label": "Statistic Method",
+      "description": "Statistical operation to perform: count, sum, mean, min, or max."
+    },
+    "statistics_field": {
+      "label": "Statistics Field",
+      "description": "Field to compute statistics on"
+    },
+    "select_field_to_calculate_statistics": {
+      "label": "Statistics Field",
+      "description": "Select the field to compute statistics on."
+    },
+    "group_by_field": {
+      "label": "Group By",
+      "description": "Field(s) to group aggregated results by"
+    },
+    "select_group_fields": {
+      "label": "Group Fields",
+      "description": "Optional field(s) to group aggregated results by."
     }
   },
   "enums": {
@@ -431,6 +493,17 @@
       "polygon": "Polygon",
       "network": "Network",
       "rectangular_grid": "Hexagonal Grid"
+    },
+    "aggregation_area_type": {
+      "polygon": "Polygon",
+      "h3_grid": "H3 Grid"
+    },
+    "statistics_operation": {
+      "count": "Count",
+      "sum": "Sum",
+      "mean": "Mean",
+      "min": "Minimum",
+      "max": "Maximum"
     }
   },
   "tools": {
@@ -448,7 +521,11 @@
     },
     "intersection": {
       "title": "Intersection",
-      "description": "Compute geometric intersection of two layers"
+      "description": "Compute the geometric intersection of features from two layers"
+    },
+    "aggregate_points": {
+      "title": "Aggregate Points",
+      "description": "Summarizes point features within designated areas. Calculates the total count of points and computes statistics like sum, mean, min, or max for each area."
     },
     "union": {
       "title": "Union",
