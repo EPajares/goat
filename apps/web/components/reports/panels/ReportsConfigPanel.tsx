@@ -175,14 +175,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     []
   );
 
-  const sortOrderItems: SelectorItem[] = useMemo(
-    () => [
-      { label: t("ascending"), value: "asc" },
-      { label: t("descending"), value: "desc" },
-    ],
-    [t]
-  );
-
   const coverageLayerItems: SelectorItem[] = useMemo(
     () =>
       projectLayers.map((layer) => ({
@@ -397,48 +389,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
         sort_by: atlasSortBy || undefined,
         sort_order: atlasSortOrder,
         filter: atlasFilter || null,
-      };
-      handleAtlasSettingChange({ coverage });
-    }
-  };
-
-  const handleAtlasSortByChange = (sortBy: string) => {
-    setAtlasSortBy(sortBy);
-    if (atlasLayerId) {
-      const coverage: AtlasFeatureCoverage = {
-        type: "feature",
-        layer_project_id: atlasLayerId,
-        sort_by: sortBy || undefined,
-        sort_order: atlasSortOrder,
-        filter: atlasFilter || null,
-      };
-      handleAtlasSettingChange({ coverage });
-    }
-  };
-
-  const handleAtlasSortOrderChange = (order: "asc" | "desc") => {
-    setAtlasSortOrder(order);
-    if (atlasLayerId) {
-      const coverage: AtlasFeatureCoverage = {
-        type: "feature",
-        layer_project_id: atlasLayerId,
-        sort_by: atlasSortBy || undefined,
-        sort_order: order,
-        filter: atlasFilter || null,
-      };
-      handleAtlasSettingChange({ coverage });
-    }
-  };
-
-  const handleAtlasFilterChange = (filter: string) => {
-    setAtlasFilter(filter);
-    if (atlasLayerId) {
-      const coverage: AtlasFeatureCoverage = {
-        type: "feature",
-        layer_project_id: atlasLayerId,
-        sort_by: atlasSortBy || undefined,
-        sort_order: atlasSortOrder,
-        filter: filter || null,
       };
       handleAtlasSettingChange({ coverage });
     }
