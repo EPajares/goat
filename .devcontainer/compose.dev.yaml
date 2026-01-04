@@ -66,6 +66,8 @@ services:
       WORKER_TAGS: tools
       DISABLE_NSJAIL: "true"
       JOB_DEFAULT_TIMEOUT: 600
+      # Disable Python bytecode cache for live development
+      PYTHONDONTWRITEBYTECODE: "1"
       # Tool environment variables
       POSTGRES_SERVER: ${POSTGRES_SERVER}
       POSTGRES_PORT: 5432
@@ -116,6 +118,7 @@ services:
       WORKER_TAGS: print
       JOB_DEFAULT_TIMEOUT: 300
       DISABLE_NSJAIL: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
       # S3 settings for PDF uploads
       S3_PROVIDER: ${S3_PROVIDER:-hetzner}
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
