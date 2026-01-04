@@ -340,3 +340,15 @@ export const text: IconDefinition = {
   iconName: "text" as IconName,
   prefix: "fas" as IconPrefix,
 };
+
+export const circleEmpty: IconDefinition = {
+  icon: [
+    24,
+    24,
+    [],
+    "",
+    "M12 0.375C5.578 0.375 0.375 5.578 0.375 12c0 6.422 5.203 11.625 11.625 11.625s11.625-5.203 11.625-11.625S18.422 0.375 12 0.375zm0 21c-5.18 0-9.375-4.195-9.375-9.375S6.82 2.625 12 2.625s9.375 4.195 9.375 9.375-4.195 9.375-9.375 9.375z",
+  ],
+  iconName: "circle-empty" as IconName,
+  prefix: "fas" as IconPrefix,
+};

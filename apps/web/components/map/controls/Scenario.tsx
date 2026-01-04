@@ -22,7 +22,7 @@ export function Scenario(props: ScenarioProps) {
               alignItems: "flex-start",
               my: 1,
             }}>
-            <Tooltip title={props.open ? "Close Scenario" : "Open Scenario"} arrow placement="left">
+            <Tooltip title={props.open ? "Close Scenario" : "Open Scenario"} arrow placement="right">
               <Fab
                 onClick={() => props.onToggle && props.onToggle(!props.open)}
                 size="small"

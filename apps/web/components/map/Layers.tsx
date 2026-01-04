@@ -96,11 +96,8 @@ const Layers = (props: LayersProps) => {
     if (extendedQuery && Object.keys(extendedQuery).length > 0) {
       query = `?filter=${encodeURIComponent(JSON.stringify(extendedQuery))}`;
     }
-    const collectionId = layer["layer_id"] || layer["id"];
-    return `${GEOAPI_BASE_URL}/collections/user_data.${collectionId.replace(
-      /-/g,
-      ""
-    )}/tiles/{z}/{x}/{y}${query}`;
+    const layerId = layer["layer_id"] || layer["id"];
+    return `${GEOAPI_BASE_URL}/collections/${layerId}/tiles/WebMercatorQuad/{z}/{x}/{y}${query}`;
   };
   const { useDataLayers, systemLayers } = useMemo(() => {
     const dataLayers = [] as ProjectLayer[] | Layer[];

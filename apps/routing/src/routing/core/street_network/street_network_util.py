@@ -33,7 +33,9 @@ class StreetNetworkUtil:
             # Specify the type parameter for Row.
             # Since the query selects 'user_id', which we expect to be a UUID or something
             # that can be converted to a UUID, Row[UUID] is appropriate.
-            fetched_row: Optional[Row[Any]] = result.fetchone() # Changed to Row[Any] for robustness if type is truly dynamic, or Row[UUID] if strictly a UUID. Using Any as per mypy-arg suggestion often implies a dynamic type. If user_id is definitely UUID, Row[UUID] is better.
+            fetched_row: Optional[Row[Any]] = (
+                result.fetchone()
+            )  # Changed to Row[Any] for robustness if type is truly dynamic, or Row[UUID] if strictly a UUID. Using Any as per mypy-arg suggestion often implies a dynamic type. If user_id is definitely UUID, Row[UUID] is better.
             # Let's use Row[UUID] as it's more specific based on the query.
             # If mypy complains, we might need to broaden to Row[Any] or add a # type: ignore comment.
 
@@ -73,15 +75,11 @@ class StreetNetworkUtil:
                 user_id: UUID = await self._get_user_id(edge_layer_id)
                 edge_table = f"{settings.USER_DATA_SCHEMA}.street_network_line_{str(user_id).replace('-', '')}"
             except ValueError as e:
-                error_msg = (
-                    f"Could not fetch edge table name for layer ID {edge_layer_id}. Error: {e}"
-                )
+                error_msg = f"Could not fetch edge table name for layer ID {edge_layer_id}. Error: {e}"
                 print_error(error_msg)
                 raise ValueError(error_msg)
             except Exception as e:
-                error_msg = (
-                    f"An unexpected error occurred fetching edge table name for layer ID {edge_layer_id}. Error: {e}"
-                )
+                error_msg = f"An unexpected error occurred fetching edge table name for layer ID {edge_layer_id}. Error: {e}"
                 print_error(error_msg)
                 raise RuntimeError(error_msg)
 
@@ -90,21 +88,19 @@ class StreetNetworkUtil:
                 user_id = await self._get_user_id(node_layer_id)
                 node_table = f"{settings.USER_DATA_SCHEMA}.street_network_point_{str(user_id).replace('-', '')}"
             except ValueError as e:
-                error_msg = (
-                    f"Could not fetch node table name for layer ID {node_layer_id}. Error: {e}"
-                )
+                error_msg = f"Could not fetch node table name for layer ID {node_layer_id}. Error: {e}"
                 print_error(error_msg)
                 raise ValueError(error_msg)
             except Exception as e:
-                error_msg = (
-                    f"An unexpected error occurred fetching node table name for layer ID {node_layer_id}. Error: {e}"
-                )
+                error_msg = f"An unexpected error occurred fetching node table name for layer ID {node_layer_id}. Error: {e}"
                 print_error(error_msg)
                 raise RuntimeError(error_msg)
 
         return edge_table, node_table
 
-    async def _get_street_network_region_h3_3_cells(self, region_geofence: str) -> List[int]:
+    async def _get_street_network_region_h3_3_cells(
+        self, region_geofence: str
+    ) -> List[int]:
         """Get list of H3_3 cells covering the street network region."""
 
         h3_3_cells: List[int] = []
@@ -156,9 +152,9 @@ class StreetNetworkUtil:
         start_time: float = time.time()
         street_network_size: float = 0.0
 
-        street_network_region_h3_3_cells: List[int] = (
-            await self._get_street_network_region_h3_3_cells(region_geofence)
-        )
+        street_network_region_h3_3_cells: List[
+            int
+        ] = await self._get_street_network_region_h3_3_cells(region_geofence)
 
         (
             street_network_edge_table,
@@ -201,7 +197,9 @@ class StreetNetworkUtil:
                             schema_overrides=SEGMENT_DATA_SCHEMA,
                         )
                         edge_df = edge_df.with_columns(
-                            pl.col("coordinates_3857").str.json_decode()
+                            pl.col("coordinates_3857").str.json_decode(
+                                dtype=pl.List(pl.List(pl.Float64))
+                            )
                         )
 
                         street_network_cache.write_edge_cache(

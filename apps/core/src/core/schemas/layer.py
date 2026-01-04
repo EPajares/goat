@@ -44,12 +44,13 @@ from core.utils import optional
 class MaxFileSizeType(int, Enum):
     """Max file size types in bytes."""
 
-    geojson = 300000000
-    csv = 100000000
-    xlsx = 100000000
-    gpkg = 300000000
-    kml = 300000000
-    zip = 300000000
+    geojson = 5 * 1024 * 1024 * 1024  # 5GB
+    csv = 5 * 1024 * 1024 * 1024  # 5GB
+    xlsx = 1 * 1024 * 1024 * 1024  # 1GB (Excel has practical limits)
+    gpkg = 5 * 1024 * 1024 * 1024  # 5GB
+    kml = 5 * 1024 * 1024 * 1024  # 5GB
+    zip = 5 * 1024 * 1024 * 1024  # 5GB
+    parquet = 5 * 1024 * 1024 * 1024  # 5GB
 
 
 class SupportedOgrGeomType(Enum):
@@ -285,11 +286,21 @@ class FeatureReadBaseAttributes(
     feature_layer_geometry_type: "FeatureGeometryType" = Field(
         ..., description="Feature layer geometry type"
     )
-    attribute_mapping: Dict[str, Any] = Field(
-        ..., description="Attribute mapping of the layer"
+    attribute_mapping: Dict[str, Any] | None = Field(
+        default=None, description="Attribute mapping of the layer"
     )
     size: int = Field(..., description="Size of the layer in bytes")
-    properties: Dict[str, Any] = Field(..., description="Layer properties.")
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer properties."
+    )
+
+    @field_validator("properties", mode="before")
+    @classmethod
+    def properties_default(
+        cls: type["FeatureReadBaseAttributes"], v: Dict[str, Any] | None
+    ) -> Dict[str, Any]:
+        """Ensure properties is never None."""
+        return v if v is not None else {}
 
 
 class FeatureUpdateBase(LayerBase, GeospatialAttributes):
@@ -360,6 +371,9 @@ class IFeatureStandardCreateAdditionalAttributes(BaseModel):
     )
     attribute_mapping: Dict[str, Any] = Field(
         ..., description="Attribute mapping of the layer"
+    )
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer style properties."
     )
 
 
@@ -617,6 +631,9 @@ class ITableCreateAdditionalAttributes(BaseModel):
     attribute_mapping: Dict[str, Any] = Field(
         ..., description="Attribute mapping of the layer"
     )
+    properties: Dict[str, Any] = Field(
+        default_factory=dict, description="Layer properties."
+    )
 
 
 class TableRead(
@@ -625,8 +642,8 @@ class TableRead(
     """Model to read a table layer."""
 
     type: Literal["table"]
-    attribute_mapping: Dict[str, Any] = Field(
-        ..., description="Attribute mapping of the layer"
+    attribute_mapping: Dict[str, Any] | None = Field(
+        default=None, description="Attribute mapping of the layer"
     )
 
 

@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="valid" id="valid">
+	<SimpleField name="fid" type="float"></SimpleField>
+	<SimpleField name="category" type="string"></SimpleField>
+	<SimpleField name="street" type="string"></SimpleField>
+	<SimpleField name="housenumber" type="string"></SimpleField>
+	<SimpleField name="zipcode" type="string"></SimpleField>
+	<SimpleField name="opening_hours" type="string"></SimpleField>
+	<SimpleField name="wheelchair" type="string"></SimpleField>
+	<SimpleField name="uid" type="string"></SimpleField>
+	<SimpleField name="id" type="int"></SimpleField>
+</Schema>
+<Folder><name>valid</name>
+  <Placemark>
+	<name>Röthensteig</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">1</SimpleData>
+		<SimpleData name="category">bus_stop</SimpleData>
+		<SimpleData name="wheelchair">yes</SimpleData>
+		<SimpleData name="uid">11075-49470-bus_stop-0000</SimpleData>
+		<SimpleData name="id">153576</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0753421,49.4695935</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Röthensteig</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">2</SimpleData>
+		<SimpleData name="category">bus_stop</SimpleData>
+		<SimpleData name="wheelchair">yes</SimpleData>
+		<SimpleData name="uid">11074-49469-bus_stop-0000</SimpleData>
+		<SimpleData name="id">158766</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0741454,49.469374</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Spielplatz Pleydenwurff-/Grünewaldstraße</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">3</SimpleData>
+		<SimpleData name="category">playground</SimpleData>
+		<SimpleData name="opening_hours">08:00-21:00</SimpleData>
+		<SimpleData name="uid">11074-49468-playground-0000</SimpleData>
+		<SimpleData name="id">634432</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0739233880898,49.4680736538765</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Nordbahnhof Süd</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">4</SimpleData>
+		<SimpleData name="category">playground</SimpleData>
+		<SimpleData name="uid">11077-49467-playground-0000</SimpleData>
+		<SimpleData name="id">654600</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0772461237079,49.4668702336689</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Nordbahnhof Nord</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">5</SimpleData>
+		<SimpleData name="category">playground</SimpleData>
+		<SimpleData name="uid">11077-49469-playground-0000</SimpleData>
+		<SimpleData name="id">660944</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0765436460409,49.468890603669</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Santos</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">6</SimpleData>
+		<SimpleData name="category">convenience</SimpleData>
+		<SimpleData name="street">Röthensteig</SimpleData>
+		<SimpleData name="housenumber">19</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="opening_hours">Mo-Fr 09:00-18:00; Sa 09:00-16:00</SimpleData>
+		<SimpleData name="uid">11075-49471-convenience-0000</SimpleData>
+		<SimpleData name="id">743513</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.075369082007,49.4711111283975</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>McDonald's</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">7</SimpleData>
+		<SimpleData name="category">fast_food</SimpleData>
+		<SimpleData name="street">Röthensteig</SimpleData>
+		<SimpleData name="housenumber">30</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="opening_hours">Mo-Th 08:00-24:00; Fr-Sa 08:00-02:00; Su 09:00-24:00</SimpleData>
+		<SimpleData name="wheelchair">limited</SimpleData>
+		<SimpleData name="uid">11075-49470-fast_food-0000</SimpleData>
+		<SimpleData name="id">757745</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0745958906764,49.469936825351</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Aktivspielplatz Grünewaldstraße</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">8</SimpleData>
+		<SimpleData name="category">playground</SimpleData>
+		<SimpleData name="uid">11076-49469-playground-0000</SimpleData>
+		<SimpleData name="id">937075</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.075791256336,49.4688949718469</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Scholz</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">9</SimpleData>
+		<SimpleData name="category">recycling</SimpleData>
+		<SimpleData name="street">Horneckerweg</SimpleData>
+		<SimpleData name="housenumber">25</SimpleData>
+		<SimpleData name="uid">11077-49472-recycling-0000</SimpleData>
+		<SimpleData name="id">1020972</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0767736610523,49.4715510336637</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">10</SimpleData>
+		<SimpleData name="category">recycling</SimpleData>
+		<SimpleData name="uid">11073-49468-recycling-0000</SimpleData>
+		<SimpleData name="id">1035420</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0727011,49.4682002</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">11</SimpleData>
+		<SimpleData name="category">recycling</SimpleData>
+		<SimpleData name="uid">11071-49469-recycling-0000</SimpleData>
+		<SimpleData name="id">1038403</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0712452,49.4685238</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">12</SimpleData>
+		<SimpleData name="category">recycling</SimpleData>
+		<SimpleData name="uid">11075-49467-recycling-0000</SimpleData>
+		<SimpleData name="id">1039844</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.0751376,49.4668857</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">13</SimpleData>
+		<SimpleData name="category">recycling</SimpleData>
+		<SimpleData name="uid">11074-49469-recycling-0000</SimpleData>
+		<SimpleData name="id">1041794</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.074377,49.4688614</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Da Giuseppe la vita e bella</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">14</SimpleData>
+		<SimpleData name="category">restaurant</SimpleData>
+		<SimpleData name="street">Cranachstraße</SimpleData>
+		<SimpleData name="housenumber">25</SimpleData>
+		<SimpleData name="opening_hours">Mo-Fr 10:00-14:00,17:00-21:00; Su,PH 17:00-21:00</SimpleData>
+		<SimpleData name="uid">11071-49468-restaurant-0000</SimpleData>
+		<SimpleData name="id">1168096</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.071342,49.4683014</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Humanistische Kinderkrippe Nürnberg-Gärten h.d.V.</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">15</SimpleData>
+		<SimpleData name="category">kindergarten</SimpleData>
+		<SimpleData name="street">Pleydenwurffstraße </SimpleData>
+		<SimpleData name="housenumber">9a</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49468-kindergarten-0000</SimpleData>
+		<SimpleData name="id">1213725</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073057,49.4675479825735</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Kita-Nord</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">16</SimpleData>
+		<SimpleData name="category">kindergarten</SimpleData>
+		<SimpleData name="street">Obermaierstraße </SimpleData>
+		<SimpleData name="housenumber">16</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49472-kindergarten-0000</SimpleData>
+		<SimpleData name="id">1217568</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073371,49.4715019825612</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Haus für Kinder als Ort für Familien Grünewaldstraße 18/a</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">17</SimpleData>
+		<SimpleData name="category">kindergarten</SimpleData>
+		<SimpleData name="street">Grünewaldstraße </SimpleData>
+		<SimpleData name="housenumber">18</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11076-49468-kindergarten-0000</SimpleData>
+		<SimpleData name="id">1217602</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.07565,49.4676479825732</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Kita-Nord</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">18</SimpleData>
+		<SimpleData name="category">nursery</SimpleData>
+		<SimpleData name="street">Obermaierstraße </SimpleData>
+		<SimpleData name="housenumber">16</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49471-nursery-0000</SimpleData>
+		<SimpleData name="id">1219619</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073371,49.4714660174388</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Krippe Grünewaldstraße 24a</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">19</SimpleData>
+		<SimpleData name="category">nursery</SimpleData>
+		<SimpleData name="street">Grünewaldstraße </SimpleData>
+		<SimpleData name="housenumber">24a</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11075-49468-nursery-0000</SimpleData>
+		<SimpleData name="id">1219632</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.075042,49.468246</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Humanistische Kinderkrippe Nürnberg-Gärten h.d.V.</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">20</SimpleData>
+		<SimpleData name="category">nursery</SimpleData>
+		<SimpleData name="street">Pleydenwurffstraße </SimpleData>
+		<SimpleData name="housenumber">9a</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49468-nursery-0000</SimpleData>
+		<SimpleData name="id">1219651</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073057,49.4675120174264</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Haus für Kinder als Ort für Familien Grünewaldstraße 18/a</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">21</SimpleData>
+		<SimpleData name="category">nursery</SimpleData>
+		<SimpleData name="street">Grünewaldstraße </SimpleData>
+		<SimpleData name="housenumber">18</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11076-49468-nursery-0000</SimpleData>
+		<SimpleData name="id">1219699</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.07565,49.4676120174267</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>NORMA</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">22</SimpleData>
+		<SimpleData name="category">discount_supermarket</SimpleData>
+		<SimpleData name="street">Nordring</SimpleData>
+		<SimpleData name="housenumber">35</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="opening_hours">Mo-Sa 07:00-20:00</SimpleData>
+		<SimpleData name="wheelchair">yes</SimpleData>
+		<SimpleData name="uid">11074-49470-discount_supermarket-0000</SimpleData>
+		<SimpleData name="id">1538840</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073866,49.4699229</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Humanistische Kinderkrippe Nürnberg-Gärten h.d.V.</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">23</SimpleData>
+		<SimpleData name="category">childcare</SimpleData>
+		<SimpleData name="street">Pleydenwurffstraße </SimpleData>
+		<SimpleData name="housenumber">9a</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49468-childcare-0000</SimpleData>
+		<SimpleData name="id">1715905</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073057,49.46753</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Haus für Kinder als Ort für Familien Grünewaldstraße 18/a</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">24</SimpleData>
+		<SimpleData name="category">childcare</SimpleData>
+		<SimpleData name="street">Grünewaldstraße </SimpleData>
+		<SimpleData name="housenumber">18</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11076-49468-childcare-0000</SimpleData>
+		<SimpleData name="id">1717402</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.07565,49.46763</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Kita-Nord</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">25</SimpleData>
+		<SimpleData name="category">childcare</SimpleData>
+		<SimpleData name="street">Obermaierstraße </SimpleData>
+		<SimpleData name="housenumber">16</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11073-49471-childcare-0000</SimpleData>
+		<SimpleData name="id">1729225</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.073371,49.471484</coordinates></Point>
+  </Placemark>
+  <Placemark>
+	<name>Krippe Grünewaldstraße 24a</name>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">26</SimpleData>
+		<SimpleData name="category">childcare</SimpleData>
+		<SimpleData name="street">Grünewaldstraße </SimpleData>
+		<SimpleData name="housenumber">24a</SimpleData>
+		<SimpleData name="zipcode">90408</SimpleData>
+		<SimpleData name="uid">11075-49468-childcare-0000</SimpleData>
+		<SimpleData name="id">1734766</SimpleData>
+	</SchemaData></ExtendedData>
+      <Point><coordinates>11.075042,49.468246</coordinates></Point>
+  </Placemark>
+</Folder>
+</Document></kml>

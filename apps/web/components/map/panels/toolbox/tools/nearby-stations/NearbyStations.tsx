@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { useProjectLayers } from "@/lib/api/projects";
 import { computeNearbyStations } from "@/lib/api/tools";
 import { STREET_NETWORK_LAYER_ID } from "@/lib/constants";
@@ -25,6 +25,7 @@ import {
   useScenarioItems,
   useStartingPointMethods,
 } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import Container from "@/components/map/panels/Container";
@@ -117,6 +118,11 @@ const NearbyStations = ({ onBack, onClose }: IndicatorBaseProps) => {
     return projectLayers?.find((layer) => layer.id === startingPointLayerItem?.value);
   }, [projectLayers, startingPointLayerItem?.value]);
 
+  // Fetch starting point layer feature count on-demand
+  const { featureCount: startingPointLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: startingPointLayer,
+  });
+
   const maxStartingPoints = maxFeatureCnt.catchment_area_nearby_station_access;
 
   const isValid = useMemo(() => {
@@ -124,14 +130,14 @@ const NearbyStations = ({ onBack, onClose }: IndicatorBaseProps) => {
 
     if (startingPointMethod.value === "map" && (!startingPoints || startingPoints.length === 0)) return false;
 
-    const startingPointCount = startingPoints?.length || startingPointLayer?.filtered_count || 0;
+    const startingPointCount = startingPoints?.length || startingPointLayerFeatureCount || 0;
     if (startingPointCount > maxStartingPoints) return false;
 
     return isRoutingValid;
   }, [
     isRoutingValid,
     maxStartingPoints,
-    startingPointLayer?.filtered_count,
+    startingPointLayerFeatureCount,
     startingPointLayerItem?.value,
     startingPointMethod.value,
     startingPoints,
@@ -339,9 +345,7 @@ const NearbyStations = ({ onBack, onClose }: IndicatorBaseProps) => {
                       startingPointMethods={startingPointMethods}
                       startingPointLayer={startingPointLayerItem}
                       setStartingPointLayer={setSelectecStartingPointLayerItem}
-                      currentStartingPoints={
-                        startingPoints?.length || startingPointLayer?.filtered_count || 0
-                      }
+                      currentStartingPoints={startingPoints?.length || startingPointLayerFeatureCount || 0}
                       maxStartingPoints={maxStartingPoints}
                     />
                   </>

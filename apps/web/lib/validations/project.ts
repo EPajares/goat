@@ -98,7 +98,6 @@ export const builderConfigSchema = z.object({
 export const projectSchema = contentMetadataSchema.extend({
   folder_id: z.string(),
   id: z.string(),
-  layer_order: z.array(z.number()),
   max_extent: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional().nullable(),
   builder_config: builderConfigSchema.default({
     settings: {},
@@ -204,7 +203,6 @@ export const postProjectSchema = z.object({
   description: z.string().optional(),
   tags: z.array(z.string()).optional(),
   thumbnail_url: z.string().optional(),
-  layer_order: z.array(z.number()).optional(),
   active_scenario_id: z.string().optional(),
   max_extent: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
   initial_view_state: projectViewStateSchema.optional(),

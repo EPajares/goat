@@ -9,6 +9,8 @@ import { MapProvider } from "react-map-gl/maplibre";
 import { shallowEqual, useSelector } from "react-redux";
 
 import { usePublicProject } from "@/lib/api/projects";
+import { DrawProvider } from "@/lib/providers/DrawProvider";
+import { MeasureProvider } from "@/lib/providers/MeasureProvider";
 import type { RootState } from "@/lib/store";
 import { selectFilteredProjectLayers } from "@/lib/store/layer/selectors";
 import { setProjectLayerGroups, setProjectLayers } from "@/lib/store/layer/slice";
@@ -79,60 +81,64 @@ export default function MapPage({ params: { projectId } }) {
       {isLoading && <LoadingPage />}
       {!isLoading && !projectError && project && (
         <MapProvider>
-          <Box
-            sx={{
-              display: "flex",
-              height: "100vh",
-              width: "100%",
-              [theme.breakpoints.down("sm")]: {
-                marginLeft: "0",
-                width: `100%`,
-              },
-            }}>
-            <Box
-              sx={{
-                position: "absolute",
-                width: "100%",
-                height: "100%",
-              }}>
-              {isMobile ? (
-                <MobileProjectLayout
-                  project={project}
-                  projectLayers={_projectLayers}
-                  projectLayerGroups={projectLayerGroups}
-                  viewOnly
-                  onProjectUpdate={onProjectUpdate}
+          <DrawProvider>
+            <MeasureProvider>
+              <Box
+                sx={{
+                  display: "flex",
+                  height: "100vh",
+                  width: "100%",
+                  [theme.breakpoints.down("sm")]: {
+                    marginLeft: "0",
+                    width: `100%`,
+                  },
+                }}>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                  }}>
+                  {isMobile ? (
+                    <MobileProjectLayout
+                      project={project}
+                      projectLayers={_projectLayers}
+                      projectLayerGroups={projectLayerGroups}
+                      viewOnly
+                      onProjectUpdate={onProjectUpdate}
+                    />
+                  ) : (
+                    <PublicProjectLayout
+                      project={project}
+                      projectLayers={_projectLayers}
+                      projectLayerGroups={projectLayerGroups}
+                      viewOnly
+                      onProjectUpdate={onProjectUpdate}
+                    />
+                  )}
+                </Box>
+                <MapViewer
+                  layers={_projectLayers}
+                  mapRef={mapRef}
+                  touchZoomRotate
+                  maxExtent={project?.max_extent || undefined}
+                  initialViewState={{
+                    zoom: initialView?.zoom ?? 3,
+                    latitude: initialView?.latitude ?? 48.13,
+                    longitude: initialView?.longitude ?? 11.57,
+                    pitch: initialView?.pitch ?? 0,
+                    bearing: initialView?.bearing ?? 0,
+                    fitBoundsOptions: {
+                      minZoom: initialView?.min_zoom ?? 0,
+                      maxZoom: initialView?.max_zoom ?? 24,
+                    },
+                  }}
+                  mapStyle={activeBasemap?.url}
+                  isEditor={false}
                 />
-              ) : (
-                <PublicProjectLayout
-                  project={project}
-                  projectLayers={_projectLayers}
-                  projectLayerGroups={projectLayerGroups}
-                  viewOnly
-                  onProjectUpdate={onProjectUpdate}
-                />
-              )}
-            </Box>
-            <MapViewer
-              layers={_projectLayers}
-              mapRef={mapRef}
-              touchZoomRotate
-              maxExtent={project?.max_extent || undefined}
-              initialViewState={{
-                zoom: initialView?.zoom ?? 3,
-                latitude: initialView?.latitude ?? 48.13,
-                longitude: initialView?.longitude ?? 11.57,
-                pitch: initialView?.pitch ?? 0,
-                bearing: initialView?.bearing ?? 0,
-                fitBoundsOptions: {
-                  minZoom: initialView?.min_zoom ?? 0,
-                  maxZoom: initialView?.max_zoom ?? 24,
-                },
-              }}
-              mapStyle={activeBasemap?.url}
-              isEditor={false}
-            />
-          </Box>
+              </Box>
+            </MeasureProvider>
+          </DrawProvider>
         </MapProvider>
       )}
     </>

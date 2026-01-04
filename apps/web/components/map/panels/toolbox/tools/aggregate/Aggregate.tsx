@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { computeAggregatePoint, computeAggregatePolygon } from "@/lib/api/tools";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { LayerFieldType } from "@/lib/validations/layer";
@@ -28,6 +28,7 @@ import {
   useScenarioItems,
   useStatisticValues,
 } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import FormLabelHelper from "@/components/common/FormLabelHelper";
@@ -76,11 +77,22 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
     return projectLayers?.find((layer) => layer.id === sourceLayerItem?.value);
   }, [sourceLayerItem, projectLayers]);
 
+  // Fetch source layer feature count on-demand
+  const { featureCount: sourceLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: sourceLayer,
+  });
+
   const [areaType, setAreaType] = useState<SelectorItem | undefined>();
   const [selectedAreaLayerItem, setSelectedAreaLayerItem] = useState<SelectorItem | undefined>(undefined);
   const selectedAreaLayer = useMemo(() => {
     return projectLayers?.find((layer) => layer.id === selectedAreaLayerItem?.value);
   }, [selectedAreaLayerItem, projectLayers]);
+
+  // Fetch selected area layer feature count on-demand
+  const { featureCount: selectedAreaLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: selectedAreaLayer,
+  });
+
   const [selectedAreaH3Grid, setSelectedAreaH3Grid] = useState<SelectorItem | undefined>(undefined);
   const [statisticAdvancedOptions, setStatisticAdvancedOptions] = useState(true);
 
@@ -141,16 +153,16 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
       return false;
     }
     if (
-      sourceLayer?.filtered_count &&
-      sourceLayer.filtered_count > aggregateMaxFeatureCnt &&
+      sourceLayerFeatureCount !== undefined &&
+      sourceLayerFeatureCount > aggregateMaxFeatureCnt &&
       type === "polygon"
     ) {
       return false;
     }
     if (
       areaType?.value === areaTypeEnum.Enum.feature &&
-      selectedAreaLayer?.filtered_count &&
-      selectedAreaLayer.filtered_count > aggregateMaxFeatureCnt &&
+      selectedAreaLayerFeatureCount !== undefined &&
+      selectedAreaLayerFeatureCount > aggregateMaxFeatureCnt &&
       type === "polygon"
     ) {
       return false;
@@ -167,8 +179,8 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
     statisticMethodSelected,
     selectedAreaLayerItem,
     selectedAreaH3Grid,
-    sourceLayer,
-    selectedAreaLayer?.filtered_count,
+    sourceLayerFeatureCount,
+    selectedAreaLayerFeatureCount,
     aggregateMaxFeatureCnt,
     statisticField,
     isStatisticFieldVisible,
@@ -293,10 +305,10 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
                     />
                     {!!aggregateMaxFeatureCnt &&
                       type === "polygon" &&
-                      !!sourceLayer?.filtered_count &&
-                      sourceLayer.filtered_count > aggregateMaxFeatureCnt && (
+                      sourceLayerFeatureCount !== undefined &&
+                      sourceLayerFeatureCount > aggregateMaxFeatureCnt && (
                         <LayerNumberOfFeaturesAlert
-                          currentFeatures={sourceLayer.filtered_count}
+                          currentFeatures={sourceLayerFeatureCount}
                           maxFeatures={aggregateMaxFeatureCnt}
                           texts={{
                             maxFeaturesText: t("maximum_number_of_features"),
@@ -368,10 +380,10 @@ const Aggregate = ({ onBack, onClose, type }: AggregateProps) => {
                     {areaType?.value === areaTypeEnum.Enum.feature &&
                       !!aggregateMaxFeatureCnt &&
                       type === "polygon" &&
-                      !!selectedAreaLayer?.filtered_count &&
-                      selectedAreaLayer.filtered_count > aggregateMaxFeatureCnt && (
+                      selectedAreaLayerFeatureCount !== undefined &&
+                      selectedAreaLayerFeatureCount > aggregateMaxFeatureCnt && (
                         <LayerNumberOfFeaturesAlert
-                          currentFeatures={selectedAreaLayer.filtered_count}
+                          currentFeatures={selectedAreaLayerFeatureCount}
                           maxFeatures={aggregateMaxFeatureCnt}
                           texts={{
                             maxFeaturesText: t("maximum_number_of_features"),

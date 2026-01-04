@@ -37,8 +37,8 @@ import { toast } from "react-toastify";
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useFolders } from "@/lib/api/folders";
-import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createRasterLayer, layerFeatureUrlUpload } from "@/lib/api/layers";
+import { createLayer, createRasterLayer } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { addProjectLayers, useProject, useProjectLayers } from "@/lib/api/projects";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { generateLayerGetLegendGraphicUrl, generateWmsUrl } from "@/lib/transformers/wms";
@@ -52,7 +52,6 @@ import type { LayerMetadata } from "@/lib/validations/layer";
 import {
   createLayerFromDatasetSchema,
   createRasterLayerSchema,
-  externalDatasetFeatureUrlSchema,
   layerMetadataSchema,
   rasterLayerPropertiesSchema,
 } from "@/lib/validations/layer";
@@ -592,7 +591,9 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
     try {
       setIsBusy(true);
       if (capabilities?.type === vectorDataType.Enum.wfs) {
-        const featureUrlPayload = externalDatasetFeatureUrlSchema.parse({
+        // Direct WFS import via OGC API Processes
+        const payload = createLayerFromDatasetSchema.parse({
+          ...layerPayload,
           data_type: capabilities.type,
           url: externalUrl,
           other_properties: {
@@ -601,15 +602,9 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
             srs: selectedDatasets[0].DefaultCRS,
           },
         });
-        const uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
-        const s3Key = uploadResponse?.s3_key;
-        const payload = createLayerFromDatasetSchema.parse({
-          ...layerPayload,
-          s3_key: s3Key,
-          ...featureUrlPayload,
-        });
-        const response = await createFeatureLayer(payload, projectId);
-        const jobId = response?.job_id;
+        const response = await createLayer({ ...payload, url: externalUrl ?? undefined }, projectId);
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));

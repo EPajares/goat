@@ -24,6 +24,7 @@ import { MapSidebarItemID } from "@/types/map/common";
 
 import { useAuthZ } from "@/hooks/auth/AuthZ";
 import { useBasemap } from "@/hooks/map/MapHooks";
+import { useMeasureTool } from "@/hooks/map/useMeasureTool";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import { FloatingPanel } from "@/components/common/FloatingPanel";
@@ -35,10 +36,11 @@ import Scalebar from "@/components/map/controls/Scalebar";
 import { Scenario as ScenarioCtrl } from "@/components/map/controls/Scenario";
 import { Toolbox as ToolboxCtrl } from "@/components/map/controls/Toolbox";
 import { Zoom } from "@/components/map/controls/Zoom";
+import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/measure";
 import LayerSettingsPanel from "@/components/map/panels/layer/LayerSettingsPanel";
 import { ProjectLayerTree } from "@/components/map/panels/layer/ProjectLayerTree";
 import Scenario from "@/components/map/panels/scenario/Scenario";
-import Toolbox from "@/components/map/panels/toolbox/Toolbox";
+import Toolbox from "@/components/map/panels/toolbox/CombinedToolbox";
 
 const toolbarHeight = 52;
 const panelWidth = 300;
@@ -55,6 +57,9 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
   const projectId = project.id;
+
+  // Measure tool - using the reusable hook
+  const measureTool = useMeasureTool();
 
   // Fetch project data with SWR
   const { layers: allProjectLayers, mutate: mutateProjectLayers } = useProjectLayers(projectId);
@@ -284,6 +289,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           />
           <ToolboxCtrl onToggle={handleToolboxToggle} open={activeRight === MapSidebarItemID.TOOLBOX} />
           <ScenarioCtrl onToggle={handleScenarioToggle} open={activeRight === MapSidebarItemID.SCENARIO} />
+          <MeasureButton {...measureTool} />
         </Box>
       </Box>
 
@@ -299,17 +305,29 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           pointerEvents: "none",
           alignItems: "flex-end",
         }}>
-        {activeRightComponent && (
-          <FloatingPanel width={panelWidth} sx={{ mb: 2 }}>
-            {activeRightComponent}
-          </FloatingPanel>
-        )}
+        <Stack
+          direction="row"
+          spacing={2}
+          sx={{
+            alignItems: "flex-start",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}>
+          {/* Measurement Results Panel - to the left of active right panel */}
+          <MeasureResultsPanel {...measureTool} />
+          {activeRightComponent && (
+            <FloatingPanel width={panelWidth} maxHeight="100%" fillHeight>
+              {activeRightComponent}
+            </FloatingPanel>
+          )}
+        </Stack>
 
         <Stack
           direction="column"
           alignItems="flex-end"
           sx={{
-            marginTop: "auto",
+            mt: 2,
             pointerEvents: "none",
             width: "max-content",
             maxWidth: "none",

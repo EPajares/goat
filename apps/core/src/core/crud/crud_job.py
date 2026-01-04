@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List
+from typing import Any, Dict, List
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -26,6 +26,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
         job_type: JobType,
         project_id: UUID | None = None,
         read: bool | None = None,
+        payload: Dict[str, Any] | None = None,
     ) -> Job:
         """Create a job."""
 
@@ -59,12 +60,14 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
             user_id=user_id,
             type=job_type,
             status=job_status,
-            status_simple=JobStatusType.pending,
+            status_simple=JobStatusType.accepted,
         )
         if project_id:
             job.project_id = project_id
         if read:
             job.read = read
+        if payload:
+            job.payload = payload
 
         # Create job
         job = await self.create(db=async_session, obj_in=dict(job))
@@ -98,7 +101,7 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
             "type": MsgType.info.value,
             "text": msg_text,
         }
-        if status == JobStatusType.finished:
+        if status == JobStatusType.successful:
             job.status_simple = JobStatusType.running
         else:
             job.status_simple = status
@@ -106,11 +109,16 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
         # If error is not None population msg_simple
         if status == JobStatusType.failed:
             if error is None:
-                error = UnknownError("Unknown error occurred.")
+                error = UnknownError(
+                    "Unknown error occurred (no error details provided)."
+                )
             else:
                 # Define msg_simple
                 if error.__class__ not in ERROR_MAPPING:
-                    error = UnknownError("Unknown error occurred.")
+                    # Preserve original error details for debugging
+                    error = UnknownError(
+                        f"Unknown error: {error.__class__.__name__}: {str(error)}"
+                    )
             error_name = error.__class__.__name__
             error_message = str(error)
             job.msg_simple = f"{error_name}: {error_message}"
@@ -183,11 +191,13 @@ class CRUDJob(CRUDBase[Job, Any, Any]):
                 Job.id.in_(job_ids),
                 Job.user_id == user_id,
                 Job.status_simple.notin_(
-                    [JobStatusType.pending.value, JobStatusType.running.value]
+                    [JobStatusType.accepted.value, JobStatusType.running.value]
                 ),
             )
         )
-        jobs = [job[0] for job in (await self.get_multi(async_session, query=query_get))]
+        jobs = [
+            job[0] for job in (await self.get_multi(async_session, query=query_get))
+        ]
 
         # Create dict of len jobs with read=True.
         jobs_update = [{"read": True} for job in jobs]

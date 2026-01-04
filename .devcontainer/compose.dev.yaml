@@ -13,13 +13,138 @@ services:
 
   redis:
     image: redis:7.4.1-alpine
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
     networks:
       proxy:
+
+  # Windmill Server - API, UI, scheduler
+  windmill-server:
+    build:
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: server
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: server
+      BASE_URL: http://localhost:8100
+      SUPERADMIN_EMAIL: dev@plan4better.de
+      SUPERADMIN_PASSWORD: changeme
+    ports:
+      - 8110:8000
+    networks:
+      proxy:
+
+  # Windmill Worker - Default (cron jobs, system tasks)
+  windmill-worker-default:
+    build:
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-default
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: default
+      DISABLE_NSJAIL: "true"
+      JOB_DEFAULT_TIMEOUT: 300
+    networks:
+      proxy:
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Tools (analytics: buffer, heatmap, isochrone, etc.)
+  windmill-worker-tools:
+    build:
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-tools
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: tools
+      WORKER_TAGS: tools
+      DISABLE_NSJAIL: "true"
+      JOB_DEFAULT_TIMEOUT: 600
+      # Disable Python bytecode cache for live development
+      PYTHONDONTWRITEBYTECODE: "1"
+      # Tool environment variables
+      POSTGRES_SERVER: ${POSTGRES_SERVER}
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/${POSTGRES_DB}
+      DUCKLAKE_DATA_DIR: /app/data/ducklake
+      DUCKLAKE_CATALOG_SCHEMA: ducklake
+      # S3 settings for layer imports
+      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_REGION_NAME: ${S3_REGION_NAME:-${S3_REGION:-us-east-1}}
+      # OD matrix / travel time matrices path
+      OD_MATRIX_BASE_PATH: /app/data/traveltime_matrices
+      # GTFS data path
+      GTFS_DATA_PATH: /app/data/gtfs
+      # Routing services
+      GOAT_ROUTING_URL: ${GOAT_ROUTING_URL:-http://goat-dev:8200/api/v2/routing}
+      GOAT_ROUTING_AUTHORIZATION: ${GOAT_ROUTING_AUTHORIZATION}
+      R5_URL: ${R5_URL:-https://r5.routing.plan4better.de}
+      R5_REGION_MAPPING_PATH: /app/data/gtfs/r5_region_mapping.parquet
+    networks:
+      proxy:
+    volumes:
+      # Mount goatlib source over installed package for live development
+      - ../packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
+      - ../data/ducklake:/app/data/ducklake
+      - ../data/traveltime_matrices:/app/data/traveltime_matrices:ro
+      - ../data/gtfs:/app/data/gtfs:ro
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Print (PDF reports, thumbnails)
+  windmill-worker-print:
+    build:
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-print
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: print
+      WORKER_TAGS: print
+      JOB_DEFAULT_TIMEOUT: 300
+      DISABLE_NSJAIL: "true"
+      PYTHONDONTWRITEBYTECODE: "1"
+      # S3 settings for PDF uploads
+      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_REGION_NAME: ${S3_REGION_NAME:-${S3_REGION:-us-east-1}}
+      # Print service URLs
+      PRINT_BASE_URL: http://goat-dev:3000
+      CORE_API_URL: http://goat-dev:8080
+    volumes:
+      # Mount goatlib source over installed package for live development
+      - ../packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
+    networks:
+      proxy:
+    depends_on:
+      - windmill-server
 
   goat-dev:
     depends_on:
       - rabbitmq
       - redis
+      - windmill-server
+      - windmill-worker-default
+      - windmill-worker-tools
+      - windmill-worker-print
     build:
       dockerfile: Dockerfile
     container_name: goat-dev

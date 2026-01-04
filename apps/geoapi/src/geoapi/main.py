@@ -1,58 +1,74 @@
-"""
----------------------------------------------------------------------------------
-This code is based on or incorporates material from the project:
-https://github.com/developmentseed/tipg
+"""GOAT GeoAPI - OGC Features, Tiles, and Processes API.
 
-The original code/repository is licensed under MIT License.
----------------------------------------------------------------------------------
+A clean FastAPI implementation for serving vector tiles, features,
+and analytical processes from DuckLake/DuckDB storage.
 """
-import os  # noqa: I001
+
+import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator, Dict
+from typing import AsyncGenerator
 
 import sentry_sdk
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+from starlette.responses import JSONResponse
 
-# Monkey patch filter query here because it needs to be patched before used by import down
-from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
-from starlette_cramjam.middleware import CompressionMiddleware
-from tipg import __version__ as tipg_version
-from tipg import collections, dependencies
-from tipg.database import close_db_connection, connect_to_db
-
-from tipg.filter.filters import Operator
-from tipg.middleware import CacheControlMiddleware
-from tipg.settings import (
-    APISettings,
-    CustomSQLSettings,
-    DatabaseSettings,
-    MVTSettings,
+from geoapi.config import settings
+from geoapi.ducklake import ducklake_manager
+from geoapi.ducklake_pool import ducklake_pool
+from geoapi.models import HealthCheck
+from geoapi.routers import (
+    features_router,
+    metadata_router,
+    processes_router,
+    tiles_router,
 )
+from geoapi.services.layer_service import layer_service
+from geoapi.services.windmill_client import windmill_client
 
-import geoapi._dotenv  # noqa: E402, F401, I001
-
-from .exts import (
-    ExtCollection,
-    filter_query,
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
-
-dependencies.filter_query = filter_query  # type: ignore
-collections.Collection = ExtCollection  # type: ignore
-from .catalog import LayerCatalog, postgres_settings  # noqa: E402, I001
-from tipg.factory import Endpoints # noqa: E402
-
-from .exts import (  # noqa: E402
-    Operator as OperatorPatch,
-)
+logger = logging.getLogger(__name__)
 
 
+class TimeoutMiddleware(BaseHTTPMiddleware):
+    """Middleware to enforce request timeouts based on endpoint type."""
 
-mvt_settings = MVTSettings()
-mvt_settings.max_features_per_tile = 20000
-settings = APISettings()
-db_settings = DatabaseSettings()
-custom_sql_settings = CustomSQLSettings()
+    async def dispatch(self, request: Request, call_next):
+        """Process request with timeout based on path."""
+        # Determine timeout based on endpoint
+        path = request.url.path
 
+        if "/tiles/" in path:
+            timeout = settings.TILE_TIMEOUT
+        elif "/items" in path or "/features" in path:
+            timeout = settings.FEATURE_TIMEOUT
+        else:
+            timeout = settings.REQUEST_TIMEOUT
+
+        try:
+            response = await asyncio.wait_for(call_next(request), timeout=timeout)
+            return response
+        except asyncio.TimeoutError:
+            logger.error(f"Request timeout ({timeout}s) exceeded for {path}")
+            return JSONResponse(
+                status_code=504,
+                content={
+                    "error": "Gateway Timeout",
+                    "message": f"Request exceeded {timeout} second timeout",
+                    "path": path,
+                },
+            )
+
+
+# Initialize Sentry if configured
 if os.getenv("SENTRY_DSN") and os.getenv("ENVIRONMENT"):
     sentry_sdk.init(
         dsn=os.getenv("SENTRY_DSN"),
@@ -60,71 +76,81 @@ if os.getenv("SENTRY_DSN") and os.getenv("ENVIRONMENT"):
         traces_sample_rate=1.0 if os.getenv("ENVIRONMENT") == "prod" else 0.1,
     )
 
-# Monkey patch the function that need modification
-Operator.OPERATORS = OperatorPatch.OPERATORS
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """FastAPI Lifespan."""
-    # Create Connection Pool
-    await connect_to_db(
-        app,
-        settings=postgres_settings,
-        schemas=db_settings.schemas,
-        user_sql_files=custom_sql_settings.sql_files,
-    )
-    # Init Layer Catalog
-    layer_catalog = LayerCatalog(app=app)
-    await layer_catalog.start()
+    """Application lifespan manager.
+
+    Initializes DuckLake connection and layer service on startup,
+    cleans up on shutdown.
+    """
+    logger.info("Starting GeoAPI...")
+
+    # Initialize DuckLake connection pool for tiles (4 concurrent connections)
+    ducklake_pool.init()
+
+    # Initialize single DuckLake connection for features/other queries
+    ducklake_manager.init(settings)
+
+    # Initialize layer service (PostgreSQL pool for metadata)
+    await layer_service.init()
+
+    # Note: Windmill tool sync moved to standalone CLI: python -m goatlib.tools.sync_windmill
+
+    logger.info("GeoAPI started successfully")
+
     yield
-    await layer_catalog.stop()
-    await close_db_connection(app)
+
+    # Cleanup
+    logger.info("Shutting down GeoAPI...")
+    await layer_service.close()
+    await windmill_client.close()
+    ducklake_pool.close()
+    ducklake_manager.close()
+    logger.info("GeoAPI shutdown complete")
 
 
-# Create FastAPI app
+# Create FastAPI application
 app = FastAPI(
-    title=settings.name,
-    version=tipg_version,
-    openapi_url="/api",
-    docs_url="/api.html",
+    title=settings.APP_NAME,
+    version="2.0.0",
+    description="OGC Features and Tiles API for GOAT layers, powered by DuckDB/DuckLake",
+    openapi_url="/api/openapi.json",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
     lifespan=lifespan,
 )
 
-# Set all CORS enabled origins
-if settings.cors_origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["GET"],
-        allow_headers=["*"],
-    )
 
-# Create Endpoints
-ogc_api = Endpoints(
-    title=settings.name,
-    with_tiles_viewer=settings.add_tiles_viewer,
+# Add timeout middleware (first, so it wraps all other middleware)
+app.add_middleware(TimeoutMiddleware)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
 )
-# Remove the list all collections endpoint
-# ogc_api.router.routes = ogc_api.router.routes[1:]
-ogc_api.router.routes = [
-    route
-    for route in ogc_api.router.routes
-    if route.name != "collections"  # type: ignore
-]
-app.include_router(ogc_api.router)
-app.add_middleware(CacheControlMiddleware, cachecontrol=settings.cachecontrol)
-app.add_middleware(CompressionMiddleware)
+
+# Add compression middleware
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+# Include routers
+app.include_router(metadata_router)
+app.include_router(features_router)
+app.include_router(tiles_router)
+app.include_router(processes_router)
 
 
 @app.get(
     "/healthz",
-    description="Health Check.",
-    summary="Health Check.",
-    operation_id="healthCheck",
-    tags=["Health Check"],
+    summary="Health check",
+    response_model=HealthCheck,
+    tags=["Health"],
 )
-async def ping() -> Dict[str, str]:
-    """Health check."""
-    return {"ping": "pongpong!"}
+async def health_check() -> HealthCheck:
+    """Health check endpoint."""
+    return HealthCheck(status="ok", ping="pong")

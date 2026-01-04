@@ -5,7 +5,6 @@ from fastapi import BackgroundTasks
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.core.chart import Chart
 from core.core.config import settings
 from core.core.job import job_init, job_log, run_background_or_immediately
 from core.core.tool import (
@@ -29,7 +28,7 @@ from core.utils import (
 )
 
 
-class CRUDAggregateBase(CRUDToolBase, Chart):
+class CRUDAggregateBase(CRUDToolBase):
     def __init__(
         self,
         job_id: UUID,
@@ -370,7 +369,7 @@ class CRUDAggregatePoint(CRUDAggregateBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Points where successfully aggregated.",
         }
 
@@ -640,7 +639,7 @@ class CRUDAggregatePolygon(CRUDAggregateBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Polygons where successfully aggregated.",
         }
 
@@ -804,7 +803,7 @@ class CRUDOriginDestination(CRUDToolBase):
         )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Origin destination pairs where successfully created.",
         }
 

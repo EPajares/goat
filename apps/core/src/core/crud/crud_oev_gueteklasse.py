@@ -103,7 +103,7 @@ class CRUDOevGueteklasse(CRUDToolBase):
         await self.async_session.execute(query, {"where_query": where_query})
         await self.async_session.commit()
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Station category created.",
         }
 
@@ -213,7 +213,7 @@ class CRUDOevGueteklasse(CRUDToolBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Station buffers are created.",
         }
 
@@ -327,7 +327,7 @@ class CRUDOevGueteklasse(CRUDToolBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Station network catchment created.",
         }
 
@@ -419,6 +419,6 @@ class CRUDOevGueteklasse(CRUDToolBase):
             params=params,
         )
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "ÖV-Güteklassen created.",
         }

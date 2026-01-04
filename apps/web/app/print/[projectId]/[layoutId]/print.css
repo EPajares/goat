@@ -1,0 +1,37 @@
+/* Print-specific styles for report PDF generation */
+
+@media print {
+  @page {
+    margin: 0;
+  }
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* Remove TipTap editor padding for text elements */
+.ProseMirror {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Remove all rounded borders for report elements */
+#print-paper * {
+  border-radius: 0 !important;
+}
+
+/* Remove chart minHeight constraints */
+#print-paper [class*="MuiBox-root"] {
+  min-height: unset !important;
+}
+
+/* Remove gutterBottom margins from Typography */
+#print-paper .MuiTypography-gutterBottom {
+  margin-bottom: 0 !important;
+}
+
+/* Remove padding from widget elements in print */
+#print-paper .MuiBox-root > .MuiBox-root {
+  padding: 0 !important;
+}

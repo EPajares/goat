@@ -42,7 +42,7 @@ const Home = () => {
     ...queryParams,
   });
 
-  useJobStatus(mutate);
+  useJobStatus(mutate, mutate);
 
   const { isOrgEditor } = useAuthZ();
 

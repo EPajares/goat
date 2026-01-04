@@ -1,0 +1,56 @@
+{
+  "timings": {
+    "pre_request_start": 75275.942379272,
+    "pre_request_duration": 0.015187896991847083,
+    "request_start": 75275.957569752,
+    "request_duration": 0.6128606949932873,
+    "post_processing_start": 75276.570440238,
+    "post_processing_duration": 0.0001653749932302162
+  },
+  "memory_usage": {
+    "pre_request_start": {
+      "current_mb": 6.29425048828125e-05,
+      "peak_mb": 6.29425048828125e-05,
+      "process_rss_mb": 251.9453125
+    },
+    "pre_request_end": {
+      "current_mb": 0.01035308837890625,
+      "peak_mb": 0.040618896484375,
+      "process_rss_mb": 251.9453125
+    },
+    "request_start": {
+      "current_mb": 0.010592460632324219,
+      "peak_mb": 0.05096244812011719,
+      "process_rss_mb": 251.9453125
+    },
+    "request_end": {
+      "current_mb": 0.06088447570800781,
+      "peak_mb": 27.71202278137207,
+      "process_rss_mb": 293.88671875
+    },
+    "post_processing_start": {
+      "current_mb": 0.061387062072753906,
+      "peak_mb": 27.71202278137207,
+      "process_rss_mb": 293.88671875
+    },
+    "post_processing_end": {
+      "current_mb": 0.061501502990722656,
+      "peak_mb": 27.71202278137207,
+      "process_rss_mb": 293.88671875
+    }
+  },
+  "network_stats": {
+    "bytes_sent": 13065,
+    "bytes_received": 443471,
+    "packets_sent": 106,
+    "packets_received": 105
+  },
+  "response_stats": {
+    "polygon_count": 3,
+    "total_coordinates": 15,
+    "total_locations": 12166,
+    "expected_cutoffs": 3,
+    "transit_modes": 4
+  },
+  "timestamp": "2025-12-28T22:09:57.307422"
+}

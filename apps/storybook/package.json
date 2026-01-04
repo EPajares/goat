@@ -10,18 +10,17 @@
   },
   "dependencies": {
     "@p4b/keycloak-theme": "workspace:*",
-    "@p4b/ui": "workspace:*",
     "@p4b/types": "workspace:*",
+    "@p4b/ui": "workspace:*",
     "next": "14.2.35",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@p4b/tsconfig": "workspace:*",
-    "eslint-config-p4b": "workspace:*",
-    "eslint-plugin-storybook": "^0.6.12",
     "@storybook/addon-a11y": "^7.4.0",
     "@storybook/addon-actions": "^7.4.0",
+    "@storybook/addon-designs": "7.0.4",
     "@storybook/addon-docs": "^7.4.0",
     "@storybook/addon-essentials": "^7.4.0",
     "@storybook/addon-interactions": "^7.4.0",
@@ -34,11 +33,12 @@
     "@storybook/testing-library": "^0.1.0",
     "@storybook/theming": "^7.4.0",
     "@types/node": "^20.1.5",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "eslint-config-p4b": "workspace:*",
+    "eslint-plugin-storybook": "^0.6.12",
+    "file-system-cache": "2.0.0",
     "storybook": "^7.4.0",
-    "@storybook/addon-designs": "7.0.4",
-    "storybook-dark-mode": "^3.0.0",
-    "file-system-cache": "2.0.0"
+    "storybook-dark-mode": "^3.0.0"
   }
 }
