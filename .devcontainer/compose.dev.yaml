@@ -19,7 +19,10 @@ services:
 
   # Windmill Server - API, UI, scheduler
   windmill-server:
-    image: ghcr.io/windmill-labs/windmill:main
+    build:
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: server
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
       MODE: server
@@ -34,8 +37,9 @@ services:
   # Windmill Worker - Default (cron jobs, system tasks)
   windmill-worker-default:
     build:
-      context: ../apps/processes/workers
-      dockerfile: Dockerfile.windmill.dev
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-default
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
@@ -51,8 +55,9 @@ services:
   # Windmill Worker - Tools (analytics: buffer, heatmap, isochrone, etc.)
   windmill-worker-tools:
     build:
-      context: ../apps/processes/workers
-      dockerfile: Dockerfile.windmill.dev
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-tools
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
@@ -66,8 +71,8 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: goat
-      POSTGRES_DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/goat
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/${POSTGRES_DB}
       DUCKLAKE_DATA_DIR: /app/data/ducklake
       DUCKLAKE_CATALOG_SCHEMA: ducklake
       # S3 settings for layer imports
@@ -86,12 +91,11 @@ services:
       GOAT_ROUTING_AUTHORIZATION: ${GOAT_ROUTING_AUTHORIZATION}
       R5_URL: ${R5_URL:-https://r5.routing.plan4better.de}
       R5_REGION_MAPPING_PATH: /app/data/gtfs/r5_region_mapping.parquet
-      # Add goatlib to Python path
-      PYTHONPATH: /app/workspace/packages/python/goatlib/src
     networks:
       proxy:
     volumes:
-      - ../:/app/workspace:ro
+      # Mount goatlib source over installed package for live development
+      - ../packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
       - ../data/ducklake:/app/data/ducklake
       - ../data/traveltime_matrices:/app/data/traveltime_matrices:ro
       - ../data/gtfs:/app/data/gtfs:ro
@@ -101,16 +105,17 @@ services:
   # Windmill Worker - Print (PDF reports, thumbnails)
   windmill-worker-print:
     build:
-      context: ../apps/processes/workers
-      dockerfile: Dockerfile.windmill.dev
+      context: ..
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-print
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
       MODE: worker
       WORKER_GROUP: print
       WORKER_TAGS: print
-      DISABLE_NSJAIL: "true"
       JOB_DEFAULT_TIMEOUT: 300
+      DISABLE_NSJAIL: "true"
       # S3 settings for PDF uploads
       S3_PROVIDER: ${S3_PROVIDER:-hetzner}
       S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
@@ -121,10 +126,9 @@ services:
       # Print service URLs
       PRINT_BASE_URL: http://goat-dev:3000
       CORE_API_URL: http://goat-dev:8080
-      # Add goatlib to Python path
-      PYTHONPATH: /app/workspace/packages/python/goatlib/src
     volumes:
-      - ../:/app/workspace:ro
+      # Mount goatlib source over installed package for live development
+      - ../packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
     networks:
       proxy:
     depends_on:
