@@ -134,6 +134,27 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         docs_path="/toolbox/geoanalysis/origin_destination",
         keywords=("geoanalysis", "od", "origin", "destination", "matrix", "flow"),
     ),
+    ToolDefinition(
+        name="aggregate_points",
+        display_name="Aggregate Points",
+        description="Aggregate point features onto polygons or H3 hexagonal grids with statistics",
+        module_path="goatlib.tools.aggregate_points",
+        params_class_name="AggregatePointsToolParams",
+        windmill_path="f/goat/aggregate_points",
+        category="geoanalysis",
+        docs_path="/toolbox/geoanalysis/aggregate_points",
+        keywords=(
+            "geoanalysis",
+            "aggregate",
+            "points",
+            "statistics",
+            "count",
+            "sum",
+            "mean",
+            "h3",
+            "hexagon",
+        ),
+    ),
     # Accessibility indicators
     ToolDefinition(
         name="heatmap_gravity",

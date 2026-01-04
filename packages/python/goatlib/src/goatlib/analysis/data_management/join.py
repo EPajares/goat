@@ -296,7 +296,8 @@ class JoinTool(AnalysisTool):
         for field_stat in params.field_statistics:
             field_name = field_stat.field
             for operation in field_stat.operations:
-                agg_expr = self._build_aggregation_expression(operation, field_name)
+                field_ref = f"join_data.{field_name}"
+                agg_expr = self.get_statistics_sql(field_ref, operation.value)
                 agg_expressions.append(f"{agg_expr} as {field_name}_{operation.value}")
 
         agg_clause = ", ".join(agg_expressions)
@@ -342,27 +343,6 @@ class JoinTool(AnalysisTool):
         con.execute(
             f"COPY count_joins TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
         )
-
-    def _build_aggregation_expression(
-        self: Self, operation: StatisticOperation, field_name: str
-    ) -> str:
-        """Build SQL aggregation expression for statistics."""
-        field_ref = f"join_data.{field_name}"
-
-        if operation == StatisticOperation.sum:
-            return f"SUM({field_ref})"
-        elif operation == StatisticOperation.min:
-            return f"MIN({field_ref})"
-        elif operation == StatisticOperation.max:
-            return f"MAX({field_ref})"
-        elif operation == StatisticOperation.mean:
-            return f"AVG({field_ref})"
-        elif operation == StatisticOperation.count:
-            return f"COUNT({field_ref})"
-        elif operation == StatisticOperation.standard_deviation:
-            return f"STDDEV({field_ref})"
-        else:
-            raise ValueError(f"Unsupported statistical operation: {operation}")
 
     def _get_table_fields(
         self: Self, table_name: str, alias: str, prefix: str = ""

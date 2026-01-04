@@ -9,7 +9,7 @@ from .accessibility import (
 )
 from .core.base import AnalysisTool
 from .data_management import JoinTool
-from .geoanalysis import OriginDestinationTool
+from .geoanalysis import GeocodingTool, OriginDestinationTool
 from .geoprocessing import BufferTool
 from .statistics import (
     AreaOperation,
@@ -49,4 +49,12 @@ __all__ = [
     "UniqueValuesResult",
     "ClassBreaksResult",
     "AreaStatisticsResult",
+    # Accessibility tools
+    "CatchmentAreaTool",
+    "decode_r5_grid",
+    "compute_r5_surface",
+    "generate_jsolines",
+    "jsolines",
+    # Geocoding tools
+    "GeocodingTool",
 ]
