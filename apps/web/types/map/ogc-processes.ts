@@ -93,6 +93,7 @@ export interface UIFieldMeta {
   widget?: string;
   widget_options?: Record<string, unknown>;
   enum_icons?: Record<string, string>;
+  enum_labels?: Record<string, string>;
 }
 
 /**
@@ -173,6 +174,7 @@ export type InferredInputType =
   | "layer" // Layer selector (keywords includes "layer")
   | "field" // Field selector (keywords includes "field")
   | "enum" // Dropdown (schema has enum)
+  | "multi-enum" // Multi-select dropdown (array of enums)
   | "boolean" // Switch (type is boolean)
   | "number" // Number input (type is number/integer)
   | "string" // Text input (type is string)
@@ -180,6 +182,7 @@ export type InferredInputType =
   | "repeatable-object" // Repeatable array of objects (x-ui.repeatable)
   | "object" // Nested object (type is object)
   | "time-picker" // Time picker (x-ui.widget is time-picker)
+  | "starting-points" // Starting points selector (map clicks or layer)
   | "unknown"; // Fallback
 
 /**

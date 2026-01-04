@@ -36,6 +36,7 @@ from goatlib.analysis.schemas.catchment_area import (
     PTMode,
 )
 from goatlib.config.settings import settings
+from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -929,7 +930,9 @@ class CatchmentAreaTool(AnalysisTool):
         """Get authorization from params or defaults."""
         return params.authorization or self._default_authorization
 
-    def _run_implementation(self: Self, params: CatchmentAreaToolParams) -> Path:
+    def _run_implementation(
+        self: Self, params: CatchmentAreaToolParams
+    ) -> list[tuple[Path, DatasetMetadata]]:
         """Execute catchment area analysis by calling routing APIs."""
         routing_mode = (
             params.routing_mode.value
@@ -951,18 +954,30 @@ class CatchmentAreaTool(AnalysisTool):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
+        # Default metadata for catchment area output
+        metadata = DatasetMetadata(
+            path=str(params.output_path),
+            source_type="vector",
+            format="geoparquet",
+            geometry_type="Polygon",
+            geometry_column="geometry",
+        )
+
         if routing_mode == "pt":
             result_gdf = loop.run_until_complete(self._compute_pt_catchment(params))
-            return self._save_geodataframe(result_gdf, params.output_path)
+            path = self._save_geodataframe(result_gdf, params.output_path)
+            return [(path, metadata)]
         elif routing_mode == "car":
             result_bytes = loop.run_until_complete(self._compute_car_catchment(params))
-            return self._save_bytes(result_bytes, params.output_path)
+            path = self._save_bytes(result_bytes, params.output_path)
+            return [(path, metadata)]
         else:
             # Active mobility modes (walking, bicycle, pedelec, wheelchair)
             result_bytes = loop.run_until_complete(
                 self._compute_active_mobility_catchment(params)
             )
-            return self._save_bytes(result_bytes, params.output_path)
+            path = self._save_bytes(result_bytes, params.output_path)
+            return [(path, metadata)]
 
     # =========================================================================
     # GOAT Routing: Active Mobility
@@ -1296,14 +1311,37 @@ class CatchmentAreaTool(AnalysisTool):
     # =========================================================================
 
     def _save_geodataframe(self: Self, gdf: GeoDataFrame, output_path: str) -> Path:
-        """Save GeoDataFrame to output path."""
+        """Save GeoDataFrame to output path as GeoParquet with proper geometry."""
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         if path.suffix == ".parquet":
+            # Convert geometry to WKT for DuckDB import
             gdf = gdf.copy()
             gdf["geometry"] = gdf["geometry"].apply(lambda g: g.wkt)
-            gdf.to_parquet(path, index=False)
+
+            # Use DuckDB to convert WKT to proper GEOMETRY and save as parquet
+            con = duckdb.connect()
+            con.execute("INSTALL spatial; LOAD spatial;")
+
+            # Register the dataframe
+            con.register("gdf_table", gdf)
+
+            # Build column list, converting geometry WKT to GEOMETRY type
+            non_geom_cols = [c for c in gdf.columns if c != "geometry"]
+            select_cols = ", ".join(non_geom_cols)
+            if select_cols:
+                select_cols += ", "
+
+            # Export with geometry converted to proper GEOMETRY type
+            con.execute(f"""
+                COPY (
+                    SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
+                    FROM gdf_table
+                )
+                TO '{path}' (FORMAT PARQUET, COMPRESSION ZSTD)
+            """)
+            con.close()
         else:
             gdf.to_file(path, driver="GeoJSON")
 
@@ -1311,12 +1349,49 @@ class CatchmentAreaTool(AnalysisTool):
         return path
 
     def _save_bytes(self: Self, data: bytes, output_path: str) -> Path:
-        """Save raw bytes to output path."""
+        """Save raw bytes to output path, converting WKT geometry to proper GEOMETRY."""
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "wb") as f:
+        # First write bytes to temp file
+        temp_path = path.with_suffix(".tmp.parquet")
+        with open(temp_path, "wb") as f:
             f.write(data)
 
-        logger.info("Saved catchment area to: %s (%d bytes)", path, len(data))
+        # Use DuckDB to convert WKT string geometry to proper GEOMETRY type
+        con = duckdb.connect()
+        con.execute("INSTALL spatial; LOAD spatial;")
+
+        try:
+            # Check if geometry column exists and is string type (WKT)
+            schema = con.execute(f"DESCRIBE SELECT * FROM '{temp_path}'").fetchall()
+            col_info = {row[0]: row[1] for row in schema}
+
+            if "geometry" in col_info and "VARCHAR" in col_info["geometry"].upper():
+                # Geometry is WKT string - convert to proper GEOMETRY
+                non_geom_cols = [c for c in col_info.keys() if c != "geometry"]
+                select_cols = ", ".join(non_geom_cols)
+                if select_cols:
+                    select_cols += ", "
+
+                con.execute(f"""
+                    COPY (
+                        SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
+                        FROM '{temp_path}'
+                    )
+                    TO '{path}' (FORMAT PARQUET, COMPRESSION ZSTD)
+                """)
+                logger.info("Converted WKT geometry to GEOMETRY and saved to: %s", path)
+            else:
+                # Geometry is already proper format, just copy
+                import shutil
+
+                shutil.move(str(temp_path), str(path))
+                logger.info("Saved catchment area to: %s (%d bytes)", path, len(data))
+        finally:
+            con.close()
+            # Clean up temp file if it still exists
+            if temp_path.exists():
+                temp_path.unlink()
+
         return path

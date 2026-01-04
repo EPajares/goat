@@ -81,6 +81,11 @@ services:
       OD_MATRIX_BASE_PATH: /app/data/traveltime_matrices
       # GTFS data path
       GTFS_DATA_PATH: /app/data/gtfs
+      # Routing services
+      GOAT_ROUTING_URL: ${GOAT_ROUTING_URL:-http://goat-dev:8200/api/v2/routing}
+      GOAT_ROUTING_AUTHORIZATION: ${GOAT_ROUTING_AUTHORIZATION}
+      R5_URL: ${R5_URL:-https://r5.routing.plan4better.de}
+      R5_REGION_MAPPING_PATH: /app/data/gtfs/r5_region_mapping.parquet
       # Add goatlib to Python path
       PYTHONPATH: /app/workspace/packages/python/goatlib/src
     networks:

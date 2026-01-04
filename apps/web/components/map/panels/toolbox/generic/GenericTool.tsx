@@ -16,6 +16,7 @@ import { ICON_NAME } from "@p4b/ui/components/Icon";
 import { useJobs } from "@/lib/api/processes";
 import { useUserProfile } from "@/lib/api/users";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
+import { setToolboxStartingPoints } from "@/lib/store/map/slice";
 import {
   getDefaultValues,
   getVisibleInputs,
@@ -114,13 +115,37 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     }
   }, [process, sections]);
 
-  // Update a single input value
-  const handleInputChange = useCallback((name: string, value: unknown) => {
-    setValues((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }, []);
+  // Get all inputs from all sections (flattened)
+  const allInputs = useMemo(() => {
+    return sections.flatMap((section) => section.inputs);
+  }, [sections]);
+
+  // Update a single input value, applying dynamic defaults to dependent fields
+  const handleInputChange = useCallback(
+    (name: string, value: unknown) => {
+      setValues((prev) => {
+        const newValues = { ...prev, [name]: value };
+
+        // Check if any other input has default_by_field referencing this field
+        for (const input of allInputs) {
+          const defaultByField = input.uiMeta?.widget_options?.default_by_field as
+            | { field: string; values: Record<string, unknown> }
+            | undefined;
+
+          if (defaultByField && defaultByField.field === name) {
+            // Apply dynamic default if the value matches
+            const dynamicDefault = defaultByField.values[String(value)];
+            if (dynamicDefault !== undefined) {
+              newValues[input.name] = dynamicDefault;
+            }
+          }
+        }
+
+        return newValues;
+      });
+    },
+    [allInputs]
+  );
 
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
@@ -143,8 +168,10 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     if (process) {
       const defaults = getDefaultValues(process);
       setValues(defaults);
+      // Clear starting points from Redux
+      dispatch(setToolboxStartingPoints(undefined));
     }
-  }, [process]);
+  }, [process, dispatch]);
 
   // Validate and check if form is ready
   const isValid = useMemo(() => {

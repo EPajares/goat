@@ -147,6 +147,7 @@ class UIFieldConfig:
     widget: str | None = None
     widget_options: dict[str, Any] | None = None
     enum_icons: dict[str, str] | None = None
+    enum_labels: dict[str, str] | None = None  # Maps enum values to i18n keys
 
     def to_dict(self: Self) -> dict[str, Any]:
         """Convert to dictionary for JSON schema x-ui field."""
@@ -182,6 +183,8 @@ class UIFieldConfig:
             result["widget_options"] = self.widget_options
         if self.enum_icons:
             result["enum_icons"] = self.enum_icons
+        if self.enum_labels:
+            result["enum_labels"] = self.enum_labels
 
         return result
 
@@ -203,6 +206,7 @@ def ui_field(
     widget: str | None = None,
     widget_options: dict[str, Any] | None = None,
     enum_icons: dict[str, str] | None = None,
+    enum_labels: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     """Generate json_schema_extra dict for UI field configuration.
 
@@ -305,6 +309,7 @@ def ui_field(
         widget=widget,
         widget_options=widget_options,
         enum_icons=enum_icons,
+        enum_labels=enum_labels,
     )
     return {"x-ui": config.to_dict()}
 

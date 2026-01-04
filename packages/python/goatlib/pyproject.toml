@@ -15,6 +15,7 @@ dependencies = [
   "pydantic>=2.11.5",
   "pydantic-settings>=2.9.1",
   "pygeofilter>=0.2.4",
+  "pyarrow>=20.0.0",
   "pyproj>=3.6.0",
   "pytz>=2024.1",
   "wmill>=1.0.0",

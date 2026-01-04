@@ -553,6 +553,9 @@ class WindmillClient:
         if settings.S3_BUCKET_NAME:
             env_vars["S3_BUCKET_NAME"] = settings.S3_BUCKET_NAME
 
+        # Routing settings for catchment area tools
+        env_vars["R5_REGION_MAPPING_PATH"] = settings.R5_REGION_MAPPING_PATH
+
         logger.info(f"Configuring {len(env_vars)} workspace environment variables")
         for name, value in env_vars.items():
             await self.set_workspace_env_var(name, value)
@@ -568,6 +571,12 @@ class WindmillClient:
             secrets["S3_ACCESS_KEY_ID"] = settings.S3_ACCESS_KEY_ID
         if settings.S3_SECRET_ACCESS_KEY:
             secrets["S3_SECRET_ACCESS_KEY"] = settings.S3_SECRET_ACCESS_KEY
+
+        # Routing secrets
+        secrets["GOAT_ROUTING_URL"] = settings.GOAT_ROUTING_URL
+        secrets["R5_URL"] = settings.R5_URL
+        if settings.GOAT_ROUTING_AUTHORIZATION:
+            secrets["GOAT_ROUTING_AUTHORIZATION"] = settings.GOAT_ROUTING_AUTHORIZATION
 
         logger.info(f"Configuring {len(secrets)} workspace secrets")
         for name, value in secrets.items():

@@ -56,12 +56,51 @@
     },
     "metadata": {
       "label": "Metadaten"
+    },
+    "starting_points": {
+      "label": "Startpunkte"
     }
   },
   "fields": {
     "routing_mode": {
       "label": "Verkehrsmittel",
       "description": "Wählen Sie das Verkehrsmittel für die Erreichbarkeitsanalyse"
+    },
+    "routing_pt_mode": {
+      "label": "ÖV-Modi",
+      "description": "Wählen Sie die ÖV-Modi für die Analyse"
+    },
+    "max_traveltime": {
+      "label": "Reisezeitlimit (Min)",
+      "description": "Definieren Sie die maximale Reisezeit in Minuten"
+    },
+    "steps": {
+      "label": "Anzahl der Schritte (Steps)",
+      "description": "Definieren Sie die Anzahl der Schritte"
+    },
+    "speed": {
+      "label": "Reisegeschwindigkeit (Km/h)",
+      "description": "Definieren Sie die Reisegeschwindigkeit"
+    },
+    "access_mode": {
+      "label": "Zugangsart",
+      "description": "Verkehrsmittel zum Erreichen der ÖV-Haltestellen"
+    },
+    "pt_egress_mode": {
+      "label": "Abgangsart",
+      "description": "Verkehrsmittel nach Verlassen der ÖV-Haltestellen"
+    },
+    "catchment_area_type": {
+      "label": "Form des Einzugsgebiets",
+      "description": "Wählen Sie die Form der Einzugsgebietsgeometrie aus."
+    },
+    "polygon_difference": {
+      "label": "Differenz zwischen Schritten",
+      "description": "Wenn aktiviert, zeigen Polygone die Differenz zwischen aufeinanderfolgenden Schritten"
+    },
+    "choose_pt_mode": {
+      "label": "ÖV-Modi wählen",
+      "description": "Wählen Sie die ÖV-Modi für die Analyse"
     },
     "impedance": {
       "label": "Impedanzfunktion",
@@ -314,6 +353,14 @@
     "operation": {
       "label": "Operation",
       "description": "Durchzuführende statistische Operation"
+    },
+    "measure_type": {
+      "label": "Art des Einzugsgebiets",
+      "description": "Berechnung des Einzugsgebiets nach Zeit oder Entfernung"
+    },
+    "max_distance": {
+      "label": "Reiseentfernung",
+      "description": "Definieren Sie die maximale Reiseentfernung in Metern"
     }
   },
   "enums": {
@@ -375,6 +422,15 @@
     "distance_type": {
       "constant": "Konstant",
       "field": "Feld"
+    },
+    "measure_type": {
+      "time": "Zeit",
+      "distance": "Entfernung"
+    },
+    "catchment_area_type": {
+      "polygon": "Polygon",
+      "network": "Netzwerk",
+      "rectangular_grid": "Sechseckiges Gitter"
     }
   },
   "tools": {
@@ -449,6 +505,27 @@
     "area_statistics": {
       "title": "Flächenstatistiken",
       "description": "Flächenstatistiken für Polygon-Features berechnen"
+    },
+    "catchment_area": {
+      "title": "Einzugsgebiet",
+      "description": "Einzugsgebiete zeigen Flächen auf die in einer festgelegten Reisezeit oder Entfernung von einem oder mehreren Ausgangspunkten erreicht werden.",
+      "docs_path": "toolbox/accessibility_indicators/catchments"
     }
+  },
+  "routing_modes": {
+    "walk": "Zu Fuß",
+    "walking": "Zu Fuß",
+    "bicycle": "Fahrrad",
+    "pedelec": "Pedelec",
+    "car": "Auto",
+    "pt": "ÖPNV",
+    "bus": "Bus",
+    "tram": "Straßenbahn",
+    "rail": "Bahn",
+    "subway": "U-Bahn",
+    "ferry": "Fähre",
+    "cable_car": "Seilbahn",
+    "gondola": "Gondel",
+    "funicular": "Standseilbahn"
   }
 }

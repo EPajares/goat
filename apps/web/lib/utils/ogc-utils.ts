@@ -47,13 +47,26 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
     return "field";
   }
 
+  // Check for explicit widget types in x-ui metadata BEFORE getting effective schema
+  // This handles union types (anyOf) that have x-ui at the top level
+  const topLevelUiMeta = schema["x-ui"];
+  if (topLevelUiMeta?.widget === "time-picker") {
+    return "time-picker";
+  }
+  if (topLevelUiMeta?.widget === "starting-points") {
+    return "starting-points";
+  }
+
   // Get the effective schema (handle anyOf/oneOf for nullable types)
   const effectiveSchema = getEffectiveSchema(schema);
 
-  // Check for explicit widget types in x-ui metadata
+  // Check for explicit widget types in x-ui metadata (for non-union schemas)
   const uiMeta = effectiveSchema["x-ui"];
   if (uiMeta?.widget === "time-picker") {
     return "time-picker";
+  }
+  if (uiMeta?.widget === "starting-points") {
+    return "starting-points";
   }
 
   // Check for repeatable array of objects (e.g., opportunities in heatmap)
@@ -67,6 +80,11 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
       (itemSchema.type === "object" || itemSchema.$ref || itemSchema.properties)
     ) {
       return "repeatable-object";
+    }
+
+    // Check if it's an array of enums (multi-select)
+    if (itemSchema && (itemSchema.enum || itemSchema.$ref)) {
+      return "multi-enum";
     }
 
     return "array";
@@ -417,12 +435,37 @@ export function formatInputName(name: string): string {
  * - $in: value in array
  * - $nin: value not in array
  * - $exists: field exists (is not undefined/null)
+ * - $and: all conditions must be true
+ * - $or: at least one condition must be true
  */
 export function evaluateCondition(
   condition: Record<string, unknown>,
   values: Record<string, unknown>
 ): boolean {
   for (const [field, check] of Object.entries(condition)) {
+    // Handle $and operator - all conditions must be true
+    if (field === "$and" && Array.isArray(check)) {
+      for (const subCondition of check) {
+        if (!evaluateCondition(subCondition as Record<string, unknown>, values)) {
+          return false;
+        }
+      }
+      continue;
+    }
+
+    // Handle $or operator - at least one condition must be true
+    if (field === "$or" && Array.isArray(check)) {
+      let anyTrue = false;
+      for (const subCondition of check) {
+        if (evaluateCondition(subCondition as Record<string, unknown>, values)) {
+          anyTrue = true;
+          break;
+        }
+      }
+      if (!anyTrue) return false;
+      continue;
+    }
+
     const value = values[field];
 
     // Handle operator objects
