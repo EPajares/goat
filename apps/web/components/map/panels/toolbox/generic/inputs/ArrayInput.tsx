@@ -6,6 +6,7 @@
  */
 import { Stack, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { getEffectiveSchema } from "@/lib/utils/ogc-utils";
 
@@ -21,6 +22,7 @@ interface ArrayInputProps {
 }
 
 export default function ArrayInput({ input, value, onChange, disabled }: ArrayInputProps) {
+  const { t } = useTranslation("common");
   const effectiveSchema = getEffectiveSchema(input.schema);
   const itemSchema = effectiveSchema.items;
   const itemType = itemSchema?.type || "string";
@@ -84,9 +86,8 @@ export default function ArrayInput({ input, value, onChange, disabled }: ArrayIn
         onChange={handleChange}
         onBlur={handleBlur}
         disabled={disabled}
-        placeholder={isNumeric ? "e.g. 100, 200, 300" : "Enter values separated by commas"}
+        placeholder={isNumeric ? t("array_input_placeholder_numeric") : t("array_input_placeholder")}
         fullWidth
-        helperText="Separate multiple values with commas"
         InputProps={{
           sx: { fontSize: "0.875rem" },
         }}

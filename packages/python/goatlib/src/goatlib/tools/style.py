@@ -252,6 +252,62 @@ def get_tool_style(
     return style
 
 
+def get_ordinal_style(
+    color_field_name: str = "travel_cost",
+    color_scale_breaks: dict[str, Any] | None = None,
+    color_range_name: str | None = None,
+) -> dict[str, Any]:
+    """Generate ordinal color scale style for catchment areas.
+
+    Uses ordinal scale where each discrete value maps to a color,
+    suitable for isochrone/catchment area visualization.
+
+    Args:
+        color_field_name: Name of the field to use for coloring
+        color_scale_breaks: Break values defining color boundaries
+        color_range_name: Optional specific color range name
+
+    Returns:
+        Style dict configured for ordinal visualization
+    """
+    # Default color range for catchment areas (orange-red gradient)
+    sunset_range = {
+        "name": "Sunset",
+        "type": "sequential",
+        "category": "ColorBrewer",
+        "colors": [
+            "#f3e79b",  # Light yellow
+            "#fac484",  # Light orange
+            "#f8a07e",  # Orange
+            "#eb7f86",  # Salmon
+            "#ce6693",  # Pink
+            "#a059a0",  # Purple
+            "#5c53a5",  # Dark purple
+        ],
+    }
+
+    # Use specified color range or sunset default
+    if color_range_name and color_range_name in SEQUENTIAL_COLOR_RANGES:
+        color_range = SEQUENTIAL_COLOR_RANGES[color_range_name]
+    elif color_range_name == "Sunset":
+        color_range = sunset_range
+    else:
+        color_range = sunset_range
+
+    style = {
+        **DEFAULT_POLYGON_STYLE,
+        "color": hex_to_rgb(color_range["colors"][3]),  # Middle color as base
+        "color_field": {"name": color_field_name, "type": "number"},
+        "color_range": color_range,
+        "color_scale": "ordinal",
+    }
+
+    if color_scale_breaks:
+        style["color_scale_breaks"] = color_scale_breaks
+
+    return style
+
+
 def get_heatmap_style(
     color_field_name: str = "accessibility",
     color_scale_breaks: dict[str, Any] | None = None,

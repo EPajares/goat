@@ -17,6 +17,7 @@ from goatlib.analysis.accessibility import (
     OevGueteklasseTool,
     PTTimeWindow,
 )
+from goatlib.analysis.schemas.catchment_area import Weekday
 from goatlib.analysis.schemas.ui import (
     UISection,
     ui_field,
@@ -38,15 +39,6 @@ GTFS_DATA_PATH = os.environ.get("GTFS_DATA_PATH", "/app/data/gtfs")
 # Section definitions for this tool (no depends_on conditions)
 SECTION_CALCULATION_TIME = UISection(id="calculation_time", order=1, icon="clock")
 SECTION_OEV_CONFIGURATION = UISection(id="configuration", order=2, icon="settings")
-
-
-# Enums for UI
-class Weekday(StrEnum):
-    """Day of week type for public transport schedules."""
-
-    weekday = "weekday"
-    saturday = "saturday"
-    sunday = "sunday"
 
 
 class CatchmentType(StrEnum):
@@ -326,7 +318,6 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
             geometry_type=detected_geom_type,
             feature_count=table_info.get("feature_count", 0),
             extent=table_info.get("extent"),
-            attribute_mapping=table_info.get("columns", {}),
             table_name=table_info["table_name"],
         )
 

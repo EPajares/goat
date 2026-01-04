@@ -368,6 +368,7 @@ async def execute_process(
         )
 
     # Submit job to Windmill
+    # Note: Worker tag is configured on the script during sync, not per-job
     try:
         job_id = await windmill_client.run_script_async(
             script_path=script_path,
@@ -495,6 +496,7 @@ def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusIn
         created=created,
         started=started,
         finished=finished,
+        inputs=job.get("args"),
         links=links,
     )
 
@@ -625,9 +627,9 @@ async def get_job_status(
         # Convert to StatusInfo
         status_info = _windmill_job_to_status_info(windmill_job, base_url)
 
-        # Include result payload for successful jobs
+        # Include result for successful jobs
         if windmill_job.get("success") is True and windmill_job.get("result"):
-            status_info.payload = windmill_job.get("result")
+            status_info.result = windmill_job.get("result")
 
         return status_info
 

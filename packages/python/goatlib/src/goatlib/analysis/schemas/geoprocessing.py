@@ -7,6 +7,7 @@ origin-destination analysis.
 Includes UI metadata for dynamic form rendering via x-ui fields.
 """
 
+from enum import StrEnum
 from typing import List, Literal, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -18,12 +19,18 @@ from goatlib.analysis.schemas.base import (
 )
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
-    SECTION_OPTIONS,
     SECTION_OUTPUT,
     UISection,
     ui_field,
     ui_sections,
 )
+
+
+class DistanceType(StrEnum):
+    """Type of distance value source for buffer."""
+
+    constant = "constant"
+    field = "field"
 
 
 class BufferParams(BaseModel):
@@ -32,8 +39,12 @@ class BufferParams(BaseModel):
     model_config = ConfigDict(
         json_schema_extra=ui_sections(
             SECTION_INPUT,
-            UISection(id="buffer", order=2, icon="hexagon"),
-            SECTION_OPTIONS,
+            UISection(
+                id="configuration",
+                order=2,
+                icon="settings",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
             SECTION_OUTPUT,
         )
     )
@@ -54,26 +65,38 @@ class BufferParams(BaseModel):
         json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
     )
 
+    # Distance type selector
+    distance_type: DistanceType = Field(
+        default=DistanceType.constant,
+        description="How to determine the buffer distance.",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=1,
+        ),
+    )
+
     # Buffer distance parameters
     distances: Optional[List[float]] = Field(
         None,
-        description="List of buffer distances. Required unless 'field' is specified. "
+        description="List of buffer distances. "
         "Each distance should be a positive number using the specified 'units'.",
         json_schema_extra=ui_field(
-            section="buffer",
-            field_order=1,
-            mutually_exclusive_group="distance_source",
-            priority=1,
+            section="configuration",
+            field_order=2,
+            visible_when={"distance_type": "constant"},
         ),
     )
-    field: Optional[str] = Field(
+    distance_field: Optional[str] = Field(
         None,
-        description="Optional field name in the dataset that provides a per-feature buffer distance.",
+        description="Field name that provides a per-feature buffer distance.",
         json_schema_extra=ui_field(
-            section="buffer",
+            section="configuration",
             field_order=2,
-            mutually_exclusive_group="distance_source",
-            priority=2,
+            widget_options={
+                "source_layer": "input_layer_id",
+                "field_types": ["number"],
+            },
+            visible_when={"distance_type": "field"},
         ),
     )
 
@@ -82,40 +105,47 @@ class BufferParams(BaseModel):
     ] = Field(
         "meters",
         description="Measurement units for buffer distances.",
-        json_schema_extra=ui_field(section="buffer", field_order=3),
+        json_schema_extra=ui_field(section="configuration", field_order=3),
     )
 
     # Controls whether overlapping buffers are dissolved into a single geometry
     dissolve: bool = Field(
         False,
         description="If True, overlapping buffers will be merged (dissolved) into a single geometry.",
-        json_schema_extra=ui_field(section="buffer", field_order=4),
+        json_schema_extra=ui_field(section="configuration", field_order=4),
     )
 
-    # Parameters corresponding to GEOS / ST_Buffer options
+    # Advanced buffer parameters (GEOS / ST_Buffer options)
     num_triangles: int = Field(
         8,
         description="Number of triangles used to approximate a quarter circle. "
         "Higher values yield smoother buffer edges but increase computation cost.",
-        json_schema_extra=ui_field(section="options", field_order=1),
+        json_schema_extra=ui_field(
+            section="configuration", field_order=10, advanced=True
+        ),
     )
     cap_style: Literal["CAP_ROUND", "CAP_FLAT", "CAP_SQUARE"] = Field(
         "CAP_ROUND",
         description="Style for line endpoints: 'CAP_ROUND', 'CAP_FLAT', or 'CAP_SQUARE'.",
-        json_schema_extra=ui_field(section="options", field_order=2),
+        json_schema_extra=ui_field(
+            section="configuration", field_order=11, advanced=True
+        ),
     )
     join_style: Literal["JOIN_ROUND", "JOIN_MITRE", "JOIN_BEVEL"] = Field(
         "JOIN_ROUND",
-        description="Corner join style between line segments. Options: 'JOIN_ROUND', 'JOIN_MITRE', 'JOIN_BEVEL'.",
-        json_schema_extra=ui_field(section="options", field_order=3),
+        description="Corner join style between line segments: 'JOIN_ROUND', 'JOIN_MITRE', 'JOIN_BEVEL'.",
+        json_schema_extra=ui_field(
+            section="configuration", field_order=12, advanced=True
+        ),
     )
     mitre_limit: float = Field(
         1.0,
         description="Ratio controlling the length of mitred joins. "
-        "Only applicable when join_style='JOIN_MITRE'. Default = 1.0.",
+        "Only applicable when join_style='JOIN_MITRE'.",
         json_schema_extra=ui_field(
-            section="options",
-            field_order=4,
+            section="configuration",
+            field_order=13,
+            advanced=True,
             visible_when={"join_style": "JOIN_MITRE"},
         ),
     )
@@ -135,18 +165,19 @@ class BufferParams(BaseModel):
     # Validation logic
     @model_validator(mode="after")
     def validate_all(self: Self) -> "BufferParams":
-        # Must provide either distances or a distance field
-        if not self.distances and not self.field:
-            raise ValueError("You must supply either 'distances' or 'field'.")
-
-        # If distances provided, validate that all are positive
-        if self.distances:
+        # Validate based on distance_type
+        if self.distance_type == DistanceType.constant:
+            if not self.distances:
+                raise ValueError(
+                    "distances must be set when distance_type is 'constant'."
+                )
             if not all(isinstance(d, (int, float)) and d > 0 for d in self.distances):
                 raise ValueError("All buffer distances must be positive numbers.")
-
-        # Validate field type
-        if self.field and not isinstance(self.field, str):
-            raise ValueError("'field' must be a string.")
+        elif self.distance_type == DistanceType.field:
+            if not self.distance_field:
+                raise ValueError(
+                    "distance_field must be set when distance_type is 'field'."
+                )
 
         # Validate mitre_limit usage
         if self.join_style != "JOIN_MITRE" and self.mitre_limit != 1.0:

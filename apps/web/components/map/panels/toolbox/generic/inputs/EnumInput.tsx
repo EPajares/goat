@@ -3,9 +3,11 @@
  *
  * Renders a dropdown selector for enum values from OGC process schema.
  * Supports filtering enum values based on layer geometry types.
+ * enum_labels and field labels/descriptions are already translated by the backend.
  */
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
@@ -31,11 +33,13 @@ interface EnumInputProps {
 }
 
 export default function EnumInput({ input, value, onChange, disabled, formValues = {} }: EnumInputProps) {
+  const { t } = useTranslation("common");
   const { projectId } = useParams();
   const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
 
-  // Get icon mapping from x-ui metadata
+  // Get icon and label mappings from x-ui metadata
   const enumIcons = input.uiMeta?.enum_icons;
+  const enumLabels = input.uiMeta?.enum_labels as Record<string, string> | undefined;
 
   // Check for geometry-based enum filtering
   const enumGeometryFilter = input.uiMeta?.widget_options?.enum_geometry_filter as
@@ -84,13 +88,24 @@ export default function EnumInput({ input, value, onChange, disabled, formValues
   // Convert enum values to selector items
   const enumItems: SelectorItem[] = useMemo(() => {
     return filteredEnumValues.map((enumValue) => {
+      // Get label: use enum_labels if provided (already translated from backend), otherwise format the value
+      let label: string;
+      const enumKey = String(enumValue);
+      if (enumLabels && enumLabels[enumKey]) {
+        // enum_labels are already translated by the backend
+        label = enumLabels[enumKey];
+      } else {
+        // Fallback to formatted enum value
+        label = formatInputName(enumKey);
+      }
+
       const item: SelectorItem = {
         value: enumValue as string | number,
-        label: formatInputName(String(enumValue)),
+        label,
       };
       // Add icon if available from x-ui metadata and valid
-      if (enumIcons && typeof enumValue === "string" && enumIcons[enumValue]) {
-        const iconName = enumIcons[enumValue];
+      if (enumIcons && enumIcons[enumKey]) {
+        const iconName = enumIcons[enumKey];
         // Only add icon if it's a valid ICON_NAME, otherwise skip (graceful fallback)
         if (VALID_ICONS.has(iconName as ICON_NAME)) {
           item.icon = iconName as ICON_NAME;
@@ -98,7 +113,7 @@ export default function EnumInput({ input, value, onChange, disabled, formValues
       }
       return item;
     });
-  }, [filteredEnumValues, enumIcons]);
+  }, [filteredEnumValues, enumIcons, enumLabels]);
 
   // Find selected item
   const selectedItem = useMemo(() => {
@@ -114,14 +129,18 @@ export default function EnumInput({ input, value, onChange, disabled, formValues
     }
   };
 
+  // Get label and description - already translated from backend via x-ui metadata
+  const label = input.uiMeta?.label || input.title;
+  const description = input.uiMeta?.description || input.description;
+
   return (
     <Selector
       selectedItems={selectedItem}
       setSelectedItems={handleChange}
       items={enumItems}
-      label={input.title}
-      tooltip={input.description}
-      placeholder={`Select ${input.title.toLowerCase()}`}
+      label={label}
+      tooltip={description}
+      placeholder={`${t("select")} ${label.toLowerCase()}`}
       disabled={disabled}
     />
   );

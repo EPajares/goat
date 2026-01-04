@@ -31,19 +31,36 @@ services:
     networks:
       proxy:
 
-  # Windmill Worker - executes scripts
-  windmill-worker:
-    image: ghcr.io/windmill-labs/windmill:main
+  # Windmill Worker - Default (cron jobs, system tasks)
+  windmill-worker-default:
+    build:
+      context: ../apps/processes/workers
+      dockerfile: Dockerfile.windmill.dev
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
       MODE: worker
       WORKER_GROUP: default
-      # Use native Python (no venv) so PYTHONPATH and mounted volumes work
-      WORKER_TAGS: python3
       DISABLE_NSJAIL: "true"
-      # Job timeout (in seconds) - 1 minute default
-      JOB_DEFAULT_TIMEOUT: 60
+      JOB_DEFAULT_TIMEOUT: 300
+    networks:
+      proxy:
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Tools (analytics: buffer, heatmap, isochrone, etc.)
+  windmill-worker-tools:
+    build:
+      context: ../apps/processes/workers
+      dockerfile: Dockerfile.windmill.dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: tools
+      WORKER_TAGS: tools
+      DISABLE_NSJAIL: "true"
+      JOB_DEFAULT_TIMEOUT: 600
       # Tool environment variables
       POSTGRES_SERVER: ${POSTGRES_SERVER}
       POSTGRES_PORT: 5432
@@ -64,11 +81,15 @@ services:
       OD_MATRIX_BASE_PATH: /app/data/traveltime_matrices
       # GTFS data path
       GTFS_DATA_PATH: /app/data/gtfs
+      # Routing services
+      GOAT_ROUTING_URL: ${GOAT_ROUTING_URL:-http://goat-dev:8200/api/v2/routing}
+      GOAT_ROUTING_AUTHORIZATION: ${GOAT_ROUTING_AUTHORIZATION}
+      R5_URL: ${R5_URL:-https://r5.routing.plan4better.de}
+      R5_REGION_MAPPING_PATH: /app/data/gtfs/r5_region_mapping.parquet
       # Add goatlib to Python path
       PYTHONPATH: /app/workspace/packages/python/goatlib/src
     networks:
       proxy:
-    # Mount entire workspace so scripts can access goatlib and deps
     volumes:
       - ../:/app/workspace:ro
       - ../data/ducklake:/app/data/ducklake
@@ -77,12 +98,46 @@ services:
     depends_on:
       - windmill-server
 
+  # Windmill Worker - Print (PDF reports, thumbnails)
+  windmill-worker-print:
+    build:
+      context: ../apps/processes/workers
+      dockerfile: Dockerfile.windmill.dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+      MODE: worker
+      WORKER_GROUP: print
+      WORKER_TAGS: print
+      DISABLE_NSJAIL: "true"
+      JOB_DEFAULT_TIMEOUT: 300
+      # S3 settings for PDF uploads
+      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_REGION_NAME: ${S3_REGION_NAME:-${S3_REGION:-us-east-1}}
+      # Print service URLs
+      PRINT_BASE_URL: http://goat-dev:3000
+      CORE_API_URL: http://goat-dev:8080
+      # Add goatlib to Python path
+      PYTHONPATH: /app/workspace/packages/python/goatlib/src
+    volumes:
+      - ../:/app/workspace:ro
+    networks:
+      proxy:
+    depends_on:
+      - windmill-server
+
   goat-dev:
     depends_on:
       - rabbitmq
       - redis
       - windmill-server
-      - windmill-worker
+      - windmill-worker-default
+      - windmill-worker-tools
+      - windmill-worker-print
     build:
       dockerfile: Dockerfile
     container_name: goat-dev

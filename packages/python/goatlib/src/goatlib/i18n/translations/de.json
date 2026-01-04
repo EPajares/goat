@@ -56,12 +56,51 @@
     },
     "metadata": {
       "label": "Metadaten"
+    },
+    "starting_points": {
+      "label": "Startpunkte"
     }
   },
   "fields": {
     "routing_mode": {
       "label": "Verkehrsmittel",
       "description": "Wählen Sie das Verkehrsmittel für die Erreichbarkeitsanalyse"
+    },
+    "routing_pt_mode": {
+      "label": "ÖV-Modi",
+      "description": "Wählen Sie die ÖV-Modi für die Analyse"
+    },
+    "max_traveltime": {
+      "label": "Reisezeitlimit (Min)",
+      "description": "Definieren Sie die maximale Reisezeit in Minuten"
+    },
+    "steps": {
+      "label": "Anzahl der Schritte (Steps)",
+      "description": "Definieren Sie die Anzahl der Schritte"
+    },
+    "speed": {
+      "label": "Reisegeschwindigkeit (Km/h)",
+      "description": "Definieren Sie die Reisegeschwindigkeit"
+    },
+    "access_mode": {
+      "label": "Zugangsart",
+      "description": "Verkehrsmittel zum Erreichen der ÖV-Haltestellen"
+    },
+    "pt_egress_mode": {
+      "label": "Abgangsart",
+      "description": "Verkehrsmittel nach Verlassen der ÖV-Haltestellen"
+    },
+    "catchment_area_type": {
+      "label": "Form des Einzugsgebiets",
+      "description": "Wählen Sie die Form der Einzugsgebietsgeometrie aus."
+    },
+    "polygon_difference": {
+      "label": "Differenz zwischen Schritten",
+      "description": "Wenn aktiviert, zeigen Polygone die Differenz zwischen aufeinanderfolgenden Schritten"
+    },
+    "choose_pt_mode": {
+      "label": "ÖV-Modi wählen",
+      "description": "Wählen Sie die ÖV-Modi für die Analyse"
     },
     "impedance": {
       "label": "Impedanzfunktion",
@@ -135,11 +174,15 @@
       "label": "Einzugsgebietstyp",
       "description": "Methode zur Berechnung der Einzugsgebiete"
     },
+    "distance_type": {
+      "label": "Abstandsquelle",
+      "description": "Wie der Pufferabstand bestimmt wird"
+    },
     "distances": {
       "label": "Pufferabstände",
       "description": "Liste der zu erstellenden Pufferabstände"
     },
-    "field": {
+    "distance_field": {
       "label": "Abstandsfeld",
       "description": "Feld mit dem Pufferabstand für jedes Feature"
     },
@@ -310,6 +353,14 @@
     "operation": {
       "label": "Operation",
       "description": "Durchzuführende statistische Operation"
+    },
+    "measure_type": {
+      "label": "Art des Einzugsgebiets",
+      "description": "Berechnung des Einzugsgebiets nach Zeit oder Entfernung"
+    },
+    "max_distance": {
+      "label": "Reiseentfernung",
+      "description": "Definieren Sie die maximale Reiseentfernung in Metern"
     }
   },
   "enums": {
@@ -367,12 +418,25 @@
     },
     "catchment_type": {
       "buffer": "Puffer"
+    },
+    "distance_type": {
+      "constant": "Konstant",
+      "field": "Feld"
+    },
+    "measure_type": {
+      "time": "Zeit",
+      "distance": "Entfernung"
+    },
+    "catchment_area_type": {
+      "polygon": "Polygon",
+      "network": "Netzwerk",
+      "rectangular_grid": "Sechseckiges Gitter"
     }
   },
   "tools": {
     "buffer": {
       "title": "Puffer",
-      "description": "Erstellen Sie Pufferzonen um Features"
+      "description": "Erzeugt einen Puffer um einen Punkt, Linien oder Polygon-Layer."
     },
     "clip": {
       "title": "Ausschneiden",
@@ -396,19 +460,23 @@
     },
     "origin_destination": {
       "title": "Quell-Ziel-Analyse",
-      "description": "Flussdaten zwischen Quellen und Zielen visualisieren"
+      "description": "Die Quell-Ziel-Beziehungen werden in verschiedenen Bereichen wie der Verkehrsplanung und Stadtplanung verwendet, um Bewegungen oder Flüsse zwischen verschiedenen Orten zu untersuchen."
     },
     "heatmap_gravity": {
       "title": "Heatmap Gravitation",
-      "description": "Gravitationsbasierte Erreichbarkeits-Heatmaps berechnen"
+      "description": "Es wird die Erreichbarkeit ausgehend von jeder Rasterzelle zu mehreren Orten gleichzeitig berechnet. Die Reisezeiten werden hierfür mit einer Widerstandsfunktion gewichtet und aggregiert."
     },
     "heatmap_closest_average": {
       "title": "Heatmap Nächster Durchschnitt",
-      "description": "Erreichbarkeit basierend auf nächsten Zielen berechnen"
+      "description": "Es wird die durchschnittliche Reisezeit zu den nächsten N Zielen aufgezeigt ausgehend von jeder Rasterzelle."
     },
     "heatmap_connectivity": {
       "title": "Heatmap Konnektivität",
-      "description": "Konnektivität zu Referenzgebieten berechnen"
+      "description": "Die Vernetzung der Verkehrswege wird ausgedrückt durch die Berechnung von Einzugsbereichen für jede Rasterzelle, wobei die erreichbare Fläche der Einzugsbereiche die Konnektivität ausdrückt."
+    },
+    "oev_gueteklassen": {
+      "title": "ÖV-Güteklassen",
+      "description": "ÖV-Güteklassen zeigen die Attraktivität des öffentlichen Verkehrs in einem bestimmten Gebiet an."
     },
     "layer_import": {
       "title": "Layer importieren",
@@ -437,6 +505,27 @@
     "area_statistics": {
       "title": "Flächenstatistiken",
       "description": "Flächenstatistiken für Polygon-Features berechnen"
+    },
+    "catchment_area": {
+      "title": "Einzugsgebiet",
+      "description": "Einzugsgebiete zeigen Flächen auf die in einer festgelegten Reisezeit oder Entfernung von einem oder mehreren Ausgangspunkten erreicht werden.",
+      "docs_path": "toolbox/accessibility_indicators/catchments"
     }
+  },
+  "routing_modes": {
+    "walk": "Zu Fuß",
+    "walking": "Zu Fuß",
+    "bicycle": "Fahrrad",
+    "pedelec": "Pedelec",
+    "car": "Auto",
+    "pt": "ÖPNV",
+    "bus": "Bus",
+    "tram": "Straßenbahn",
+    "rail": "Bahn",
+    "subway": "U-Bahn",
+    "ferry": "Fähre",
+    "cable_car": "Seilbahn",
+    "gondola": "Gondel",
+    "funicular": "Standseilbahn"
   }
 }

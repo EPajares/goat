@@ -169,17 +169,6 @@ export default function FieldInput({
     );
   }
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <Box>
-        <Typography variant="body2" color="text.secondary">
-          {t("loading_fields")}...
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
     <LayerFieldSelector
       selectedField={selectedField}
@@ -187,7 +176,7 @@ export default function FieldInput({
       fields={filteredFields}
       label={input.title || input.name}
       tooltip={input.description}
-      disabled={disabled}
+      disabled={disabled || isLoading}
     />
   );
 }

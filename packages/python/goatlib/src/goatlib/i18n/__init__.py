@@ -167,6 +167,30 @@ class Translator:
         """
         return self.get_tool(tool_name).get("description")
 
+    def resolve_key(self: Self, key: str) -> str | None:
+        """Resolve a dot-separated translation key path.
+
+        Navigates the translation dictionary using dot notation.
+        E.g., "routing_modes.walking" -> translations["routing_modes"]["walking"]
+
+        Args:
+            key: Dot-separated key path
+
+        Returns:
+            Translated string or None if not found
+        """
+        parts = key.split(".")
+        current: Any = self._translations
+
+        for part in parts:
+            if not isinstance(current, dict):
+                return None
+            current = current.get(part)
+            if current is None:
+                return None
+
+        return current if isinstance(current, str) else None
+
 
 @lru_cache(maxsize=8)
 def get_translator(language: str = DEFAULT_LANGUAGE) -> Translator:
@@ -307,6 +331,19 @@ def _resolve_property(
             desc = translator.get_field_description(label_key)
             if desc:
                 x_ui["description"] = desc
+
+        # Resolve enum_labels: translate keys like "routing_modes.walking" to actual text
+        if "enum_labels" in x_ui:
+            enum_labels = x_ui["enum_labels"]
+            resolved_labels: dict[str, str] = {}
+            for enum_value, label_key_path in enum_labels.items():
+                translated = translator.resolve_key(label_key_path)
+                if translated:
+                    resolved_labels[enum_value] = translated
+                else:
+                    # Fallback: use the key path as-is if translation not found
+                    resolved_labels[enum_value] = label_key_path
+            x_ui["enum_labels"] = resolved_labels
 
     # Apply translations to top-level title/description (override defaults)
     # First check if label_key was provided and resolved in x-ui
