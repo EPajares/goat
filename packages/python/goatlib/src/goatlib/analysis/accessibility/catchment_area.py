@@ -1103,7 +1103,7 @@ class CatchmentAreaTool(AnalysisTool):
         # Get R5 region configuration
         r5_region_id: str | None = self._r5_region_id
         r5_bundle_id: str | None = self._r5_bundle_id
-        # Always use the routing_url from params/constructor, not from region mapping
+        # Use routing_url from params (should be R5 URL for PT routing)
         r5_host: str = self._get_routing_url(params)
 
         # Try to look up region/bundle from parquet mapping if available
@@ -1163,7 +1163,7 @@ class CatchmentAreaTool(AnalysisTool):
         # Extract time window settings
         from_time = 25200  # 07:00 default
         to_time = 32400  # 09:00 default
-        weekday_date = "2024-01-15"  # Weekday (Monday) default
+        weekday_date = "2025-09-16"  # Weekday (Tuesday) default - matches core
 
         if params.time_window:
             # Convert time to seconds if needed
@@ -1184,10 +1184,12 @@ class CatchmentAreaTool(AnalysisTool):
                 to_time = params.time_window.to_time
 
             # Map day type to sample dates (R5 needs actual dates)
+            # These must match the GTFS validity period in the R5 bundle
+            # Using September 2025 dates (same as core app)
             weekday_dates = {
-                "weekday": "2024-01-15",  # Monday
-                "saturday": "2024-01-20",  # Saturday
-                "sunday": "2024-01-21",  # Sunday
+                "weekday": "2025-09-16",  # Tuesday
+                "saturday": "2025-09-20",  # Saturday
+                "sunday": "2025-09-21",  # Sunday
             }
             weekday_date = weekday_dates.get(params.time_window.weekday, weekday_date)
 
@@ -1200,8 +1202,8 @@ class CatchmentAreaTool(AnalysisTool):
         payload = {
             "accessModes": access_mode,
             "transitModes": ",".join(transit_modes),
-            "bikeSpeed": 15.0,
-            "walkSpeed": 5.0,
+            "bikeSpeed": 4.17,  # m/s (15 km/h)
+            "walkSpeed": 1.39,  # m/s (5 km/h)
             "bikeTrafficStress": 4,
             "date": weekday_date,
             "fromTime": from_time,
@@ -1223,13 +1225,15 @@ class CatchmentAreaTool(AnalysisTool):
             "maxRides": 4,
             "maxWalkTime": 20,
             "monteCarloDraws": 200,
-            "percentiles": [5, 25, 50, 75, 95],
+            "percentiles": [5],  # Use 5th percentile for conservative travel times
             "variantIndex": getattr(settings.routing, "r5_variant_index", -1),
             "workerVersion": getattr(settings.routing, "r5_worker_version", "v7.2"),
             "regionId": r5_region_id,
             "projectId": r5_region_id,
             "bundleId": r5_bundle_id,
         }
+
+        logger.debug("R5 payload: %s", payload)
 
         url = f"{r5_host}/api/analysis"
         r5_binary = await self._post_with_retry(url, payload, authorization)
