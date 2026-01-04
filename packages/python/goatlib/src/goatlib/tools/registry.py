@@ -36,6 +36,8 @@ class ToolDefinition:
         category: Tool category for grouping (e.g., "geoprocessing", "data")
         keywords: Search keywords for discovery
         toolbox_hidden: If True, hide from toolbox UI (still available via API)
+        docs_path: Path to documentation (appended to docs base URL)
+        worker_tag: Windmill worker tag for job routing (e.g., "tools", "print")
     """
 
     name: str
@@ -47,6 +49,8 @@ class ToolDefinition:
     category: str = "geoprocessing"
     keywords: tuple[str, ...] = ()
     toolbox_hidden: bool = False
+    docs_path: str | None = None
+    worker_tag: str = "tools"
 
     def get_params_class(self: Self) -> type["ToolInputBase"]:
         """Dynamically import and return the params class."""
@@ -67,6 +71,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/buffer",
         category="geoprocessing",
         keywords=("geoprocessing", "buffer", "geometry"),
+        docs_path="/toolbox/geoprocessing/buffer",
     ),
     ToolDefinition(
         name="clip",
@@ -126,6 +131,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         params_class_name="OriginDestinationToolParams",
         windmill_path="f/goat/origin_destination",
         category="geoanalysis",
+        docs_path="/toolbox/geoanalysis/origin_destination",
         keywords=("geoanalysis", "od", "origin", "destination", "matrix", "flow"),
     ),
     # Accessibility indicators
@@ -144,6 +150,28 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
             "opportunities",
             "travel time",
         ),
+        docs_path="/toolbox/accessibility_indicators/gravity",
+    ),
+    ToolDefinition(
+        name="catchment_area",
+        display_name="Catchment Area",
+        description="Compute isochrones/catchment areas for various transport modes",
+        module_path="goatlib.tools.catchment_area",
+        params_class_name="CatchmentAreaWindmillParams",
+        windmill_path="f/goat/catchment_area",
+        category="accessibility_indicators",
+        keywords=(
+            "accessibility",
+            "catchment",
+            "isochrone",
+            "reachability",
+            "travel time",
+            "walking",
+            "cycling",
+            "public transport",
+            "car",
+        ),
+        docs_path="/toolbox/accessibility_indicators/catchments",
     ),
     ToolDefinition(
         name="heatmap_closest_average",
@@ -161,6 +189,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
             "distance",
             "travel time",
         ),
+        docs_path="/toolbox/accessibility_indicators/closest_average",
     ),
     ToolDefinition(
         name="heatmap_connectivity",
@@ -177,6 +206,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
             "reachability",
             "travel time",
         ),
+        docs_path="/toolbox/accessibility_indicators/connectivity",
     ),
     ToolDefinition(
         name="oev_gueteklassen",
@@ -194,6 +224,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
             "stations",
             "ÖV",
         ),
+        docs_path="/toolbox/accessibility_indicators/oev_gueteklassen",
     ),
     ToolDefinition(
         name="layerimport",
@@ -227,6 +258,18 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         category="data",
         keywords=("export", "download", "gpkg", "geojson", "data"),
         toolbox_hidden=True,
+    ),
+    ToolDefinition(
+        name="printreport",
+        display_name="PrintReport",
+        description="Generate PDF/PNG reports from map layouts",
+        module_path="goatlib.tools.print_report",
+        params_class_name="PrintReportParams",
+        windmill_path="f/goat/print_report",
+        category="data",
+        keywords=("print", "report", "pdf", "png", "export"),
+        toolbox_hidden=True,
+        worker_tag="print",
     ),
 )
 

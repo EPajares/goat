@@ -68,6 +68,10 @@ class ToolInfo:
     job_control_options: list[str] = field(default_factory=lambda: ["async-execute"])
     keywords: list[str] = field(default_factory=list)
     toolbox_hidden: bool = False  # Hide from toolbox UI
+    docs_path: str | None = (
+        None  # Documentation path (e.g., "/toolbox/geoprocessing/buffer")
+    )
+    worker_tag: str = "tools"  # Windmill worker tag for job routing
 
     @property
     def supports_sync(self) -> bool:
@@ -136,6 +140,8 @@ class ToolRegistry:
                     category=tool_def.category,
                     keywords=list(tool_def.keywords),
                     toolbox_hidden=tool_def.toolbox_hidden,
+                    docs_path=tool_def.docs_path,
+                    worker_tag=tool_def.worker_tag,
                 )
 
             self._initialized = True
@@ -472,6 +478,39 @@ class ToolRegistry:
         # Extract $defs from full schema for nested type resolution
         schema_defs = full_schema.get("$defs", {}) if full_schema else {}
 
+        # Build links list
+        links = [
+            Link(
+                href=f"{base_url}/processes/{tool.name}",
+                rel="self",
+                type="application/json",
+                title="Process description",
+            ),
+            Link(
+                href=f"{base_url}/processes/{tool.name}/execution",
+                rel="http://www.opengis.net/def/rel/ogc/1.0/execute",
+                type="application/json",
+                title="Execute process",
+            ),
+            Link(
+                href=f"{base_url}/processes",
+                rel="up",
+                type="application/json",
+                title="Process list",
+            ),
+        ]
+
+        # Add documentation link if docs_path is available
+        if tool.docs_path:
+            links.append(
+                Link(
+                    href=tool.docs_path,
+                    rel="describedby",
+                    type="text/html",
+                    title="Documentation",
+                )
+            )
+
         # Build process description with UI sections
         process_desc = ProcessDescription(
             id=tool.name,
@@ -487,26 +526,7 @@ class ToolRegistry:
             outputs=outputs,
             x_ui_sections=ui_sections,
             schema_defs=schema_defs,
-            links=[
-                Link(
-                    href=f"{base_url}/processes/{tool.name}",
-                    rel="self",
-                    type="application/json",
-                    title="Process description",
-                ),
-                Link(
-                    href=f"{base_url}/processes/{tool.name}/execution",
-                    rel="http://www.opengis.net/def/rel/ogc/1.0/execute",
-                    type="application/json",
-                    title="Execute process",
-                ),
-                Link(
-                    href=f"{base_url}/processes",
-                    rel="up",
-                    type="application/json",
-                    title="Process list",
-                ),
-            ],
+            links=links,
         )
 
         return process_desc

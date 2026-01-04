@@ -4,10 +4,11 @@ Converts Pydantic models to Windmill-compatible function signatures.
 Windmill parses function signatures statically and only understands primitive types.
 """
 
-import tomllib
 from enum import Enum
 from pathlib import Path
 from typing import Literal, Union
+
+import tomllib
 
 
 def _get_goatlib_dependencies() -> list[str]:
@@ -119,10 +120,15 @@ def _format_default_value(value: object) -> str:
     """Format a default value for code generation.
 
     Handles enums specially to use their .value instead of repr().
+    Also handles lists that may contain enums.
     """
     if isinstance(value, Enum):
         # Use the enum's value (e.g., "gaussian" instead of <ImpedanceFunction.gaussian>)
         return repr(value.value)
+    if isinstance(value, list):
+        # Handle lists that may contain enums
+        formatted_items = [_format_default_value(item) for item in value]
+        return f"[{', '.join(formatted_items)}]"
     return repr(value)
 
 

@@ -12,8 +12,10 @@ import BooleanInput from "@/components/map/panels/toolbox/generic/inputs/Boolean
 import EnumInput from "@/components/map/panels/toolbox/generic/inputs/EnumInput";
 import FieldInput from "@/components/map/panels/toolbox/generic/inputs/FieldInput";
 import LayerInput from "@/components/map/panels/toolbox/generic/inputs/LayerInput";
+import MultiEnumInput from "@/components/map/panels/toolbox/generic/inputs/MultiEnumInput";
 import NumberInput from "@/components/map/panels/toolbox/generic/inputs/NumberInput";
 import RepeatableObjectInput from "@/components/map/panels/toolbox/generic/inputs/RepeatableObjectInput";
+import StartingPointsInput from "@/components/map/panels/toolbox/generic/inputs/StartingPointsInput";
 import StringInput from "@/components/map/panels/toolbox/generic/inputs/StringInput";
 import TimePickerInput from "@/components/map/panels/toolbox/generic/inputs/TimePickerInput";
 
@@ -73,6 +75,17 @@ export default function GenericInput({
         />
       );
 
+    case "multi-enum":
+      return (
+        <MultiEnumInput
+          input={input}
+          value={value as (string | number)[] | undefined}
+          onChange={onChange}
+          disabled={disabled}
+          schemaDefs={schemaDefs}
+        />
+      );
+
     case "boolean":
       return (
         <BooleanInput
@@ -98,6 +111,16 @@ export default function GenericInput({
         <TimePickerInput
           input={input}
           value={value as number | undefined}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      );
+
+    case "starting-points":
+      return (
+        <StartingPointsInput
+          input={input}
+          value={value as { latitude: number[]; longitude: number[] } | { layer_id: string } | undefined}
           onChange={onChange}
           disabled={disabled}
         />

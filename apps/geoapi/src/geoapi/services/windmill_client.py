@@ -76,18 +76,28 @@ class WindmillClient:
 
         Raises:
             WindmillError: If script execution fails
+
+        Note:
+            Worker tags are configured on the script itself during sync,
+            not per-job. See create_or_update_script().
         """
         client = self._get_client()
 
         logger.info(f"Submitting job for script {script_path}")
 
         try:
-            job_id = await self._run_sync(
-                client.run_script_by_path_async,
-                path=script_path,
-                args=args,
-                scheduled_in_secs=scheduled_in_secs,
+            # Build params for the Windmill API
+            params: dict[str, Any] = {}
+            if scheduled_in_secs:
+                params["scheduled_in_secs"] = scheduled_in_secs
+
+            # Use low-level post for consistency
+            endpoint = f"/w/{client.workspace}/jobs/run/p/{script_path}"
+            response = client.post(
+                endpoint, json=args, params=params if params else None
             )
+            job_id = response.text
+
             logger.info(f"Job submitted successfully: {job_id} (script: {script_path})")
             return job_id
 
@@ -370,6 +380,7 @@ class WindmillClient:
         summary: str = "",
         description: str = "",
         language: str = "python3",
+        tag: str | None = None,
     ) -> dict[str, Any]:
         """Create or update a script in Windmill.
 
@@ -379,6 +390,7 @@ class WindmillClient:
             summary: Short summary
             description: Full description
             language: Script language (default: python3)
+            tag: Worker tag for job routing (e.g., "tools", "print")
 
         Returns:
             Script info dict
@@ -407,6 +419,8 @@ class WindmillClient:
             "description": description,
             "language": language,
         }
+        if tag:
+            script_data["tag"] = tag
 
         try:
             response = await self._run_sync(
@@ -524,6 +538,9 @@ class WindmillClient:
             "DUCKLAKE_CATALOG_SCHEMA": settings.DUCKLAKE_CATALOG_SCHEMA,
             "DUCKLAKE_DATA_DIR": settings.DUCKLAKE_DATA_DIR,
             "CUSTOMER_SCHEMA": settings.CUSTOMER_SCHEMA,
+            # Print worker settings
+            "PRINT_BASE_URL": settings.PRINT_BASE_URL,
+            "PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright",  # Match Dockerfile location
         }
 
         # Optional non-sensitive S3 settings
@@ -535,6 +552,9 @@ class WindmillClient:
             env_vars["S3_REGION_NAME"] = settings.S3_REGION_NAME
         if settings.S3_BUCKET_NAME:
             env_vars["S3_BUCKET_NAME"] = settings.S3_BUCKET_NAME
+
+        # Routing settings for catchment area tools
+        env_vars["R5_REGION_MAPPING_PATH"] = settings.R5_REGION_MAPPING_PATH
 
         logger.info(f"Configuring {len(env_vars)} workspace environment variables")
         for name, value in env_vars.items():
@@ -551,6 +571,12 @@ class WindmillClient:
             secrets["S3_ACCESS_KEY_ID"] = settings.S3_ACCESS_KEY_ID
         if settings.S3_SECRET_ACCESS_KEY:
             secrets["S3_SECRET_ACCESS_KEY"] = settings.S3_SECRET_ACCESS_KEY
+
+        # Routing secrets
+        secrets["GOAT_ROUTING_URL"] = settings.GOAT_ROUTING_URL
+        secrets["R5_URL"] = settings.R5_URL
+        if settings.GOAT_ROUTING_AUTHORIZATION:
+            secrets["GOAT_ROUTING_AUTHORIZATION"] = settings.GOAT_ROUTING_AUTHORIZATION
 
         logger.info(f"Configuring {len(secrets)} workspace secrets")
         for name, value in secrets.items():
@@ -584,6 +610,7 @@ class WindmillClient:
                     content=content,
                     summary=tool_def.display_name,
                     description=tool_def.description,
+                    tag=tool_def.worker_tag,
                 )
                 results.append(result)
             except WindmillError as e:
@@ -595,8 +622,6 @@ class WindmillClient:
                         "error": str(e),
                     }
                 )
-
-        return results
 
         return results
 
@@ -671,29 +696,33 @@ class WindmillClient:
             response.raise_for_status()
             jobs = response.json()
 
-            # Fetch results in parallel for successful jobs
-            # Windmill's /jobs/list doesn't include result, need separate fetch
-            # Only fetch for jobs that need payload (e.g., layer_export for download_url)
+            # Windmill's /jobs/list returns limited fields
+            # Fetch full details for jobs that need args/results
             if include_results:
-                # Only fetch results for layer_export jobs (they have download_url)
-                jobs_needing_results = [
+                # Jobs that need full details (args for filtering, results for download)
+                jobs_needing_details = [
                     j
                     for j in jobs
-                    if j.get("success") is True
-                    and j.get("script_path", "").endswith("layer_export")
+                    if j.get("script_path", "").endswith(
+                        ("layer_export", "print_report")
+                    )
                 ]
-                if jobs_needing_results:
+                if jobs_needing_details:
 
-                    async def fetch_result(job: dict[str, Any]) -> None:
+                    async def fetch_job_details(job: dict[str, Any]) -> None:
                         try:
-                            job["result"] = await self.get_job_result(job["id"])
+                            full_job = await self.get_job_status(job["id"])
+                            # Merge full job details into the list item
+                            job["args"] = full_job.get("args")
+                            if full_job.get("success") is True:
+                                job["result"] = full_job.get("result")
                         except Exception as e:
                             logger.warning(
-                                f"Failed to fetch result for job {job['id']}: {e}"
+                                f"Failed to fetch details for job {job['id']}: {e}"
                             )
 
                     await asyncio.gather(
-                        *[fetch_result(job) for job in jobs_needing_results],
+                        *[fetch_job_details(job) for job in jobs_needing_details],
                         return_exceptions=True,
                     )
 

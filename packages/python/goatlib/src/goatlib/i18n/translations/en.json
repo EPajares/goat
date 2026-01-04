@@ -56,12 +56,51 @@
     },
     "metadata": {
       "label": "Metadata"
+    },
+    "starting_points": {
+      "label": "Starting Points"
     }
   },
   "fields": {
     "routing_mode": {
       "label": "Transport Mode",
       "description": "Select the transport mode for accessibility analysis"
+    },
+    "routing_pt_mode": {
+      "label": "PT Modes",
+      "description": "Select public transport modes to include in the analysis"
+    },
+    "max_traveltime": {
+      "label": "Travel time limit (Min)",
+      "description": "Define the maximum travel time in minutes"
+    },
+    "steps": {
+      "label": "Number of breaks (Steps)",
+      "description": "Define the number of breaks"
+    },
+    "speed": {
+      "label": "Travel speed (Km/h)",
+      "description": "Define the travel speed"
+    },
+    "access_mode": {
+      "label": "Access Mode",
+      "description": "Mode of transport to access public transport stations"
+    },
+    "pt_egress_mode": {
+      "label": "Egress Mode",
+      "description": "Mode of transport after leaving public transport stations"
+    },
+    "catchment_area_type": {
+      "label": "Catchment area shape",
+      "description": "Select the shape of the catchment area geometry."
+    },
+    "polygon_difference": {
+      "label": "Polygon Difference",
+      "description": "If enabled, polygons show the difference between consecutive steps"
+    },
+    "choose_pt_mode": {
+      "label": "Choose PT Modes",
+      "description": "Select public transport modes to include in the analysis"
     },
     "impedance": {
       "label": "Impedance Function",
@@ -135,11 +174,15 @@
       "label": "Catchment Area Type",
       "description": "Method for calculating catchment areas"
     },
+    "distance_type": {
+      "label": "Distance Source",
+      "description": "How to determine the buffer distance"
+    },
     "distances": {
       "label": "Buffer Distances",
       "description": "List of buffer distances to create"
     },
-    "field": {
+    "distance_field": {
       "label": "Distance Field",
       "description": "Field containing buffer distance for each feature"
     },
@@ -310,6 +353,14 @@
     "operation": {
       "label": "Operation",
       "description": "Statistical operation to perform"
+    },
+    "measure_type": {
+      "label": "Catchment area type",
+      "description": "Calculate catchment area by time or distance"
+    },
+    "max_distance": {
+      "label": "Travel distance",
+      "description": "Define the maximum travel distance in meters"
     }
   },
   "enums": {
@@ -367,12 +418,25 @@
     },
     "catchment_type": {
       "buffer": "Buffer"
+    },
+    "distance_type": {
+      "constant": "Constant",
+      "field": "Field"
+    },
+    "measure_type": {
+      "time": "Time",
+      "distance": "Distance"
+    },
+    "catchment_area_type": {
+      "polygon": "Polygon",
+      "network": "Network",
+      "rectangular_grid": "Hexagonal Grid"
     }
   },
   "tools": {
     "buffer": {
       "title": "Buffer",
-      "description": "Create buffer zones around features"
+      "description": "The buffer creates a zone around given points, lines or polygons with a specified buffer distance."
     },
     "clip": {
       "title": "Clip",
@@ -396,19 +460,23 @@
     },
     "origin_destination": {
       "title": "Origin-Destination",
-      "description": "Visualize flow data between origins and destinations"
+      "description": "The Origin-Destination analysis is used in various fields such as transport planning and urban planning to study movements or flows between different locations."
     },
     "heatmap_gravity": {
       "title": "Heatmap Gravity",
-      "description": "Compute gravity-based accessibility heatmaps"
+      "description": "The accessibility is calculated from each grid cell to multiple locations simultaneously. The travel times are weighted and aggregated using an impedance function."
     },
     "heatmap_closest_average": {
       "title": "Heatmap Closest Average",
-      "description": "Compute accessibility based on closest destinations"
+      "description": "The average travel time to the nearest N destinations is shown, starting from each grid cell."
     },
     "heatmap_connectivity": {
       "title": "Heatmap Connectivity",
-      "description": "Compute connectivity to reference areas"
+      "description": "Connectivity of transport routes is determined by calculating catchment areas for each grid cell, where the reached area is the measure for connectivity."
+    },
+    "oev_gueteklassen": {
+      "title": "ÖV-Güteklassen",
+      "description": "The Public Transport Quality Classes (German: ÖV-Güteklassen) show the attractiveness of public transport services for a selected area."
     },
     "layer_import": {
       "title": "Import Layer",
@@ -437,6 +505,27 @@
     "area_statistics": {
       "title": "Area Statistics",
       "description": "Calculate area statistics for polygon features"
+    },
+    "catchment_area": {
+      "title": "Catchment Area",
+      "description": "Catchment Areas show how far people can travel within a set travel time or distance from one or more selected points.",
+      "docs_path": "toolbox/accessibility_indicators/catchments"
     }
+  },
+  "routing_modes": {
+    "walk": "Walk",
+    "walking": "Walk",
+    "bicycle": "Bicycle",
+    "pedelec": "Pedelec",
+    "car": "Car",
+    "pt": "Public Transport",
+    "bus": "Bus",
+    "tram": "Tram",
+    "rail": "Rail",
+    "subway": "Subway",
+    "ferry": "Ferry",
+    "cable_car": "Cable Car",
+    "gondola": "Gondola",
+    "funicular": "Funicular"
   }
 }

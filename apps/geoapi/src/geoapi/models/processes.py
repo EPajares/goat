@@ -227,8 +227,9 @@ class StatusInfo(BaseModel):
     updated: datetime | None = None
     progress: int | None = Field(default=None, ge=0, le=100)
     links: list[Link] = Field(default_factory=list)
-    # Extended field: embedded result (OGC results normally fetched via /jobs/{jobId}/results)
-    result: dict[str, Any] | None = None
+    # Extended fields (not OGC standard)
+    inputs: dict[str, Any] | None = None  # Job inputs for filtering
+    result: dict[str, Any] | None = None  # Job result/output
 
 
 class JobList(BaseModel):

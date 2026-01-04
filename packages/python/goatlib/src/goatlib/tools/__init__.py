@@ -41,6 +41,7 @@ from goatlib.tools.origin_destination import (
     OriginDestinationToolParams,
     OriginDestinationToolRunner,
 )
+from goatlib.tools.print_report import PrintReportParams, PrintReportRunner
 from goatlib.tools.registry import TOOL_REGISTRY, ToolDefinition, get_tool
 from goatlib.tools.schemas import (
     LayerInputMixin,
@@ -78,6 +79,8 @@ __all__ = [
     "LayerDeleteRunner",
     "LayerExportParams",
     "LayerExportRunner",
+    "PrintReportParams",
+    "PrintReportRunner",
     "generate_windmill_script",
     "python_type_to_str",
     "TOOL_REGISTRY",
