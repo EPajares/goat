@@ -77,12 +77,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJson(format('[{0}]', inputs.platforms == 'linux/amd64,linux/arm64' && '"linux/amd64","linux/arm64"' || inputs.platforms == 'linux/arm64' && '"linux/arm64"' || '"linux/amd64"')) }}
+        platform: [linux/amd64, linux/arm64]
         include:
           - platform: linux/amd64
             runner: ubuntu-latest
           - platform: linux/arm64
             runner: ubuntu-latest
+        exclude:
+          - platform: ${{ inputs.platforms != 'linux/amd64,linux/arm64' && 'linux/arm64' || 'skip' }}
     steps:
       - name: 📥 Prepare safe identifiers
         run: |
