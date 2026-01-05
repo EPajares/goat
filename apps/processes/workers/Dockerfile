@@ -145,9 +145,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    PATH="/root/.local/bin:$PATH"
-RUN uv tool install playwright && playwright install && playwright install-deps
+# Install Playwright Python package and browsers
+RUN uv pip install playwright && playwright install chromium && playwright install-deps chromium
 
 ENV WORKER_TAGS=print

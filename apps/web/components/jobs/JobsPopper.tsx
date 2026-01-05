@@ -116,7 +116,7 @@ export default function JobsPopper() {
                 }}>
                 <Stack direction="column">
                   {jobs?.jobs?.map((job, index) => {
-                    // Add download button for layer_export jobs
+                    // Add download button for LayerExport jobs
                     const actionButton =
                       job.processID === "layer_export" ? renderExportDownloadButton(job) : undefined;
 

@@ -163,10 +163,13 @@ class BaseDuckLakeManager:
             data_dir = getattr(settings, "DUCKLAKE_DATA_DIR", None)
             if data_dir:
                 self._storage_path = data_dir
-                os.makedirs(self._storage_path, exist_ok=True)
             else:
                 base_dir = getattr(settings, "DATA_DIR", "/tmp")
                 self._storage_path = os.path.join(base_dir, "ducklake")
+
+            # Only create directory in write mode - read-only mode should not
+            # attempt to create directories (e.g., on read-only file systems)
+            if not self._read_only and not os.path.exists(self._storage_path):
                 os.makedirs(self._storage_path, exist_ok=True)
 
         self._create_connection()
@@ -189,7 +192,7 @@ class BaseDuckLakeManager:
         self._s3_access_key = s3_access_key
         self._s3_secret_key = s3_secret_key
 
-        if not storage_path.startswith("s3://"):
+        if not storage_path.startswith("s3://") and not os.path.exists(storage_path):
             os.makedirs(storage_path, exist_ok=True)
 
         self._create_connection()
@@ -369,8 +372,12 @@ class BaseDuckLakeManager:
             f"METADATA_SCHEMA '{self._catalog_schema}'",
         ]
         if self._read_only:
-            options.append("READ_ONLY true")
-        options.append("OVERRIDE_DATA_PATH true")
+            # Read-only mode: use DATA_PATH from metadata (e.g., S3)
+            # Don't override - we want to read from wherever data actually is
+            options.append("READ_ONLY")
+        else:
+            # Write mode: override data path to write to our specified location
+            options.append("OVERRIDE_DATA_PATH")
         options_str = ", ".join(options)
 
         attach_sql = f"ATTACH 'ducklake:postgres:{libpq_str}' AS lake ({options_str})"
@@ -532,11 +539,12 @@ class DuckLakePool:
         params.update(POSTGRES_KEEPALIVE_PARAMS)
         libpq_str = " ".join(f"{k}={v}" for k, v in params.items())
 
+        # Read-only mode: use DATA_PATH from metadata (e.g., S3)
+        # Don't override - we want to read from wherever data actually is
         options = [
             f"DATA_PATH '{self._storage_path}'",
             f"METADATA_SCHEMA '{self._catalog_schema}'",
-            "READ_ONLY true",
-            "OVERRIDE_DATA_PATH true",
+            "READ_ONLY",
         ]
         options_str = ", ".join(options)
 

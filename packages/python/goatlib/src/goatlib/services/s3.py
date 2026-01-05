@@ -24,14 +24,15 @@ class S3Service:
         if io_cfg.s3_endpoint_url:
             extra["endpoint_url"] = io_cfg.s3_endpoint_url
 
-        if io_cfg.s3_provider and io_cfg.s3_provider.lower() in {"hetzner", "minio"}:
+        provider = (io_cfg.s3_provider or "aws").lower()
+        if provider in {"hetzner", "minio"}:
+            # MinIO always needs path-style, Hetzner can use virtual
+            use_path_style = provider == "minio" or io_cfg.s3_force_path_style
             extra["config"] = Config(
                 signature_version="s3v4",
                 s3={
                     "payload_signing_enabled": False,
-                    "addressing_style": "path"
-                    if io_cfg.s3_force_path_style
-                    else "virtual",
+                    "addressing_style": "path" if use_path_style else "virtual",
                 },
             )
 
@@ -111,12 +112,17 @@ class S3Service:
         key: str,
         bucket: Optional[str] = None,
         expires_in: int = 3600,
+        use_public_url: bool = True,
     ) -> str:
         b = bucket or settings.io.s3_bucket_name
         try:
-            return self.client.generate_presigned_url(
+            url = self.client.generate_presigned_url(
                 "get_object", Params={"Bucket": b, "Key": key}, ExpiresIn=expires_in
             )
+            # Replace internal endpoint with public endpoint for browser access
+            if use_public_url and settings.io.s3_public_endpoint_url and settings.io.s3_endpoint_url:
+                url = url.replace(settings.io.s3_endpoint_url, settings.io.s3_public_endpoint_url)
+            return url
         except ClientError as e:
             logger.exception("Presigned GET failed")
             raise RuntimeError(f"S3 presigned GET error: {e}")

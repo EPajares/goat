@@ -79,19 +79,27 @@ async def get_user_token(
     Raises:
         HTTPException: If auth is enabled and token is missing/invalid
     """
-    # If auth is disabled, return a mock token
-    if not settings.AUTH:
-        return {
-            "sub": "00000000-0000-0000-0000-000000000000",
-            "preferred_username": "dev_user",
-            "email": "dev@example.com",
-        }
-
     # Try to get token from header
     if not token:
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header[7:]
+
+    # If auth is disabled but token is provided, decode it without verification
+    # This allows using real user IDs while bypassing signature validation
+    if not settings.AUTH:
+        if token:
+            try:
+                # Decode without signature verification
+                return decode_token(token)
+            except JOSEError as e:
+                logger.warning(f"Failed to decode token in AUTH=False mode: {e}")
+        # Fall back to mock user only if no token provided
+        return {
+            "sub": "00000000-0000-0000-0000-000000000000",
+            "preferred_username": "dev_user",
+            "email": "dev@example.com",
+        }
 
     if not token:
         raise HTTPException(

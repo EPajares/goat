@@ -416,12 +416,20 @@ class WindmillClient:
         created_after = datetime.now(timezone.utc) - timedelta(days=created_after_days)
         created_after_iso = created_after.isoformat()
 
+        # Normalize process_id to Windmill script path format
+        # e.g., "PrintReport" -> "print_report", "buffer" -> "buffer"
+        normalized_process_id = None
+        if process_id:
+            # Convert PascalCase/camelCase to snake_case for Windmill path matching
+            import re
+            normalized_process_id = re.sub(r'(?<!^)(?=[A-Z])', '_', process_id).lower()
+
         # Build query params - use indexed filters first
         params: dict[str, Any] = {
             "per_page": min(limit, 100),  # Windmill max is 100
             "script_path_start": script_path_start
-            if not process_id
-            else f"f/goat/{process_id}",
+            if not normalized_process_id
+            else f"f/goat/{normalized_process_id}",
             "created_after": created_after_iso,
             "has_null_parent": "true",  # Only root jobs, not flow steps
             "job_kinds": "script",  # Only script jobs

@@ -28,6 +28,7 @@ jobs:
         with:
           enable-corepack: true
           cwd: ${{ github.workspace }}
+          node_version: 22
 
       - name: 🏗️ Build
         uses: ./.github/actions/pnpm-cache-build

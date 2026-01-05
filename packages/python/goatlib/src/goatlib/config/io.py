@@ -7,6 +7,9 @@ class IOSettings(BaseSettingsModel):
     """Settings for dataset I/O and optional direct S3 access."""
 
     s3_endpoint_url: str | None = None  # e.g. "https://s3.fsn1.de"
+    s3_public_endpoint_url: str | None = (
+        None  # Public URL for browser access (e.g., "http://localhost:9000")
+    )
     s3_provider: str | None = "aws"  # or "hetzner", "minio"
     s3_force_path_style: bool = False  # MinIO compatibility
     s3_region: str | None = "eu-central-1"

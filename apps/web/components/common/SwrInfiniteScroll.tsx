@@ -22,7 +22,12 @@ const useIntersection = <T extends HTMLElement>(): [boolean, Ref<T>] => {
     observer.observe(element);
     return () => observer.unobserve(element);
   }, [element]);
-  return [intersecting, (el) => el && setElement(el)];
+  return [
+    intersecting,
+    (el) => {
+      if (el) setElement(el);
+    },
+  ];
 };
 
 const InfiniteScroll = <T,>(props: Props<T>): React.ReactElement<Props<T>> => {

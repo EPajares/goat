@@ -1,10 +1,10 @@
 {
   "name": "GOAT",
-  "dockerComposeFile": ["compose.dev.yaml"],
+  "dockerComposeFile": ["../compose.yaml"],
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "service": "goat-dev",
-  "initializeCommand": "cd .devcontainer && ln -sf ../.env .env 2>/dev/null || true",
+  "runServices": ["goat-dev"],
   "customizations": {
     "vscode": {
         "extensions": [
