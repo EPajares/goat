@@ -423,6 +423,14 @@
     "select_group_fields": {
       "label": "Group Fields",
       "description": "Optional field(s) to group aggregated results by."
+    },
+    "weighted_by_intersecting_area": {
+      "label": "Weight by Intersection Area",
+      "description": "If enabled, statistics are weighted proportionally by the area of intersection between source and target polygons."
+    },
+    "select_statistics_configuration": {
+      "label": "Statistics Configuration",
+      "description": "Configure the statistical operation and field for aggregation."
     }
   },
   "enums": {
@@ -587,6 +595,10 @@
       "title": "Catchment Area",
       "description": "Catchment Areas show how far people can travel within a set travel time or distance from one or more selected points.",
       "docs_path": "toolbox/accessibility_indicators/catchments"
+    },
+    "aggregate_polygon": {
+      "title": "Aggregate Polygons",
+      "description": "Summarizes polygon features within designated areas. Calculates statistics like count, sum, mean, min, or max for each area. Supports weighting by intersection area ratio."
     }
   },
   "routing_modes": {

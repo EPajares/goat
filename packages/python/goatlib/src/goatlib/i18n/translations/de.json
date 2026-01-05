@@ -423,6 +423,14 @@
     "select_group_fields": {
       "label": "Gruppenfelder",
       "description": "Optionale Feld(er) zur Gruppierung der aggregierten Ergebnisse."
+    },
+    "weighted_by_intersecting_area": {
+      "label": "Nach Schnittfläche gewichten",
+      "description": "Wenn aktiviert, werden die Statistiken proportional zur Schnittfläche zwischen Quell- und Zielpolygonen gewichtet."
+    },
+    "select_statistics_configuration": {
+      "label": "Statistik-Konfiguration",
+      "description": "Konfigurieren Sie die statistische Operation und das Feld für die Aggregation."
     }
   },
   "enums": {
@@ -587,6 +595,10 @@
       "title": "Einzugsgebiet",
       "description": "Einzugsgebiete zeigen Flächen auf die in einer festgelegten Reisezeit oder Entfernung von einem oder mehreren Ausgangspunkten erreicht werden.",
       "docs_path": "toolbox/accessibility_indicators/catchments"
+    },
+    "aggregate_polygon": {
+      "title": "Polygone aggregieren",
+      "description": "Fasst Polygon-Features innerhalb von definierten Gebieten zusammen. Berechnet Statistiken wie Anzahl, Summe, Mittelwert, Minimum oder Maximum für jedes Gebiet. Unterstützt Gewichtung nach Schnittflächenanteil."
     }
   },
   "routing_modes": {

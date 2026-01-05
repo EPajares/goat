@@ -97,7 +97,7 @@ class ColumnStatistic(BaseModel):
             section="statistics",
             field_order=2,
             widget="field-selector",
-            widget_options={"source": "source_path", "types": ["number"]},
+            widget_options={"source_layer": "source_layer_id", "types": ["number"]},
             visible_when={"operation": {"$ne": "count"}},
         ),
     )
@@ -254,3 +254,45 @@ class AggregatePointsParams(BaseModel):
             area_layer_field_name="area_layer_path",
         )
         return self
+
+
+class AggregatePolygonParams(AggregatePointsParams):
+    """Parameters for aggregating polygons onto polygons or H3 grids.
+
+    This tool aggregates polygon features within polygon areas or H3 hexagons,
+    computing statistics like count, sum, mean, min, or max of polygon attributes.
+
+    The main difference from AggregatePointsParams is:
+    - Accepts polygon source layers instead of points
+    - Supports weighted statistics based on intersection area
+    """
+
+    # ---- Source Input Override ----
+    source_path: str = Field(
+        ...,
+        description="Path to the polygon layer to be aggregated.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+            widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
+        ),
+    )
+
+    # ---- Polygon-specific Configuration ----
+    weighted_by_intersecting_area: bool = Field(
+        False,
+        description="If true, statistics are weighted by the intersection area ratio between source and area polygons.",
+        json_schema_extra=ui_field(
+            section="statistics",
+            field_order=3,
+            label_key="weighted_by_intersecting_area",
+        ),
+    )
+
+    # ---- Override Geometry Type Constraints ----
+    accepted_source_geometry_types: List[GeometryType] = Field(
+        default=[GeometryType.polygon, GeometryType.multipolygon],
+        description="Accepted geometry types for source layer.",
+        json_schema_extra=ui_field(section="input", hidden=True),
+    )
