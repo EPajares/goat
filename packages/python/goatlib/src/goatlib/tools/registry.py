@@ -227,8 +227,8 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         docs_path="/toolbox/accessibility_indicators/oev_gueteklassen",
     ),
     ToolDefinition(
-        name="layerimport",
-        display_name="LayerImport",
+        name="layer_import",
+        display_name="Layer Import",
         description="Import geospatial data from S3 or WFS into DuckLake",
         module_path="goatlib.tools.layer_import",
         params_class_name="LayerImportParams",
@@ -238,8 +238,8 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         toolbox_hidden=True,
     ),
     ToolDefinition(
-        name="layerdelete",
-        display_name="LayerDelete",
+        name="layer_delete",
+        display_name="Layer Delete",
         description="Delete a layer from DuckLake storage and PostgreSQL metadata",
         module_path="goatlib.tools.layer_delete",
         params_class_name="LayerDeleteParams",
@@ -249,8 +249,8 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         toolbox_hidden=True,
     ),
     ToolDefinition(
-        name="layerexport",
-        display_name="LayerExport",
+        name="layer_export",
+        display_name="Layer Export",
         description="Export a layer to file formats (GPKG, GeoJSON, CSV, etc.)",
         module_path="goatlib.tools.layer_export",
         params_class_name="LayerExportParams",
@@ -260,8 +260,8 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         toolbox_hidden=True,
     ),
     ToolDefinition(
-        name="printreport",
-        display_name="PrintReport",
+        name="print_report",
+        display_name="Print Report",
         description="Generate PDF/PNG reports from map layouts",
         module_path="goatlib.tools.print_report",
         params_class_name="PrintReportParams",

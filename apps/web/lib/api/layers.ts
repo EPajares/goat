@@ -122,7 +122,7 @@ export const updateLayerDataset = async (
     ...(options?.refresh_wfs && { refresh_wfs: options.refresh_wfs }),
   };
 
-  return executeProcessAsync("LayerUpdate", inputs);
+  return executeProcessAsync("layer_update", inputs);
 };
 
 export const useDatasetCollectionItems = (datasetId: string, queryParams?: GetCollectionItemsQueryParams) => {
@@ -178,7 +178,7 @@ export const useLayerClassBreaks = (
 
 export const deleteLayer = async (id: string): Promise<Job> => {
   // user_id is extracted from JWT token by the server
-  return executeProcessAsync("LayerDelete", {
+  return executeProcessAsync("layer_delete", {
     layer_id: id,
   });
 };
@@ -213,7 +213,7 @@ export const createLayer = async (
     ...(payload.other_properties && { other_properties: payload.other_properties }),
   };
 
-  return executeProcessAsync("LayerImport", inputs);
+  return executeProcessAsync("layer_import", inputs);
 };
 
 /**
@@ -402,7 +402,7 @@ export const startDatasetExport = async (
     ...(payload.query && { query: payload.query }),
   };
 
-  return executeProcessAsync("LayerExport", inputs);
+  return executeProcessAsync("layer_export", inputs);
 };
 
 export const useClassBreak = (layerId: string, operation: string, column: string, breaks: number) => {

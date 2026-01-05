@@ -112,12 +112,17 @@ class S3Service:
         key: str,
         bucket: Optional[str] = None,
         expires_in: int = 3600,
+        use_public_url: bool = True,
     ) -> str:
         b = bucket or settings.io.s3_bucket_name
         try:
-            return self.client.generate_presigned_url(
+            url = self.client.generate_presigned_url(
                 "get_object", Params={"Bucket": b, "Key": key}, ExpiresIn=expires_in
             )
+            # Replace internal endpoint with public endpoint for browser access
+            if use_public_url and settings.io.s3_public_endpoint_url and settings.io.s3_endpoint_url:
+                url = url.replace(settings.io.s3_endpoint_url, settings.io.s3_public_endpoint_url)
+            return url
         except ClientError as e:
             logger.exception("Presigned GET failed")
             raise RuntimeError(f"S3 presigned GET error: {e}")

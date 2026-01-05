@@ -118,7 +118,7 @@ export default function JobsPopper() {
                   {jobs?.jobs?.map((job, index) => {
                     // Add download button for LayerExport jobs
                     const actionButton =
-                      job.processID === "LayerExport" ? renderExportDownloadButton(job) : undefined;
+                      job.processID === "layer_export" ? renderExportDownloadButton(job) : undefined;
 
                     return (
                       <Box key={job.jobID}>

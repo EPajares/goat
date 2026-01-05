@@ -58,7 +58,7 @@ export function useExportReport(): UseExportReportResult {
           inputs.total_atlas_pages = totalAtlasPages;
         }
 
-        const job = await executeProcessAsync("PrintReport", inputs);
+        const job = await executeProcessAsync("print_report", inputs);
 
         if (job.jobID) {
           toast.info(`"${t("print_report")}" - ${t("job_started")}`);
