@@ -16,60 +16,46 @@ ENV LC_CTYPE=C.utf8 \
 
 ENV PATH="$UV_PROJECT_ENVIRONMENT/bin:$PATH"
 
-RUN apt-get update
-RUN apt-get upgrade -y
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install --no-install-recommends -y tzdata \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install general required dependencies
-RUN apt-get install --no-install-recommends -y tzdata
+# ==== STAGE 2: Python environment ====
+FROM linux-base AS python-base
 
-# ===== STAGE 2: Runtime dependencies ====
-FROM linux-base AS runtime-deps
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    build-essential \
+    gettext \
+    gdal-bin \
+    libgdal-dev \
+    python3-gdal \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext wget clang
-# Install Qgis, gdal and pymgl
-RUN apt-get install -y gdal-bin libgdal-dev
-RUN wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
-RUN apt-get install -y qgis python3-qgis
-RUN mkdir -p /etc/pki/tls/certs && \
-    ln -s /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
-RUN apt-get -y install xvfb
-
-# ==== STAGE 3: Python environment ====
-FROM runtime-deps AS python-base
-# Install debian dependencies
-RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
+
 # Create virtual environment and install dependencies
 COPY apps/core /app/apps/core
+COPY packages/python/goatlib /app/packages/python/goatlib
 COPY pyproject.toml uv.lock /app/
 WORKDIR /app
-ENV UV_PYTHON_PREFERENCE=only-managed
+
 # Install project dependencies
 RUN uv sync --all-extras --frozen --no-dev --no-editable --package=core
 
-# Install Playwright browsers (Chromium) for PDF generation
-RUN uv run playwright install chromium --with-deps
+# Copy GDAL Python bindings from system to venv
+RUN cp -r /usr/lib/python3/dist-packages/osgeo* $UV_PROJECT_ENVIRONMENT/lib/python3.11/site-packages/
 
-# ==== STAGE 4: Webapp environment ====
-FROM runtime-deps AS webapp
+# ==== STAGE 3: Webapp environment ====
+FROM linux-base AS webapp
 
-# Clean-up
-RUN apt-get update -y \
-    && apt-get remove -y --purge build-essential wget \
-    && apt-get autoremove -y \
-    && apt-get clean \
+# Install GDAL runtime libraries
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    gdal-bin \
+    libgdal32 \
     && rm -rf /var/lib/apt/lists/*
 
-ENV DISPLAY=:0 \
-    XDG_RUNTIME_DIR=/tmp \
-    LIBGL_ALWAYS_SOFTWARE=1 \
-    DEBIAN_FRONTEND=noninteractive \
-    PYTHONMALLOC=malloc \
-    # This is needed for QGIS.
-    PYTHONPATH=".:/usr/lib/python3/dist-packages"
-
-# Copy python, virtual env and static assets
+# Copy python, virtual env and app
 COPY --from=python-base $UV_PYTHON_INSTALL_DIR $UV_PYTHON_INSTALL_DIR
 COPY --from=python-base $UV_PROJECT_ENVIRONMENT $UV_PROJECT_ENVIRONMENT
 COPY --from=python-base /app /app
@@ -82,4 +68,4 @@ WORKDIR /app
 
 EXPOSE 8000
 
-CMD ["bash", "-c", "Xvfb ${DISPLAY} -screen 0 '1024x768x24' -ac +extension GLX +render -noreset -nolisten tcp -nolisten unix & exec fastapi run apps/core/src/core/main.py"]
+CMD ["fastapi", "run", "apps/core/src/core/main.py"]
