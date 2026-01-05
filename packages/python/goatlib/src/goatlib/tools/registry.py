@@ -178,6 +178,25 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
             "intersection",
         ),
     ),
+    ToolDefinition(
+        name="geocoding",
+        display_name="Geocoding",
+        description="Geocode addresses from a layer using Pelias geocoder service",
+        module_path="goatlib.tools.geocoding",
+        params_class_name="GeocodingToolParams",
+        windmill_path="f/goat/geocoding",
+        category="geoanalysis",
+        docs_path="/toolbox/geoanalysis/geocoding",
+        keywords=(
+            "geoanalysis",
+            "geocode",
+            "geocoding",
+            "address",
+            "coordinates",
+            "location",
+            "pelias",
+        ),
+    ),
     # Accessibility indicators
     ToolDefinition(
         name="heatmap_gravity",

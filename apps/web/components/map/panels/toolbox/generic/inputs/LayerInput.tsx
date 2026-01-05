@@ -31,6 +31,7 @@ interface LayerInputProps {
  */
 function mapGeometryToLayerType(geometry: string): string {
   const normalized = geometry.toLowerCase();
+  if (normalized === "no_geometry" || normalized === "table") return "no_geometry";
   if (normalized.includes("polygon")) return "polygon";
   if (normalized.includes("line") || normalized.includes("linestring")) return "line";
   if (normalized.includes("point")) return "point";
@@ -57,12 +58,20 @@ export default function LayerInput({
     // Apply geometry constraints if present
     if (input.geometryConstraints && input.geometryConstraints.length > 0) {
       const allowedTypes = input.geometryConstraints.map(mapGeometryToLayerType);
+      const allowNoGeometry = allowedTypes.includes("no_geometry");
 
       filtered = filtered.filter((layer) => {
         const layerGeomType = layer.feature_layer_geometry_type?.toLowerCase();
-        if (!layerGeomType) return true; // Allow if no geometry type (tables, etc.)
 
-        return allowedTypes.some((allowed) => layerGeomType.includes(allowed));
+        // Handle no_geometry constraint - match layers without geometry (tables)
+        if (allowNoGeometry && !layerGeomType) {
+          return true;
+        }
+
+        // If no geometry type on layer and we're not looking for tables, skip
+        if (!layerGeomType) return false;
+
+        return allowedTypes.some((allowed) => allowed !== "no_geometry" && layerGeomType.includes(allowed));
       });
     }
 

@@ -91,6 +91,10 @@ class ToolSettings:
     r5_url: str = "http://localhost:7070"
     r5_region_mapping_path: str | None = None
 
+    # Geocoding settings
+    geocoding_url: str | None = None
+    geocoding_authorization: str | None = None
+
     def get_s3_client(self: Self) -> Any:
         """Create boto3 S3 client with provider-specific config.
 
@@ -178,7 +182,9 @@ class ToolSettings:
             ducklake_catalog_schema=cls._get_secret(
                 "DUCKLAKE_CATALOG_SCHEMA", "ducklake"
             ),
-            ducklake_data_dir=cls._get_secret("DUCKLAKE_DATA_DIR", "/app/data/ducklake"),
+            ducklake_data_dir=cls._get_secret(
+                "DUCKLAKE_DATA_DIR", "/app/data/ducklake"
+            ),
             od_matrix_base_path=cls._get_secret(
                 "OD_MATRIX_BASE_PATH", "/app/data/traveltime_matrices"
             ),
@@ -199,6 +205,9 @@ class ToolSettings:
             r5_region_mapping_path=cls._get_secret(
                 "R5_REGION_MAPPING_PATH", "/app/data/gtfs/r5_region_mapping.parquet"
             ),
+            geocoding_url=cls._get_secret("GEOCODING_URL", "") or None,
+            geocoding_authorization=cls._get_secret("GEOCODING_AUTHORIZATION", "")
+            or None,
         )
 
 

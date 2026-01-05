@@ -121,9 +121,9 @@ export default function FieldInput({
   // Fetch fields for the layer
   const { layerFields, isLoading } = useLayerFields(datasetId);
 
-  // Get field type filter from widget_options
+  // Get field type filter from widget_options (supports both 'field_types' and 'types')
   const fieldTypeFilter = useMemo(() => {
-    const fieldTypes = input.uiMeta?.widget_options?.field_types;
+    const fieldTypes = input.uiMeta?.widget_options?.field_types || input.uiMeta?.widget_options?.types;
     if (Array.isArray(fieldTypes)) {
       return fieldTypes as string[];
     }
@@ -132,7 +132,7 @@ export default function FieldInput({
 
   // Check if multi-select mode is enabled
   const isMultiSelect = useMemo(() => {
-    return input.uiMeta?.widget_options?.multi === true;
+    return input.uiMeta?.widget_options?.multi === true || input.uiMeta?.widget_options?.multiple === true;
   }, [input.uiMeta]);
 
   // Filter fields by type if specified

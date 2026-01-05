@@ -48,6 +48,9 @@
     "field_selection": {
       "label": "Feldauswahl"
     },
+    "geocoding": {
+      "label": "Geokodierung"
+    },
     "matrix": {
       "label": "Matrix-Daten"
     },
@@ -431,6 +434,34 @@
     "select_statistics_configuration": {
       "label": "Statistik-Konfiguration",
       "description": "Konfigurieren Sie die statistische Operation und das Feld für die Aggregation."
+    },
+    "input_mode": {
+      "label": "Eingabemodus",
+      "description": "Wie die Adresseingabe erfolgt"
+    },
+    "full_address_field": {
+      "label": "Adressfeld",
+      "description": "Spalte mit vollständiger Adresse (z.B. 'Marienplatz 1, München, Deutschland')"
+    },
+    "address_field": {
+      "label": "Straße und Hausnummer",
+      "description": "Spalte für die Straße und Hausnummer (z.B. 'Marienplatz 1'). Erforderlich."
+    },
+    "locality_field": {
+      "label": "Stadt/Gemeinde",
+      "description": "Spalte für Stadt- oder Gemeindenamen. Optional."
+    },
+    "region_field": {
+      "label": "Bundesland/Region",
+      "description": "Spalte für Bundesland, Region oder Provinz. Optional."
+    },
+    "postalcode_field": {
+      "label": "Postleitzahl",
+      "description": "Spalte für Postleitzahl. Optional."
+    },
+    "country_field": {
+      "label": "Land",
+      "description": "Spalte für Land (Name oder ISO-Code). Optional."
     }
   },
   "enums": {
@@ -492,6 +523,14 @@
     "distance_type": {
       "constant": "Konstant",
       "field": "Feld"
+    },
+    "input_mode": {
+      "full_address": "Vollständige Adresse",
+      "structured": "Strukturiert"
+    },
+    "geocoding_input_mode": {
+      "full_address": "Vollständige Adresse",
+      "structured": "Strukturiert"
     },
     "measure_type": {
       "time": "Zeit",
@@ -599,6 +638,10 @@
     "aggregate_polygon": {
       "title": "Polygone aggregieren",
       "description": "Fasst Polygon-Features innerhalb von definierten Gebieten zusammen. Berechnet Statistiken wie Anzahl, Summe, Mittelwert, Minimum oder Maximum für jedes Gebiet. Unterstützt Gewichtung nach Schnittflächenanteil."
+    },
+    "geocoding": {
+      "title": "Geokodierung",
+      "description": "Wandelt Adressen in geografische Koordinaten um. Unterstützt sowohl vollständige Adresszeichenfolgen als auch strukturierte Adresskomponenten."
     }
   },
   "routing_modes": {

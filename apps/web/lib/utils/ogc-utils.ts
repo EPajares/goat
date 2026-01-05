@@ -30,7 +30,11 @@ const DEFAULT_SECTIONS: UISection[] = [
 /**
  * Infer the input type from OGC input schema
  */
-export function inferInputType(input: OGCInputDescription, inputName: string): InferredInputType {
+export function inferInputType(
+  input: OGCInputDescription,
+  inputName: string,
+  schemaDefs?: Record<string, OGCInputSchema>
+): InferredInputType {
   const { schema, keywords } = input;
 
   // Check keywords first (more specific)
@@ -56,6 +60,9 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
   if (topLevelUiMeta?.widget === "starting-points") {
     return "starting-points";
   }
+  if (topLevelUiMeta?.widget === "field-selector") {
+    return "field";
+  }
 
   // Get the effective schema (handle anyOf/oneOf for nullable types)
   const effectiveSchema = getEffectiveSchema(schema);
@@ -67,6 +74,9 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
   }
   if (uiMeta?.widget === "starting-points") {
     return "starting-points";
+  }
+  if (uiMeta?.widget === "field-selector") {
+    return "field";
   }
 
   // Check for repeatable array of objects (e.g., opportunities in heatmap)
@@ -111,8 +121,23 @@ export function inferInputType(input: OGCInputDescription, inputName: string): I
     return "object";
   }
 
-  // Check for $ref (usually enum types)
+  // Check for $ref and resolve it to determine the actual type
   if (effectiveSchema.$ref) {
+    if (schemaDefs) {
+      const refName = effectiveSchema.$ref.replace("#/$defs/", "");
+      const refSchema = schemaDefs[refName];
+      if (refSchema) {
+        // Check if the referenced schema is an object
+        if (refSchema.type === "object" || refSchema.properties) {
+          return "object";
+        }
+        // Check if it's an enum
+        if (refSchema.enum) {
+          return "enum";
+        }
+      }
+    }
+    // Default to enum for backwards compatibility if we can't resolve
     return "enum";
   }
 
@@ -196,7 +221,7 @@ export function processInput(
   input: OGCInputDescription,
   schemaDefs?: Record<string, OGCInputSchema>
 ): ProcessedInput {
-  const inputType = inferInputType(input, name);
+  const inputType = inferInputType(input, name, schemaDefs);
   const effectiveSchema = getEffectiveSchema(input.schema);
   const uiMeta = input.schema["x-ui"] as UIFieldMeta | undefined;
 

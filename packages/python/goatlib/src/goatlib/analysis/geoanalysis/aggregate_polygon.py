@@ -163,9 +163,14 @@ class AggregatePolygonTool(AnalysisTool):
             "area",
         )
 
-        # Get statistics SQL
+        # Get statistics SQL and result column name
         stats_field = params.column_statistics.field
         stats_operation = params.column_statistics.operation
+        # Column name: "count" for count, otherwise "{operation}_{field}"
+        if stats_operation.value == "count":
+            result_col = "count"
+        else:
+            result_col = f"{stats_operation.value}_{stats_field}" if stats_field else stats_operation.value
 
         # Build weighted or simple statistics expression
         if params.weighted_by_intersecting_area and stats_field:
@@ -253,8 +258,8 @@ class AggregatePolygonTool(AnalysisTool):
                 SELECT
                     a.{area_geom} AS geom,
                     {area_select_with_prefix},
-                    COALESCE(t.total_stats, 0) AS {stats_operation.value},
-                    g.grouped_stats AS {stats_operation.value}_grouped
+                    COALESCE(t.total_stats, 0) AS {result_col},
+                    g.grouped_stats AS {result_col}_grouped
                 FROM area_with_id a
                 LEFT JOIN total_stats t ON a.area_id = t.area_id
                 LEFT JOIN grouped_json g ON a.area_id = g.area_id
@@ -281,7 +286,7 @@ class AggregatePolygonTool(AnalysisTool):
                 SELECT
                     a.{area_geom} AS geom,
                     {area_select_with_prefix},
-                    COALESCE(t.total_stats, 0) AS {stats_operation.value}
+                    COALESCE(t.total_stats, 0) AS {result_col}
                 FROM area_with_id a
                 LEFT JOIN total_stats t ON a.area_id = t.area_id
             """)
@@ -366,13 +371,18 @@ class AggregatePolygonTool(AnalysisTool):
         """
         h3_resolution = params.h3_resolution
 
-        # Get statistics SQL
+        # Get statistics SQL and result column name
         stats_field = params.column_statistics.field
         stats_operation = params.column_statistics.operation
         stats_sql = self.get_statistics_sql(
             stats_field if stats_field else "",
             stats_operation.value,
         )
+        # Column name: "count" for count, otherwise "{operation}_{field}"
+        if stats_operation.value == "count":
+            result_col = "count"
+        else:
+            result_col = f"{stats_operation.value}_{stats_field}" if stats_field else stats_operation.value
 
         if params.group_by_field:
             # Build group by columns expression
@@ -434,8 +444,8 @@ class AggregatePolygonTool(AnalysisTool):
                 SELECT
                     ST_GeomFromText(h3_cell_to_boundary_wkt(t.h3_index)) AS geom,
                     h3_h3_to_string(t.h3_index) AS h3_{h3_resolution},
-                    t.total_stats AS {stats_operation.value},
-                    g.grouped_stats AS {stats_operation.value}_grouped
+                    t.total_stats AS {result_col},
+                    g.grouped_stats AS {result_col}_grouped
                 FROM total_stats t
                 LEFT JOIN grouped_json g ON t.h3_index = g.h3_index
             """)
@@ -464,7 +474,7 @@ class AggregatePolygonTool(AnalysisTool):
                 SELECT
                     ST_GeomFromText(h3_cell_to_boundary_wkt(h3_index)) AS geom,
                     h3_h3_to_string(h3_index) AS h3_{h3_resolution},
-                    total_stats AS {stats_operation.value}
+                    total_stats AS {result_col}
                 FROM total_stats
             """)
 

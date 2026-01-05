@@ -14,6 +14,7 @@ import FieldInput from "@/components/map/panels/toolbox/generic/inputs/FieldInpu
 import LayerInput from "@/components/map/panels/toolbox/generic/inputs/LayerInput";
 import MultiEnumInput from "@/components/map/panels/toolbox/generic/inputs/MultiEnumInput";
 import NumberInput from "@/components/map/panels/toolbox/generic/inputs/NumberInput";
+import ObjectInput from "@/components/map/panels/toolbox/generic/inputs/ObjectInput";
 import RepeatableObjectInput from "@/components/map/panels/toolbox/generic/inputs/RepeatableObjectInput";
 import StartingPointsInput from "@/components/map/panels/toolbox/generic/inputs/StartingPointsInput";
 import StringInput from "@/components/map/panels/toolbox/generic/inputs/StringInput";
@@ -159,12 +160,15 @@ export default function GenericInput({
       );
 
     case "object":
-      // For complex objects, show a message for now
-      // TODO: Implement nested object input
       return (
-        <Typography variant="body2" color="text.secondary">
-          Complex input: {input.title} (not yet supported in generic form)
-        </Typography>
+        <ObjectInput
+          input={input}
+          value={value as Record<string, unknown> | undefined}
+          onChange={onChange}
+          disabled={disabled}
+          schemaDefs={schemaDefs}
+          formValues={formValues}
+        />
       );
 
     case "unknown":

@@ -6,7 +6,7 @@ computing statistics like count, sum, mean, min, or max.
 
 import logging
 from pathlib import Path
-from typing import Any, Optional, Self
+from typing import Any, List, Optional, Self
 
 from pydantic import Field, model_validator
 
@@ -107,6 +107,20 @@ class AggregatePointsToolParams(ToolInputBase, AggregatePointsParams):
             section="statistics",
             field_order=1,
             label_key="select_statistics_configuration",
+        ),
+    )
+
+    # Override group_by_field to use source_layer_id instead of source_path
+    group_by_field: Optional[List[str]] = Field(
+        None,
+        description="Optional field(s) in the source layer to group aggregated results by (max 3 fields).",
+        json_schema_extra=ui_field(
+            section="statistics",
+            field_order=10,
+            advanced=True,
+            label_key="select_group_fields",
+            widget="field-selector",
+            widget_options={"source_layer": "source_layer_id", "multiple": True, "max": 3},
         ),
     )
 

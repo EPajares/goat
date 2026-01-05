@@ -293,21 +293,12 @@ class GeocodingParams(BaseModel):
             hidden=True,
         ),
     )
-    geocoder_username: str = Field(
+    geocoder_authorization: str = Field(
         ...,
-        description="Pelias geocoder username for Basic auth",
+        description="Geocoder authorization header (e.g., 'Basic dXNlcjpwYXNz')",
         json_schema_extra=ui_field(
             section="geocoding",
             field_order=81,
-            hidden=True,
-        ),
-    )
-    geocoder_password: str = Field(
-        ...,
-        description="Pelias geocoder password for Basic auth",
-        json_schema_extra=ui_field(
-            section="geocoding",
-            field_order=82,
             hidden=True,
         ),
     )

@@ -8,7 +8,6 @@ geocoding results (geometry, confidence, match_type).
 """
 
 import asyncio
-import base64
 import logging
 from pathlib import Path
 from typing import Any, List, Self, Tuple
@@ -71,12 +70,6 @@ class GeocodingTool(AnalysisTool):
         super().__init__(db_path=db_path)
         self._timeout = timeout
         self._concurrent_requests = concurrent_requests
-
-    def _get_authorization(self: Self, params: GeocodingParams) -> str:
-        """Get Basic auth header from params."""
-        credentials = f"{params.geocoder_username}:{params.geocoder_password}"
-        encoded = base64.b64encode(credentials.encode()).decode()
-        return f"Basic {encoded}"
 
     def _run_implementation(
         self: Self, params: GeocodingParams
@@ -143,7 +136,7 @@ class GeocodingTool(AnalysisTool):
         row_dicts = [dict(zip(columns, row)) for row in rows]
 
         # Prepare geocoding requests
-        authorization = self._get_authorization(params)
+        authorization = params.geocoder_authorization
         search_url = f"{params.geocoder_url}/v1/search"
 
         # Geocode all rows with concurrency control

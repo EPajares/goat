@@ -48,6 +48,9 @@
     "field_selection": {
       "label": "Field Selection"
     },
+    "geocoding": {
+      "label": "Geocoding"
+    },
     "matrix": {
       "label": "Matrix Data"
     },
@@ -431,6 +434,38 @@
     "select_statistics_configuration": {
       "label": "Statistics Configuration",
       "description": "Configure the statistical operation and field for aggregation."
+    },
+    "input_mode": {
+      "label": "Input Mode",
+      "description": "How address input is provided"
+    },
+    "full_address_field": {
+      "label": "Address Field",
+      "description": "Column containing complete address (e.g., 'Marienplatz 1, Munich, Germany')"
+    },
+    "address_field": {
+      "label": "Street Address",
+      "description": "Column for street address (e.g., 'Marienplatz 1')"
+    },
+    "locality_field": {
+      "label": "City/Town",
+      "description": "Column for city or town name"
+    },
+    "region_field": {
+      "label": "State/Province",
+      "description": "Column for state, province, or region"
+    },
+    "postalcode_field": {
+      "label": "Postal Code",
+      "description": "Column for postal/ZIP code"
+    },
+    "country_field": {
+      "label": "Country Field",
+      "description": "Column for country (name or ISO code). Leave empty to use default."
+    },
+    "country_constant": {
+      "label": "Default Country",
+      "description": "Default country when no country field is selected"
     }
   },
   "enums": {
@@ -492,6 +527,14 @@
     "distance_type": {
       "constant": "Constant",
       "field": "Field"
+    },
+    "input_mode": {
+      "full_address": "Full Address",
+      "structured": "Structured"
+    },
+    "geocoding_input_mode": {
+      "full_address": "Full Address",
+      "structured": "Structured"
     },
     "measure_type": {
       "time": "Time",
@@ -599,6 +642,10 @@
     "aggregate_polygon": {
       "title": "Aggregate Polygons",
       "description": "Summarizes polygon features within designated areas. Calculates statistics like count, sum, mean, min, or max for each area. Supports weighting by intersection area ratio."
+    },
+    "geocoding": {
+      "title": "Geocoding",
+      "description": "Convert addresses to geographic coordinates. Supports both full address strings and structured address components."
     }
   },
   "routing_modes": {

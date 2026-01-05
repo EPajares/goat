@@ -10,5 +10,6 @@ export { default as NumberInput } from "./NumberInput";
 export { default as BooleanInput } from "./BooleanInput";
 export { default as StringInput } from "./StringInput";
 export { default as ArrayInput } from "./ArrayInput";
+export { default as ObjectInput } from "./ObjectInput";
 export { default as StartingPointsInput } from "./StartingPointsInput";
 export { default as StartingPointsTable } from "./StartingPointsTable";
