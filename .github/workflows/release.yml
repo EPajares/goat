@@ -74,7 +74,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/geoapi/Dockerfile
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/geoapi
 
   release-docker-routing:
@@ -90,12 +90,13 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/routing/Dockerfile
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/routing
 
   release-docker-accounts:
     needs: [file-changes, lint]
-    if: needs.file-changes.outputs.accounts == 'true' || startsWith(github.ref, 'refs/tags/v')
+    if: false # Disabled temporarily
+    # if: needs.file-changes.outputs.accounts == 'true' || startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/reusable-docker-build.yml
     permissions:
       contents: read
@@ -106,7 +107,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/accounts/Dockerfile
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/accounts
 
   release-docker-storybook:
@@ -122,7 +123,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/storybook/Dockerfile
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/storybook
 
   release-docker-docs:
@@ -138,7 +139,7 @@ jobs:
       ghcr-enable: true
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/docs/Dockerfile
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/docs
 
   release-keycloak-theme:
@@ -165,7 +166,7 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/processes/workers/Dockerfile
       target: server
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/windmill-server
 
   release-docker-windmill-worker-default:
@@ -182,7 +183,7 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/processes/workers/Dockerfile
       target: worker-default
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/windmill-worker-default
 
   release-docker-windmill-worker-tools:
@@ -199,7 +200,7 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/processes/workers/Dockerfile
       target: worker-tools
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/windmill-worker-tools
 
   release-docker-windmill-worker-print:
@@ -216,5 +217,5 @@ jobs:
       push: ${{ github.event_name != 'pull_request' }}
       file: ./apps/processes/workers/Dockerfile
       target: worker-print
-      platforms: linux/amd64,linux/arm64
+      platforms: ${{ startsWith(github.ref, 'refs/tags/v') && 'linux/amd64,linux/arm64' || 'linux/amd64' }}
       image-name: ghcr.io/${{ github.repository }}/windmill-worker-print
