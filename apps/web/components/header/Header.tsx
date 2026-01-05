@@ -279,13 +279,12 @@ export default function Header(props: HeaderProps) {
             {props.mapHeader && !viewOnly && (
               <SlidingToggle
                 options={[
-                  { label: t("common:data"), value: "data" },
-                  { label: t("common:builder"), value: "builder" },
+                  { label: t("common:map"), value: "data" },
                   { label: t("common:reports"), value: "reports" },
-                  { label: t("common:workflows"), value: "workflows" },
+                  { label: t("common:builder"), value: "builder" },
                 ]}
                 activeOption={mapMode}
-                onToggle={(value: "data" | "builder" | "reports" | "workflows") => {
+                onToggle={(value: "data" | "builder" | "reports") => {
                   dispatch(setMapMode(value));
                 }}
               />

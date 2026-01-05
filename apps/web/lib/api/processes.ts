@@ -54,13 +54,14 @@ export type JobStatusType = "accepted" | "running" | "successful" | "failed" | "
 
 /**
  * Process/Job types (process IDs)
+ * These match the Windmill script names (snake_case)
  */
 export type JobType =
-  | "LayerImport"
-  | "LayerExport"
-  | "LayerUpdate"
-  | "LayerDelete"
-  | "PrintReport"
+  | "layer_import"
+  | "layer_export"
+  | "layer_update"
+  | "layer_delete"
+  | "print_report"
   | "buffer"
   | "join"
   | "catchment_area_active_mobility"

@@ -2,8 +2,8 @@
  * PDF Renderer - Server-side PDF generation using Playwright
  * This runs in Node.js (API routes or backend service)
  */
-import type { Browser, Page } from "playwright";
-import { chromium } from "playwright";
+import type { Browser, Page } from "@playwright/test";
+import { chromium } from "@playwright/test";
 
 export interface PDFGenerationOptions {
   /** Target URL or HTML content */
@@ -103,13 +103,13 @@ export class PDFRenderer {
       if (typeof options.source === "string") {
         // URL
         await page.goto(options.source, {
-          waitUntil: "networkidle",
+          waitUntil: "load",
           timeout: options.timeout || 30000,
         });
       } else {
         // HTML content
         await page.setContent(options.source.html, {
-          waitUntil: "networkidle",
+          waitUntil: "load",
           timeout: options.timeout || 30000,
         });
       }
@@ -173,9 +173,9 @@ export class PDFRenderer {
     try {
       // Load content
       if (typeof source === "string") {
-        await page.goto(source, { waitUntil: "networkidle" });
+        await page.goto(source, { waitUntil: "load" });
       } else {
-        await page.setContent(source.html, { waitUntil: "networkidle" });
+        await page.setContent(source.html, { waitUntil: "load" });
       }
 
       const screenshot = await page.screenshot({
@@ -207,9 +207,9 @@ export class PDFRenderer {
 
     try {
       if (typeof source === "string") {
-        await page.goto(source, { waitUntil: "networkidle" });
+        await page.goto(source, { waitUntil: "load" });
       } else {
-        await page.setContent(source.html, { waitUntil: "networkidle" });
+        await page.setContent(source.html, { waitUntil: "load" });
       }
 
       return await fn(page);

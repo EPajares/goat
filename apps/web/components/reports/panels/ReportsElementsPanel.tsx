@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { Download as DownloadIcon } from "@mui/icons-material";
+import { OpenInNew as OpenInNewIcon } from "@mui/icons-material";
 import {
   Box,
   Card,
@@ -218,7 +218,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
   const { jobs, isLoading, mutate } = useJobs(
     projectId
       ? {
-          processID: "PrintReport",
+          processID: "print_report",
         }
       : undefined
   );
@@ -228,7 +228,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
     if (!jobs?.jobs || !layoutId) return [];
     return jobs.jobs.filter((job) => {
       // Filter by job type first
-      if (job.processID !== "PrintReport") return false;
+      if (job.processID !== "print_report") return false;
       // Then filter by layout_id in inputs
       return job.inputs?.layout_id === layoutId;
     });
@@ -251,37 +251,8 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
     return () => clearInterval(intervalId);
   }, [hasRunningJobs, mutate]);
 
-  const [downloadingJobId, setDownloadingJobId] = useState<string | null>(null);
-
-  const handleDownload = async (jobId: string, fallbackFileName: string) => {
-    if (!projectId) return;
-
-    setDownloadingJobId(jobId);
-    try {
-      // Get a fresh download URL from the API
-      const { apiRequestAuth } = await import("@/lib/api/fetcher");
-      const response = await apiRequestAuth(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v2/project/${projectId}/print/${jobId}/download`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to get download URL");
-      }
-
-      const data = await response.json();
-
-      // Trigger download
-      const link = document.createElement("a");
-      link.href = data.download_url;
-      link.download = data.file_name || fallbackFileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Download failed:", error);
-    } finally {
-      setDownloadingJobId(null);
-    }
+  const handleOpenPdf = (downloadUrl: string) => {
+    window.open(downloadUrl, "_blank");
   };
 
   if (isLoading) {
@@ -314,23 +285,17 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
             const result = job.result as
               | { download_url?: string; file_name?: string; format?: string }
               | undefined;
-            // Show download button for finished jobs that have a download_url
-            const canDownload = job.status === "successful" && result?.download_url;
-            const isDownloading = downloadingJobId === job.jobID;
+            // Show open button for finished jobs that have a download_url
+            const canOpen = job.status === "successful" && result?.download_url;
 
-            // Create download button to pass as custom action
-            const downloadButton = canDownload ? (
-              <Tooltip title={t("download")}>
+            // Create open button to pass as custom action
+            const openButton = canOpen ? (
+              <Tooltip title={t("view")}>
                 <IconButton
                   size="small"
-                  onClick={() => handleDownload(job.jobID, result?.file_name || "report.pdf")}
-                  disabled={isDownloading}
+                  onClick={() => handleOpenPdf(result.download_url!)}
                   sx={{ fontSize: "1.2rem", color: "success.main" }}>
-                  {isDownloading ? (
-                    <CircularProgress size={18} color="success" />
-                  ) : (
-                    <DownloadIcon fontSize="small" />
-                  )}
+                  <OpenInNewIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             ) : undefined;
@@ -344,7 +309,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
                   name={job.jobID}
                   date={job.updated || job.created || ""}
                   errorMessage={job.status === "failed" ? job.message : undefined}
-                  actionButton={downloadButton}
+                  actionButton={openButton}
                 />
                 {index < printJobs.length - 1 && <Divider />}
               </Box>

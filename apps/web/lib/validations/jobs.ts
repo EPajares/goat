@@ -10,11 +10,11 @@ export type { Job, JobStatusType, JobType, GetJobsQueryParams, JobsResponse } fr
 
 // Job type enum for runtime validation (matches processID values)
 export const jobTypeValues = [
-  "LayerImport",
-  "LayerExport",
-  "LayerUpdate",
-  "LayerDelete",
-  "PrintReport",
+  "layer_import",
+  "layer_export",
+  "layer_update",
+  "layer_delete",
+  "print_report",
   "buffer",
   "join",
   "catchment_area_active_mobility",
@@ -61,11 +61,11 @@ export function isJobFailed(status: string): boolean {
  */
 export const jobTypeEnum = {
   Enum: {
-    LayerImport: "LayerImport",
-    LayerExport: "LayerExport",
-    LayerUpdate: "LayerUpdate",
-    LayerDelete: "LayerDelete",
-    PrintReport: "PrintReport",
+    layer_import: "layer_import",
+    layer_export: "layer_export",
+    layer_update: "layer_update",
+    layer_delete: "layer_delete",
+    print_report: "print_report",
     buffer: "buffer",
     join: "join",
     catchment_area_active_mobility: "catchment_area_active_mobility",

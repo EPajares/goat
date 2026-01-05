@@ -18,7 +18,7 @@ from core.crud.crud_folder import folder as crud_folder
 from core.db.models.folder import Folder
 from core.db.session import AsyncSession
 from core.deps.auth import auth_z
-from core.endpoints.deps import get_db, get_user_id
+from core.endpoints.deps import ensure_home_folder, get_db, get_user_id
 from core.schemas.common import OrderEnum
 from core.schemas.folder import (
     FolderCreate,
@@ -110,7 +110,7 @@ async def read_folder(
     response_model=List[FolderRead],
     response_model_exclude_none=True,
     status_code=200,
-    dependencies=[Depends(auth_z)],
+    dependencies=[Depends(auth_z), Depends(ensure_home_folder)],
 )
 async def read_folders(
     *,

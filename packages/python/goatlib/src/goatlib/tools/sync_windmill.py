@@ -31,7 +31,7 @@ class WindmillSyncer:
         self: Self,
         base_url: str,
         token: str,
-        workspace: str = "plan4better",
+        workspace: str = "goat",
     ) -> None:
         """Initialize syncer.
 

@@ -60,7 +60,7 @@ export function useJobStatus(onSuccess?: () => void, onFailed?: () => void) {
           onSuccessRef.current?.();
           // Don't show success toast for delete jobs - already handled optimistically
           const isDeleteJob =
-            job.processID === "LayerDelete" || job.processID.toLowerCase().includes("delete");
+            job.processID === "layer_delete" || job.processID.toLowerCase().includes("delete");
           if (!isDeleteJob) {
             toast.success(`"${type}" - ${t("job_success")}`);
           }
