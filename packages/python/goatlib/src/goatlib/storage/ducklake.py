@@ -163,11 +163,13 @@ class BaseDuckLakeManager:
             data_dir = getattr(settings, "DUCKLAKE_DATA_DIR", None)
             if data_dir:
                 self._storage_path = data_dir
-                os.makedirs(self._storage_path, exist_ok=True)
+                if not os.path.exists(self._storage_path):
+                    os.makedirs(self._storage_path, exist_ok=True)
             else:
                 base_dir = getattr(settings, "DATA_DIR", "/tmp")
                 self._storage_path = os.path.join(base_dir, "ducklake")
-                os.makedirs(self._storage_path, exist_ok=True)
+                if not os.path.exists(self._storage_path):
+                    os.makedirs(self._storage_path, exist_ok=True)
 
         self._create_connection()
         logger.info("DuckLake initialized: catalog=%s", self._catalog_schema)
@@ -189,7 +191,7 @@ class BaseDuckLakeManager:
         self._s3_access_key = s3_access_key
         self._s3_secret_key = s3_secret_key
 
-        if not storage_path.startswith("s3://"):
+        if not storage_path.startswith("s3://") and not os.path.exists(storage_path):
             os.makedirs(storage_path, exist_ok=True)
 
         self._create_connection()
