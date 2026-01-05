@@ -156,38 +156,47 @@ class ToolSettings:
         Sensitive values (passwords, keys) are read from Windmill secrets first,
         falling back to environment variables for local development.
         """
+        # Get base connection info (try Windmill vars first, then env vars)
+        pg_server = cls._get_secret("POSTGRES_SERVER", "db")
+        pg_port = cls._get_secret("POSTGRES_PORT", "5432")
+        pg_user = cls._get_secret("POSTGRES_USER", "postgres")
+        pg_db = cls._get_secret("POSTGRES_DB", "goat")
+        pg_password = cls._get_secret("POSTGRES_PASSWORD", "postgres")
+
+        # Build default URI from components (uses db hostname, not localhost)
+        default_uri = (
+            f"postgresql://{pg_user}:{pg_password}@{pg_server}:{pg_port}/{pg_db}"
+        )
+
         return cls(
-            postgres_server=os.environ.get("POSTGRES_SERVER", "localhost"),
-            postgres_port=int(os.environ.get("POSTGRES_PORT", "5432")),
-            postgres_user=os.environ.get("POSTGRES_USER", "postgres"),
-            postgres_password=cls._get_secret("POSTGRES_PASSWORD", "postgres"),
-            postgres_db=os.environ.get("POSTGRES_DB", "goat"),
-            ducklake_postgres_uri=cls._get_secret(
-                "POSTGRES_DATABASE_URI",
-                "postgresql://postgres:postgres@localhost:5432/goat",
-            ),
-            ducklake_catalog_schema=os.environ.get(
+            postgres_server=pg_server,
+            postgres_port=int(pg_port),
+            postgres_user=pg_user,
+            postgres_password=pg_password,
+            postgres_db=pg_db,
+            ducklake_postgres_uri=cls._get_secret("POSTGRES_DATABASE_URI", default_uri),
+            ducklake_catalog_schema=cls._get_secret(
                 "DUCKLAKE_CATALOG_SCHEMA", "ducklake"
             ),
-            ducklake_data_dir=os.environ.get("DUCKLAKE_DATA_DIR", "/app/data/ducklake"),
-            od_matrix_base_path=os.environ.get(
+            ducklake_data_dir=cls._get_secret("DUCKLAKE_DATA_DIR", "/app/data/ducklake"),
+            od_matrix_base_path=cls._get_secret(
                 "OD_MATRIX_BASE_PATH", "/app/data/traveltime_matrices"
             ),
-            s3_provider=os.environ.get("S3_PROVIDER", "hetzner").lower(),
-            s3_endpoint_url=os.environ.get("S3_ENDPOINT_URL"),
+            s3_provider=cls._get_secret("S3_PROVIDER", "hetzner").lower(),
+            s3_endpoint_url=cls._get_secret("S3_ENDPOINT_URL", ""),
             s3_access_key_id=cls._get_secret("S3_ACCESS_KEY_ID", ""),
             s3_secret_access_key=cls._get_secret("S3_SECRET_ACCESS_KEY", ""),
-            s3_region_name=os.environ.get("S3_REGION_NAME")
-            or os.environ.get("S3_REGION", "us-east-1"),
-            s3_bucket_name=os.environ.get("S3_BUCKET_NAME"),
-            customer_schema=os.environ.get("CUSTOMER_SCHEMA", "customer"),
+            s3_region_name=cls._get_secret("S3_REGION_NAME", "")
+            or cls._get_secret("S3_REGION", "us-east-1"),
+            s3_bucket_name=cls._get_secret("S3_BUCKET_NAME", ""),
+            customer_schema=cls._get_secret("CUSTOMER_SCHEMA", "customer"),
             goat_routing_url=cls._get_secret(
                 "GOAT_ROUTING_URL", "http://goat-dev:8200/api/v2/routing"
             ),
             goat_routing_authorization=cls._get_secret("GOAT_ROUTING_AUTHORIZATION", "")
             or None,
             r5_url=cls._get_secret("R5_URL", "https://r5.routing.plan4better.de"),
-            r5_region_mapping_path=os.environ.get(
+            r5_region_mapping_path=cls._get_secret(
                 "R5_REGION_MAPPING_PATH", "/app/data/gtfs/r5_region_mapping.parquet"
             ),
         )

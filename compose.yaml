@@ -1,3 +1,17 @@
+# =============================================================================
+# GOAT Docker Compose
+# =============================================================================
+# Profiles:
+#   - (none): Infrastructure + Windmill (db, minio, rabbitmq, redis, windmill)
+#   - dev: Adds devcontainer (goat-dev)
+#   - prod: Adds application services (core, geoapi, web)
+#
+# Usage:
+#   docker compose up                    # Infrastructure + Windmill
+#   docker compose --profile dev up      # + devcontainer
+#   docker compose --profile prod up     # + core, geoapi, web
+# =============================================================================
+
 x-env-base: &env-base
   POSTGRES_USER: ${POSTGRES_USER}
   POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -16,6 +30,10 @@ x-env-core: &env-core
   POSTGRES_DB: goat
   REGION_MAPPING_PT_TABLE: basic.region_mapping_pt_04022025
 
+x-env-windmill: &env-windmill
+  DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
+  DISABLE_NSJAIL: "true"
+
 x-service-core: &service-core
   image: ghcr.io/plan4better/goat/core
   build:
@@ -31,11 +49,21 @@ x-service-core: &service-core
       condition: service_healthy
       restart: true
 
+networks:
+  goat:
+    name: goat
+
 services:
+  # ===========================================================================
+  # Infrastructure (always on)
+  # ===========================================================================
+
   db:
     image: ghcr.io/plan4better/docker-images/postgres:20251111-8198082
     container_name: goat-db
     restart: always
+    networks:
+      - goat
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rds -d goat -h 127.0.0.1"]
       interval: 10s
@@ -53,10 +81,15 @@ services:
       DB_DATABASE_keycloak: keycloak
       DB_USERNAME_keycloak: ${POSTGRES_USER}
       DB_PASSWORD_keycloak: ${POSTGRES_PASSWORD}
+      DB_DATABASE_windmill: windmill
+      DB_USERNAME_windmill: ${POSTGRES_USER}
+      DB_PASSWORD_windmill: ${POSTGRES_PASSWORD}
+      DB_DATABASE_ducklake: ducklake
+      DB_USERNAME_ducklake: ${POSTGRES_USER}
+      DB_PASSWORD_ducklake: ${POSTGRES_PASSWORD}
       DISABLE_BACKUP: 1
       DB_INIT_SQL_goat: /rds/init/init-db.sql
       DB_POSTGRES_EXTRA_CONFIG: |
-
         max_connections = 200
         shared_buffers = 4GB
         effective_cache_size = 12GB
@@ -74,47 +107,18 @@ services:
         max_parallel_workers = 4
         max_parallel_maintenance_workers = 2
         shared_preload_libraries = 'citus,pg_cron'
-
     ports:
       - 5432:5432
     volumes:
       - ./data/db:/storage/data
       - ./scripts/db/init-db.sql:/rds/init/init-db.sql:ro
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:22.0.3
-    container_name: keycloak
-    restart: always
-    depends_on:
-      - db
-      - keycloak-theme-downloader
-    volumes:
-      - ./data/keycloak/providers:/opt/keycloak/providers
-    command: ["start-dev"]
-    ports:
-      - "8080:8080"
-    environment:
-      KC_DB: postgres
-      KC_DB_USERNAME: ${POSTGRES_USER}
-      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_DB_URL: jdbc:postgresql://${POSTGRES_SERVER}:5432/keycloak
-      KC_FEATURES: declarative-user-profile
-      KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
-      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-
-  keycloak-theme-downloader:
-    image: curlimages/curl:8.2.1
-    volumes:
-      - ./data/keycloak/providers:/opt/keycloak/providers
-    command: >
-      sh -c "curl -L -f -S -o /opt/keycloak/providers/p4b-keycloak-theme.jar https://assets.plan4better.de/other/keycloak/p4b-keyclok-theme-c7a4a10.jar"
-
   minio:
     image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     container_name: goat-minio
     restart: always
+    networks:
+      - goat
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -133,6 +137,8 @@ services:
 
   minio-buckets:
     image: quay.io/minio/mc:RELEASE.2025-08-13T08-35-41Z
+    networks:
+      - goat
     depends_on:
       minio:
         condition: service_healthy
@@ -144,15 +150,181 @@ services:
       exit 0;
       "
 
+  # ===========================================================================
+  # Message Queue & Cache
+  # ===========================================================================
+
+  rabbitmq:
+    image: rabbitmq:4.0.3-management
+    networks:
+      - goat
+    ports:
+      - 5672:5672
+      - 15672:15672
+
+  redis:
+    image: redis:7.4.1-alpine
+    networks:
+      - goat
+    command: redis-server --maxmemory 100mb --maxmemory-policy allkeys-lru
+
+  # ===========================================================================
+  # Windmill (workflow engine)
+  # ===========================================================================
+
+  # Windmill Server - API, UI, scheduler
+  windmill-server:
+    build:
+      context: .
+      dockerfile: apps/processes/workers/Dockerfile
+      target: server
+    networks:
+      - goat
+    environment:
+      <<: *env-windmill
+      MODE: server
+      BASE_URL: http://localhost:8110
+    ports:
+      - 8110:8000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Windmill Worker - Default (cron jobs, system tasks)
+  windmill-worker-default:
+    build:
+      context: .
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-default
+    restart: unless-stopped
+    networks:
+      - goat
+    environment:
+      <<: *env-windmill
+      MODE: worker
+      WORKER_GROUP: default
+      JOB_DEFAULT_TIMEOUT: 300
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Tools (analytics: buffer, heatmap, isochrone, etc.)
+  windmill-worker-tools:
+    build:
+      context: .
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-tools
+    restart: unless-stopped
+    networks:
+      - goat
+    environment:
+      <<: *env-windmill
+      MODE: worker
+      WORKER_GROUP: tools
+      WORKER_TAGS: tools
+      JOB_DEFAULT_TIMEOUT: 600
+      PYTHONDONTWRITEBYTECODE: "1"
+      # Pass env vars to Windmill job execution (comma-separated list)
+      WHITELIST_ENVS: "POSTGRES_SERVER,POSTGRES_PORT,POSTGRES_USER,POSTGRES_PASSWORD,POSTGRES_DB,POSTGRES_DATABASE_URI,DUCKLAKE_DATA_DIR,DUCKLAKE_CATALOG_SCHEMA,S3_PROVIDER,S3_ENDPOINT_URL,S3_ACCESS_KEY_ID,S3_SECRET_ACCESS_KEY,S3_BUCKET_NAME,S3_REGION_NAME,OD_MATRIX_BASE_PATH,GTFS_DATA_PATH,GOAT_ROUTING_URL,GOAT_ROUTING_AUTHORIZATION,R5_URL,R5_REGION_MAPPING_PATH"
+      # Tool environment variables
+      POSTGRES_SERVER: ${POSTGRES_SERVER}
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DATABASE_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/${POSTGRES_DB}
+      DUCKLAKE_DATA_DIR: /app/data/ducklake
+      DUCKLAKE_CATALOG_SCHEMA: ducklake
+      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_REGION_NAME: ${S3_REGION_NAME:-us-east-1}
+      OD_MATRIX_BASE_PATH: /app/data/traveltime_matrices
+      GTFS_DATA_PATH: /app/data/gtfs
+      GOAT_ROUTING_URL: ${GOAT_ROUTING_URL:-http://goat-dev:8200/api/v2/routing}
+      GOAT_ROUTING_AUTHORIZATION: ${GOAT_ROUTING_AUTHORIZATION}
+      R5_URL: ${R5_URL:-https://r5.routing.plan4better.de}
+      R5_REGION_MAPPING_PATH: /app/data/gtfs/r5_region_mapping.parquet
+    volumes:
+      - ./packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
+      - ./data/ducklake:/app/data/ducklake
+      - ./data/traveltime_matrices:/app/data/traveltime_matrices:ro
+      - ./data/gtfs:/app/data/gtfs:ro
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Print (PDF reports, thumbnails)
+  windmill-worker-print:
+    build:
+      context: .
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-print
+    restart: unless-stopped
+    networks:
+      - goat
+    environment:
+      <<: *env-windmill
+      MODE: worker
+      WORKER_GROUP: print
+      WORKER_TAGS: print
+      JOB_DEFAULT_TIMEOUT: 300
+      PYTHONDONTWRITEBYTECODE: "1"
+      # Pass env vars to Windmill job execution
+      WHITELIST_ENVS: "S3_PROVIDER,S3_ENDPOINT_URL,S3_ACCESS_KEY_ID,S3_SECRET_ACCESS_KEY,S3_BUCKET_NAME,S3_REGION_NAME,PRINT_BASE_URL,CORE_API_URL"
+      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+      S3_REGION_NAME: ${S3_REGION_NAME:-us-east-1}
+      PRINT_BASE_URL: http://goat-dev:3000
+      CORE_API_URL: http://goat-dev:8080
+    volumes:
+      - ./packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
+    depends_on:
+      - windmill-server
+
+  # DevContainer for local development
+  goat-dev:
+    profiles: [dev]
+    build:
+      context: .devcontainer
+      dockerfile: Dockerfile
+    container_name: goat-dev
+    networks:
+      - goat
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - minio
+      - minio-buckets
+      - rabbitmq
+      - redis
+      - windmill-server
+      - windmill-worker-default
+      - windmill-worker-tools
+      - windmill-worker-print
+
+  # ===========================================================================
+  # Application Services (profile: prod)
+  # ===========================================================================
+
   core-migrate:
+    profiles: [prod]
     <<: *service-core
     container_name: goat-core-migrate
+    networks:
+      - goat
     restart: "no"
     command: bash -c "cd apps/core && src/core/scripts/prestart.sh"
 
   core:
     <<: *service-core
     container_name: goat-core
+    networks:
+      - goat
     restart: always
     ports:
       - 8000:8000
@@ -170,6 +342,8 @@ services:
       dockerfile: apps/geoapi/Dockerfile
     container_name: goat-geoapi
     restart: always
+    networks:
+      - goat
     ports:
       - 8100:8000
     environment:
@@ -185,6 +359,8 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: goat-web
     restart: always
+    networks:
+      - goat
     ports:
       - 3000:3000
     environment:
