@@ -24,14 +24,15 @@ class S3Service:
         if io_cfg.s3_endpoint_url:
             extra["endpoint_url"] = io_cfg.s3_endpoint_url
 
-        if io_cfg.s3_provider and io_cfg.s3_provider.lower() in {"hetzner", "minio"}:
+        provider = (io_cfg.s3_provider or "aws").lower()
+        if provider in {"hetzner", "minio"}:
+            # MinIO always needs path-style, Hetzner can use virtual
+            use_path_style = provider == "minio" or io_cfg.s3_force_path_style
             extra["config"] = Config(
                 signature_version="s3v4",
                 s3={
                     "payload_signing_enabled": False,
-                    "addressing_style": "path"
-                    if io_cfg.s3_force_path_style
-                    else "virtual",
+                    "addressing_style": "path" if use_path_style else "virtual",
                 },
             )
 
