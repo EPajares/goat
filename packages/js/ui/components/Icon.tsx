@@ -166,6 +166,12 @@ import {
   hexagonIcon,
   licenseIcon,
   lineIcon,
+  northArrowCircleExtIcon,
+  northArrowCircleIcon,
+  northArrowCompassFilledIcon,
+  northArrowCompassIcon,
+  northArrowIcon,
+  northArrowQuadrantIcon,
   number,
   pointIcon,
   polygonIcon,
@@ -352,6 +358,12 @@ export enum ICON_NAME {
   CATEGORIES = "categories",
   CIRCLE_EMPTY = "circle-empty",
   LINE = "line",
+  NORTH_ARROW = "north-arrow",
+  NORTH_ARROW_CIRCLE = "north-arrow-circle",
+  NORTH_ARROW_COMPASS = "north-arrow-compass",
+  NORTH_ARROW_CIRCLE_EXT = "north-arrow-circle-ext",
+  NORTH_ARROW_COMPASS_FILLED = "north-arrow-compass-filled",
+  NORTH_ARROW_QUADRANT = "north-arrow-quadrant",
 }
 
 const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
@@ -529,6 +541,12 @@ const nameToIcon: { [k in ICON_NAME]: IconDefinition } = {
   [ICON_NAME.CATEGORIES]: categories,
   [ICON_NAME.CIRCLE_EMPTY]: circleEmpty,
   [ICON_NAME.LINE]: lineIcon,
+  [ICON_NAME.NORTH_ARROW]: northArrowIcon,
+  [ICON_NAME.NORTH_ARROW_CIRCLE]: northArrowCircleIcon,
+  [ICON_NAME.NORTH_ARROW_COMPASS]: northArrowCompassIcon,
+  [ICON_NAME.NORTH_ARROW_CIRCLE_EXT]: northArrowCircleExtIcon,
+  [ICON_NAME.NORTH_ARROW_COMPASS_FILLED]: northArrowCompassFilledIcon,
+  [ICON_NAME.NORTH_ARROW_QUADRANT]: northArrowQuadrantIcon,
 };
 
 interface BrandColors {

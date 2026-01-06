@@ -293,7 +293,8 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
             onMoveEnd={handleMoveEnd}
             onLoad={handleMapLoad}
             onIdle={handleMapIdle}
-            interactive={isNavigationMode}>
+            interactive={isNavigationMode}
+            preserveDrawingBuffer={true}>
             {visibleLayers.length > 0 && <Layers layers={visibleLayers} />}
           </Map>
         </Box>

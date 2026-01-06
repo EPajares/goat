@@ -55,7 +55,7 @@ export {
 
 // Print job output settings
 export const printOutputSchema = z.object({
-  format: z.enum(["pdf", "png", "svg"]),
+  format: z.enum(["pdf", "png"]),
   quality: z.number().min(1).max(100).default(95),
   compress: z.boolean().default(true),
 });

@@ -1,6 +1,8 @@
 import { Box, Typography } from "@mui/material";
 import React from "react";
 
+import { Icon } from "@p4b/ui/components/Icon";
+
 import type { AtlasPage } from "@/lib/print/atlas-utils";
 import type { ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement, ReportElementType } from "@/lib/validations/reportLayout";
@@ -10,7 +12,13 @@ import { elementTypes } from "@/lib/validations/widget";
 
 import WidgetChart from "@/components/builder/widgets/chart/WidgetChart";
 import WidgetElement from "@/components/builder/widgets/elements/WidgetElement";
+import {
+  type NorthArrowStyle,
+  getNorthArrowIconName,
+} from "@/components/reports/elements/config/NorthArrowElementConfig";
+import LegendElementRenderer from "@/components/reports/elements/renderers/LegendElementRenderer";
 import MapElementRenderer from "@/components/reports/elements/renderers/MapElementRenderer";
+import ScalebarElementRenderer from "@/components/reports/elements/renderers/ScalebarElementRenderer";
 
 // Types that are rendered as chart widgets (same as dashboard)
 const chartElementTypes: ReportElementType[] = ["histogram_chart", "categories_chart", "pie_chart"];
@@ -39,6 +47,7 @@ interface ElementContentRendererProps {
   zoom?: number;
   basemapUrl?: string;
   projectLayers?: ProjectLayer[];
+  allElements?: ReportElement[];
   atlasPage?: AtlasPage | null;
   viewOnly?: boolean;
   onElementUpdate?: (elementId: string, config: Record<string, unknown>) => void;
@@ -192,6 +201,7 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
   zoom = 1,
   basemapUrl,
   projectLayers,
+  allElements,
   atlasPage,
   viewOnly = true,
   onElementUpdate,
@@ -203,10 +213,12 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
     return (
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          width: `${100 / zoom}%`,
+          height: `${100 / zoom}%`,
           overflow: "hidden",
           pointerEvents: viewOnly ? "none" : "all",
+          transform: `scale(${zoom})`,
+          transformOrigin: "top left",
         }}>
         <ReportElementRenderer element={element} viewOnly={viewOnly} onElementUpdate={onElementUpdate} />
       </Box>
@@ -237,64 +249,82 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
     );
   }
 
-  // For legend elements - placeholder
+  // For legend elements - use LegendElementRenderer
   if (element.type === "legend") {
+    // Get map elements from allElements for legend binding
+    const mapElements = allElements?.filter((el) => el.type === "map") || [];
     return (
       <Box
         sx={{
           width: "100%",
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f5f5f5",
+          overflow: "hidden",
         }}>
-        <Typography variant="caption" color="text.secondary">
-          Legend
-        </Typography>
+        <LegendElementRenderer
+          element={element}
+          projectLayers={projectLayers}
+          mapElements={mapElements}
+          viewOnly={viewOnly}
+          zoom={zoom}
+        />
       </Box>
     );
   }
 
-  // For scalebar elements - placeholder
+  // For scalebar elements - use ScalebarElementRenderer
   if (element.type === "scalebar") {
+    const mapElements = allElements?.filter((el) => el.type === "map") || [];
     return (
       <Box
         sx={{
           width: "100%",
           height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          overflow: "hidden",
         }}>
-        <Box
-          sx={{
-            width: "80%",
-            height: 8,
-            display: "flex",
-          }}>
-          <Box sx={{ flex: 1, backgroundColor: "#333" }} />
-          <Box sx={{ flex: 1, backgroundColor: "#fff", border: "1px solid #333" }} />
-          <Box sx={{ flex: 1, backgroundColor: "#333" }} />
-        </Box>
+        <ScalebarElementRenderer element={element} mapElements={mapElements} zoom={zoom} />
       </Box>
     );
   }
 
-  // For north arrow elements - placeholder
+  // For north arrow elements
   if (element.type === "north_arrow") {
+    const style = (element.config?.style as NorthArrowStyle) ?? "default";
+    const iconName = getNorthArrowIconName(style);
+    const mapElementId = element.config?.mapElementId as string | null | undefined;
+
+    // Get the connected map's bearing (rotation)
+    let rotation = 0;
+    if (mapElementId && allElements) {
+      const connectedMap = allElements.find((el) => el.id === mapElementId && el.type === "map");
+      if (connectedMap?.config?.viewState?.bearing !== undefined) {
+        // Negate the bearing to point north correctly (map bearing is clockwise, we rotate counter-clockwise)
+        rotation = -(connectedMap.config.viewState.bearing as number);
+      }
+    }
+
     return (
       <Box
         sx={{
-          width: "100%",
-          height: "100%",
+          width: `${100 / zoom}%`,
+          height: `${100 / zoom}%`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
+          transform: `scale(${zoom})`,
+          transformOrigin: "top left",
         }}>
-        <Typography variant="h4" fontWeight="bold">
-          ⬆
-        </Typography>
+        <Icon
+          iconName={iconName}
+          sx={{
+            fontSize: "min(80%, 64px)",
+            width: "100%",
+            height: "100%",
+            maxWidth: "64px",
+            maxHeight: "64px",
+            transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
+            transition: "transform 0.3s ease",
+          }}
+        />
       </Box>
     );
   }
@@ -303,13 +333,15 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
   return (
     <Box
       sx={{
-        width: "100%",
-        height: "100%",
+        width: `${100 / zoom}%`,
+        height: `${100 / zoom}%`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(200, 220, 255, 0.3)",
         p: 1,
+        transform: `scale(${zoom})`,
+        transformOrigin: "top left",
       }}>
       <Typography variant="caption" color="text.secondary" noWrap>
         {element.type}

@@ -260,7 +260,8 @@ class LayerExportRunner(SimpleToolRunner):
         Returns:
             Presigned URL (valid for 24 hours)
         """
-        url = self.s3_client.generate_presigned_url(
+        # Use public S3 client to generate URLs accessible from outside the cluster
+        url = self.s3_public_client.generate_presigned_url(
             "get_object",
             Params={
                 "Bucket": self.settings.s3_bucket_name,

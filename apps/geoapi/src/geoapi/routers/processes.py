@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from geoapi.config import settings
-from geoapi.deps.auth import get_user_id
+from geoapi.deps.auth import get_user_id, oauth2_scheme
 from geoapi.models.processes import (
     OGC_EXCEPTION_NO_SUCH_JOB,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
@@ -321,6 +321,7 @@ async def execute_process(
     process_id: str,
     execute_request: ExecuteRequest,
     user_id: UUID = Depends(get_user_id),
+    access_token: str | None = Depends(oauth2_scheme),
 ) -> JSONResponse:
     """Execute a process.
 
@@ -356,6 +357,10 @@ async def execute_process(
 
     # Add user_id to inputs for job tracking
     job_inputs = {**execute_request.inputs, "user_id": str(user_id)}
+
+    # Pass access_token to print_report for Playwright authentication
+    if process_id == "print_report" and access_token:
+        job_inputs["access_token"] = access_token
 
     # Auto-populate od_matrix_path for heatmap tools based on routing_mode
     # This allows the field to be hidden in the UI while still being required by the analysis

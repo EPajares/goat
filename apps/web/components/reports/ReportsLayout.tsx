@@ -183,7 +183,13 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
                       pitch: initialView?.pitch ?? 0,
                     },
                   }
-                : {},
+                : elementType === "north_arrow" || elementType === "legend" || elementType === "scalebar"
+                  ? {
+                      // Auto-connect to the first map element
+                      mapElementId:
+                        selectedReport.config.elements?.find((el) => el.type === "map")?.id ?? null,
+                    }
+                  : {},
             style: {
               padding: 0,
               opacity: 1,

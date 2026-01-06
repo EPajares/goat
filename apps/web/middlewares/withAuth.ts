@@ -15,7 +15,7 @@ const protectedPaths = [
   "/onboarding/organization/invite",
 ];
 
-const publicPaths = ["/map/public"];
+const publicPaths = ["/map/public", "/print"];
 
 export const withAuth: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {

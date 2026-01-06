@@ -45,6 +45,23 @@ class S3Service:
             **extra,
         )
 
+        # Create a separate client for public URL signing (if different from internal)
+        self._public_client = None
+        if (
+            io_cfg.s3_public_endpoint_url
+            and io_cfg.s3_public_endpoint_url != io_cfg.s3_endpoint_url
+        ):
+            public_extra = dict(extra)
+            public_extra["endpoint_url"] = io_cfg.s3_public_endpoint_url
+            self._public_client = boto3.client(
+                "s3",
+                aws_access_key_id=io_cfg.s3_access_key_id,
+                aws_secret_access_key=io_cfg.s3_secret_access_key,
+                aws_session_token=io_cfg.s3_session_token,
+                region_name=io_cfg.s3_region,
+                **public_extra,
+            )
+
     # ------------------------------ utilities -------------------------
 
     @staticmethod
@@ -116,12 +133,15 @@ class S3Service:
     ) -> str:
         b = bucket or settings.io.s3_bucket_name
         try:
-            url = self.client.generate_presigned_url(
+            # Use public client if available and requested, to sign with correct endpoint
+            client = (
+                self._public_client
+                if (use_public_url and self._public_client)
+                else self.client
+            )
+            url = client.generate_presigned_url(
                 "get_object", Params={"Bucket": b, "Key": key}, ExpiresIn=expires_in
             )
-            # Replace internal endpoint with public endpoint for browser access
-            if use_public_url and settings.io.s3_public_endpoint_url and settings.io.s3_endpoint_url:
-                url = url.replace(settings.io.s3_endpoint_url, settings.io.s3_public_endpoint_url)
             return url
         except ClientError as e:
             logger.exception("Presigned GET failed")
