@@ -19,6 +19,9 @@ class ToolInputBase(BaseModel):
 
     folder_id is optional - if not provided, it will be derived from project_id.
     For layer imports outside a project, folder_id must be provided.
+
+    scenario_id applies to all input layers - scenario features will be merged
+    with original layer data (new/modified added, deleted removed).
     """
 
     user_id: str = Field(
@@ -36,6 +39,11 @@ class ToolInputBase(BaseModel):
         description="If provided, add result layer to this project",
         json_schema_extra=ui_field(section="output", field_order=97, hidden=True),
     )
+    scenario_id: str | None = Field(
+        None,
+        description="Scenario UUID. If provided, scenario features are merged with layer data for all input layers.",
+        json_schema_extra=ui_field(section="output", field_order=96, hidden=True),
+    )
     output_name: str | None = Field(
         None,
         description="Custom name for output layer (optional)",
@@ -49,6 +57,8 @@ class LayerInputMixin(BaseModel):
     Use with ToolInputBase:
         class BufferParams(ToolInputBase, LayerInputMixin):
             distance: float
+
+    The filter is a CQL2-JSON object that will be applied when reading the layer.
     """
 
     input_layer_id: str = Field(
@@ -60,6 +70,11 @@ class LayerInputMixin(BaseModel):
             widget="layer-selector",
         ),
     )
+    input_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the input layer",
+        json_schema_extra=ui_field(section="input", field_order=2, hidden=True),
+    )
 
 
 class TwoLayerInputMixin(BaseModel):
@@ -68,6 +83,8 @@ class TwoLayerInputMixin(BaseModel):
     Use with ToolInputBase:
         class ClipParams(ToolInputBase, TwoLayerInputMixin):
             pass
+
+    Each layer can have its own CQL2-JSON filter.
     """
 
     input_layer_id: str = Field(
@@ -79,6 +96,11 @@ class TwoLayerInputMixin(BaseModel):
             widget="layer-selector",
         ),
     )
+    input_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the input layer",
+        json_schema_extra=ui_field(section="input", field_order=2, hidden=True),
+    )
     overlay_layer_id: str = Field(
         ...,
         description="Overlay/clip/join layer UUID",
@@ -86,6 +108,36 @@ class TwoLayerInputMixin(BaseModel):
             section="overlay",
             field_order=1,
             widget="layer-selector",
+        ),
+    )
+    overlay_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the overlay layer",
+        json_schema_extra=ui_field(section="overlay", field_order=2, hidden=True),
+    )
+
+
+class ScenarioSelectorMixin(BaseModel):
+    """Mixin to add a visible scenario selector to a tool.
+
+    Include this mixin BEFORE ToolInputBase to override the hidden scenario_id field
+    with a visible scenario selector widget.
+
+    Example:
+        class MyToolParams(ScenarioSelectorMixin, ToolInputBase, LayerInputMixin):
+            # scenario_id will now have a visible selector widget
+            pass
+
+    The SECTION_SCENARIO should be added to the tool's model_config json_schema_extra.
+    """
+
+    scenario_id: str | None = Field(
+        None,
+        description="Scenario to apply. Scenario features will be merged with layer data.",
+        json_schema_extra=ui_field(
+            section="scenario",
+            field_order=1,
+            widget="scenario-selector",
         ),
     )
 

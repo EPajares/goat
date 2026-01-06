@@ -74,13 +74,17 @@ class QueryableProperty(BaseModel):
 class Queryables(BaseModel):
     """Collection queryables."""
 
+    model_config = {"populate_by_name": True}
+
     title: str
     type: str = "object"
     properties: dict[str, Any]
     schema_: str = Field(
-        "https://json-schema.org/draft/2019-09/schema", alias="$schema"
+        "https://json-schema.org/draft/2019-09/schema",
+        alias="$schema",
+        serialization_alias="$schema",
     )
-    id_: Optional[str] = Field(None, alias="$id")
+    id_: Optional[str] = Field(None, alias="$id", serialization_alias="$id")
 
 
 class Feature(BaseModel):

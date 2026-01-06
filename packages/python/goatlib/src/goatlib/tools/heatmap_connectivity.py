@@ -46,6 +46,11 @@ class HeatmapConnectivityToolParams(ToolInputBase, HeatmapConnectivityParams):
             widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
         ),
     )
+    reference_area_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the reference area layer",
+        json_schema_extra=ui_field(section="configuration", field_order=5, hidden=True),
+    )
 
 
 class HeatmapConnectivityToolRunner(BaseToolRunner[HeatmapConnectivityToolParams]):
@@ -96,7 +101,13 @@ class HeatmapConnectivityToolRunner(BaseToolRunner[HeatmapConnectivityToolParams
 
         # Export reference area layer
         reference_area_path = str(
-            self.export_layer_to_parquet(params.reference_area_layer_id, params.user_id)
+            self.export_layer_to_parquet(
+                layer_id=params.reference_area_layer_id,
+                user_id=params.user_id,
+                cql_filter=params.reference_area_layer_filter,
+                scenario_id=params.scenario_id,
+                project_id=params.project_id,
+            )
         )
 
         # Build analysis params
@@ -106,9 +117,11 @@ class HeatmapConnectivityToolRunner(BaseToolRunner[HeatmapConnectivityToolParams
                     "output_path",
                     "reference_area_path",
                     "reference_area_layer_id",
+                    "reference_area_layer_filter",
                     "user_id",
                     "folder_id",
                     "project_id",
+                    "scenario_id",
                     "output_name",
                 }
             ),

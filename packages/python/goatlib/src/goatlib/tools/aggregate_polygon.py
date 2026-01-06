@@ -15,9 +15,9 @@ from goatlib.analysis.geoanalysis.aggregate_polygon import AggregatePolygonTool
 from goatlib.analysis.schemas.aggregate import (
     AggregatePolygonParams,
     AggregationAreaType,
-    ColumnStatistic,
     validate_area_type_config,
 )
+from goatlib.analysis.schemas.base import FieldStatistic
 from goatlib.analysis.schemas.ui import (
     SECTION_AREA,
     SECTION_INPUT_AGGREGATE,
@@ -76,6 +76,11 @@ class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
             widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
         ),
     )
+    source_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the source layer",
+        json_schema_extra=ui_field(section="input", field_order=2, hidden=True),
+    )
 
     area_layer_id: Optional[str] = Field(
         None,
@@ -89,6 +94,11 @@ class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
             visible_when={"area_type": "polygon"},
         ),
     )
+    area_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the area layer",
+        json_schema_extra=ui_field(section="area", field_order=3, hidden=True),
+    )
 
     # Override UI metadata for inherited fields
     area_type: AggregationAreaType = Field(
@@ -101,13 +111,15 @@ class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
         ),
     )
 
-    column_statistics: ColumnStatistic = Field(
+    column_statistics: FieldStatistic = Field(
         ...,
         description="Statistical operation to perform on the aggregated polygons.",
         json_schema_extra=ui_field(
             section="statistics",
             field_order=1,
             label_key="select_statistics_configuration",
+            widget="field-statistics-selector",
+            widget_options={"source_layer": "source_layer_id"},
         ),
     )
 
@@ -131,7 +143,11 @@ class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
             advanced=True,
             label_key="select_group_fields",
             widget="field-selector",
-            widget_options={"source_layer": "source_layer_id", "multiple": True, "max": 3},
+            widget_options={
+                "source_layer": "source_layer_id",
+                "multiple": True,
+                "max": 3,
+            },
         ),
     )
 
@@ -207,14 +223,26 @@ class AggregatePolygonToolRunner(BaseToolRunner[AggregatePolygonToolParams]):
 
         # Export source polygon layer
         source_path = str(
-            self.export_layer_to_parquet(params.source_layer_id, params.user_id)
+            self.export_layer_to_parquet(
+                layer_id=params.source_layer_id,
+                user_id=params.user_id,
+                cql_filter=params.source_layer_filter,
+                scenario_id=params.scenario_id,
+                project_id=params.project_id,
+            )
         )
 
         # Export area layer if polygon aggregation
         area_layer_path = None
         if params.area_type == AggregationAreaType.polygon and params.area_layer_id:
             area_layer_path = str(
-                self.export_layer_to_parquet(params.area_layer_id, params.user_id)
+                self.export_layer_to_parquet(
+                    layer_id=params.area_layer_id,
+                    user_id=params.user_id,
+                    cql_filter=params.area_layer_filter,
+                    scenario_id=params.scenario_id,
+                    project_id=params.project_id,
+                )
             )
 
         # Build analysis params using model_dump pattern (like other tools)
@@ -228,9 +256,12 @@ class AggregatePolygonToolRunner(BaseToolRunner[AggregatePolygonToolParams]):
                     "user_id",
                     "folder_id",
                     "project_id",
+                    "scenario_id",
                     "output_name",
                     "source_layer_id",
+                    "source_layer_filter",
                     "area_layer_id",
+                    "area_layer_filter",
                     "accepted_source_geometry_types",
                     "accepted_area_geometry_types",
                 }

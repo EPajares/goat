@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useJobs } from "@/lib/api/processes";
+import { useProject } from "@/lib/api/projects";
 import { useUserProfile } from "@/lib/api/users";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { setToolboxStartingPoints } from "@/lib/store/map/slice";
@@ -83,8 +84,15 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   // User profile for user_id
   const { userProfile } = useUserProfile();
 
+  // Project for active scenario
+  const { project } = useProject(projectId as string);
+
   // Form state
   const [values, setValues] = useState<Record<string, unknown>>({});
+
+  // Layer filters state - maps layer input names to their CQL filters
+  // e.g., { "input_layer_id": { "op": "=", ... }, "overlay_layer_id": { ... } }
+  const [layerFilters, setLayerFilters] = useState<Record<string, Record<string, unknown> | undefined>>({});
 
   // Section collapse state
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -151,6 +159,14 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     [allInputs]
   );
 
+  // Update filter for a layer input
+  const handleFilterChange = useCallback((inputName: string, filter: Record<string, unknown> | undefined) => {
+    setLayerFilters((prev) => ({
+      ...prev,
+      [inputName]: filter,
+    }));
+  }, []);
+
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections((prev) => ({
@@ -172,6 +188,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     if (process) {
       const defaults = getDefaultValues(process);
       setValues(defaults);
+      setLayerFilters({});
       // Clear starting points from Redux
       dispatch(setToolboxStartingPoints(undefined));
     }
@@ -204,11 +221,51 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
       return;
     }
 
-    // Build full payload with hidden fields
+    // Build filter fields from layer filters
+    // Convention: layer field "input_layer_id" -> filter field "input_layer_filter"
+    const filterFields: Record<string, unknown> = {};
+    for (const [layerFieldName, filter] of Object.entries(layerFilters)) {
+      if (filter) {
+        // Convert layer_id suffix to _filter suffix
+        const filterFieldName = layerFieldName.replace(/_id$/, "_filter");
+        filterFields[filterFieldName] = filter;
+      }
+    }
+
+    // Get all visible input names to filter out invisible fields
+    const visibleInputNames = new Set<string>();
+    for (const section of sections) {
+      const sectionEnabled = isSectionEnabled(section, values);
+      if (sectionEnabled) {
+        const visibleInputs = getVisibleInputs(section.inputs, values);
+        for (const input of visibleInputs) {
+          visibleInputNames.add(input.name);
+        }
+      }
+    }
+
+    // Build payload with only visible inputs (to avoid sending conditional fields that shouldn't be set)
+    const visibleValues: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(values)) {
+      if (visibleInputNames.has(key)) {
+        visibleValues[key] = value;
+      }
+    }
+
+    // Determine scenario_id: use form value if present (from scenario selector widget),
+    // otherwise fall back to active project scenario
+    const scenarioId =
+      visibleValues.scenario_id !== undefined
+        ? visibleValues.scenario_id
+        : project?.active_scenario_id || null;
+
+    // Build full payload with hidden fields and filters
     const payload = {
-      ...values,
+      ...visibleValues,
+      ...filterFields,
       user_id: userProfile.id,
       project_id: projectId,
+      scenario_id: scenarioId,
       save_results: true,
     };
 
@@ -344,6 +401,11 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                             input={input}
                             value={values[input.name]}
                             onChange={(value) => handleInputChange(input.name, value)}
+                            onFilterChange={
+                              input.inputType === "layer"
+                                ? (filter) => handleFilterChange(input.name, filter)
+                                : undefined
+                            }
                             disabled={isExecuting}
                             formValues={values}
                             schemaDefs={process.$defs}
@@ -360,6 +422,11 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                               input={input}
                               value={values[input.name]}
                               onChange={(value) => handleInputChange(input.name, value)}
+                              onFilterChange={
+                                input.inputType === "layer"
+                                  ? (filter) => handleFilterChange(input.name, filter)
+                                  : undefined
+                              }
                               disabled={isExecuting}
                               formValues={values}
                               schemaDefs={process.$defs}

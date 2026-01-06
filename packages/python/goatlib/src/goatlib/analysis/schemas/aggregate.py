@@ -9,7 +9,11 @@ from typing import List, Literal, Optional, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from goatlib.analysis.schemas.base import GeometryType
+from goatlib.analysis.schemas.base import (
+    FieldStatistic,
+    GeometryType,
+    StatisticOperation,
+)
 from goatlib.analysis.schemas.ui import (
     SECTION_AREA,
     SECTION_INPUT,
@@ -65,53 +69,8 @@ class AggregationAreaType(StrEnum):
     h3_grid = "h3_grid"
 
 
-class StatisticsOperation(StrEnum):
-    """Statistical operations for aggregation."""
-
-    count = "count"
-    sum = "sum"
-    mean = "mean"
-    min = "min"
-    max = "max"
-
-
 # H3 resolution options (3-10 as in GOAT Core)
 H3Resolution = Literal[3, 4, 5, 6, 7, 8, 9, 10]
-
-
-class ColumnStatistic(BaseModel):
-    """Configuration for a statistical operation on a column."""
-
-    operation: StatisticsOperation = Field(
-        ...,
-        description="The statistical operation to perform.",
-        json_schema_extra=ui_field(
-            section="statistics",
-            field_order=1,
-        ),
-    )
-    field: Optional[str] = Field(
-        None,
-        description="Field name to compute statistics on. Required for all operations except 'count'.",
-        json_schema_extra=ui_field(
-            section="statistics",
-            field_order=2,
-            widget="field-selector",
-            widget_options={"source_layer": "source_layer_id", "types": ["number"]},
-            visible_when={"operation": {"$ne": "count"}},
-        ),
-    )
-
-    @model_validator(mode="after")
-    def validate_field_requirement(self: Self) -> "ColumnStatistic":
-        """Validate that field is provided for non-count operations."""
-        if self.operation == StatisticsOperation.count:
-            if self.field is not None:
-                raise ValueError("Field should not be provided for 'count' operation.")
-        else:
-            if self.field is None:
-                raise ValueError(f"Field is required for '{self.operation}' operation.")
-        return self
 
 
 class AggregatePointsParams(BaseModel):
@@ -182,7 +141,7 @@ class AggregatePointsParams(BaseModel):
     )
 
     # ---- Statistics Configuration ----
-    column_statistics: ColumnStatistic = Field(
+    column_statistics: FieldStatistic = Field(
         ...,
         description="Statistical operation to perform on the aggregated points.",
         json_schema_extra=ui_field(

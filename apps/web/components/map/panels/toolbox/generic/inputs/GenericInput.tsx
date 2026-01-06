@@ -11,11 +11,13 @@ import ArrayInput from "@/components/map/panels/toolbox/generic/inputs/ArrayInpu
 import BooleanInput from "@/components/map/panels/toolbox/generic/inputs/BooleanInput";
 import EnumInput from "@/components/map/panels/toolbox/generic/inputs/EnumInput";
 import FieldInput from "@/components/map/panels/toolbox/generic/inputs/FieldInput";
+import FieldStatisticsInput from "@/components/map/panels/toolbox/generic/inputs/FieldStatisticsInput";
 import LayerInput from "@/components/map/panels/toolbox/generic/inputs/LayerInput";
 import MultiEnumInput from "@/components/map/panels/toolbox/generic/inputs/MultiEnumInput";
 import NumberInput from "@/components/map/panels/toolbox/generic/inputs/NumberInput";
 import ObjectInput from "@/components/map/panels/toolbox/generic/inputs/ObjectInput";
 import RepeatableObjectInput from "@/components/map/panels/toolbox/generic/inputs/RepeatableObjectInput";
+import ScenarioInput from "@/components/map/panels/toolbox/generic/inputs/ScenarioInput";
 import StartingPointsInput from "@/components/map/panels/toolbox/generic/inputs/StartingPointsInput";
 import StringInput from "@/components/map/panels/toolbox/generic/inputs/StringInput";
 import TimePickerInput from "@/components/map/panels/toolbox/generic/inputs/TimePickerInput";
@@ -24,6 +26,8 @@ interface GenericInputProps {
   input: ProcessedInput;
   value: unknown;
   onChange: (value: unknown) => void;
+  /** Callback for layer inputs to report their associated CQL filter */
+  onFilterChange?: (filter: Record<string, unknown> | undefined) => void;
   disabled?: boolean;
   /** All current form values - needed for field inputs to know the selected layer */
   formValues?: Record<string, unknown>;
@@ -37,6 +41,7 @@ export default function GenericInput({
   input,
   value,
   onChange,
+  onFilterChange,
   disabled,
   formValues = {},
   schemaDefs,
@@ -49,6 +54,7 @@ export default function GenericInput({
           input={input}
           value={value as string | undefined}
           onChange={onChange}
+          onFilterChange={onFilterChange}
           disabled={disabled}
           excludedLayerIds={excludedLayerIds}
         />
@@ -62,6 +68,27 @@ export default function GenericInput({
           onChange={onChange}
           disabled={disabled}
           formValues={formValues}
+        />
+      );
+
+    case "field-statistics":
+      return (
+        <FieldStatisticsInput
+          input={input}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          formValues={formValues}
+        />
+      );
+
+    case "scenario":
+      return (
+        <ScenarioInput
+          input={input}
+          value={value as string | undefined}
+          onChange={onChange}
+          disabled={disabled}
         />
       );
 

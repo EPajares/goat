@@ -1,31 +1,63 @@
 """Union tool for Windmill.
 
 Computes the geometric union of features from input and overlay layers.
+Supports self-union when no overlay layer is provided.
 """
 
 import logging
 from pathlib import Path
-from typing import Self
+from typing import Any, Optional, Self
+
+from pydantic import Field
 
 from goatlib.analysis.geoprocessing.union import UnionTool
 from goatlib.analysis.schemas.geoprocessing import UnionParams
+from goatlib.analysis.schemas.ui import ui_field
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase, TwoLayerInputMixin
+from goatlib.tools.schemas import LayerInputMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 
-class UnionToolParams(ToolInputBase, TwoLayerInputMixin, UnionParams):
+class UnionToolParams(ToolInputBase, LayerInputMixin, UnionParams):
     """Parameters for union tool.
 
     Inherits union options from UnionParams, adds layer context from ToolInputBase.
     input_path/overlay_path/output_path are not used (we use layer IDs instead).
+    Overlay layer is optional - if not provided, performs self-union on input.
     """
 
     input_path: str | None = None  # type: ignore[assignment]
     overlay_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None
+
+    # Override overlay_layer_id to make it optional for self-union
+    overlay_layer_id: Optional[str] = Field(
+        None,
+        description="Overlay layer UUID. If not provided, performs self-union on input layer.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
+    overlay_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the overlay layer",
+        json_schema_extra=ui_field(section="overlay", field_order=2, hidden=True),
+    )
+
+    # Override to reference overlay_layer_id instead of overlay_path
+    overlay_fields_prefix: Optional[str] = Field(
+        None,
+        description="Prefix to add to overlay field names to avoid naming conflicts.",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=3,
+            visible_when={"overlay_layer_id": {"$ne": None}},
+        ),
+    )
 
 
 class UnionToolRunner(BaseToolRunner[UnionToolParams]):
@@ -39,10 +71,25 @@ class UnionToolRunner(BaseToolRunner[UnionToolParams]):
         self: Self, params: UnionToolParams, temp_dir: Path
     ) -> tuple[Path, DatasetMetadata]:
         """Run union analysis."""
-        input_path = self.export_layer_to_parquet(params.input_layer_id, params.user_id)
-        overlay_path = self.export_layer_to_parquet(
-            params.overlay_layer_id, params.user_id
+        input_path = self.export_layer_to_parquet(
+            layer_id=params.input_layer_id,
+            user_id=params.user_id,
+            cql_filter=params.input_layer_filter,
+            scenario_id=params.scenario_id,
+            project_id=params.project_id,
         )
+
+        # Overlay is optional - if not provided, performs self-union
+        overlay_path = None
+        if params.overlay_layer_id:
+            overlay_path = self.export_layer_to_parquet(
+                layer_id=params.overlay_layer_id,
+                user_id=params.user_id,
+                cql_filter=params.overlay_layer_filter,
+                scenario_id=params.scenario_id,
+                project_id=params.project_id,
+            )
+
         output_path = temp_dir / "output.parquet"
 
         analysis_params = UnionParams(
@@ -54,9 +101,12 @@ class UnionToolRunner(BaseToolRunner[UnionToolParams]):
                     "user_id",
                     "folder_id",
                     "project_id",
+                    "scenario_id",
                     "output_name",
                     "input_layer_id",
+                    "input_layer_filter",
                     "overlay_layer_id",
+                    "overlay_layer_filter",
                 }
             ),
             input_path=input_path,

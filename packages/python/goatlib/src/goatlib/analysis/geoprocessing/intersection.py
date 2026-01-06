@@ -112,15 +112,21 @@ class IntersectionTool(AnalysisTool):
         overlay_cols = self.con.execute(f"DESCRIBE {overlay_view}").fetchall()
 
         # Build field selections (exclude geometry and bbox from both)
+        # Quote column names for special characters
         input_fields = ", ".join(
-            [f"i.{col[0]}" for col in input_cols if col[0] not in (input_geom, "bbox")]
+            [
+                f'i."{col[0]}"'
+                for col in input_cols
+                if col[0] not in (input_geom, "bbox")
+            ]
         )
 
         # Add prefix to overlay fields to avoid conflicts
+        # Quote column names for special characters
         overlay_prefix = params.overlay_fields_prefix or "intersection_"
         overlay_fields = ", ".join(
             [
-                f"o.{col[0]} AS {overlay_prefix}{col[0]}"
+                f'o."{col[0]}" AS "{overlay_prefix}{col[0]}"'
                 for col in overlay_cols
                 if col[0] not in (overlay_geom, "bbox")
             ]

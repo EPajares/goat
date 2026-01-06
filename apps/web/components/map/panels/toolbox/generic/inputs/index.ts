@@ -4,6 +4,8 @@
 export { default as GenericInput } from "./GenericInput";
 export { default as LayerInput } from "./LayerInput";
 export { default as FieldInput } from "./FieldInput";
+export { default as FieldStatisticsInput } from "./FieldStatisticsInput";
+export { default as ScenarioInput } from "./ScenarioInput";
 export { default as EnumInput } from "./EnumInput";
 export { default as MultiEnumInput } from "./MultiEnumInput";
 export { default as NumberInput } from "./NumberInput";

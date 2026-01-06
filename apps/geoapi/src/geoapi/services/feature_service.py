@@ -87,7 +87,7 @@ class FeatureService:
 
         # Build SELECT clause
         if properties:
-            # Ensure id is always included
+            # Ensure id is always included if it exists
             props_set = set(properties) | {"id"}
             select_cols = ", ".join(f'"{p}"' for p in props_set if p != geom_col)
             if has_geometry and geom_col:
@@ -151,7 +151,7 @@ class FeatureService:
             # Get column names from description
             col_names = [desc[0] for desc in description]
 
-            for row in result:
+            for idx, row in enumerate(result):
                 row_dict = dict(zip(col_names, row))
 
                 # Extract geometry (only if layer has geometry)
@@ -162,8 +162,12 @@ class FeatureService:
                     # Remove raw geometry column if present
                     row_dict.pop(geom_col, None)
 
-                # Get ID
+                # Get ID - use actual id column if present, otherwise use row index + offset
                 feature_id = row_dict.pop("id", None)
+                # Use actual id if available, otherwise use row index as fallback
+                effective_id = (
+                    feature_id if feature_id is not None else (offset + idx + 1)
+                )
 
                 # Sanitize string values to ensure valid UTF-8
                 sanitized_props = sanitize_properties(row_dict)
@@ -171,7 +175,7 @@ class FeatureService:
                 features.append(
                     {
                         "type": "Feature",
-                        "id": str(feature_id) if feature_id else None,
+                        "id": str(effective_id) if effective_id is not None else None,
                         "geometry": geometry,
                         "properties": sanitized_props,
                     }

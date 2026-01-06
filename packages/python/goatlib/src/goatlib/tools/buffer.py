@@ -42,7 +42,13 @@ class BufferToolRunner(BaseToolRunner[BufferToolParams]):
         self: Self, params: BufferToolParams, temp_dir: Path
     ) -> tuple[Path, DatasetMetadata]:
         """Run buffer analysis."""
-        input_path = self.export_layer_to_parquet(params.input_layer_id, params.user_id)
+        input_path = self.export_layer_to_parquet(
+            layer_id=params.input_layer_id,
+            user_id=params.user_id,
+            cql_filter=params.input_layer_filter,
+            scenario_id=params.scenario_id,
+            project_id=params.project_id,
+        )
         output_path = temp_dir / "output.parquet"
 
         analysis_params = BufferParams(
@@ -53,8 +59,10 @@ class BufferToolRunner(BaseToolRunner[BufferToolParams]):
                     "user_id",
                     "folder_id",
                     "project_id",
+                    "scenario_id",
                     "output_name",
                     "input_layer_id",
+                    "input_layer_filter",
                 }
             ),
             input_path=input_path,
