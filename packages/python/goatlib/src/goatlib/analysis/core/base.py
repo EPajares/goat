@@ -81,8 +81,10 @@ class AnalysisTool:
             if wal_path.exists():
                 try:
                     os.remove(wal_path)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to delete DuckDB WAL file '{wal_path}': {e}"
+                    )
 
             # DuckDB also creates .tmp directory for spilling
             tmp_dir = Path(str(self._temp_db_path) + ".tmp")
