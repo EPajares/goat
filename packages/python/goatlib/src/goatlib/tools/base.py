@@ -77,6 +77,7 @@ class ToolSettings:
     # S3 settings (shared for DuckLake and uploads)
     s3_provider: str = "hetzner"  # hetzner, aws, minio
     s3_endpoint_url: str | None = None
+    s3_public_endpoint_url: str | None = None  # Public URL for presigned URLs
     s3_access_key_id: str | None = None
     s3_secret_access_key: str | None = None
     s3_region_name: str = "us-east-1"
@@ -102,6 +103,47 @@ class ToolSettings:
         extra_kwargs = {}
         if self.s3_endpoint_url:
             extra_kwargs["endpoint_url"] = self.s3_endpoint_url
+
+        provider = self.s3_provider.lower()
+        if provider == "hetzner":
+            extra_kwargs["config"] = Config(
+                signature_version="s3v4",
+                s3={
+                    "payload_signing_enabled": False,
+                    "addressing_style": "virtual",
+                },
+            )
+        elif provider == "minio":
+            extra_kwargs["config"] = Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            )
+        # AWS uses defaults
+
+        return boto3.client(
+            "s3",
+            aws_access_key_id=self.s3_access_key_id,
+            aws_secret_access_key=self.s3_secret_access_key,
+            region_name=self.s3_region_name,
+            **extra_kwargs,
+        )
+
+    def get_s3_public_client(self: Self) -> Any:
+        """Create boto3 S3 client for public URL signing.
+
+        Returns configured S3 client using the public endpoint URL for
+        generating presigned URLs that are accessible from outside the cluster.
+        Falls back to the regular S3 client if no public endpoint is configured.
+        """
+        import boto3
+        from botocore.client import Config
+
+        # Use public endpoint if available, otherwise fall back to internal
+        endpoint_url = self.s3_public_endpoint_url or self.s3_endpoint_url
+
+        extra_kwargs = {}
+        if endpoint_url:
+            extra_kwargs["endpoint_url"] = endpoint_url
 
         provider = self.s3_provider.lower()
         if provider == "hetzner":
@@ -178,12 +220,16 @@ class ToolSettings:
             ducklake_catalog_schema=cls._get_secret(
                 "DUCKLAKE_CATALOG_SCHEMA", "ducklake"
             ),
-            ducklake_data_dir=cls._get_secret("DUCKLAKE_DATA_DIR", "/app/data/ducklake"),
+            ducklake_data_dir=cls._get_secret(
+                "DUCKLAKE_DATA_DIR", "/app/data/ducklake"
+            ),
             od_matrix_base_path=cls._get_secret(
                 "OD_MATRIX_BASE_PATH", "/app/data/traveltime_matrices"
             ),
             s3_provider=cls._get_secret("S3_PROVIDER", "hetzner").lower(),
             s3_endpoint_url=cls._get_secret("S3_ENDPOINT_URL", ""),
+            s3_public_endpoint_url=cls._get_secret("S3_PUBLIC_ENDPOINT_URL", "")
+            or None,
             s3_access_key_id=cls._get_secret("S3_ACCESS_KEY_ID", ""),
             s3_secret_access_key=cls._get_secret("S3_SECRET_ACCESS_KEY", ""),
             s3_region_name=cls._get_secret("S3_REGION_NAME", "")
@@ -342,6 +388,18 @@ class SimpleToolRunner:
                 raise RuntimeError("Settings not initialized")
             self._s3_client = self.settings.get_s3_client()
         return self._s3_client
+
+    @property
+    def s3_public_client(self: Self) -> Any:
+        """Get S3 client for generating public presigned URLs.
+
+        Uses the public endpoint URL if configured, otherwise falls back
+        to the internal S3 client. This ensures presigned URLs are
+        accessible from outside the cluster.
+        """
+        if self.settings is None:
+            raise RuntimeError("Settings not initialized")
+        return self.settings.get_s3_public_client()
 
     def get_layer_table_path(self: Self, user_id: str, layer_id: str) -> str:
         """Build DuckLake table path from user and layer IDs."""

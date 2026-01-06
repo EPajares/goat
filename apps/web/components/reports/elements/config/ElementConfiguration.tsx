@@ -14,6 +14,7 @@ import LegendElementConfig from "@/components/reports/elements/config/LegendElem
 import MapElementConfig from "@/components/reports/elements/config/MapElementConfig";
 import NorthArrowElementConfig from "@/components/reports/elements/config/NorthArrowElementConfig";
 import ReportElementConfig from "@/components/reports/elements/config/ReportElementConfig";
+import ScalebarElementConfig from "@/components/reports/elements/config/ScalebarElementConfig";
 
 interface ElementConfigurationProps {
   element: ReportElement;
@@ -38,6 +39,11 @@ const elementHasConfig = (type: string, config?: ReportElement["config"]): boole
 
   // North arrow elements have their own config
   if (type === "north_arrow") {
+    return true;
+  }
+
+  // Scalebar elements have their own config
+  if (type === "scalebar") {
     return true;
   }
 
@@ -108,6 +114,8 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
               <LegendElementConfig element={element} mapElements={mapElements} onChange={onChange} />
             ) : element.type === "north_arrow" ? (
               <NorthArrowElementConfig element={element} mapElements={mapElements} onChange={onChange} />
+            ) : element.type === "scalebar" ? (
+              <ScalebarElementConfig element={element} mapElements={mapElements} onChange={onChange} />
             ) : hasConfig ? (
               <ReportElementConfig element={element} onChange={onChange} />
             ) : (

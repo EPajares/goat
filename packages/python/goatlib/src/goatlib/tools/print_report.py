@@ -96,6 +96,40 @@ class PrintReportParams(ToolInputBase):
             "x-ui": {"section": "output", "field_order": 3, "hidden": True}
         },
     )
+    layout_name: str | None = Field(
+        default=None,
+        description="Name of the report layout (used for output filename)",
+        json_schema_extra={"x-ui": {"hidden": True}},
+    )
+    dpi: int = Field(
+        default=300,
+        description="Output resolution in DPI (72=screen, 150=low, 300=high, 600=print)",
+        json_schema_extra={
+            "x-ui": {
+                "section": "output",
+                "field_order": 4,
+                "widget": "select",
+                "widget_options": {
+                    "options": [
+                        {"value": 72, "label": "72 (Screen)"},
+                        {"value": 150, "label": "150 (Low)"},
+                        {"value": 300, "label": "300 (High)"},
+                        {"value": 600, "label": "600 (Print)"},
+                    ]
+                },
+            }
+        },
+    )
+    paper_width_mm: float = Field(
+        default=210.0,
+        description="Paper width in millimeters",
+        json_schema_extra={"x-ui": {"hidden": True}},
+    )
+    paper_height_mm: float = Field(
+        default=297.0,
+        description="Paper height in millimeters",
+        json_schema_extra={"x-ui": {"hidden": True}},
+    )
     access_token: str | None = Field(
         default=None,
         description="Access token for API authentication (passed by GeoAPI)",
@@ -174,12 +208,46 @@ class PrintReportRunner(SimpleToolRunner):
         url: str,
         output_format: Literal["pdf", "png"],
         access_token: str | None = None,
+        dpi: int = 300,
+        paper_width_mm: float = 210.0,
+        paper_height_mm: float = 297.0,
     ) -> bytes:
-        """Render a single page to PDF or PNG."""
+        """Render a single page to PDF or PNG.
+
+        The device_scale_factor is calculated to achieve the target DPI:
+        - Screen renders at 96 DPI base resolution
+        - device_scale_factor = target_dpi / 96
+        - For 300 DPI: factor = 3.125
+        - For 600 DPI: factor = 6.25
+
+        Viewport is sized to match paper dimensions at target DPI.
+        """
         browser = await self._get_browser()
+
+        # Calculate viewport and scale factor for target DPI
+        # Base screen DPI is 96
+        base_dpi = 96
+        mm_per_inch = 25.4
+
+        # Calculate required pixel dimensions at target DPI
+        target_width_px = int(paper_width_mm / mm_per_inch * dpi)
+        target_height_px = int(paper_height_mm / mm_per_inch * dpi)
+
+        # Calculate device scale factor to achieve target resolution
+        # We use a base viewport at 96 DPI and scale up
+        base_width_px = int(paper_width_mm / mm_per_inch * base_dpi)
+        base_height_px = int(paper_height_mm / mm_per_inch * base_dpi)
+        device_scale_factor = dpi / base_dpi
+
+        logger.info(
+            f"Rendering at {dpi} DPI: paper={paper_width_mm}x{paper_height_mm}mm, "
+            f"viewport={base_width_px}x{base_height_px}px, scale={device_scale_factor:.2f}, "
+            f"output={target_width_px}x{target_height_px}px"
+        )
+
         context = await browser.new_context(
-            viewport={"width": 1920, "height": 1080},
-            device_scale_factor=2,  # Higher quality
+            viewport={"width": base_width_px, "height": base_height_px},
+            device_scale_factor=device_scale_factor,
         )
         page = await context.new_page()
 
@@ -320,7 +388,14 @@ class PrintReportRunner(SimpleToolRunner):
                 for page_idx in batch:
                     url = self._get_report_url(params, page_idx)
                     tasks.append(
-                        self._render_page(url, params.format, params.access_token)
+                        self._render_page(
+                            url,
+                            params.format,
+                            params.access_token,
+                            params.dpi,
+                            params.paper_width_mm,
+                            params.paper_height_mm,
+                        )
                     )
 
                 batch_results = await asyncio.gather(*tasks)
@@ -330,6 +405,21 @@ class PrintReportRunner(SimpleToolRunner):
             # Generate output file
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+            # Create filename base from layout name or ID
+            if params.layout_name:
+                # Sanitize layout name for use in filename
+                safe_name = (
+                    "".join(
+                        c if c.isalnum() or c in "-_ " else "_"
+                        for c in params.layout_name
+                    )
+                    .strip()
+                    .replace(" ", "_")
+                )
+                file_base = f"{safe_name}_{timestamp}"
+            else:
+                file_base = f"report_{params.layout_id}_{timestamp}"
+
             if params.format == "pdf":
                 if len(rendered_pages) > 1:
                     # Merge PDFs
@@ -337,7 +427,7 @@ class PrintReportRunner(SimpleToolRunner):
                 else:
                     output_bytes = rendered_pages[0]
 
-                file_name = f"report_{params.layout_id}_{timestamp}.pdf"
+                file_name = f"{file_base}.pdf"
                 content_type = "application/pdf"
 
             else:  # PNG
@@ -348,11 +438,11 @@ class PrintReportRunner(SimpleToolRunner):
                         for idx, png_bytes in enumerate(rendered_pages):
                             zf.writestr(f"page_{idx + 1:03d}.png", png_bytes)
                     output_bytes = zip_buffer.getvalue()
-                    file_name = f"report_{params.layout_id}_{timestamp}.zip"
+                    file_name = f"{file_base}.zip"
                     content_type = "application/zip"
                 else:
                     output_bytes = rendered_pages[0]
-                    file_name = f"report_{params.layout_id}_{timestamp}.png"
+                    file_name = f"{file_base}.png"
                     content_type = "image/png"
 
             # Upload to S3

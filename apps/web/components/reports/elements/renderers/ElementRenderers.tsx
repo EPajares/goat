@@ -18,6 +18,7 @@ import {
 } from "@/components/reports/elements/config/NorthArrowElementConfig";
 import LegendElementRenderer from "@/components/reports/elements/renderers/LegendElementRenderer";
 import MapElementRenderer from "@/components/reports/elements/renderers/MapElementRenderer";
+import ScalebarElementRenderer from "@/components/reports/elements/renderers/ScalebarElementRenderer";
 
 // Types that are rendered as chart widgets (same as dashboard)
 const chartElementTypes: ReportElementType[] = ["histogram_chart", "categories_chart", "pie_chart"];
@@ -270,29 +271,17 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
     );
   }
 
-  // For scalebar elements - placeholder
+  // For scalebar elements - use ScalebarElementRenderer
   if (element.type === "scalebar") {
+    const mapElements = allElements?.filter((el) => el.type === "map") || [];
     return (
       <Box
         sx={{
-          width: `${100 / zoom}%`,
-          height: `${100 / zoom}%`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          transform: `scale(${zoom})`,
-          transformOrigin: "top left",
+          width: "100%",
+          height: "100%",
+          overflow: "hidden",
         }}>
-        <Box
-          sx={{
-            width: "80%",
-            height: 8,
-            display: "flex",
-          }}>
-          <Box sx={{ flex: 1, backgroundColor: "#333" }} />
-          <Box sx={{ flex: 1, backgroundColor: "#fff", border: "1px solid #333" }} />
-          <Box sx={{ flex: 1, backgroundColor: "#333" }} />
-        </Box>
+        <ScalebarElementRenderer element={element} mapElements={mapElements} zoom={zoom} />
       </Box>
     );
   }

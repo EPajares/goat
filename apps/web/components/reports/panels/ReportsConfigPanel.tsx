@@ -31,6 +31,7 @@ import {
   updateReportLayout,
   useReportLayouts,
 } from "@/lib/api/reportLayouts";
+import { PAGE_SIZES, type PageSize } from "@/lib/print/units";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
 import type {
   AtlasConfig,
@@ -157,7 +158,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     () => [
       { label: "PDF", value: "pdf" },
       { label: "PNG", value: "png" },
-      { label: "SVG", value: "svg" },
     ],
     []
   );
@@ -445,17 +445,28 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
   const handlePrintReport = useCallback(async () => {
     if (!project?.id || !selectedReport) return;
 
+    // Calculate paper dimensions based on size and orientation
+    const pageConfig = selectedReport.config.page;
+    const sizeKey = (pageConfig.size === "Custom" ? "A4" : pageConfig.size) as PageSize;
+    const size = PAGE_SIZES[sizeKey] || PAGE_SIZES.A4;
+    const paperWidthMm = pageConfig.orientation === "landscape" ? size.height : size.width;
+    const paperHeightMm = pageConfig.orientation === "landscape" ? size.width : size.height;
+
     try {
       await exportReport({
         projectId: project.id,
         layoutId: selectedReport.id,
+        layoutName: selectedReport.name,
         format: exportFormat as ExportFormat,
         totalAtlasPages: atlasTotalPages > 0 ? atlasTotalPages : undefined,
+        dpi,
+        paperWidthMm,
+        paperHeightMm,
       });
     } catch (error) {
       console.error("Failed to print report:", error);
     }
-  }, [project?.id, selectedReport, exportReport, exportFormat, atlasTotalPages]);
+  }, [project?.id, selectedReport, exportReport, exportFormat, atlasTotalPages, dpi]);
 
   return (
     <PanelContainer>

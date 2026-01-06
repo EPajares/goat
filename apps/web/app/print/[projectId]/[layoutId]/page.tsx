@@ -107,6 +107,13 @@ export default function PrintPage() {
     }
   }, [reportLayout, isLoading, isProjectLoading, isLayersLoading, allMapsLoaded, atlasReady]);
 
+  // Set document title based on layout name (used as PDF filename)
+  useEffect(() => {
+    if (reportLayout?.name) {
+      document.title = reportLayout.name;
+    }
+  }, [reportLayout?.name]);
+
   // Extract page config
   const pageConfig = useMemo(() => {
     return (

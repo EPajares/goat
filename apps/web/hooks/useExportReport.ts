@@ -10,10 +10,17 @@ export type ExportFormat = "pdf" | "png";
 export interface ExportOptions {
   projectId: string;
   layoutId: string;
+  layoutName?: string;
   format?: ExportFormat;
   atlasPageIndices?: number[];
   /** Total number of atlas pages (used by backend when atlasPageIndices is not provided) */
   totalAtlasPages?: number;
+  /** Output resolution in DPI (72, 150, 300, 600) */
+  dpi?: number;
+  /** Paper width in millimeters */
+  paperWidthMm?: number;
+  /** Paper height in millimeters */
+  paperHeightMm?: number;
 }
 
 export interface UseExportReportResult {
@@ -36,7 +43,17 @@ export function useExportReport(): UseExportReportResult {
    */
   const exportReport = useCallback(
     async (options: ExportOptions): Promise<void> => {
-      const { projectId, layoutId, format = "pdf", atlasPageIndices, totalAtlasPages } = options;
+      const {
+        projectId,
+        layoutId,
+        layoutName,
+        format = "pdf",
+        atlasPageIndices,
+        totalAtlasPages,
+        dpi = 300,
+        paperWidthMm,
+        paperHeightMm,
+      } = options;
 
       setIsBusy(true);
 
@@ -46,7 +63,13 @@ export function useExportReport(): UseExportReportResult {
           project_id: projectId,
           layout_id: layoutId,
           format,
+          dpi,
         };
+
+        // Include layout name for output filename
+        if (layoutName) {
+          inputs.layout_name = layoutName;
+        }
 
         // Only include atlas_page_indices if provided
         if (atlasPageIndices !== undefined) {
@@ -56,6 +79,14 @@ export function useExportReport(): UseExportReportResult {
         // Pass total atlas pages so backend doesn't need to query
         if (totalAtlasPages !== undefined) {
           inputs.total_atlas_pages = totalAtlasPages;
+        }
+
+        // Pass paper dimensions for accurate DPI calculation
+        if (paperWidthMm !== undefined) {
+          inputs.paper_width_mm = paperWidthMm;
+        }
+        if (paperHeightMm !== undefined) {
+          inputs.paper_height_mm = paperHeightMm;
         }
 
         const job = await executeProcessAsync("print_report", inputs);
