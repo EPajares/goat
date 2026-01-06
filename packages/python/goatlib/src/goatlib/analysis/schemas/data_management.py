@@ -9,6 +9,8 @@ from typing import List, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
+from goatlib.analysis.schemas.base import FieldStatistic, StatisticOperation
+
 
 class SpatialRelationshipType(StrEnum):
     """Spatial relationship types for joining features"""
@@ -49,17 +51,6 @@ class SortOrder(StrEnum):
     descending = "descending"
 
 
-class StatisticOperation(StrEnum):
-    """Statistical operations for field aggregation"""
-
-    sum = "sum"
-    min = "min"
-    max = "max"
-    mean = "mean"
-    count = "count"
-    standard_deviation = "standard_deviation"
-
-
 class AttributeRelationship(BaseModel):
     """Defines an attribute relationship between target and join layers"""
 
@@ -80,22 +71,6 @@ class SortConfiguration(BaseModel):
     sort_order: SortOrder = Field(
         SortOrder.ascending, description="Sort order for the field"
     )
-
-
-class FieldStatistic(BaseModel):
-    """Configuration for field statistics calculation"""
-
-    field: str = Field(..., description="Field name to calculate statistics for")
-    operations: List[StatisticOperation] = Field(
-        default=[StatisticOperation.sum],
-        description="List of statistical operations to perform on the field",
-    )
-
-    @model_validator(mode="after")
-    def validate_operations(self: Self) -> Self:
-        if not self.operations:
-            raise ValueError("At least one statistical operation must be specified")
-        return self
 
 
 class JoinParams(BaseModel):

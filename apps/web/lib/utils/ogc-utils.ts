@@ -63,6 +63,12 @@ export function inferInputType(
   if (topLevelUiMeta?.widget === "field-selector") {
     return "field";
   }
+  if (topLevelUiMeta?.widget === "field-statistics-selector") {
+    return "field-statistics";
+  }
+  if (topLevelUiMeta?.widget === "scenario-selector") {
+    return "scenario";
+  }
 
   // Get the effective schema (handle anyOf/oneOf for nullable types)
   const effectiveSchema = getEffectiveSchema(schema);
@@ -77,6 +83,12 @@ export function inferInputType(
   }
   if (uiMeta?.widget === "field-selector") {
     return "field";
+  }
+  if (uiMeta?.widget === "field-statistics-selector") {
+    return "field-statistics";
+  }
+  if (uiMeta?.widget === "scenario-selector") {
+    return "scenario";
   }
 
   // Check for repeatable array of objects (e.g., opportunities in heatmap)

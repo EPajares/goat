@@ -183,6 +183,8 @@ export type InferredInputType =
   | "object" // Nested object (type is object)
   | "time-picker" // Time picker (x-ui.widget is time-picker)
   | "starting-points" // Starting points selector (map clicks or layer)
+  | "field-statistics" // Field statistics selector (operation + field)
+  | "scenario" // Scenario selector (x-ui.widget is scenario-selector)
   | "unknown"; // Fallback
 
 /**

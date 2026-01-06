@@ -346,6 +346,7 @@ class SimpleToolRunner:
         self: Self,
         operation: str,
         sql: str,
+        params: list[Any] | None = None,
         max_retries: int = 2,
     ) -> Any:
         """Execute a DuckDB/DuckLake SQL statement with retry logic.
@@ -353,6 +354,7 @@ class SimpleToolRunner:
         Args:
             operation: Description of the operation for logging
             sql: SQL statement to execute
+            params: Optional list of parameters for parameterized query
             max_retries: Maximum number of retry attempts
 
         Returns:
@@ -360,6 +362,8 @@ class SimpleToolRunner:
         """
         for attempt in range(max_retries + 1):
             try:
+                if params:
+                    return self.duckdb_con.execute(sql, params)
                 return self.duckdb_con.execute(sql)
             except Exception as e:
                 if self._is_retriable_ducklake_error(e) and attempt < max_retries:
@@ -569,17 +573,32 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         """
         return None
 
-    def export_layer_to_parquet(self: Self, layer_id: str, user_id: str) -> str:
+    def export_layer_to_parquet(
+        self: Self,
+        layer_id: str,
+        user_id: str,
+        cql_filter: dict[str, Any] | None = None,
+        scenario_id: str | None = None,
+        project_id: str | None = None,
+    ) -> str:
         """Export a DuckLake layer to a temporary parquet file.
+
+        Supports optional CQL2-JSON filtering and scenario feature merging.
 
         Args:
             layer_id: Layer UUID string
             user_id: User UUID string
+            cql_filter: Optional CQL2-JSON filter dict to apply
+            scenario_id: Optional scenario UUID for merging scenario features
+            project_id: Project UUID (required if scenario_id is provided)
 
         Returns:
             Path to the temporary parquet file
         """
+        import json
         import tempfile
+
+        from goatlib.storage.query_builder import build_cql_filter
 
         table_name = self.get_layer_table_path(user_id, layer_id)
 
@@ -589,11 +608,184 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         temp_path = temp_file.name
         temp_file.close()
 
-        self._execute_with_retry(
-            "export layer",
-            f"COPY {table_name} TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+        # Get column names for CQL filter validation
+        columns_result = self._execute_with_retry(
+            "get columns",
+            f"SELECT column_name FROM information_schema.columns WHERE table_catalog = 'lake' AND table_name = 't_{layer_id.replace('-', '')}'",
         )
+        column_names = [row[0] for row in columns_result.fetchall()]
+
+        # Build WHERE clause
+        where_clause = ""
+        params: list[Any] = []
+
+        if cql_filter:
+            filter_dict = {"filter": json.dumps(cql_filter), "lang": "cql2-json"}
+            cql_filters = build_cql_filter(filter_dict, column_names, "geometry")
+            if cql_filters.clauses:
+                where_clause = "WHERE " + " AND ".join(cql_filters.clauses)
+                params = cql_filters.params
+
+        # If scenario_id is provided, merge scenario features
+        if scenario_id and project_id and self.db_service:
+            # Get attribute mapping for this layer
+            layer_info = asyncio.get_event_loop().run_until_complete(
+                self.db_service.get_layer_info(layer_id)
+            )
+            attribute_mapping = layer_info.get("attribute_mapping", {}) if layer_info else {}
+
+            # Get scenario features from PostgreSQL
+            scenario_features = asyncio.get_event_loop().run_until_complete(
+                self.db_service.get_scenario_features(
+                    scenario_id=scenario_id,
+                    layer_id=layer_id,
+                    project_id=project_id,
+                    attribute_mapping=attribute_mapping,
+                )
+            )
+
+            if scenario_features:
+                # Create temp table for scenario features
+                self._merge_scenario_features(
+                    table_name=table_name,
+                    temp_path=temp_path,
+                    scenario_features=scenario_features,
+                    attribute_mapping=attribute_mapping,
+                    where_clause=where_clause,
+                    params=params,
+                )
+                logger.info(
+                    "Exported layer %s with %d scenario features to %s",
+                    layer_id, len(scenario_features), temp_path
+                )
+                return temp_path
+
+        # No scenario - just export with optional filter
+        if where_clause:
+            # Use parameterized query
+            query = f"SELECT * FROM {table_name} {where_clause}"
+            self._execute_with_retry(
+                "export layer with filter",
+                f"COPY ({query}) TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+                params,
+            )
+        else:
+            self._execute_with_retry(
+                "export layer",
+                f"COPY {table_name} TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+            )
+
         logger.info("Exported layer %s to %s", layer_id, temp_path)
+        return temp_path
+
+    def _merge_scenario_features(
+        self: Self,
+        table_name: str,
+        temp_path: str,
+        scenario_features: list[dict[str, Any]],
+        attribute_mapping: dict[str, str],
+        where_clause: str,
+        params: list[Any],
+    ) -> None:
+        """Merge scenario features with original layer data and export to parquet.
+
+        Logic:
+        1. Get original features (excluding deleted/modified by scenario)
+        2. Add new/modified features from scenario
+        3. Export combined result
+
+        Args:
+            table_name: DuckLake table name
+            temp_path: Output parquet path
+            scenario_features: List of scenario feature dicts with WKT geometry
+            attribute_mapping: Column name mapping
+            where_clause: Optional CQL filter WHERE clause
+            params: Parameters for WHERE clause
+        """
+        import json
+
+        # Separate features by edit type
+        modified_deleted_ids = []
+        new_modified_features = []
+
+        for feat in scenario_features:
+            edit_type = feat.get("edit_type")
+            if edit_type in ("m", "d"):  # modified or deleted
+                modified_deleted_ids.append(feat["id"])
+            if edit_type in ("n", "m"):  # new or modified
+                new_modified_features.append(feat)
+
+        # Build query for original features (excluding modified/deleted)
+        original_where = where_clause or "WHERE TRUE"
+        if modified_deleted_ids:
+            id_placeholders = ", ".join("?" for _ in modified_deleted_ids)
+            if where_clause:
+                original_where += f" AND id NOT IN ({id_placeholders})"
+            else:
+                original_where = f"WHERE id NOT IN ({id_placeholders})"
+            params = params + modified_deleted_ids
+
+        # Get column info from original table
+        col_info = self._execute_with_retry(
+            "get column types",
+            f"DESCRIBE {table_name}",
+        ).fetchall()
+        columns = [(row[0], row[1]) for row in col_info]
+        col_names = [c[0] for c in columns]
+
+        if not new_modified_features:
+            # No new/modified features - just filter out deleted
+            query = f"SELECT * FROM {table_name} {original_where}"
+            self._execute_with_retry(
+                "export with scenario deletions",
+                f"COPY ({query}) TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+                params,
+            )
+            return
+
+        # Build VALUES clause for new/modified features
+        # Reverse attribute_mapping to map output names to db columns
+        reverse_mapping = {v: k for k, v in attribute_mapping.items()}
+
+        values_rows = []
+        value_params = []
+        for feat in new_modified_features:
+            row_values = []
+            for col_name, col_type in columns:
+                if col_name == "id":
+                    row_values.append("?")
+                    value_params.append(feat.get("id"))
+                elif col_name == "geometry":
+                    # Convert WKT to geometry
+                    row_values.append("ST_GeomFromText(?)")
+                    value_params.append(feat.get("geom"))
+                elif col_name in reverse_mapping:
+                    # Mapped attribute
+                    output_name = reverse_mapping[col_name]
+                    row_values.append("?")
+                    value_params.append(feat.get(output_name))
+                else:
+                    # Check if directly available
+                    row_values.append("?")
+                    value_params.append(feat.get(col_name))
+            values_rows.append(f"({', '.join(row_values)})")
+
+        values_sql = ", ".join(values_rows)
+        col_list = ", ".join(f'"{c[0]}"' for c in columns)
+
+        # Create combined query with UNION ALL
+        combined_query = f"""
+            SELECT * FROM {table_name} {original_where}
+            UNION ALL
+            SELECT * FROM (VALUES {values_sql}) AS scenario_data({col_list})
+        """
+
+        all_params = params + value_params
+        self._execute_with_retry(
+            "export with scenario merge",
+            f"COPY ({combined_query}) TO '{temp_path}' (FORMAT PARQUET, COMPRESSION ZSTD)",
+            all_params,
+        )
 
         return temp_path
 

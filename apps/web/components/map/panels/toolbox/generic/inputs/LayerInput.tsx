@@ -3,6 +3,7 @@
  *
  * Renders a layer selector based on OGC process input schema.
  * Filters layers by geometry type constraints from metadata.
+ * Also captures and exposes the layer's CQL filter (if any).
  */
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -21,6 +22,8 @@ interface LayerInputProps {
   input: ProcessedInput;
   value: string | undefined;
   onChange: (value: string | undefined) => void;
+  /** Callback to set the filter associated with the selected layer */
+  onFilterChange?: (filter: Record<string, unknown> | undefined) => void;
   disabled?: boolean;
   /** Layer IDs to exclude from the selector (e.g., already selected in other items) */
   excludedLayerIds?: string[];
@@ -42,6 +45,7 @@ export default function LayerInput({
   input,
   value,
   onChange,
+  onFilterChange,
   disabled,
   excludedLayerIds = [],
 }: LayerInputProps) {
@@ -98,10 +102,19 @@ export default function LayerInput({
   }, [value, layerItems]);
 
   const handleChange = (item: SelectorItem | SelectorItem[] | undefined) => {
-    if (Array.isArray(item)) {
-      onChange(item[0]?.value as string | undefined);
-    } else {
-      onChange(item?.value as string | undefined);
+    const newValue = Array.isArray(item) ? item[0]?.value : item?.value;
+    onChange(newValue as string | undefined);
+
+    // Also notify about the associated filter
+    if (onFilterChange) {
+      if (!newValue) {
+        onFilterChange(undefined);
+      } else {
+        const selectedLayer = filteredLayers.find((layer) => layer.layer_id === newValue);
+        // Extract CQL filter from the layer's query
+        const cqlFilter = selectedLayer?.query?.cql as Record<string, unknown> | undefined;
+        onFilterChange(cqlFilter);
+      }
     }
   };
 

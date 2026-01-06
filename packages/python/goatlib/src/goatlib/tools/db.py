@@ -302,7 +302,7 @@ class ToolDatabaseService:
         row = await self.pool.fetchrow(
             f"""
             SELECT id, name, user_id, folder_id, type, feature_layer_type,
-                   feature_layer_geometry_type
+                   feature_layer_geometry_type, attribute_mapping
             FROM {self.schema}.layer
             WHERE id = $1
             """,
@@ -317,5 +317,101 @@ class ToolDatabaseService:
                 "type": row["type"],
                 "feature_layer_type": row["feature_layer_type"],
                 "geometry_type": row["feature_layer_geometry_type"],
+                "attribute_mapping": row["attribute_mapping"] or {},
             }
         return None
+
+    async def get_layer_project_id(
+        self: Self, layer_id: str, project_id: str
+    ) -> int | None:
+        """Get the layer_project link ID for a layer in a project.
+
+        Args:
+            layer_id: Layer UUID
+            project_id: Project UUID
+
+        Returns:
+            layer_project_id or None if not found
+        """
+        row = await self.pool.fetchrow(
+            f"""
+            SELECT id FROM {self.schema}.layer_project
+            WHERE layer_id = $1 AND project_id = $2
+            """,
+            uuid_module.UUID(layer_id),
+            uuid_module.UUID(project_id),
+        )
+        if row:
+            return row["id"]
+        return None
+
+    async def get_scenario_features(
+        self: Self,
+        scenario_id: str,
+        layer_id: str,
+        project_id: str,
+        attribute_mapping: dict[str, str],
+    ) -> list[dict[str, Any]]:
+        """Get scenario features for a layer as list of dicts with WKT geometry.
+
+        Looks up the layer_project_id from layer_id + project_id, then
+        fetches all scenario features linked to that layer_project.
+
+        Args:
+            scenario_id: Scenario UUID
+            layer_id: Layer UUID
+            project_id: Project UUID
+            attribute_mapping: Dict mapping output column names to database columns
+
+        Returns:
+            List of feature dicts with 'id', 'geom' (WKT), 'edit_type', and attributes
+        """
+        # First get the layer_project_id
+        layer_project_id = await self.get_layer_project_id(layer_id, project_id)
+        if layer_project_id is None:
+            logger.warning(
+                f"No layer_project found for layer={layer_id}, project={project_id}"
+            )
+            return []
+
+        # Build the select columns from attribute_mapping
+        # attribute_mapping is like {"name": "text_attr1", "category": "text_attr2"}
+        # We need to select sf.text_attr1, sf.text_attr2, etc.
+        attr_selects = []
+        for output_name, db_column in attribute_mapping.items():
+            # Skip special columns
+            if output_name in ("id", "geom", "geometry"):
+                continue
+            attr_selects.append(f'sf."{db_column}" AS "{output_name}"')
+
+        attr_select_sql = ", " + ", ".join(attr_selects) if attr_selects else ""
+
+        query = f"""
+            SELECT
+                sf.feature_id AS id,
+                ST_AsText(sf.geom) AS geom,
+                sf.edit_type
+                {attr_select_sql}
+            FROM {self.schema}.scenario_scenario_feature ssf
+            INNER JOIN {self.schema}.scenario_feature sf
+                ON sf.id = ssf.scenario_feature_id
+            WHERE ssf.scenario_id = $1
+              AND sf.layer_project_id = $2
+        """
+
+        rows = await self.pool.fetch(
+            query,
+            uuid_module.UUID(scenario_id),
+            layer_project_id,
+        )
+
+        features = []
+        for row in rows:
+            feature = dict(row)
+            features.append(feature)
+
+        logger.info(
+            f"Found {len(features)} scenario features for scenario={scenario_id}, "
+            f"layer_project={layer_project_id}"
+        )
+        return features

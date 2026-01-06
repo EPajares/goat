@@ -68,6 +68,21 @@
     },
     "starting_points": {
       "label": "Startpunkte"
+    },
+    "join_layer": {
+      "label": "Join-Layer"
+    },
+    "join_method": {
+      "label": "Verbindungsmethode"
+    },
+    "spatial_settings": {
+      "label": "Räumliche Beziehung"
+    },
+    "attribute_settings": {
+      "label": "Attributbeziehung"
+    },
+    "join_options": {
+      "label": "Verbindungsoptionen"
     }
   },
   "fields": {
@@ -193,7 +208,7 @@
     },
     "distance_field": {
       "label": "Abstandsfeld",
-      "description": "Feld mit dem Pufferabstand für jedes Feature"
+      "description": "Feld mit dem Pufferabstand für jedes Objekt"
     },
     "units": {
       "label": "Entfernungseinheit",
@@ -247,13 +262,21 @@
       "label": "Geometrie-Layer",
       "description": "Layer mit Quell-/Zielgeometrien"
     },
+    "geometry_layer_id": {
+      "label": "Geometrie-Layer",
+      "description": "Layer mit Quell-/Zielgeometrien (Punkte oder Polygone)"
+    },
+    "matrix_layer_id": {
+      "label": "Matrix-Layer",
+      "description": "Layer mit der Quell-Ziel-Matrix"
+    },
     "matrix_path": {
       "label": "Matrix-Datei",
       "description": "Quell-Ziel-Matrix-Datei (parquet/csv)"
     },
     "unique_id_column": {
       "label": "Eindeutige ID-Spalte",
-      "description": "Spalte mit eindeutigen Feature-IDs"
+      "description": "Spalte mit eindeutigen Objekt-IDs"
     },
     "origin_column": {
       "label": "Quellspalte",
@@ -321,7 +344,7 @@
     },
     "query": {
       "label": "Filterabfrage",
-      "description": "SQL-WHERE-Klausel zum Filtern von Features"
+      "description": "SQL-WHERE-Klausel zum Filtern von Objekten"
     },
     "collection": {
       "label": "Layer",
@@ -462,6 +485,62 @@
     "country_field": {
       "label": "Land",
       "description": "Spalte für Land (Name oder ISO-Code). Optional."
+    },
+    "target_layer_id": {
+      "label": "Ziel-Layer",
+      "description": "Der Layer, an den die Felder des Join-Layers angehängt werden"
+    },
+    "join_layer_id": {
+      "label": "Join-Layer",
+      "description": "Der Layer, dessen Felder an den Ziel-Layer angehängt werden"
+    },
+    "join_method": {
+      "label": "Verbindungsmethode",
+      "description": "Wie Features zwischen Ziel- und Join-Layer zugeordnet werden"
+    },
+    "spatial_relationship": {
+      "label": "Räumliche Beziehung",
+      "description": "Die räumliche Beziehung zur Zuordnung der Features"
+    },
+    "distance": {
+      "label": "Suchentfernung",
+      "description": "Suchentfernung für die Beziehung 'In einer Entfernung von'"
+    },
+    "distance_units": {
+      "label": "Entfernungseinheiten",
+      "description": "Einheiten für die Suchentfernung"
+    },
+    "attribute_relationships": {
+      "label": "Zu übereinstimmende Felder",
+      "description": "Felder zur Zuordnung zwischen Ziel- und Join-Layer"
+    },
+    "target_field": {
+      "label": "Ziel-Feld",
+      "description": "Feld im Ziel-Layer zur Zuordnung"
+    },
+    "join_field": {
+      "label": "Join-Feld",
+      "description": "Feld im Join-Layer zur Zuordnung"
+    },
+    "join_operation": {
+      "label": "Verbindungsvorgang",
+      "description": "Wie mehrere übereinstimmende Features behandelt werden"
+    },
+    "multiple_matching_records": {
+      "label": "Mehrere Übereinstimmungen",
+      "description": "Wie mehrere übereinstimmende Datensätze bei Eins-zu-Eins-Verbindungen behandelt werden"
+    },
+    "join_type": {
+      "label": "Alle Ziel-Features beibehalten",
+      "description": "Ob alle Ziel-Features oder nur übereinstimmende beibehalten werden"
+    },
+    "sort_configuration": {
+      "label": "Sortieren nach",
+      "description": "Sortierreihenfolge zur Auswahl des ersten übereinstimmenden Datensatzes"
+    },
+    "field_statistics": {
+      "label": "Statistiken",
+      "description": "Statistiken, die für übereinstimmende Datensätze berechnet werden"
     }
   },
   "enums": {
@@ -498,7 +577,34 @@
     },
     "sort_order": {
       "ascendent": "Aufsteigend",
-      "descendent": "Absteigend"
+      "descendent": "Absteigend",
+      "ascending": "Aufsteigend",
+      "descending": "Absteigend"
+    },
+    "join_method": {
+      "spatial": "Räumlich",
+      "attribute": "Attributiv",
+      "spatial_and_attribute": "Räumlich und Attributiv"
+    },
+    "spatial_relationship_type": {
+      "intersects": "Schneidet",
+      "within_distance": "In einer Entfernung von",
+      "identical_to": "Identisch mit",
+      "completely_contains": "Enthält vollständig",
+      "completely_within": "Vollständig innerhalb von"
+    },
+    "join_operation_type": {
+      "one_to_one": "Eins zu Eins",
+      "one_to_many": "Eins zu Viele"
+    },
+    "multiple_matching_records_type": {
+      "first_record": "Erster Datensatz",
+      "calculate_statistics": "Statistiken berechnen",
+      "count_only": "Nur zählen"
+    },
+    "join_type": {
+      "inner": "Nur übereinstimmende Features",
+      "left": "Alle Ziel-Features"
     },
     "class_break_method": {
       "quantile": "Quantil",
@@ -556,38 +662,38 @@
   "tools": {
     "buffer": {
       "title": "Puffer",
-      "description": "Erzeugt einen Puffer um einen Punkt, Linien oder Polygon-Layer."
+      "description": "Erzeugt Pufferpolygone um Eingabeobjekte mit einem festgelegten Abstand. Unterstützt mehrere Pufferabstände und das Zusammenführen überlappender Puffer."
     },
     "clip": {
       "title": "Ausschneiden",
-      "description": "Features mit Überlagerungsgeometrie ausschneiden"
+      "description": "Extrahiert Eingabeobjekte, die innerhalb des Überlagerungs-Layers liegen. Nur die Teile innerhalb der Überlagerung werden beibehalten."
     },
     "centroid": {
-      "title": "Mittelpunkt",
-      "description": "Mittelpunkte für Features berechnen"
+      "title": "Schwerpunkt",
+      "description": "Erzeugt Punktobjekte am geometrischen Mittelpunkt (Schwerpunkt) jedes Eingabeobjekts."
     },
     "intersection": {
-      "title": "Verschneiden",
-      "description": "Geometrische Verschneidung zweier Layer berechnen"
+      "title": "Überschneiden",
+      "description": "Berechnet die geometrische Überschneidung von Eingabe- und Überlagerungs-Layer. Nur überlappende Bereiche werden mit Attributen beider Layer ausgegeben."
     },
     "aggregate_points": {
       "title": "Punkte aggregieren",
-      "description": "Fasst Punkt-Features innerhalb festgelegter Bereiche zusammen. Berechnet die Gesamtanzahl der Punkte und ermittelt Statistiken wie Summe, Mittelwert, Min oder Max für jeden Bereich."
+      "description": "Fasst Punktobjekte innerhalb festgelegter Bereiche zusammen. Berechnet die Gesamtanzahl der Punkte und ermittelt Statistiken wie Summe, Mittelwert, Min oder Max für jeden Bereich."
     },
     "union": {
       "title": "Vereinigen",
-      "description": "Geometrien aus zwei Layern kombinieren"
+      "description": "Berechnet die geometrische Vereinigung von Eingabe- und Überlagerungs-Layer. Alle Objekte und deren Attribute aus beiden Layern werden ausgegeben."
     },
     "difference": {
-      "title": "Differenz",
-      "description": "Überlagerungsgeometrie von der Eingabe subtrahieren"
+      "title": "Radieren",
+      "description": "Entfernt Bereiche des Eingabe-Layers, die sich mit dem Überlagerungs-Layer überschneiden. Nur die Teile außerhalb der Überlagerung werden beibehalten."
     },
     "origin_destination": {
-      "title": "Quell-Ziel-Analyse",
+      "title": "Quell-Ziel-Beziehungen",
       "description": "Die Quell-Ziel-Beziehungen werden in verschiedenen Bereichen wie der Verkehrsplanung und Stadtplanung verwendet, um Bewegungen oder Flüsse zwischen verschiedenen Orten zu untersuchen."
     },
     "heatmap_gravity": {
-      "title": "Heatmap Gravitation",
+      "title": "Heatmap Gravity",
       "description": "Es wird die Erreichbarkeit ausgehend von jeder Rasterzelle zu mehreren Orten gleichzeitig berechnet. Die Reisezeiten werden hierfür mit einer Widerstandsfunktion gewichtet und aggregiert."
     },
     "heatmap_closest_average": {
@@ -615,8 +721,8 @@
       "description": "Layer aus dem Speicher entfernen"
     },
     "feature_count": {
-      "title": "Feature-Anzahl",
-      "description": "Features in einer Sammlung mit optionaler Filterung zählen"
+      "title": "Objektanzahl",
+      "description": "Zählt Objekte in einer Sammlung mit optionaler Filterung"
     },
     "unique_values": {
       "title": "Eindeutige Werte",
@@ -628,20 +734,24 @@
     },
     "area_statistics": {
       "title": "Flächenstatistiken",
-      "description": "Flächenstatistiken für Polygon-Features berechnen"
+      "description": "Flächenstatistiken für Polygonobjekte berechnen"
     },
     "catchment_area": {
       "title": "Einzugsgebiet",
-      "description": "Einzugsgebiete zeigen Flächen auf die in einer festgelegten Reisezeit oder Entfernung von einem oder mehreren Ausgangspunkten erreicht werden.",
+      "description": "Einzugsgebiete zeigen Flächen auf, die in einer festgelegten Reisezeit oder Entfernung von einem oder mehreren Ausgangspunkten erreicht werden können.",
       "docs_path": "toolbox/accessibility_indicators/catchments"
     },
     "aggregate_polygon": {
       "title": "Polygone aggregieren",
-      "description": "Fasst Polygon-Features innerhalb von definierten Gebieten zusammen. Berechnet Statistiken wie Anzahl, Summe, Mittelwert, Minimum oder Maximum für jedes Gebiet. Unterstützt Gewichtung nach Schnittflächenanteil."
+      "description": "Fasst Polygonobjekte innerhalb von definierten Gebieten zusammen. Berechnet Statistiken wie Anzahl, Summe, Mittelwert, Minimum oder Maximum für jedes Gebiet. Unterstützt Gewichtung nach Schnittflächenanteil."
     },
     "geocoding": {
       "title": "Geokodierung",
       "description": "Wandelt Adressen in geografische Koordinaten um. Unterstützt sowohl vollständige Adresszeichenfolgen als auch strukturierte Adresskomponenten."
+    },
+    "join": {
+      "title": "Features verbinden",
+      "description": "Überträgt Attribute zwischen Layern basierend auf räumlichen und Attributbeziehungen. Optional können statistische Daten für die verbundenen Features berechnet werden."
     }
   },
   "routing_modes": {

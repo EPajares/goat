@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import { useLayerQueryables } from "@/lib/api/layers";
 
 type PseudoFieldName = "$area" | "$length" | "$perimeter";
@@ -20,21 +21,25 @@ const useLayerFields = (
     if (!queryables || !dataset_id) return [];
 
     // Get fields from queryables
+    // API returns "integer" for int columns, normalize to "number" for frontend
+    const normalizeType = (type: string) => (type === "integer" ? "number" : type);
+
     const queryableFields = Object.entries(queryables.properties)
       .filter(([key, value]) => {
         if (hiddenFields.includes(key)) {
           return false;
         }
+        const normalizedType = normalizeType(value.type);
         if (filterType) {
-          return value.type === filterType;
+          return normalizedType === filterType;
         } else {
-          return value.type === "string" || value.type === "number" || value.type === "object";
+          return normalizedType === "string" || normalizedType === "number" || normalizedType === "object";
         }
       })
       .map(([key, value]) => {
         return {
           name: key,
-          type: value.type,
+          type: normalizeType(value.type),
         };
       });
 
@@ -47,22 +52,18 @@ const useLayerFields = (
       if (geomRef) {
         // Check for Polygon or MultiPolygon
         if (geomRef.includes("Polygon")) {
-          pseudoFields = [
-            { name: "$area", type: "number" }
-          ];
+          pseudoFields = [{ name: "$area", type: "number" }];
         }
         // Check for LineString or MultiLineString
         else if (geomRef.includes("LineString")) {
-          pseudoFields = [
-            { name: "$length", type: "number" }
-          ];
+          pseudoFields = [{ name: "$length", type: "number" }];
         }
         // Point or MultiPoint - no pseudo fields
       }
     }
 
     // Filter pseudo fields based on filterType if specified
-    const filteredPseudoFields = pseudoFields.filter(field => {
+    const filteredPseudoFields = pseudoFields.filter((field) => {
       if (filterType) {
         return field.type === filterType;
       }

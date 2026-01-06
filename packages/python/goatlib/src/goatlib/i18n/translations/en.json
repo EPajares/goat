@@ -68,6 +68,21 @@
     },
     "starting_points": {
       "label": "Starting Points"
+    },
+    "join_layer": {
+      "label": "Join Layer"
+    },
+    "join_method": {
+      "label": "Join Method"
+    },
+    "spatial_settings": {
+      "label": "Spatial Relationship"
+    },
+    "attribute_settings": {
+      "label": "Attribute Relationship"
+    },
+    "join_options": {
+      "label": "Join Options"
     }
   },
   "fields": {
@@ -246,6 +261,14 @@
     "geometry_path": {
       "label": "Geometry Layer",
       "description": "Layer containing origin/destination geometries"
+    },
+    "geometry_layer_id": {
+      "label": "Geometry Layer",
+      "description": "Layer with origin/destination geometries (points or polygons)"
+    },
+    "matrix_layer_id": {
+      "label": "Matrix Layer",
+      "description": "Layer containing the origin-destination matrix"
     },
     "matrix_path": {
       "label": "Matrix File",
@@ -466,6 +489,62 @@
     "country_constant": {
       "label": "Default Country",
       "description": "Default country when no country field is selected"
+    },
+    "target_layer_id": {
+      "label": "Target Layer",
+      "description": "The layer to which join layer fields will be appended"
+    },
+    "join_layer_id": {
+      "label": "Join Layer",
+      "description": "The layer containing fields to append to the target layer"
+    },
+    "join_method": {
+      "label": "Join Method",
+      "description": "How to match features between the target and join layers"
+    },
+    "spatial_relationship": {
+      "label": "Spatial Relationship",
+      "description": "The spatial relationship used to match features"
+    },
+    "distance": {
+      "label": "Search Distance",
+      "description": "Search distance for the within_distance relationship"
+    },
+    "distance_units": {
+      "label": "Distance Units",
+      "description": "Units for the search distance"
+    },
+    "attribute_relationships": {
+      "label": "Match Fields",
+      "description": "Fields to match between target and join layers"
+    },
+    "target_field": {
+      "label": "Target Field",
+      "description": "Field in target layer to match"
+    },
+    "join_field": {
+      "label": "Join Field",
+      "description": "Field in join layer to match"
+    },
+    "join_operation": {
+      "label": "Join Operation",
+      "description": "How to handle multiple matching features"
+    },
+    "multiple_matching_records": {
+      "label": "Multiple Matches",
+      "description": "How to handle multiple matching records in one-to-one joins"
+    },
+    "join_type": {
+      "label": "Keep All Target Features",
+      "description": "Whether to keep all target features or only matching ones"
+    },
+    "sort_configuration": {
+      "label": "Order By",
+      "description": "Sort order for selecting the first matching record"
+    },
+    "field_statistics": {
+      "label": "Statistics",
+      "description": "Statistics to calculate for matching records"
     }
   },
   "enums": {
@@ -502,7 +581,34 @@
     },
     "sort_order": {
       "ascendent": "Ascending",
-      "descendent": "Descending"
+      "descendent": "Descending",
+      "ascending": "Ascending",
+      "descending": "Descending"
+    },
+    "join_method": {
+      "spatial": "Spatial",
+      "attribute": "Attribute",
+      "spatial_and_attribute": "Spatial and Attribute"
+    },
+    "spatial_relationship_type": {
+      "intersects": "Intersects",
+      "within_distance": "Within Distance",
+      "identical_to": "Identical To",
+      "completely_contains": "Completely Contains",
+      "completely_within": "Completely Within"
+    },
+    "join_operation_type": {
+      "one_to_one": "One to One",
+      "one_to_many": "One to Many"
+    },
+    "multiple_matching_records_type": {
+      "first_record": "First Record",
+      "calculate_statistics": "Calculate Statistics",
+      "count_only": "Count Only"
+    },
+    "join_type": {
+      "inner": "Only Matching Features",
+      "left": "All Target Features"
     },
     "class_break_method": {
       "quantile": "Quantile",
@@ -560,19 +666,19 @@
   "tools": {
     "buffer": {
       "title": "Buffer",
-      "description": "The buffer creates a zone around given points, lines or polygons with a specified buffer distance."
+      "description": "Creates buffer polygons around input features at a specified distance. Supports multiple distance values and dissolving overlapping buffers."
     },
     "clip": {
       "title": "Clip",
-      "description": "Clip features using overlay geometry"
+      "description": "Extracts input features that fall within the clip geometry. Only the portions of input features inside the clip boundary are kept."
     },
     "centroid": {
       "title": "Centroid",
-      "description": "Compute centroid points for features"
+      "description": "Creates a point feature class containing the geometric center (centroid) of each input feature."
     },
     "intersection": {
-      "title": "Intersection",
-      "description": "Compute the geometric intersection of features from two layers"
+      "title": "Intersect",
+      "description": "Computes the geometric intersection of two layers. Features or portions of features that overlap in both layers are written to the output, preserving attributes from both."
     },
     "aggregate_points": {
       "title": "Aggregate Points",
@@ -580,11 +686,11 @@
     },
     "union": {
       "title": "Union",
-      "description": "Combine geometries from two layers"
+      "description": "Computes the geometric union of two layers. All features and their attributes from both input layers are written to the output."
     },
     "difference": {
-      "title": "Difference",
-      "description": "Subtract overlay geometry from input"
+      "title": "Erase",
+      "description": "Creates a feature class by overlaying input features with erase features. Only portions of input features falling outside the erase geometry are kept."
     },
     "origin_destination": {
       "title": "Origin-Destination",
@@ -646,6 +752,10 @@
     "geocoding": {
       "title": "Geocoding",
       "description": "Convert addresses to geographic coordinates. Supports both full address strings and structured address components."
+    },
+    "join": {
+      "title": "Join Features",
+      "description": "Transfers attributes from one layer to another based on spatial and attribute relationships. Optionally, statistics can be calculated for the joined features."
     }
   },
   "routing_modes": {

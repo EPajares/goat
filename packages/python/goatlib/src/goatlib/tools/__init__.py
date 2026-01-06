@@ -35,6 +35,7 @@ from goatlib.tools.db import ToolDatabaseService
 from goatlib.tools.difference import DifferenceToolParams, DifferenceToolRunner
 from goatlib.tools.geocoding import GeocodingToolParams, GeocodingToolRunner
 from goatlib.tools.intersection import IntersectionToolParams, IntersectionToolRunner
+from goatlib.tools.join import JoinToolParams, JoinToolRunner
 from goatlib.tools.layer_delete import LayerDeleteParams, LayerDeleteRunner
 from goatlib.tools.layer_export import LayerExportParams, LayerExportRunner
 from goatlib.tools.layer_import import LayerImportParams, LayerImportRunner
@@ -68,6 +69,8 @@ __all__ = [
     "ClipToolRunner",
     "IntersectionToolParams",
     "IntersectionToolRunner",
+    "JoinToolParams",
+    "JoinToolRunner",
     "GeocodingToolParams",
     "GeocodingToolRunner",
     "UnionToolParams",

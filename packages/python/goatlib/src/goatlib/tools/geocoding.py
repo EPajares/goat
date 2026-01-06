@@ -224,7 +224,13 @@ class GeocodingToolRunner(BaseToolRunner[GeocodingToolParams]):
         """Run geocoding analysis."""
         # Export source layer to parquet
         input_path = str(
-            self.export_layer_to_parquet(params.input_layer_id, params.user_id)
+            self.export_layer_to_parquet(
+                layer_id=params.input_layer_id,
+                user_id=params.user_id,
+                cql_filter=params.input_layer_filter,
+                scenario_id=params.scenario_id,
+                project_id=params.project_id,
+            )
         )
         output_path = temp_dir / "output.parquet"
 
