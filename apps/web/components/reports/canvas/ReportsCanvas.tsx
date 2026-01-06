@@ -702,6 +702,7 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
         <ElementContentWrapper sx={{ pointerEvents: isSelected ? "auto" : "none" }}>
           <ElementContentRenderer
             element={element}
+            allElements={allElements}
             width={width}
             height={height}
             zoom={zoom}

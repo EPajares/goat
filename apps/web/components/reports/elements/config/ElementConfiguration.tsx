@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Divider, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,11 +10,14 @@ import { chartTypes, elementTypes, widgetTypesWithoutConfig } from "@/lib/valida
 
 import SelectedItemContainer from "@/components/map/panels/Container";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
+import LegendElementConfig from "@/components/reports/elements/config/LegendElementConfig";
 import MapElementConfig from "@/components/reports/elements/config/MapElementConfig";
+import NorthArrowElementConfig from "@/components/reports/elements/config/NorthArrowElementConfig";
 import ReportElementConfig from "@/components/reports/elements/config/ReportElementConfig";
 
 interface ElementConfigurationProps {
   element: ReportElement;
+  allElements?: ReportElement[];
   projectLayers?: ProjectLayer[];
   onChange: (updates: Partial<ReportElement>) => void;
   onDelete: () => void;
@@ -25,6 +28,16 @@ interface ElementConfigurationProps {
 const elementHasConfig = (type: string, config?: ReportElement["config"]): boolean => {
   // Map elements have their own config
   if (type === "map") {
+    return true;
+  }
+
+  // Legend elements have their own config
+  if (type === "legend") {
+    return true;
+  }
+
+  // North arrow elements have their own config
+  if (type === "north_arrow") {
     return true;
   }
 
@@ -54,7 +67,7 @@ const elementHasConfig = (type: string, config?: ReportElement["config"]): boole
     return true;
   }
 
-  // For other report-specific types (map, legend, etc.), no config for now
+  // For other report-specific types
   return false;
 };
 
@@ -65,6 +78,7 @@ const elementHasConfig = (type: string, config?: ReportElement["config"]): boole
  */
 const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
   element,
+  allElements,
   projectLayers: _projectLayers,
   onChange,
   onDelete: _onDelete,
@@ -78,6 +92,9 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
 
   const hasConfig = elementHasConfig(element.type, element.config);
 
+  // Get map elements for legend config
+  const mapElements = allElements?.filter((el) => el.type === "map") || [];
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <SelectedItemContainer
@@ -87,6 +104,10 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
           <Stack spacing={2} sx={{ p: 2 }}>
             {element.type === "map" ? (
               <MapElementConfig element={element} onChange={onChange} />
+            ) : element.type === "legend" ? (
+              <LegendElementConfig element={element} mapElements={mapElements} onChange={onChange} />
+            ) : element.type === "north_arrow" ? (
+              <NorthArrowElementConfig element={element} mapElements={mapElements} onChange={onChange} />
             ) : hasConfig ? (
               <ReportElementConfig element={element} onChange={onChange} />
             ) : (
@@ -96,7 +117,6 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
                 </Typography>
               </Box>
             )}
-            <Divider />
           </Stack>
         }
         close={() => {}}

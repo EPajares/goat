@@ -4,7 +4,7 @@
   "workspaceFolder": "/app",
   "shutdownAction": "stopCompose",
   "service": "goat-dev",
-  "runServices": ["goat-dev"],
+  "runServices": ["goat-dev", "windmill-worker-print-dev"],
   "customizations": {
     "vscode": {
         "extensions": [

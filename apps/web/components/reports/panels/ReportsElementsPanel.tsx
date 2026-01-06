@@ -115,28 +115,13 @@ const ElementsTabContent: React.FC = () => {
   const mapElements: ElementConfig[] = [
     { type: "map", label: t("map") },
     { type: "legend", label: t("legend") },
-    { type: "scalebar", label: t("scalebar") },
     { type: "north_arrow", label: t("north_arrow") },
+    { type: "scalebar", label: t("scalebar") },
   ];
 
   const contentElements: ElementConfig[] = [
     { type: "text", label: t("text") },
     { type: "image", label: t("image") },
-    { type: "divider", label: t("divider") },
-  ];
-
-  // Separate chart types like in the builder
-  const chartElements: ElementConfig[] = [
-    { type: "histogram_chart", label: t("histogram_chart") },
-    { type: "categories_chart", label: t("categories_chart") },
-    { type: "pie_chart", label: t("pie_chart") },
-  ];
-
-  const dataElements: ElementConfig[] = [{ type: "table", label: t("table") }];
-
-  const utilityElements: ElementConfig[] = [
-    { type: "qr_code", label: t("qr_code") },
-    { type: "metadata", label: t("metadata") },
   ];
 
   return (
@@ -154,46 +139,10 @@ const ElementsTabContent: React.FC = () => {
       </Box>
 
       {/* Content Elements Section */}
-      <Box sx={{ mb: 8 }}>
+      <Box>
         <SettingsGroupHeader label={t("content")} />
         <Grid container spacing={4}>
           {contentElements.map((element) => (
-            <Grid item xs={6} key={element.type}>
-              <DraggableElementItem type={element.type} label={element.label} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* Charts Section - separate chart types like builder */}
-      <Box sx={{ mb: 8 }}>
-        <SettingsGroupHeader label={t("charts")} />
-        <Grid container spacing={4}>
-          {chartElements.map((element) => (
-            <Grid item xs={6} key={element.type}>
-              <DraggableElementItem type={element.type} label={element.label} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* Data Elements Section */}
-      <Box sx={{ mb: 8 }}>
-        <SettingsGroupHeader label={t("data")} />
-        <Grid container spacing={4}>
-          {dataElements.map((element) => (
-            <Grid item xs={6} key={element.type}>
-              <DraggableElementItem type={element.type} label={element.label} />
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-
-      {/* Utility Elements Section */}
-      <Box sx={{ mb: 8 }}>
-        <SettingsGroupHeader label={t("utilities")} />
-        <Grid container spacing={4}>
-          {utilityElements.map((element) => (
             <Grid item xs={6} key={element.type}>
               <DraggableElementItem type={element.type} label={element.label} />
             </Grid>
@@ -377,6 +326,7 @@ const ReportsElementsPanel: React.FC<ReportsElementsPanelProps> = ({
       <SidePanel sx={{ borderLeft: (theme) => `1px solid ${theme.palette.background.paper}` }}>
         <ElementConfiguration
           element={selectedElement}
+          allElements={selectedReport?.config?.elements}
           projectLayers={projectLayers}
           onChange={handleElementUpdate}
           onDelete={handleElementDelete}

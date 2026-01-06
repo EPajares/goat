@@ -13,7 +13,7 @@ export const reportElementIconMap: Record<ReportElementType, ICON_NAME> = {
   image: ICON_NAME.IMAGE,
   legend: ICON_NAME.LEGEND,
   scalebar: ICON_NAME.RULER_HORIZONTAL,
-  north_arrow: ICON_NAME.LOCATION_CROSSHAIRS,
+  north_arrow: ICON_NAME.NORTH_ARROW,
   table: ICON_NAME.TABLE,
   divider: ICON_NAME.DIVIDER,
   qr_code: ICON_NAME.BOUNDING_BOX,

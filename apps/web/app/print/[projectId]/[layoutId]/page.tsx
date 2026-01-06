@@ -299,6 +299,7 @@ const ReportElements: React.FC<ReportElementsProps> = ({
             {/* Element content using shared renderer */}
             <ElementContentRenderer
               element={element}
+              allElements={elements}
               width={widthPx}
               height={heightPx}
               basemapUrl={basemapUrl}

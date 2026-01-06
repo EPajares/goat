@@ -19,7 +19,7 @@ import {
   Typography,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -53,6 +53,7 @@ import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import Selector from "@/components/map/panels/common/Selector";
 import ConfirmModal from "@/components/modals/Confirm";
 import ReportLayoutRenameModal from "@/components/modals/ReportLayoutRename";
+import ReportTemplatePickerModal, { type ReportTemplate } from "@/components/modals/ReportTemplatePicker";
 
 const PanelContainer = styled(SidePanelContainer)(({ theme }) => ({
   width: SIDE_PANEL_WIDTH,
@@ -74,24 +75,6 @@ interface ReportsConfigPanelProps {
   selectedReport: ReportLayout | null;
   onSelectReport: (report: ReportLayout | null) => void;
 }
-
-// Default config for new report layouts
-const getDefaultConfig = (): ReportLayoutConfig => ({
-  page: {
-    size: "A4",
-    orientation: "portrait",
-    margins: { top: 10, right: 10, bottom: 10, left: 10 },
-    snapToGuides: false,
-    showRulers: false,
-  },
-  layout: {
-    type: "grid",
-    columns: 12,
-    rows: 12,
-    gap: 5,
-  },
-  elements: [],
-});
 
 const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
   project,
@@ -133,8 +116,12 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
   // Modal states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [actionLayoutId, setActionLayoutId] = useState<string | null>(null);
   const [actionLayoutName, setActionLayoutName] = useState<string>("");
+
+  // Track if we've already shown the template picker automatically
+  const hasShownTemplatePickerRef = useRef(false);
 
   // Memoized selector items
   const pageSizeItems: SelectorItem[] = useMemo(
@@ -219,31 +206,49 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     }
   }, [selectedReportId, reportLayouts, onSelectReport]);
 
-  // Auto-select first report when layouts load
+  // Auto-select first report when layouts load, or show template picker if none exist
   useEffect(() => {
     if (reportLayouts && reportLayouts.length > 0 && !selectedReportId) {
       setSelectedReportId(reportLayouts[0].id);
+    } else if (
+      reportLayouts &&
+      reportLayouts.length === 0 &&
+      !isLoading &&
+      !hasShownTemplatePickerRef.current
+    ) {
+      // No layouts exist, show template picker automatically
+      hasShownTemplatePickerRef.current = true;
+      setTemplatePickerOpen(true);
     }
-  }, [reportLayouts, selectedReportId]);
+  }, [reportLayouts, selectedReportId, isLoading]);
+
+  // Handle template selection - create layout from template
+  const handleSelectTemplate = useCallback(
+    async (template: ReportTemplate) => {
+      if (!project?.id) return;
+
+      setIsCreating(true);
+      try {
+        const newLayout = await createReportLayout(project.id, {
+          name: `${template.name} ${(reportLayouts?.length || 0) + 1}`,
+          is_default: false,
+          config: template.config,
+        });
+        await mutate();
+        setSelectedReportId(newLayout.id);
+      } catch (error) {
+        console.error("Failed to create report layout from template:", error);
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [project?.id, reportLayouts?.length, mutate]
+  );
 
   const handleAddReport = useCallback(async () => {
-    if (!project?.id) return;
-
-    setIsCreating(true);
-    try {
-      const newLayout = await createReportLayout(project.id, {
-        name: `Layout ${(reportLayouts?.length || 0) + 1}`,
-        is_default: false,
-        config: getDefaultConfig(),
-      });
-      await mutate();
-      setSelectedReportId(newLayout.id);
-    } catch (error) {
-      console.error("Failed to create report layout:", error);
-    } finally {
-      setIsCreating(false);
-    }
-  }, [project?.id, reportLayouts?.length, mutate]);
+    // Show template picker instead of creating blank layout directly
+    setTemplatePickerOpen(true);
+  }, []);
 
   const handleDeleteReport = useCallback(
     async (reportId: string) => {
@@ -554,9 +559,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
           <Typography variant="body1" fontWeight="bold">
             {t("settings")}
           </Typography>
-          <Button variant="outlined" size="small" sx={{ textTransform: "none" }}>
-            {t("browse_templates")}
-          </Button>
         </Stack>
         <Divider sx={{ flexShrink: 0 }} />
         {/* Settings Body - Scrollable */}
@@ -578,7 +580,7 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
               },
             },
           }}>
-          <Stack spacing={3}>
+          <Stack spacing={2}>
             {/* Page Settings Section */}
             <Box sx={{ overflow: "hidden" }}>
               <SectionHeader
@@ -593,74 +595,58 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
               <SectionOptions
                 active={!pageSettingsCollapsed}
                 baseOptions={
-                  <Stack spacing={2}>
+                  <Stack spacing={3}>
                     {/* Page Size */}
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                        {t("size")}
-                      </Typography>
-                      <Selector
-                        selectedItems={pageSizeItems.find((item) => item.value === pageSize)}
-                        setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
-                          if (item && !Array.isArray(item)) {
-                            handlePageSizeChange(item.value as PageConfig["size"]);
-                          }
-                        }}
-                        items={pageSizeItems}
-                        disabled={!selectedReport || isSaving}
-                      />
-                    </Box>
+                    <Selector
+                      label={t("size")}
+                      selectedItems={pageSizeItems.find((item) => item.value === pageSize)}
+                      setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                        if (item && !Array.isArray(item)) {
+                          handlePageSizeChange(item.value as PageConfig["size"]);
+                        }
+                      }}
+                      items={pageSizeItems}
+                      disabled={!selectedReport || isSaving}
+                    />
 
                     {/* Orientation */}
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                        {t("orientation")}
-                      </Typography>
-                      <Selector
-                        selectedItems={orientationItems.find((item) => item.value === orientation)}
-                        setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
-                          if (item && !Array.isArray(item)) {
-                            handleOrientationChange(item.value as PageConfig["orientation"]);
-                          }
-                        }}
-                        items={orientationItems}
-                        disabled={!selectedReport || isSaving}
-                      />
-                    </Box>
+                    <Selector
+                      label={t("orientation")}
+                      selectedItems={orientationItems.find((item) => item.value === orientation)}
+                      setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                        if (item && !Array.isArray(item)) {
+                          handleOrientationChange(item.value as PageConfig["orientation"]);
+                        }
+                      }}
+                      items={orientationItems}
+                      disabled={!selectedReport || isSaving}
+                    />
 
                     {/* DPI */}
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                        {t("dpi")}
-                      </Typography>
-                      <Selector
-                        selectedItems={dpiItems.find((item) => item.value === dpi)}
-                        setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
-                          if (item && !Array.isArray(item)) {
-                            setDpi(item.value as number);
-                          }
-                        }}
-                        items={dpiItems}
-                        disabled={!selectedReport || isSaving}
-                      />
-                    </Box>
+                    <Selector
+                      label={t("dpi")}
+                      selectedItems={dpiItems.find((item) => item.value === dpi)}
+                      setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                        if (item && !Array.isArray(item)) {
+                          setDpi(item.value as number);
+                        }
+                      }}
+                      items={dpiItems}
+                      disabled={!selectedReport || isSaving}
+                    />
 
                     {/* Export Format */}
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                        {t("format_export")}
-                      </Typography>
-                      <Selector
-                        selectedItems={exportFormatItems.find((item) => item.value === exportFormat)}
-                        setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
-                          if (item && !Array.isArray(item)) {
-                            setExportFormat(item.value as string);
-                          }
-                        }}
-                        items={exportFormatItems}
-                        disabled={!selectedReport || isSaving}
-                      />
-                    </Box>
+                    <Selector
+                      label={t("format_export")}
+                      selectedItems={exportFormatItems.find((item) => item.value === exportFormat)}
+                      setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                        if (item && !Array.isArray(item)) {
+                          setExportFormat(item.value as string);
+                        }
+                      }}
+                      items={exportFormatItems}
+                      disabled={!selectedReport || isSaving}
+                    />
 
                     {/* Snap to Guides */}
                     <FormControlLabel
@@ -708,26 +694,22 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
               <SectionOptions
                 active={atlasEnabled && !atlasSettingsCollapsed}
                 baseOptions={
-                  <Stack spacing={2}>
+                  <Stack spacing={3}>
                     {/* Coverage Layer */}
-                    <Box>
-                      <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>
-                        {t("coverage_layer")}
-                      </Typography>
-                      <Selector
-                        selectedItems={coverageLayerItems.find((item) => item.value === atlasLayerId)}
-                        setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
-                          if (item && !Array.isArray(item)) {
-                            handleAtlasLayerChange(item.value as number);
-                          } else {
-                            handleAtlasLayerChange(null);
-                          }
-                        }}
-                        items={coverageLayerItems}
-                        placeholder={t("select_layer")}
-                        disabled={!selectedReport || isSaving}
-                      />
-                    </Box>
+                    <Selector
+                      label={t("coverage_layer")}
+                      selectedItems={coverageLayerItems.find((item) => item.value === atlasLayerId)}
+                      setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                        if (item && !Array.isArray(item)) {
+                          handleAtlasLayerChange(item.value as number);
+                        } else {
+                          handleAtlasLayerChange(null);
+                        }
+                      }}
+                      items={coverageLayerItems}
+                      placeholder={t("select_layer")}
+                      disabled={!selectedReport || isSaving}
+                    />
                   </Stack>
                 }
               />
@@ -809,6 +791,13 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
           setActionLayoutName("");
         }}
         onRename={handleRenameReport}
+      />
+
+      {/* Template Picker Modal */}
+      <ReportTemplatePickerModal
+        open={templatePickerOpen}
+        onClose={() => setTemplatePickerOpen(false)}
+        onSelectTemplate={handleSelectTemplate}
       />
     </PanelContainer>
   );

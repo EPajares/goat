@@ -34,6 +34,21 @@ x-env-windmill: &env-windmill
   DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_SERVER}:5432/windmill?sslmode=disable
   DISABLE_NSJAIL: "true"
 
+x-env-print: &env-print
+  MODE: worker
+  WORKER_GROUP: print
+  WORKER_TAGS: print
+  JOB_DEFAULT_TIMEOUT: 300
+  PYTHONDONTWRITEBYTECODE: "1"
+  WHITELIST_ENVS: "S3_PROVIDER,S3_ENDPOINT_URL,S3_PUBLIC_ENDPOINT_URL,S3_ACCESS_KEY_ID,S3_SECRET_ACCESS_KEY,S3_BUCKET_NAME,S3_REGION_NAME,PRINT_BASE_URL"
+  S3_PROVIDER: ${S3_PROVIDER:-hetzner}
+  S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+  S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-${S3_ENDPOINT_URL}}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+  S3_BUCKET_NAME: ${S3_BUCKET_NAME}
+  S3_REGION_NAME: ${S3_REGION_NAME:-us-east-1}
+
 x-service-core: &service-core
   image: ghcr.io/plan4better/goat/core
   build:
@@ -255,7 +270,9 @@ services:
       - windmill-server
 
   # Windmill Worker - Print (PDF reports, thumbnails)
+  # Standard version for prod environment
   windmill-worker-print:
+    profiles: [prod]
     build:
       context: .
       dockerfile: apps/processes/workers/Dockerfile
@@ -264,23 +281,31 @@ services:
     networks:
       - goat
     environment:
-      <<: *env-windmill
-      MODE: worker
-      WORKER_GROUP: print
-      WORKER_TAGS: print
-      JOB_DEFAULT_TIMEOUT: 300
-      PYTHONDONTWRITEBYTECODE: "1"
-      # Pass env vars to Windmill job execution
-      WHITELIST_ENVS: "S3_PROVIDER,S3_ENDPOINT_URL,S3_PUBLIC_ENDPOINT_URL,S3_ACCESS_KEY_ID,S3_SECRET_ACCESS_KEY,S3_BUCKET_NAME,S3_REGION_NAME,PRINT_BASE_URL,CORE_API_URL"
-      S3_PROVIDER: ${S3_PROVIDER:-hetzner}
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      S3_PUBLIC_ENDPOINT_URL: ${S3_PUBLIC_ENDPOINT_URL:-${S3_ENDPOINT_URL}}
-      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
-      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
-      S3_BUCKET_NAME: ${S3_BUCKET_NAME}
-      S3_REGION_NAME: ${S3_REGION_NAME:-us-east-1}
-      PRINT_BASE_URL: http://goat-dev:3000
-      CORE_API_URL: http://goat-dev:8080
+      <<: [*env-windmill, *env-print]
+      PRINT_BASE_URL: ${PRINT_BASE_URL:-http://web:3000}
+    volumes:
+      - ./packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
+    depends_on:
+      - windmill-server
+
+  # Windmill Worker - Print (dev version)
+  # Uses network_mode to share network with goat-dev so localhost reaches the dev services
+  windmill-worker-print-dev:
+    profiles: [dev]
+    build:
+      context: .
+      dockerfile: apps/processes/workers/Dockerfile
+      target: worker-print
+    restart: unless-stopped
+    # Share network namespace with goat-dev so localhost/127.0.0.1 works in Playwright
+    network_mode: "service:goat-dev"
+    environment:
+      <<: *env-print
+      # Connect to Windmill via goat network hostname (since we're in goat-dev's network)
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/windmill?sslmode=disable
+      DISABLE_NSJAIL: "true"
+      # localhost works since we share network with goat-dev
+      PRINT_BASE_URL: http://localhost:3000
     volumes:
       - ./packages/python/goatlib/src/goatlib:/venv/lib/python3.11/site-packages/goatlib:ro
     depends_on:
@@ -306,7 +331,6 @@ services:
       - windmill-server
       - windmill-worker-default
       - windmill-worker-tools
-      - windmill-worker-print
 
   # ===========================================================================
   # Application Services (profile: prod)
