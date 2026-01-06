@@ -1,7 +1,16 @@
 # Analysis schemas
 
 # Keep vector as alias for backwards compatibility
-from . import data_management, geoprocessing, heatmap, statistics, ui, vector
+from . import (
+    data_management,
+    geocoding,
+    geoprocessing,
+    heatmap,
+    oev_gueteklasse,
+    statistics,
+    ui,
+    vector,
+)
 from .base import ALL_GEOMETRY_TYPES, POLYGON_TYPES, GeometryType
 from .catchment_area import (
     AccessEgressMode,
@@ -35,6 +44,13 @@ from .geoprocessing import (
     OriginDestinationParams,
     UnionParams,
 )
+from .geocoding import (
+    FieldSourceType,
+    GeocodingInputMode,
+    GeocodingParams,
+    GeocodingResult,
+    SECTION_GEOCODING,
+)
 from .heatmap import (
     HeatmapClosestAverageParams,
     HeatmapConnectivityParams,
@@ -43,6 +59,13 @@ from .heatmap import (
     OpportunityClosestAverage,
     OpportunityGravity,
     RoutingMode,
+)
+from .oev_gueteklasse import (
+    CatchmentType as OevCatchmentType,
+    OevGueteklasseParams,
+    OevGueteklasseStationConfig,
+    PTTimeWindow as OevPTTimeWindow,
+    STATION_CONFIG_DEFAULT,
 )
 from .statistics import (
     AreaOperation,
@@ -62,6 +85,7 @@ from .ui import (
     SECTION_AREA,
     SECTION_CONFIGURATION,
     SECTION_INPUT,
+    SECTION_INPUT_AGGREGATE,
     SECTION_OPPORTUNITIES,
     SECTION_OPTIONS,
     SECTION_OUTPUT,
@@ -82,6 +106,7 @@ __all__ = [
     # Modules
     "vector",  # Backwards compatibility alias
     "geoprocessing",
+    "geocoding",
     "data_management",
     "statistics",
     "heatmap",
@@ -101,6 +126,7 @@ __all__ = [
     "SECTION_ROUTING",
     "SECTION_CONFIGURATION",
     "SECTION_INPUT",
+    "SECTION_INPUT_AGGREGATE",
     "SECTION_OUTPUT",
     "SECTION_OPTIONS",
     "SECTION_OPPORTUNITIES",
@@ -108,6 +134,12 @@ __all__ = [
     "SECTION_STATISTICS",
     "SECTION_TIME",
     "SECTION_AREA",
+    # Geocoding schemas
+    "GeocodingParams",
+    "FieldSourceType",
+    "GeocodingInputMode",
+    "GeocodingResult",
+    "SECTION_GEOCODING",
     # Geoprocessing schemas
     "BufferParams",
     "ClipParams",
@@ -156,4 +188,11 @@ __all__ = [
     "CatchmentAreaRoutingMode",
     "CatchmentAreaToolParams",
     "PTTimeWindow",
+    # ÖV-Güteklassen schemas
+    "oev_gueteklasse",
+    "OevGueteklasseParams",
+    "OevGueteklasseStationConfig",
+    "OevPTTimeWindow",
+    "OevCatchmentType",
+    "STATION_CONFIG_DEFAULT",
 ]

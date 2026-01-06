@@ -92,6 +92,10 @@ class ToolSettings:
     r5_url: str = "http://localhost:7070"
     r5_region_mapping_path: str | None = None
 
+    # Geocoding settings
+    geocoding_url: str | None = None
+    geocoding_authorization: str | None = None
+
     def get_s3_client(self: Self) -> Any:
         """Create boto3 S3 client with provider-specific config.
 
@@ -245,6 +249,9 @@ class ToolSettings:
             r5_region_mapping_path=cls._get_secret(
                 "R5_REGION_MAPPING_PATH", "/app/data/gtfs/r5_region_mapping.parquet"
             ),
+            geocoding_url=cls._get_secret("GEOCODING_URL", "") or None,
+            geocoding_authorization=cls._get_secret("GEOCODING_AUTHORIZATION", "")
+            or None,
         )
 
 

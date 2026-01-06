@@ -18,10 +18,13 @@ from .catchment_area import (
 from .closest_average import HeatmapClosestAverageTool
 from .connectivity import HeatmapConnectivityTool
 from .gravity import HeatmapGravityTool
-from .oev_gueteklasse import (
-    STATION_CONFIG_DEFAULT,
+from .oev_gueteklasse import OevGueteklasseTool
+
+# Re-export schemas from the schemas module for backwards compatibility
+from goatlib.analysis.schemas.oev_gueteklasse import (
     CatchmentType,
+    OevGueteklasseParams,
     OevGueteklasseStationConfig,
-    OevGueteklasseTool,
     PTTimeWindow,
+    STATION_CONFIG_DEFAULT,
 )

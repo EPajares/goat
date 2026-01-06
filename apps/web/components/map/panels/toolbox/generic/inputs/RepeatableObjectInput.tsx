@@ -324,7 +324,8 @@ export default function RepeatableObjectInput({
                   value={itemValues[inputDef.name]}
                   onChange={(newValue) => handleItemChange(index, inputDef.name, newValue)}
                   disabled={disabled}
-                  formValues={itemValues}
+                  formValues={{ ..._formValues, ...itemValues }}
+                  schemaDefs={schemaDefs}
                   excludedLayerIds={getExcludedLayerIds(inputDef.name)}
                 />
               ))}

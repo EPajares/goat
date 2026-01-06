@@ -33,6 +33,7 @@ from goatlib.tools.clip import ClipToolParams, ClipToolRunner
 from goatlib.tools.codegen import generate_windmill_script, python_type_to_str
 from goatlib.tools.db import ToolDatabaseService
 from goatlib.tools.difference import DifferenceToolParams, DifferenceToolRunner
+from goatlib.tools.geocoding import GeocodingToolParams, GeocodingToolRunner
 from goatlib.tools.intersection import IntersectionToolParams, IntersectionToolRunner
 from goatlib.tools.layer_delete import LayerDeleteParams, LayerDeleteRunner
 from goatlib.tools.layer_export import LayerExportParams, LayerExportRunner
@@ -67,6 +68,8 @@ __all__ = [
     "ClipToolRunner",
     "IntersectionToolParams",
     "IntersectionToolRunner",
+    "GeocodingToolParams",
+    "GeocodingToolRunner",
     "UnionToolParams",
     "UnionToolRunner",
     "DifferenceToolParams",

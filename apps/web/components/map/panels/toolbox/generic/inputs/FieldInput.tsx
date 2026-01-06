@@ -6,6 +6,8 @@
  * 1. Explicit widget_options.source_layer in the x-ui schema
  * 2. Explicit metadata (relatedLayer) in the input schema
  * 3. Naming convention: {prefix}_field -> {prefix}_layer_id
+ *
+ * Supports both single and multi-select modes via widget_options.multi.
  */
 import { Box, Typography } from "@mui/material";
 import { useParams } from "next/navigation";
@@ -119,13 +121,18 @@ export default function FieldInput({
   // Fetch fields for the layer
   const { layerFields, isLoading } = useLayerFields(datasetId);
 
-  // Get field type filter from widget_options
+  // Get field type filter from widget_options (supports both 'field_types' and 'types')
   const fieldTypeFilter = useMemo(() => {
-    const fieldTypes = input.uiMeta?.widget_options?.field_types;
+    const fieldTypes = input.uiMeta?.widget_options?.field_types || input.uiMeta?.widget_options?.types;
     if (Array.isArray(fieldTypes)) {
       return fieldTypes as string[];
     }
     return null;
+  }, [input.uiMeta]);
+
+  // Check if multi-select mode is enabled
+  const isMultiSelect = useMemo(() => {
+    return input.uiMeta?.widget_options?.multi === true || input.uiMeta?.widget_options?.multiple === true;
   }, [input.uiMeta]);
 
   // Filter fields by type if specified
@@ -136,9 +143,9 @@ export default function FieldInput({
     return layerFields.filter((field) => fieldTypeFilter.includes(field.type));
   }, [layerFields, fieldTypeFilter]);
 
-  // Convert value to LayerFieldType format
+  // Convert value to LayerFieldType format (single select)
   const selectedField = useMemo((): LayerFieldType | undefined => {
-    if (!value) return undefined;
+    if (!value || isMultiSelect) return undefined;
 
     // Value might be just the field name (string) or a full object
     if (typeof value === "string") {
@@ -151,21 +158,69 @@ export default function FieldInput({
     }
 
     return undefined;
-  }, [value, filteredFields]);
+  }, [value, filteredFields, isMultiSelect]);
+
+  // Convert value to LayerFieldType[] format (multi select)
+  const selectedFields = useMemo((): LayerFieldType[] | undefined => {
+    if (!value || !isMultiSelect) return undefined;
+
+    // Value should be an array of field names
+    if (Array.isArray(value)) {
+      return value
+        .map((v) => {
+          if (typeof v === "string") {
+            return filteredFields.find((f) => f.name === v);
+          }
+          if (typeof v === "object" && v !== null && "name" in v) {
+            return v as LayerFieldType;
+          }
+          return undefined;
+        })
+        .filter((f): f is LayerFieldType => f !== undefined);
+    }
+
+    return undefined;
+  }, [value, filteredFields, isMultiSelect]);
 
   const handleChange = (field: LayerFieldType | undefined) => {
     // Store just the field name for the API
     onChange(field?.name ?? null);
   };
 
+  const handleMultiChange = (fields: LayerFieldType[] | undefined) => {
+    // Store array of field names for the API
+    onChange(fields?.map((f) => f.name) ?? []);
+  };
+
+  // Get label from uiMeta (already translated) or fallback to title
+  const label = input.uiMeta?.label || input.title || input.name;
+
   // Show message if no layer is selected
   if (!selectedLayerId) {
     return (
       <Box>
         <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-          {input.title || input.name}: {t("select_layer_first")}
+          {label}: {t("select_layer_first")}
         </Typography>
       </Box>
+    );
+  }
+
+  // Render multi-select or single-select based on config
+  if (isMultiSelect) {
+    return (
+      <LayerFieldSelector
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        selectedField={selectedFields as any}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setSelectedField={handleMultiChange as any}
+        fields={filteredFields}
+        label={input.title || input.name}
+        tooltip={input.description}
+        disabled={disabled || isLoading}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        multiple={true as any}
+      />
     );
   }
 

@@ -57,21 +57,62 @@ class AnalysisTool:
         This is called automatically by the public run() method.
         """
         # 1. Close the connection
-        if self.con:
-            self.con.close()
+        if hasattr(self, "con") and self.con:
+            try:
+                self.con.close()
+            except Exception:
+                pass  # Connection may already be closed
+            self.con = None
 
         # 2. Clean up the temporary file if one was automatically created
-        if self._temp_db_path and self._temp_db_path.exists():
+        if (
+            hasattr(self, "_temp_db_path")
+            and self._temp_db_path
+            and self._temp_db_path.exists()
+        ):
             try:
                 os.remove(self._temp_db_path)
-                # DuckDB often creates a journal file (.wal), so clean that up too
-                wal_path = Path(str(self._temp_db_path) + ".wal")
-                if wal_path.exists():
-                    os.remove(wal_path)
-                logger.info(f"Cleaned up temporary DuckDB files: {self._temp_db_path}")
+                logger.debug(f"Cleaned up temporary DuckDB file: {self._temp_db_path}")
             except Exception as e:
-                # Log a warning if cleanup fails, but don't stop execution
-                logger.warning(f"Failed to delete temporary DuckDB files: {e}")
+                logger.warning(f"Failed to delete temporary DuckDB file: {e}")
+
+            # DuckDB creates .wal journal file
+            wal_path = Path(str(self._temp_db_path) + ".wal")
+            if wal_path.exists():
+                try:
+                    os.remove(wal_path)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to delete DuckDB WAL file '{wal_path}': {e}"
+                    )
+
+            # DuckDB also creates .tmp directory for spilling
+            tmp_dir = Path(str(self._temp_db_path) + ".tmp")
+            if tmp_dir.exists() and tmp_dir.is_dir():
+                try:
+                    import shutil
+
+                    shutil.rmtree(tmp_dir)
+                    logger.debug(f"Cleaned up DuckDB temp directory: {tmp_dir}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete DuckDB temp directory: {e}")
+
+            self._temp_db_path = None
+
+    def __del__(self: Self) -> None:
+        """Destructor to ensure cleanup happens even if run() wasn't called."""
+        try:
+            self.cleanup()
+        except Exception:
+            pass  # Ignore errors during garbage collection
+
+    def __enter__(self: Self) -> Self:
+        """Context manager entry."""
+        return self
+
+    def __exit__(self: Self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+        """Context manager exit - ensures cleanup."""
+        self.cleanup()
 
     def import_input(
         self: Self,
@@ -204,6 +245,43 @@ class AnalysisTool:
             f"Geometry type validation passed for {layer_name}: "
             f"{', '.join(t[0] for t in actual_types)}"
         )
+
+    def get_statistics_sql(
+        self: Self,
+        field_expr: str,
+        operation: str,
+    ) -> str:
+        """Generate SQL expression for a statistics operation.
+
+        This is a reusable utility for generating SQL aggregate expressions
+        used in tools like AggregatePoints, AggregatePolygons, Join, etc.
+
+        Args:
+            field_expr: The field expression to aggregate (ignored for 'count')
+            operation: The operation name ('count', 'sum', 'mean', 'min', 'max',
+                       'standard_deviation', 'stddev')
+
+        Returns:
+            SQL expression string
+
+        Raises:
+            ValueError: If operation is not supported
+        """
+        op = operation.lower()
+        if op == "count":
+            return "COUNT(*)"
+        elif op == "sum":
+            return f"SUM({field_expr})"
+        elif op == "mean" or op == "avg":
+            return f"AVG({field_expr})"
+        elif op == "min":
+            return f"MIN({field_expr})"
+        elif op == "max":
+            return f"MAX({field_expr})"
+        elif op in ("standard_deviation", "stddev"):
+            return f"STDDEV({field_expr})"
+        else:
+            raise ValueError(f"Unsupported statistics operation: {operation}")
 
     def _run_implementation(
         self: Self, *args: Any, **kwargs: Any

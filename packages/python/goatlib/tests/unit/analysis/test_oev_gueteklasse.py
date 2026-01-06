@@ -6,6 +6,7 @@ import duckdb
 import pytest
 from goatlib.analysis.accessibility import (
     STATION_CONFIG_DEFAULT,
+    OevGueteklasseParams,
     OevGueteklasseStationConfig,
     OevGueteklasseTool,
     PTTimeWindow,
@@ -210,8 +211,7 @@ class TestOevGueteklasseTool:
             result_dir / "unit_oev_gueteklasse_weekday_stations.parquet"
         )
 
-        tool = OevGueteklasseTool()
-        result = tool.run(
+        params = OevGueteklasseParams(
             reference_area_path=str(munich_districts_path),
             stops_path=str(stops_path),
             stop_times_path=str(stop_times_path),
@@ -219,6 +219,9 @@ class TestOevGueteklasseTool:
             output_path=str(output_path),
             stations_output_path=str(stations_output_path),
         )
+
+        tool = OevGueteklasseTool()
+        result = tool.run(params)
 
         # Verify results
         assert output_path.exists(), "Output file should exist"
@@ -289,14 +292,16 @@ class TestOevGueteklasseTool:
         """Test ÖV-Güteklassen calculation for Saturday morning."""
         output_path = result_dir / "unit_oev_gueteklasse_saturday.parquet"
 
-        tool = OevGueteklasseTool()
-        result = tool.run(
+        params = OevGueteklasseParams(
             reference_area_path=str(munich_districts_path),
             stops_path=str(stops_path),
             stop_times_path=str(stop_times_path),
             time_window=time_window_saturday,
             output_path=str(output_path),
         )
+
+        tool = OevGueteklasseTool()
+        result = tool.run(params)
 
         assert output_path.exists()
         assert result["total_stations"] > 0
@@ -346,8 +351,7 @@ class TestOevGueteklasseTool:
             },
         )
 
-        tool = OevGueteklasseTool()
-        result = tool.run(
+        params = OevGueteklasseParams(
             reference_area_path=str(munich_districts_path),
             stops_path=str(stops_path),
             stop_times_path=str(stop_times_path),
@@ -355,6 +359,9 @@ class TestOevGueteklasseTool:
             output_path=str(output_path),
             station_config=custom_config,
         )
+
+        tool = OevGueteklasseTool()
+        result = tool.run(params)
 
         assert output_path.exists()
         print("\n=== ÖV-Güteklassen Custom Config Results ===")
@@ -385,14 +392,16 @@ class TestOevGueteklasseEdgeCases:
             to_time=79200,  # 22:00
         )
 
-        tool = OevGueteklasseTool()
-        result = tool.run(
+        params = OevGueteklasseParams(
             reference_area_path=str(munich_districts_path),
             stops_path=str(stops_path),
             stop_times_path=str(stop_times_path),
             time_window=time_window,
             output_path=str(output_path),
         )
+
+        tool = OevGueteklasseTool()
+        result = tool.run(params)
 
         assert output_path.exists()
         # Evening should have fewer high-quality classes

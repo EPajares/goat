@@ -127,7 +127,7 @@ export default function MultiEnumInput({
       multiple
       label={label}
       tooltip={description}
-      placeholder={`${t("select")} ${label?.toLowerCase() || ""}`}
+      placeholder={t("select_options")}
       allSelectedLabel={t("all")}
       disabled={disabled}
     />

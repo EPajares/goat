@@ -98,7 +98,13 @@ SECTION_OPPORTUNITIES = UISection(
 SECTION_SCENARIO = UISection(id="scenario", order=4, icon="scenario")
 SECTION_STATISTICS = UISection(id="statistics", order=3, icon="chart")
 SECTION_TIME = UISection(id="time", order=3, icon="clock")
-SECTION_AREA = UISection(id="area", order=3, icon="hexagon")
+SECTION_AREA = UISection(
+    id="area", order=2, label_key="summary_areas", icon="aggregate"
+)
+# Tool-specific input section for aggregate tools
+SECTION_INPUT_AGGREGATE = UISection(
+    id="input", order=1, label_key="pick_source_layer", icon="layers"
+)
 
 
 def ui_sections(*sections: UISection) -> dict[str, Any]:
