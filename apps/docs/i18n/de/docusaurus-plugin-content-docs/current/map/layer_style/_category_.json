@@ -1,0 +1,8 @@
+{
+  "label": "Layer-Design",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Es kann geändert werden, wie sich alle hinzugefügten Layer verhalten und auf der Karte erscheinen. Es gibt mehrere Werkzeuge, die Ihnen helfen, einzigartig aussehende Karten zu erstellen."
+  }  
+}

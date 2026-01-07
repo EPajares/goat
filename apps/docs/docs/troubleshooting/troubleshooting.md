@@ -16,7 +16,7 @@ You can find below common job failure and suggestions to solve them.
 * Jobs cannot exceed two minutes length. There is also a limit on the number of features that can be analyzed for each indicator. 
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -30,7 +30,7 @@ You can find below common job failure and suggestions to solve them.
 For example, if you use the public transport trip count indicator in an area and a time period where no trip is performed; the job fails with the error: **The Layer is None**
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -45,7 +45,7 @@ For example, if you use the public transport trip count indicator in an area and
  The sensitivity of a Gaussian impedance function cannot be higher than 1,000,000.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />
@@ -58,7 +58,7 @@ For example, if you use the public transport trip count indicator in an area and
  The starting points of the indicator must be within 100m of the road network.
 <div style={{ display: "flex", alignItems: "center" }}>
   <img 
-    src={require('/img/troubleshooting/arrow-right.png').default} 
+    src={require('/img/icons/arrow-right.png').default} 
     alt="Layers" 
     style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover", marginRight: "8px" }} 
   />

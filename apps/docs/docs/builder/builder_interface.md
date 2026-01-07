@@ -5,86 +5,101 @@ sidebar_position: 1
 
 # Builder Interface
 
-Switching to Builder mode from Data mode will leady you to a map interface, where you can **create dashboards by adding widgets on panels, applying filters, and costumizing the layout.**
+Switching to Builder mode opens the Builder Interface, where **you can design dashboards by arranging panels and widgets, and customize your workspace layout.**
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/builder_switch.gif').default} alt="switching_to_builder_mode" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/builder/builder_interface.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div>
 
-## Interface Elements
+## Panels
+
+Panels are the main areas where you organize your widgets. You can add, arrange, and style panels to create your dashboard layout.
+
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">You can click on the <code>+</code> button, <b>to add a new panel </b> to any side of the map.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Click the <code>panel</code> to <b>open settings</b> and edit its appearance.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">You can also click the <code>arrow</code> on the side of a panel to expand it to full height/width.</div>
+</div>
+
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/builder_interface.png').default} alt="overview_of_the_builder_interface" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/builder/new_panel.gif').default} alt="Panel options and appearance" style={{ maxHeight: "auto", maxWidth: "80%", objectFit: "cover"}}/>
+</div>
 
-### Panels
-
-To add a widget to your dashboard you need to have **panels** first, you can arrange your widgets on its area. The left side panel will automatically appear when switching to the Builder mode.
-
-<div> </div>
-
-You can add new panels to any side of the map by clicking on the **"+" icon**.
-You can further arrange the panels by **clicking on the arrow on the side of the panel**, which will then **expand the panel** to the full height or width of the map, depending on where the panel is located.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/new_panel.gif').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
-
-<div> </div>
-
- By *clicking on the panel itself*, the **Panel-Settings** will open up. You can freely **edit the panels anytime with or without widgets**. For better visualization, we recommend to have at least one [Widget](/builder/builder_interface.md#widgets) in the panel when editing its appearance.
-
-<div> </div>
+<p></p>
 
 You can set the **panel style** as:
-- **Default**, which will show the widgets with a *continous background and fills in the panel completely*
-- **Rounded**, which also *keeps the widgets together on the continous background, but with rounded corners and leaves some space at the panel border*
-- **Floating**, which will *show the widgets separately with rounded corner for each element*
+- <code>Default</code>: widgets fill the panel with a continuous background
+- <code>Rounded</code>: widgets have rounded corners and space at the border
+- <code>Floating</code>: widgets are separate with rounded corners
+
+At <b>Appearance</b> you can change:
+- <code>Opacity</code> (0 = transparent, 1 = white)
+- <code>Background blur</code> (1–20)
+- <code>Shadow</code> (0–10)
+
+At <b>Position</b> you can set:
+- <code>Alignment</code>: Start, Center, End
+- <code>Spacing</code>: 0–10 (distance between widgets)
+
+To delete a panel, click <code>Delete</code> at the bottom of the settings.
+
+## Widgets
+
+**Widgets are the building blocks of your dashboard**. They let you display data, statistics, charts, and project elements—like text or images. Each widget is highly customizable: you can adjust its content, appearance, and behavior to fit your needs, whether you want to highlight key numbers, visualize trends, or add context with text and graphics.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/panel_options.gif').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "400px", objectFit: "cover"}}/>
+  <img src={require('/img/builder/widgets.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div>
+
+<p></p>
+
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">Simply <b>drag and drop</b> <code>widgets</code> from the right sidebar to any panel on your dashboard.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Click on the <code>widget</code> to <b>customize its settings</b>.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content"><b>To rearrange the widget </b> you can click on it and drag it from the <code>dotted icon</code>.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <div class="content">You can click on the <code>delete icon</code> to <b>remove the widget</b> from your dashboard.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
+  <div class="content">Change the <code>Title</code>, which will appear on the top of the widget, and the <code>Description</code>, which will appear on the bottom of the widget.</div>
+</div>
+
+For more details, see [Widgets](../category/widgets).
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/builder/widget_drag.gif').default} alt="recent datasets" style={{ maxHeight: "400px", maxWidth: "auto", objectFit: "cover"}}/>
 </div> 
 
-At the **Appearance** you can change the widget's:
-- **Opacity**, where 0 is fully transparent, 1 is fully white
-- **Background blur**, which ranges fromm 1 to 20
-- **Shadow**, which ranges from 0 to 10
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/panel_appearance.gif').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "400px", objectFit: "cover"}}/>
-</div> 
+## Settings
 
-In the **Position** you can set the:
-- **Alignment** to the *Start*, *Center*, or to the *End* of the Panel
-- **Spacing**, which ranges from 0 to 10. This will change the distance in between the widgets
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/panel_position.gif').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "400px", objectFit: "cover"}}/>
-</div> 
-
-
-<div></div>
-At the bottom you can <button>Delete</button> the panel completely, which will remove the consisting widgets as well. 
-
-
-### Widgets
-
-The widgets are the building blocks of your dashboard. You can **drag and drop** them from the right sidebar to any panel. Read more about the different types of widgets and how to use them in the [Widgets](builder/widgets.md) section.
-
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/widget_drag.gif').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
-
-<div></div>
-
-**Drag the chosen widget from the right sidebar to any panel** - you can **rearrange**, **remove** or **edit** them any time.
-
-### Settings
-
-In the settings you can **enable or disable Tools, Controls and the View options.**
-Check out the [Settings](builder/settings.md) section for a more detailed explanation.
+In the settings you can enable or disable <b>Tools</b>, <b>Controls</b> and <b>View options</b> for your dashboard. See [Settings](builder/settings.md) for more details.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
   <img src={require('/img/builder/interface_settings.png').default} alt="Dragging a widget to the panel" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-</div> 
+</div>
+

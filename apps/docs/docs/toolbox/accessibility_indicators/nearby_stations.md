@@ -1,25 +1,23 @@
 ---
 sidebar_position: 7
 ---
-import thematicIcon from "/img/toolbox/data_management/join/toolbox.webp";
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 
 # PT Nearby Stations
 
-The **PT Nearby Stations** analysis is used to find public transport stops accessible by walking or cycling within a given time. For each stop, departure information by mode and route is provided.
+The PT Nearby Stations indicator is used to **find public transport stops accessible by walking or cycling within a given time.** 
 
-<iframe width="100%" height="500" src="https://www.youtube.com/embed/7RUNllvOBZw?si=wUB9NXBJo03QUYFu" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<iframe width="674" height="378" src="https://www.youtube.com/embed/JHU9ty0HVVc?si=VTsQyLUdKxRcxA_B&amp;start=46" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ## 1. Explanation
 
-The Public Transport (PT) Nearby Stations access analysis is a suitable tool to **visualize public transport stops and their connections** that are accessible by walking/cycling from one or more starting point(s). The nearest stops, the public transport lines available there, their frequency, and the journey time to reach the stop on foot and by bike are provided as a result.
+The tool identifies **public transport stations reachable from starting points within specified travel parameters.** It takes starting points, station access mode (walk, bicycle, or pedelec), travel time limit, and public transport modes as inputs. Using real-world street and transit networks, **it calculates which stations are accessible and provides detailed service information for each.**
 
-**Proximity to nearby stations** is essential for various aspects of urban life and is important in urban planning. The availability of public transport connections significantly improves accessibility for residents, workers, and visitors.
-
-
-![Nearby Stations in GOAT](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_example.png "Nearby Stations in GOAT")
+For each accessible station, the analysis shows **available transport modes**, **service frequencies**, **departure schedules**, and **access times**. This comprehensive view helps evaluate transit connectivity and supports planning decisions.
 
 import MapViewer from '@site/src/components/MapViewer';
 
@@ -49,17 +47,16 @@ In case you need to perform analysis beyond this geofence, feel free to contact 
 
 ## 2. Example use cases 
 
-- Which public transport stations are nearby and provide convenient access to key attractions and landmarks for tourists exploring a new city?
+- Which public transport stations are nearby and provide convenient access to key attractions and landmarks for tourists exploring the city?
 - When considering daily commuting to work, which nearby public transport stations offer optimal routes and schedules for a seamless journey?
 - What are the nearby public transport stations for convenient access to shopping centers?
-
 
 
 ## 3. How to use the indicator?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Click on <code>Toolbox</code> <img src={thematicIcon} alt="toolbox" style={{width: "25px"}}/>. </div>
+  <div class="content">Click on <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
@@ -67,85 +64,77 @@ In case you need to perform analysis beyond this geofence, feel free to contact 
   <div class="content">Under the <code>Accessibility Indicators</code> menu, click on <code>PT Nearby Stations</code>.</div>
 </div>
 
-![Menu Overview for Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_overview.png "Menu Overview for Public Transport Nearby Stations")
-
 ### Station Access
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Select the <code>Station Access</code> mode (<i>walk, bicycle, or pedelec</i>), which shall be used for the way to the PT station.</div>
+  <div class="content">Choose the <code>Station Access</code> mode for reaching the stations: <strong>Walk</strong>, <strong>Bicycle</strong>, or <strong>Pedelec</strong>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Set the configurations for the Station Access by choosing <code>Travel time limit (min)</code> and <code>Travel speed (km/h)</code>.</div>
+  <div class="content">Configure the access parameters by setting <code>Travel time limit</code> and <code>Travel speed</code>.</div>
 </div>
 
 ### Station Configuration
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Pick which <code>Public transport modes</code> shall be considered for the nearby stations.</div>
+  <div class="content">Select which <code>Public transport modes</code> to include in the analysis.</div>
 </div>
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content">Select for which <code>Day</code>, <code>Start Time</code> and <code>End Time</code> you would like to see the public transport connections.</div>
+  <div class="content">Choose the analysis timeframe by setting <code>Day</code>, <code>Start Time</code>, and <code>End Time</code>.</div>
 </div>
-
-![Configurations for Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_config.png "Configurations for Public Transport Nearby Stations")
 
 ### Starting Points
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content">Select the <code>Starting point method</code> to define how you like to define the starting point(s) for the trip(s). You can either <b>Select on map</b> or <b>Select from layer</b>.</div>
+  <div class="content">Choose the <code>Starting point method</code>: <code>Select on map</code> or <code>Select from layer</code>.</div>
 </div>
 
 <Tabs>
   <TabItem value="Select on map" label="Select on map" default className="tabItemBox">
- 
-  Click on <code>Select on map</code>. Select the starting point(s) by clicking on the respective location(s) in the map. You can add as many starting points as you like.
+
+  Click starting points directly on the map. You can add multiple starting points.
 
   </TabItem>
 
   <TabItem value="Select from layer" label="Select from layer" className="tabItemBox">
-  
-  Click on <code>Select from layer</code>. Select the <code>Point layer</code> which contains the starting point(s) you would like to use.
-  
+
+  Choose a <code>Point layer</code> containing your starting points.
+
   </TabItem>
 </Tabs>
 
 <div class="step">
   <div class="step-number">8</div>
-  <div class="content">Click on <code>Run</code>. This starts the capturing of the Nearby Stations from the selected starting point(s).</div>
+  <div class="content">Click <code>Run</code> to start the analysis.</div>
 </div>
-
-:::tip Hint
-
-Depending on the number of the selected starting points, the calculation might take some minutes. The [status bar](../../workspace/home#status-bar) shows the current progress.
-
-:::
 
 ### Results
 
-<div class="step">
-  <div class="step-number">9</div>
-  <div class="content">As soon as the calculation process is finished, the resulting layers will be added to the map. The results consist of one layer called <b>"Nearby Stations"</b>, showing the Nearby PT Stations, and one layer called <b>"Starting Points - Nearby Stations"</b> which provides all starting points that were used for the calculation of this indicator. 
-  <p></p>
-  When clicking on a point in the map, further details, such as <b>stop name</b>, <b>access time [min]</b> and <b>aggregate frequency of PT service [min]</b>, become visible.
-</div>
+Once calculation finishes, the resulting layers are added to the map:
+
+- **"Nearby Stations"** layer showing accessible public transport stops
+- **"Starting Points - Nearby Stations"** layer with analysis origins
+
+Click on stations to view details including **stop name**, **access time**, and **service frequency**.
+
+<div style={{ display: 'flex', justifyContent: 'center' }}>
+<img src={require('/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_calculation.gif').default} alt="Calculation - Public Transport Nearby Stations" style={{ maxHeight: "auto", maxWidth: "80%"}}/>
 </div>
 
-
-![Result of Public Transport Nearby Stations](/img/toolbox/accessibility_indicators/nearby_stations/nearby_stations_result.png "Result of Public Transport Nearby Stations")
+<p></p>
 
 
 
 :::tip Tip
-Want to style your results and create nice-looking maps? See [Styling](../../map/layer_style/styling).
+Want to style your results and create nice-looking maps? See [Styling](../../map/layer_style/style/styling).
 :::
 
 ## 4. Technical details
 
-Similar to the Public Transport Quality Classes <i>(German: ÖV-Güteklassen)</i>, this indicator is calculated based on **GTFS data** (see [Inbuilt Datasets](../../data/data_basis)). Based on the selected modes, day, and time window, the PT Nearby Stations are received.
+Similar to the Public Transport Quality Classes <i>(German: ÖV-Güteklassen)</i>, this indicator is calculated based on **GTFS data** (see [Built-in Datasets](../../data/builtin_datasets)). Based on the selected modes, day, and time window, the PT Nearby Stations are received.

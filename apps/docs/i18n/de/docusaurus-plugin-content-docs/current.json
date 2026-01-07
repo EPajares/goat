@@ -3,6 +3,14 @@
     "message": "2.0",
     "description": "Die Bezeichnung für die aktuelle Version"
   },
+  "sidebar.tutorialSidebar.category.Getting started": {
+    "message": "Erste Schritte",
+    "description": "Das Label für die Kategorie Getting started in der Seitenleiste tutorialSidebar"
+  },
+  "sidebar.tutorialSidebar.category.Getting started.link.generated-index.description": {
+    "message": "Der Bereich Erste Schritte bietet einen Überblick über die wichtigsten Features und Funktionalitäten der GOAT-Plattform. Er führt Benutzer durch die ersten Schritte zur effektiven Nutzung der Plattform.",
+    "description": "Die generierte Beschreibung der Indexseite für die Kategorie Getting started in der Seitenleiste tutorialSidebar"
+  },
   "sidebar.tutorialSidebar.category.Backend": {
     "message": "Backend",
     "description": "Das Label für die Kategorie Backend in der Seitenleiste tutorialSidebar"
@@ -71,11 +79,11 @@
     "message": "Es lässt sich ändern, wie alle hinzugefügten Layer sich verhalten und auf der Karte darstellen. Es gibt mehrere Tools, die Ihnen helfen, Karten mit einzigartigem Aussehen zu erstellen.",
     "description": "Die generierte Index-Seite Beschreibung für die Kategorie Layer Styling in der Seitenleiste tutorialSidebar"
   },
-    "sidebar.tutorialSidebar.category.Style": {
+  "sidebar.tutorialSidebar.category.Style": {
     "message": "Stil",
     "description": "Das Label für die Kategorie Styling in der Seitenleiste tutorialSidebar"
   },
-    "sidebar.tutorialSidebar.category.Style.link.generated-index.description": {
+  "sidebar.tutorialSidebar.category.Style.link.generated-index.description": {
     "message": "Alle zur Karte hinzugefügten Layer können stilisiert werden. Dies kann durch die Verwendung der gleichen Farbe und Darstellung für alle Features erfolgen, oder durch ein attributbasiertes Styling.",
     "description": "Die generierte Index-Seite Beschreibung für die Kategorie Layer Styling in der Seitenleiste tutorialSidebar"
   },

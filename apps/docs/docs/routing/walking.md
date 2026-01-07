@@ -64,4 +64,3 @@ To compute the shortest path from the origin point to various destinations, a cu
 
 The implementation has a time complexity of *O(ElogV)*, is written in **Python**, and uses the just-in-time compiler **Numba**.
 
-

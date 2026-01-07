@@ -1,68 +1,115 @@
 ---
-sidebar_position: 4
+sidebar_position: 5
 ---
 
 # Katalog
 
-Der **Datenkatalog** ist eine umfassende Liste aller verfügbaren [räumlichen Datensätzen](../further_reading/glossary#geospatial-data) zur Erkundung und Analyse. Eine breite Palette von Datensätzen wird von Plan4Better, unseren Partnern und Open-Source-Bibliotheken bereitgestellt, wodurch eine **zuverlässige und genaue** Datenbank für Ihre GIS-Projekte sichergestellt wird.
+Der **Daten-Katalog** ist Ihr Zugang zur Erkundung von Plan4Betters umfassender Sammlung hochwertiger [Geodaten](../further_reading/glossary#geospatial-data). **Diese kuratierte Bibliothek bietet zuverlässige, sofort einsatzfähige Daten von offiziellen Open-Data-Anbietern und anderen vertrauenswürdigen Quellen**, die es Ihnen ermöglichen, sofort mit der Analyse und Visualisierung in Ihren GOAT-**Projekten** zu beginnen. Aus dem **Katalog** können Sie:
 
-<div class="content"><img src={require('/img/workspace/catalog/home-catalog.png').default} alt="Data Catalog" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
+- **Unsere Datensatz-Sammlung erkunden**, die mehrere thematische Bereiche und geografische Regionen umfasst
+- **Durchsuchen und filtern** nach Schlüsselwort, räumlicher Ausdehnung und **Datensatz**-Attributen
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/workspace/catalog/catalog_general.png').default} alt="Daten-Katalog" style={{ maxHeight: "700px", maxWidth: "800px"}}/>
+</div>
 
 ## Den Katalog erkunden
 
-Der Zugang erfolgt über den [Workspace](../category/workspace) oder über die Schaltfläche [`+ Layer hinzufügen`](../map/layers#add-layers) in Ihrem GOAT-Projekt. Sie können unsere Sammlung von Datensätzen nach *Schlüsselwörtern durchsuchen und räumliche und nicht-räumliche Filter* anwenden, um eine effiziente Entdeckung zu ermöglichen. Sie können auch Datensätze interaktiv in unserer Benutzeroberfläche vorab ansehen, um den Inhalt und die Qualität zu bewerten und so eine visuelle Erkundung ermöglichen. Seien Sie versichert, dass unsere Sammlung aus autoritativen Quellen stammt und eine hohe Datenqualität aufweist.
+Greifen Sie auf den Daten-**Katalog** vom [Workspace](../category/workspace) oder direkt über die <code>+ Layer hinzufügen</code>-Schaltfläche in Ihren GOAT-**Projekten** zu. Der **Katalog** bietet leistungsstarke Entdeckungs-**Werkzeuge**, einschließlich:
 
-Unser Katalog bietet eine umfangreiche Sammlung von Datensätzen, die verschiedene thematische Bereiche abdecken und in verschiedenen Kategorien unterteilt sind, darunter:
+- **Schlüsselwort-Suche** zum Finden spezifischer **Datensätze** oder Themen
+- **Filter** zum Durchsuchen von **Datensätzen** nach Typ, [Datenkategorie](#datenkategorie), Region, Sprache, Anbieter-Name und Lizenz
+- **Interaktive Vorschau** zur Bewertung der Datenqualität und des Inhalts vor der Verwendung
 
-- **Grundkarte:** Grundlegende Kartenebene, die wesentliche geografische Merkmale wie Küstenlinien, Flüsse und Gelände enthält und als Hintergrund für zusätzliche Daenebenen dient.
+### Datensatz-Kategorie {#datenkategorie}
 
-- **Bildmaterial:** Hochauflösende visuelle Daten, die von Satelliten oder Luftaufnahmen erfasst wurden und detaillierte Ansichten von Landschaften, städtischen Gebieten und Infrastrukturen bieten.
+Eine Möglichkeit, den **Katalog** zu filtern, ist über **Datenkategorie**, die **Datensätze** in klare thematische Kategorien für einfache Navigation organisiert:
 
-- **Grenzen:** Räumliche Abgrenzungen, die administrative, politische oder geografische Grenzen darstellen, einschließlich Landesgrenzen, Staats-/Provinzgrenzen und Gemeindebezirke.
+- **Grenzen** - Administrative, politische und geografische Grenzen einschließlich Grenzen und Bezirke
+- **Landnutzung** - Klassifizierungen von Landgebieten nach Nutzungstyp (Wohn-, Gewerbe-, Industrie- usw.)
+- **Menschen** - Demografische **Daten** einschließlich Bevölkerungsdichte, Altersgruppen und sozioökonomische Eigenschaften
+- **Orte** - Points of Interest wie Schulen, Krankenhäuser, Touristenattraktionen und Dienstleistungen
+- **Verkehr** - Straßennetze, Eisenbahnen, Flughäfen, Häfen und öffentliche Verkehrsinfrastruktur
 
-- **Landnutzung:** Kategorisierung von Landflächen basierend auf ihrer primären Nutzung, einschließlich Klassifikationen wie Wohngebiete, Gewerbegebiete, Industriegebiete, Landwirtschafts- und Erholungszonen.
+### Datensatz-Metadaten
 
-- **Umwelt:** Daten, die natürliche Merkmale und Phänomene darstellen, wie Ökosysteme, Klimamuster und ökologische Lebensräume.
+Jeder **Datensatz** enthält umfassende Metadaten, die durch Klicken auf den **Datensatz**-Namen zugänglich sind. Die Metadaten-Ansicht bietet:
 
-- **Menschen:** Demografische Daten zu menschlichen Popultionen, wie Bevölkerungsdichte, Bevölkerungsverteilung, Altersgruppen und sozioökonomische Merkmale.
+- **Detaillierte Beschreibungen**, die Inhalt und Umfang des **Datensatzes** erklären
+- **Datensatz**-Typ-Klassifizierung und technische Spezifikationen
+- **Geografische Abdeckung** mit **ISO 3166-1 alpha-2** Ländercodes
+- **Quellinformationen** einschließlich Anbieter-Name und Kontaktdaten
+- **Lizenz-Details**, die Nutzungsrechte und Beschränkungen spezifizieren
+- **Interaktive Karten-Vorschau** für visuelle Datenerkundung
+- **Attribut-Informationen**, die verfügbare Datenfelder und Eigenschaften zeigen
 
-- **Verkehr** Informationen zu Verkehrsnetzen und Infrastrukturen, einschließlich Straßen, Autobahnen, Eisenbahnen, Flughäfen, Häfen und öffentlichen Verkehrssystemen.
+### Verfügbare Datensatz-Typen
 
-- **Orte:** Sehenswürdigkeiten und geographische Wahrzeichen wie Schulen, Carsharing-Standorte, Touristenattraktionen und Krankenhäuser.
+Der **Katalog** umfasst vielfältige **Datensätze**, die als Feature-Layer verwaltet werden, die räumliche Features (Punkte, Linien, Polygone) oder nicht-räumliche tabellarische **Daten** enthalten. Diese **Datensätze** können direkt zu Ihren **Projekten** für Analyse und Visualisierung hinzugefügt werden.
 
-![Datenkatalog in GOAT](/img/workspace/catalog/catalog_general.png "Datenkatalog in GOAT")
+#### Points of Interest (POIs)
+Strategische Standorte von Annehmlichkeiten, Einrichtungen und Attraktionen, die für Erreichbarkeitsplanung und Stadtanalyse wesentlich sind, wie öffentliche Verkehrshaltestellen und -stationen, Einkaufszentren und Einzelhandelsstandorte, Tourismus- und Freizeiteinrichtungen, Lebensmittel- und Getränkebetriebe, Gesundheitseinrichtungen und Krankenhäuser, Bildungseinrichtungen und Schulen.
 
-Ein Klick auf einen Datensatz innerhalb der Katalogseite führt Sie zum **Metadaten**-Bereich. Hier können Sie detaillierte Informationen zum Datensatz ansehen, einschließlich seiner **Beschreibung**, den **[Datensatztyp](../data/dataset_types)**, der **geografischen Ausdehnung** und des **Sprachcodes** (basierend auf dem [ISO 3166-1 alpha-2](https://www.iso.org/iso-3166-country-codes.html)), den **Verteilernamen** sowie die **Lizenzdetails**. Sie können auch die **Kartenvorschau des Datensatzes** und die zugehörigen Daten direkt von der Datenseite aus ansehen.
+*Datenquellen:* [Overture Maps Foundation](https://overturemaps.org/), [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/), Regierungsabteilungen, Krankenversicherungsanbieter und Einzelhandelsunternehmen. Zusätzliche Felderhebungen werden bei Bedarf durchgeführt.
 
-## Katalogdaten in Ihrem GOAT-Projekt verwenden
+#### Bevölkerung und Gebäude
+Detaillierte demografische **Daten**, die auf Gebäude- und lokale Ebenen disaggregiert sind, erweitert mit Landnutzungsinformationen für verbesserte Genauigkeit. Wir bieten Gebäudeebenen-Bevölkerungs**daten** für deutsche Bezirke und Gemeinden, lokale Bevölkerungs**daten** aus dem deutschen Zensus 2022 und europäische NUTS-3-Ebenen-Bevölkerungsstatistiken (Nomenklatur der territorialen Einheiten für die Statistik).
+
+*Datenquellen:* [Deutscher Zensus 2022](https://ergebnisse.zensus2022.de/datenbank/online/), einzelne Gemeinden und Bezirke, und 3D-Stadtmodelle deutscher Bundesländer.
+
+#### Administrative Grenzen
+Umfassende Grenzen-**Datensätze**, die Regierungs- und Verwaltungshoheitsgebiete auf mehreren Maßstäben definieren, wie Gemeindegrenzen, Bezirksgrenzen, Bundeslandgrenzen und Postleitzahl-Regionen.
+
+*Datenquellen:* [Bundesamt für Kartographie und Geodäsie (BKG)](https://www.bkg.bund.de/) und [OpenStreetMap (OSM)](https://wiki.openstreetmap.org/).
+
+## Katalog-Daten zu Ihren Projekten hinzufügen
+
+Folgen Sie diesen Schritten, um **Datensätze** aus dem **Katalog** zu Ihren GOAT-**Projekten** hinzuzufügen:
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content"> Unter <b>Layer</b> klicke Sie auf <code> + Layer hinzufügen</code>.</div>
+  <div class="content">Navigieren Sie in Ihrem **Projekt** zum <strong>Layer</strong>-Tab und klicken Sie auf <code>+ Layer hinzufügen</code></div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content"> Wählen Sie <code>Katalog Explorer</code> aus.</div>
+  <div class="content">Wählen Sie <code>Katalog-Explorer</code>, um den Daten-**Katalog** zu durchsuchen</div>
 </div>
-
-<div class="content"><img src={require('/img/workspace/catalog/map-catalog.png').default} alt="Catalog Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content"> Wählen Sie einen <i>Datensatz</i> und klicken anschließend auf <code>Layer hinzufügen</code>.</div>
+  <div class="content">Durchsuchen oder suchen Sie nach Ihrem gewünschten **Datensatz**, dann klicken Sie auf <code>Layer hinzufügen</code>, um ihn in Ihr **Projekt** einzuschließen</div>
 </div>
 
-<div class="content"><img src={require('/img/workspace/catalog/add-layer.png').default} alt="Catalog Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/></div>
-
-<div class="step">
-  <div class="step-number">4</div>
-  <div class="content">Nach dem Hinzufügen wenden Sie einen <code><img src={require('/img/map/filter/filter_icon.png').default} alt="Filter Icon" style={{ maxHeight: "16px", maxWidth: "16px"}}/> Filter</code> auf den neuen Layer an. Dies wird die Daten durch einen logischen oder räumlichen Ausdruck filtern, sodass nur die für Ihre Analyse erforderlichen Daten beibehalten werden und die Arbeit erleichtert wird.</div>
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/workspace/catalog/catalog_add-layer.gif').default} alt="Katalog-Explorer" style={{ maxHeight: "700px", maxWidth: "800px"}}/>
 </div>
 
+<p></p>
 
-:::tip Tipp
-
-Um mehr über die erweiterten Filterfunktionen von GOAT zu erfahren, besuchen Sie die Seite [Filter](../map/filter.md "Filter dataset").
-
+:::tip Hinweis
+Nach dem Hinzufügen des Layers können Sie [Filter](../map/filter.md "Datensatz filtern") anwenden, um große **Datensätze** auf spezifische geografische Ausdehnungen oder Attribute zu beschränken, die für Ihre Analyse benötigt werden
 :::
+
+
+## Datenqualität und Wartung
+
+Plan4Better gewährleistet die Zuverlässigkeit und Aktualität der **Katalog**-**Daten** durch umfassende Datenmanagement-Prozesse:
+
+### Datensammlung und -vorbereitung
+
+Unser Datensammlungsprozess folgt strengen Standards, um Qualität und Zuverlässigkeit zu gewährleisten:
+
+- **Quellenidentifizierung** - Wir priorisieren offizielle Open-Data-Portale und öffentlich verfügbare Initiativen
+- **Format-Standardisierung** - Verschiedene **Formate** (Shapefiles, GeoJSON, usw.) werden zu konsistenten Schemata konvertiert
+- **Datenintegration** - Mehrere **Datensätze** werden kombiniert und an lokale Kontexte durch Fusionsworkflows angepasst
+- **Qualitätsvalidierung** - Umfassende Validierungsprozesse gewährleisten Genauigkeit und Zuverlässigkeit
+- **Kontinuierliche Erweiterung** - Wir suchen aktiv und integrieren zusätzliche **Datensätze** basierend auf Benutzerbedürfnissen
+
+### Update-Zeitplan
+
+Um Datenaktualität und Relevanz zu erhalten:
+
+- **Jährliche Updates** - Alle **Datensätze** werden mindestens einmal pro Jahr aktualisiert
+- **Dynamische Daten** - Sich schnell verändernde **Daten** (POIs, öffentlicher Verkehr) erhalten häufigere Updates
+- **On-Demand-Updates** - Kritische **Datensätze** können bei Bedarf basierend auf Benutzeranforderungen aktualisiert werden

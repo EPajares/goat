@@ -1,0 +1,8 @@
+{
+  "label": "Geoanalyse",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Verschiedene Geoanalysen ermöglichen es, räumliche Datensätze zu analysieren, indem Informationen aggregiert oder auf neue Weise visualisiert werden."
+  }
+}
