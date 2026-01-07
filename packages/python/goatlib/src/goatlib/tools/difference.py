@@ -7,21 +7,49 @@ import logging
 from pathlib import Path
 from typing import Self
 
+from pydantic import ConfigDict
+
 from goatlib.analysis.geoprocessing.difference import DifferenceTool
 from goatlib.analysis.schemas.geoprocessing import DifferenceParams
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OUTPUT,
+    UISection,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase, TwoLayerInputMixin
+from goatlib.tools.schemas import (
+    ScenarioSelectorMixin,
+    ToolInputBase,
+    TwoLayerInputMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class DifferenceToolParams(ToolInputBase, TwoLayerInputMixin, DifferenceParams):
+class DifferenceToolParams(
+    ScenarioSelectorMixin, ToolInputBase, TwoLayerInputMixin, DifferenceParams
+):
     """Parameters for difference tool.
 
     Inherits difference options from DifferenceParams, adds layer context from ToolInputBase.
     input_path/overlay_path/output_path are not used (we use layer IDs instead).
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
+            SECTION_OUTPUT,
+        )
+    )
 
     input_path: str | None = None  # type: ignore[assignment]
     overlay_path: str | None = None  # type: ignore[assignment]

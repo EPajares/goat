@@ -25,7 +25,7 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ToolInputBase
+from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ INPUT_MODE_LABELS: dict[str, str] = {
 # =============================================================================
 
 
-class GeocodingToolParams(ToolInputBase, LayerInputMixin):
+class GeocodingToolParams(ScenarioSelectorMixin, ToolInputBase, LayerInputMixin):
     """Parameters for geocoding tool.
 
     Inherits geocoding options from GeocodingParams, adds layer context from ToolInputBase.
@@ -67,6 +67,12 @@ class GeocodingToolParams(ToolInputBase, LayerInputMixin):
         "json_schema_extra": ui_sections(
             SECTION_INPUT,
             SECTION_GEOCODING,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
             SECTION_OUTPUT,
         )
     }

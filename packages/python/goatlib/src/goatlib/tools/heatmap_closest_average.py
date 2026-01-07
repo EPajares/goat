@@ -7,24 +7,46 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.accessibility import HeatmapClosestAverageTool
 from goatlib.analysis.schemas.heatmap import HeatmapClosestAverageParams
-from goatlib.analysis.schemas.ui import ui_field
+from goatlib.analysis.schemas.ui import (
+    SECTION_CONFIGURATION,
+    SECTION_OPPORTUNITIES,
+    SECTION_ROUTING,
+    UISection,
+    ui_field,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 from goatlib.tools.style import get_heatmap_style
 
 logger = logging.getLogger(__name__)
 
 
-class HeatmapClosestAverageToolParams(ToolInputBase, HeatmapClosestAverageParams):
+class HeatmapClosestAverageToolParams(
+    ScenarioSelectorMixin, ToolInputBase, HeatmapClosestAverageParams
+):
     """Parameters for heatmap closest average tool.
 
     Inherits heatmap options from HeatmapClosestAverageParams, adds layer context from ToolInputBase.
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_ROUTING,
+            SECTION_CONFIGURATION,
+            SECTION_OPPORTUNITIES,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+            ),
+        )
+    )
 
     # Override file paths as optional - they will be resolved internally
     od_matrix_path: str | None = Field(
