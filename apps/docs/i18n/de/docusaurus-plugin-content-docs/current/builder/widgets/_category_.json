@@ -1,0 +1,8 @@
+{
+  "label": "Widgets",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Widgets sind die Bausteine des Dashboards. Sie ermöglichen es Ihnen, verschiedene Arten von Daten und Informationen optisch ansprechend darzustellen. Jedes Widget kann an Ihre Bedürfnisse angepasst werden, egal ob Sie Zahlen, Diagramme oder Projektelemente wie Text und Bilder anzeigen möchten."
+  }
+}

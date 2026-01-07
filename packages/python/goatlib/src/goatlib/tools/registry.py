@@ -82,6 +82,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/clip",
         category="geoprocessing",
         keywords=("geoprocessing", "clip", "overlay", "extract"),
+        docs_path="/toolbox/geoprocessing/clip",
     ),
     ToolDefinition(
         name="centroid",
@@ -92,6 +93,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         windmill_path="f/goat/centroid",
         category="geoprocessing",
         keywords=("geoprocessing", "centroid", "point"),
+        docs_path="/toolbox/geoprocessing/centroid",
     ),
     ToolDefinition(
         name="intersection",
@@ -101,6 +103,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         params_class_name="IntersectionToolParams",
         windmill_path="f/goat/intersection",
         category="geoprocessing",
+        docs_path="/toolbox/geoprocessing/intersection",
         keywords=("geoprocessing", "intersect", "intersection", "overlay"),
     ),
     ToolDefinition(
@@ -110,6 +113,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         module_path="goatlib.tools.union",
         params_class_name="UnionToolParams",
         windmill_path="f/goat/union",
+        docs_path="/toolbox/geoprocessing/union",
         category="geoprocessing",
         keywords=("geoprocessing", "union", "overlay", "merge"),
     ),
@@ -119,6 +123,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         description="Creates features by removing portions that overlap with erase geometry",
         module_path="goatlib.tools.difference",
         params_class_name="DifferenceToolParams",
+        docs_path="/toolbox/geoprocessing/difference",
         windmill_path="f/goat/difference",
         category="geoprocessing",
         keywords=("geoprocessing", "erase", "difference", "overlay", "subtract"),
@@ -131,6 +136,7 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         params_class_name="JoinToolParams",
         windmill_path="f/goat/join",
         category="data_management",
+        docs_path="/toolbox/data_management/join",
         keywords=(
             "data_management",
             "join",
