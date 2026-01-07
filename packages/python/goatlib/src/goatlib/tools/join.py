@@ -30,7 +30,7 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ JOIN_TYPE_LABELS: dict[str, str] = {
 }
 
 
-class JoinToolParams(ToolInputBase, BaseModel):
+class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
     """Parameters for join tool.
 
     Does NOT inherit from JoinParams to avoid validator conflicts.
@@ -109,6 +109,12 @@ class JoinToolParams(ToolInputBase, BaseModel):
                 order=7,
                 icon="chart",
                 collapsible=True,
+            ),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"target_layer_id": {"$ne": None}},
             ),
             SECTION_OUTPUT,
         )

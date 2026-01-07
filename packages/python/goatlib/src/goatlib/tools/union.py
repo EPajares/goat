@@ -8,25 +8,47 @@ import logging
 from pathlib import Path
 from typing import Any, Optional, Self
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.geoprocessing.union import UnionTool
 from goatlib.analysis.schemas.geoprocessing import UnionParams
-from goatlib.analysis.schemas.ui import ui_field
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OUTPUT,
+    UISection,
+    ui_field,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ToolInputBase
+from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 
-class UnionToolParams(ToolInputBase, LayerInputMixin, UnionParams):
+class UnionToolParams(
+    ScenarioSelectorMixin, ToolInputBase, LayerInputMixin, UnionParams
+):
     """Parameters for union tool.
 
     Inherits union options from UnionParams, adds layer context from ToolInputBase.
     input_path/overlay_path/output_path are not used (we use layer IDs instead).
     Overlay layer is optional - if not provided, performs self-union on input.
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="overlay", order=2, icon="layers"),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
+            SECTION_OUTPUT,
+        )
+    )
 
     input_path: str | None = None  # type: ignore[assignment]
     overlay_path: str | None = None  # type: ignore[assignment]

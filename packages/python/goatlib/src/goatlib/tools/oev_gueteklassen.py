@@ -25,7 +25,7 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 from goatlib.tools.style import (
     get_oev_gueteklassen_stations_style,
     get_oev_gueteklassen_style,
@@ -47,7 +47,7 @@ class CatchmentType(StrEnum):
     buffer = "buffer"
 
 
-class OevGueteklassenToolParams(ToolInputBase):
+class OevGueteklassenToolParams(ScenarioSelectorMixin, ToolInputBase):
     """Parameters for ÖV-Güteklassen tool.
 
     Calculates public transport quality classes based on station accessibility
@@ -58,6 +58,12 @@ class OevGueteklassenToolParams(ToolInputBase):
         "json_schema_extra": ui_sections(
             SECTION_CALCULATION_TIME,
             SECTION_OEV_CONFIGURATION,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"reference_area_layer_id": {"$ne": None}},
+            ),
         )
     }
 
