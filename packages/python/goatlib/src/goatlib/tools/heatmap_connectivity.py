@@ -7,24 +7,45 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.accessibility import HeatmapConnectivityTool
 from goatlib.analysis.schemas.heatmap import HeatmapConnectivityParams
-from goatlib.analysis.schemas.ui import ui_field
+from goatlib.analysis.schemas.ui import (
+    SECTION_CONFIGURATION,
+    SECTION_ROUTING,
+    UISection,
+    ui_field,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 from goatlib.tools.style import get_heatmap_style
 
 logger = logging.getLogger(__name__)
 
 
-class HeatmapConnectivityToolParams(ToolInputBase, HeatmapConnectivityParams):
+class HeatmapConnectivityToolParams(
+    ScenarioSelectorMixin, ToolInputBase, HeatmapConnectivityParams
+):
     """Parameters for heatmap connectivity tool.
 
     Inherits heatmap options from HeatmapConnectivityParams, adds layer context from ToolInputBase.
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_ROUTING,
+            SECTION_CONFIGURATION,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"reference_area_layer_id": {"$ne": None}},
+            ),
+        )
+    )
 
     # Override file paths as optional - they will be resolved internally
     od_matrix_path: str | None = Field(

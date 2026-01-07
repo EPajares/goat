@@ -99,27 +99,59 @@ class BufferTool(AnalysisTool):
             f"mitre_limit => {params.mitre_limit}"
         )
 
-        # --- Always project to EPSG:3857 for planar buffering
-        projected_geom_expr = (
-            f"ST_Transform(geom, '{input_crs_str}', 'EPSG:3857')"
-            if input_crs_str
-            else "geom"
-        )
+        # --- Geodesic Buffering Logic (Dynamic UTM)
+        # 1. Ensure WGS84 (Force Long/Lat axis order)
+        wgs84_proj = "'+proj=longlat +datum=WGS84 +no_defs'"
+
+        if input_crs_str and input_crs_str != "EPSG:4326":
+            # Convert input to WGS84 first
+            geom_wgs84 = f"ST_Transform(geom, '{input_crs_str}', {wgs84_proj})"
+        else:
+            # Assume input is already WGS84 Lon/Lat.
+            # We explicitly do NOT transform from 'EPSG:4326' here because PROJ might
+            # interpret EPSG:4326 as Lat/Lon, initializing a flip if our data is Lon/Lat.
+            geom_wgs84 = "geom"
+
+        # 2. Dynamic UTM Zone Expression based on Centroid
+        # Calculates EPSG code: 326xx (North) or 327xx (South) + zone number
+        utm_zone_expr = f"""
+            ('EPSG:' || CAST((
+                CASE WHEN ST_Y(ST_Centroid({geom_wgs84})) >= 0 THEN 32600 ELSE 32700 END 
+                + CAST(FLOOR((ST_X(ST_Centroid({geom_wgs84})) + 180) / 6) + 1 AS INT)
+            ) AS VARCHAR))
+        """
+
+        # 3. Project to Dynamic UTM -> Buffer -> Project back to WGS84
+        # We do this all in one expression to ensure the same UTM zone is used for both transforms
+        buffer_expr_template = f"""
+            ST_Transform(
+                ST_Buffer(
+                    ST_Transform({geom_wgs84}, {wgs84_proj}, {utm_zone_expr}), 
+                    {{dist}}, 
+                    {opts}
+                ),
+                {utm_zone_expr},
+                {wgs84_proj}
+            )
+        """
 
         # --- Convert distance units
         distances_m = [
             d * UNIT_TO_METERS[params.units] for d in (params.distances or [])
         ]
 
-        # --- Buffer execution (simplified for clarity)
+        # --- Buffer execution
         buffer_tables = []
         for i, dist in enumerate(distances_m):
             tmp = f"buf_{i}"
+            # Inject distance into the template
+            dist_expr = buffer_expr_template.format(dist=dist)
+
             con.execute(
                 f"""
                 CREATE OR REPLACE TEMP TABLE {tmp} AS
                 SELECT * EXCLUDE (geom),
-                    ST_Buffer({projected_geom_expr}, {dist}, {opts}) AS geometry
+                    {dist_expr} AS geometry
                 FROM {work_view}
                 """
             )
@@ -129,6 +161,8 @@ class BufferTool(AnalysisTool):
             "CREATE OR REPLACE TEMP TABLE buffers AS "
             + " UNION ALL ".join(f"SELECT * FROM {t}" for t in buffer_tables)
         )
+
+        # --- Result is now in WGS84 ({wgs84_proj})
 
         # --- Optional dissolve
         source = "buffers"
@@ -142,13 +176,14 @@ class BufferTool(AnalysisTool):
             )
             source = "dissolved"
 
-        # --- Reproject back to input CRS
-        if input_crs_str:
+        # --- Reproject back to input CRS if needed
+        # The result is currently WGS84. If input was different, transform back.
+        if input_crs_str and input_crs_str != "EPSG:4326":
             con.execute(
                 f"""
                 CREATE OR REPLACE TEMP TABLE final_buffers AS
                 SELECT * EXCLUDE (geometry),
-                    ST_Transform(geometry, 'EPSG:3857', '{input_crs_str}') AS geometry
+                    ST_Transform(geometry, {wgs84_proj}, '{input_crs_str}') AS geometry
                 FROM {source}
                 """
             )

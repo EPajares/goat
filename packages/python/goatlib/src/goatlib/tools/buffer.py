@@ -10,21 +10,50 @@ import logging
 from pathlib import Path
 from typing import Self
 
+from pydantic import ConfigDict
+
 from goatlib.analysis.geoprocessing.buffer import BufferTool
 from goatlib.analysis.schemas.geoprocessing import BufferParams
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OUTPUT,
+    UISection,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ToolInputBase
+from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 
-class BufferToolParams(ToolInputBase, LayerInputMixin, BufferParams):
+class BufferToolParams(
+    ScenarioSelectorMixin, ToolInputBase, LayerInputMixin, BufferParams
+):
     """Parameters for buffer tool.
 
     Inherits buffer options from BufferParams, adds layer context from ToolInputBase.
     input_path/output_path are not used (we use input_layer_id instead).
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(
+                id="configuration",
+                order=2,
+                icon="settings",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
+            SECTION_OUTPUT,
+        )
+    )
 
     # Override file paths as optional - we use layer IDs instead
     input_path: str | None = None  # type: ignore[assignment]

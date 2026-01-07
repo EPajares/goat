@@ -22,17 +22,20 @@ from goatlib.analysis.schemas.ui import (
     SECTION_AREA,
     SECTION_INPUT_AGGREGATE,
     SECTION_STATISTICS,
+    UISection,
     ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 
-class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
+class AggregatePolygonToolParams(
+    ScenarioSelectorMixin, ToolInputBase, AggregatePolygonParams
+):
     """Parameters for aggregate polygon tool.
 
     Inherits aggregate options from AggregatePolygonParams, adds layer context from ToolInputBase.
@@ -44,6 +47,12 @@ class AggregatePolygonToolParams(ToolInputBase, AggregatePolygonParams):
             SECTION_INPUT_AGGREGATE,
             SECTION_AREA,
             SECTION_STATISTICS,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"source_layer_id": {"$ne": None}},
+            ),
         )
     }
 

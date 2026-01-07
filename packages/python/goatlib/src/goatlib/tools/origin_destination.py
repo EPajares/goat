@@ -23,12 +23,14 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
+from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase, ToolOutputBase
 
 logger = logging.getLogger(__name__)
 
 
-class OriginDestinationToolParams(ToolInputBase, OriginDestinationParams):
+class OriginDestinationToolParams(
+    ScenarioSelectorMixin, ToolInputBase, OriginDestinationParams
+):
     """Parameters for origin-destination tool.
 
     Inherits OD options from OriginDestinationParams, adds layer context from ToolInputBase.
@@ -40,6 +42,12 @@ class OriginDestinationToolParams(ToolInputBase, OriginDestinationParams):
             SECTION_INPUT,
             UISection(id="matrix", order=2, icon="grid", label_key="matrix"),
             UISection(id="columns", order=3, icon="list", label_key="columns"),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"geometry_layer_id": {"$ne": None}},
+            ),
             SECTION_OUTPUT,
         )
     )

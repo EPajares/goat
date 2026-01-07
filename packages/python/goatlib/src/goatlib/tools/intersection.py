@@ -20,12 +20,18 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase, TwoLayerInputMixin
+from goatlib.tools.schemas import (
+    ScenarioSelectorMixin,
+    ToolInputBase,
+    TwoLayerInputMixin,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class IntersectionToolParams(ToolInputBase, TwoLayerInputMixin, IntersectionParams):
+class IntersectionToolParams(
+    ScenarioSelectorMixin, ToolInputBase, TwoLayerInputMixin, IntersectionParams
+):
     """Parameters for intersection tool.
 
     Inherits intersection options from IntersectionParams, adds layer context from ToolInputBase.
@@ -43,6 +49,12 @@ class IntersectionToolParams(ToolInputBase, TwoLayerInputMixin, IntersectionPara
                 icon="list",
                 collapsible=True,
                 collapsed=True,
+            ),
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
             ),
             SECTION_OUTPUT,
         )

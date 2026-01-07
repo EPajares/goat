@@ -7,21 +7,44 @@ import logging
 from pathlib import Path
 from typing import Self
 
+from pydantic import ConfigDict
+
 from goatlib.analysis.geoprocessing.centroid import CentroidTool
 from goatlib.analysis.schemas.geoprocessing import CentroidParams
+from goatlib.analysis.schemas.ui import (
+    SECTION_INPUT,
+    SECTION_OUTPUT,
+    UISection,
+    ui_sections,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ToolInputBase
+from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 
-class CentroidToolParams(ToolInputBase, LayerInputMixin, CentroidParams):
+class CentroidToolParams(
+    ScenarioSelectorMixin, ToolInputBase, LayerInputMixin, CentroidParams
+):
     """Parameters for centroid tool.
 
     Inherits centroid options from CentroidParams, adds layer context from ToolInputBase.
     input_path/output_path are not used (we use layer IDs instead).
     """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(
+                id="scenario",
+                order=8,
+                icon="scenario",
+                depends_on={"input_layer_id": {"$ne": None}},
+            ),
+            SECTION_OUTPUT,
+        )
+    )
 
     input_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None
