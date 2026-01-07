@@ -2,29 +2,31 @@
 sidebar_position: 1
 ---
 
-# Join & Group
+# Join
 
-This tool allows you to **combine and summarize data from two layers by matching an attribute in both**. This is essential for spatial analysis, data enrichment, and creating comprehensive datasets.
-
+This tool allows you to **combine data from two layers based on attribute matching or spatial relationships**. This is essential for spatial analysis, data enrichment, and creating comprehensive datasets.
 
 ## 1. Explanation
 
-This tool allows you to combine two datasets by linking their features through a common attribute (for example, an ID or name). **The result is a new layer that keeps all attributes from the Target Layer, plus an additional column that summarizes selected information from the Join Layer.**
+Joining is the process of attaching fields from one layer (Join Layer) to another layer (Target Layer).
 
-**GOAT uses an Inner Join to combine the data**. This means it matches features (rows) from the Target Layer and the Join Layer wherever they share the same value in the chosen matching field (column).
-**Only features that exist in both layers with the same value will be included in the output.** If a feature in the Target Layer doesn’t have a matching one in the Join Layer, it won’t appear in the result.
+**GOAT supports three types of joins:**
+1. **Attribute Join:** Matches features based on a common field (e.g., matching "Zip Code" in both layers).
+2. **Spatial Join:** Matches features based on their geometric relationship (e.g., "features that intersect" or "features within a distance").
+3. **Spatial & Attribute Join:** Requires **both** a spatial overlap and a matching attribute to join features.
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/data_management/join/join_and_group.png').default} alt="Join Tool in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
-</div> 
+The result is a new layer containing the Target Layer's geometry and attributes, plus the attributes from the Join Layer.
 
 ## 2. Example use cases
 
+### Attribute Join
 - Add population data to zip code areas (matching on zip code).
 - Combine survey data with census tract boundaries (matching on tract ID).
-- Join commuter numbers to city boundaries (matching on city name).
+
+### Spatial Join
+- Count the number of schools within each city district (Points inside Polygons).
+- Find the closest fire station to each building.
+- Sum the total length of roads within a park.
 
 ## 3. How to use the tool?
 
@@ -35,77 +37,65 @@ This tool allows you to combine two datasets by linking their features through a
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Under the <code>Data Management</code> menu, click on <code>Join & Group</code>.</div>
+  <div class="content">Under the <code>Data Management</code> menu, click on <code>Join</code>.</div>
 </div>
 
-### Select layers to join 
+### Select layers
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">  Select your <code>Target layer</code>: the primary table or layer <strong>to which you want to add additional data.</strong> </div>
+  <div class="content">Select your <code>Target Layer</code>: The main layer you want to keep.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select your <code>Join layer</code>: the secondary table or dataset that <strong>contains the records and attributes to be inserted into the Target Layer.</strong> </div>
+  <div class="content">Select your <code>Join Layer</code>: The layer containing data you want to add.</div>
 </div>
 
-### Fields to match
+### Choose Join Method
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Select the <code>Target field</code> of the target layer, which you like <strong>to use for matching the records of both layers</strong>.</div>
+  <div class="content">Select the <code>Join Method</code>:</div>
 </div>
+
+- **Attribute:** Match based on fields.
+- **Spatial:** Match based on location.
+- **Spatial & Attribute:** Match based on both.
+
+---
+
+### Settings (depending on method)
+
+**If Attribute Join:**
+- Select the **Target Field** (key in matching layer).
+- Select the **Join Field** (key in join layer).
+
+**If Spatial Join:**
+- Select the **Spatial Relationship** (e.g., Intersects, Within Distance, Completely Contains).
+- If "Within Distance", specify the search distance and units.
+
+---
+
+### Join Options (Cardinality)
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content"> Select the matching attribute of the Join Layer as the <code>Join field</code>. </div>
+  <div class="content">Select the <code>Join Operation</code> (One-to-One or One-to-Many).</div>
 </div>
 
-### Statistics
+**One-to-One:**
+If multiple features in the Join Layer match a single feature in the Target Layer, you must choose how to handle them:
+- **First Record:** Takes the first matching record (arbitrary sort).
+- **Calculate Statistics:** Aggregates the matching records (e.g., Sum, Mean, Min, Max).
+- **Count Only:** Just counts how many matches were found.
+
+**One-to-Many:**
+Creates a separate feature in the output for *each* matching feature in the Join Layer (could duplicate target geometry).
+
+### Run
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content"> Select the <code>Statistic Method</code> to be used to join the attribute. </div>
+  <div class="content">Click <code>Run</code> to execute the join. Result will be added to the map.</div>
 </div>
-
-**You can choose between several statistical operations**. Some methods are only available for specific data types. The following list provides an overview of the available methods:
-
-| Method | Data Types | Description |
-| -------|------| ------------|
-| Count  | `string`,`number`    | Counts the number of non-null values in the selected column|
-| Sum    | `number`   | Calculates the sum of all the numbers in the selected column|
-| Mean   | `number`   | Calculates the average (mean) value of all numeric values in the selected column|
-| Median | `number`   | Yields the middle value in the selected column's sorted list of numeric values|
-| Min    | `number`   | Yields the minimum value of the selected column|
-| Max    | `number`   | Yields the maximum value of the selected column|
-
-<div class="step">
-  <div class="step-number">8</div>
-  <div class="content">Select the <code>Field Statistics</code> for which you like to apply the statistical operation.</div>
-</div>
-
-<div class="step">
-  <div class="step-number">9</div>
-  <div class="content">Click on <code>Run</code>.</div>
-</div>
-
-
-### Results
-  
-The resulting layer **"Join"** will be added to your project and to the [Datasets](../../workspace/datasets) in your workspace. This layer contains all information from the target layer plus an **additional column** with the results from the **statistical operation**. You can view the attributes by clicking on any feature in the map.
-
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/data_management/join/result.png').default} alt="Join Result in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
-</div> 
-
-<p></p>
-
-
-:::tip Tip
-
-Want to adjust the appearance of the result layer? Check out the [attribute-based styling](../../map/layer_style/style/attribute_based_styling.md).
-
-:::

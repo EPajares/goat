@@ -2,94 +2,103 @@
 sidebar_position: 1
 ---
 
+# Join
 
-# Verknüpfen & Gruppieren
-
-Dieses Werkzeug ermöglicht es Ihnen, **Daten aus zwei Layern zu kombinieren und zusammenzufassen, indem ein Attribut in beiden abgeglichen wird**. Dies ist wesentlich für räumliche Analysen, Datenanreicherung und die Erstellung umfassender Datensätze.
-
+Dieses Werkzeug ermöglicht es Ihnen, **Daten aus zwei Layern basierend auf Attributabgleichen oder räumlichen Beziehungen zu kombinieren**. Dies ist wesentlich für räumliche Analysen, Datenanreicherung und die Erstellung umfassender Datensätze.
 
 ## 1. Erklärung
 
-Dieses Werkzeug ermöglicht es Ihnen, zwei Datensätze zu kombinieren, indem ihre Features durch ein gemeinsames Attribut (zum Beispiel eine ID oder einen Namen) verknüpft werden. **Das Ergebnis ist ein neuer Layer, der alle Attribute vom Ziel-Layer behält, plus einer zusätzlichen Spalte, die ausgewählte Informationen vom Verknüpfungs-Layer zusammenfasst.**
+Das Verknüpfen (Join) ist der Prozess des Anhängens von Feldern aus einem Layer (Verknüpfungs-Layer) an einen anderen Layer (Ziel-Layer).
 
-**GOAT verwendet einen Inner Join, um die Daten zu kombinieren**. Das bedeutet, es gleicht Features (Zeilen) vom Ziel-Layer und dem Verknüpfungs-Layer ab, wo sie denselben Wert im gewählten Abgleichsfeld (Spalte) teilen.
-**Nur Features, die in beiden Layern mit demselben Wert existieren, werden in die Ausgabe eingeschlossen.** Wenn ein Feature im Ziel-Layer kein passendes im Verknüpfungs-Layer hat, erscheint es nicht im Ergebnis.
+**GOAT unterstützt drei Arten von Verknüpfungen:**
+1. **Attribut-Verknüpfung:** Gleicht Features basierend auf einem gemeinsamen Feld ab (z. B. Abgleich der "Postleitzahl" in beiden Layern).
+2. **Räumliche Verknüpfung:** Gleicht Features basierend auf ihrer geometrischen Beziehung ab (z. B. "Features, die sich schneiden" oder "Features innerhalb einer Entfernung").
+3. **Räumliche & Attribut-Verknüpfung:** Erfordert **sowohl** eine räumliche Überschneidung als auch ein passendes Attribut, um Features zu verknüpfen.
 
-<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-  <img src={require('/img/toolbox/data_management/join/join_and_group.png').default} alt="Verknüpfungs-Werkzeug in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
-
-</div> 
+Das Ergebnis ist ein neuer Layer, der die Geometrie und Attribute des Ziel-Layers sowie die Attribute des Verknüpfungs-Layers enthält.
 
 ## 2. Beispiel-Anwendungsfälle
 
+### Attribut-Verknüpfung
 - Bevölkerungsdaten zu Postleitzahl-Gebieten hinzufügen (Abgleich über Postleitzahl).
 - Umfragedaten mit Zensus-Bezirksgrenzen kombinieren (Abgleich über Bezirks-ID).
-- Pendlerzahlen mit Stadtgrenzen verknüpfen (Abgleich über Stadtname).
+
+### Räumliche Verknüpfung
+- Anzahl der Schulen in jedem Stadtbezirk zählen (Punkte in Polygonen).
+- Die nächstgelegene Feuerwehrstation zu jedem Gebäude finden.
+- Summierung der Gesamtlänge von Straßen innerhalb eines Parks.
 
 ## 3. Wie verwendet man das Werkzeug?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter dem <code>Datenverwaltung</code>-Menü klicken Sie auf <code>Verknüpfen & Gruppieren</code>.</div>
+  <div class="content">Unter dem Menü <code>Datenverwaltung</code> klicken Sie auf <code>Join</code>.</div>
 </div>
 
-### Layer zum Verknüpfen auswählen 
+### Layer auswählen
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">  Wählen Sie Ihren <code>Ziel-Layer</code>: die primäre Tabelle oder Layer, <b>zu dem Sie zusätzliche Daten hinzufügen möchten.</b> </div>
+  <div class="content">Wählen Sie Ihren <code>Ziel-Layer</code>: Der Hauptlayer, den Sie behalten möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie Ihren <code>Verknüpfungs-Layer</code>: die sekundäre Tabelle oder Datensatz, <b>der die Datensätze und Attribute enthält, die in den Ziel-Layer eingefügt werden sollen.</b> </div>
+  <div class="content">Wählen Sie Ihren <code>Verknüpfungs-Layer</code>: Der Layer, der die Daten enthält, die Sie hinzufügen möchten.</div>
 </div>
 
-### Felder zum Abgleichen
+### Verknüpfungsmethode wählen
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Wählen Sie das <code>Zielfeld</code> des Ziel-Layers, das Sie <b>für den Abgleich der Datensätze beider Layer verwenden möchten.</b></div>
+  <div class="content">Wählen Sie die <code>Verknüpfungsmethode</code>:</div>
 </div>
+
+- **Attribut:** Abgleich basierend auf Feldern.
+- **Räumlich:** Abgleich basierend auf dem Standort.
+- **Räumlich & Attribut:** Abgleich basierend auf beidem.
+
+---
+
+### Einstellungen (je nach Methode)
+
+**Bei Attribut-Verknüpfung:**
+- Wählen Sie das **Zielfeld** (Schlüssel im Ziel-Layer).
+- Wählen Sie das **Verknüpfungsfeld** (Schlüssel im Verknüpfungs-Layer).
+
+**Bei räumlicher Verknüpfung:**
+- Wählen Sie die **Räumliche Beziehung** (z. B. Schnitt (Intersects), Innerhalb einer Entfernung, Vollständig enthalten).
+- Bei "Innerhalb einer Entfernung" geben Sie die Suchentfernung und Einheiten an.
+
+---
+
+### Verknüpfungsoptionen (Kardinalität)
 
 <div class="step">
   <div class="step-number">6</div>
-  <div class="content"> Wählen Sie das passende Attribut des Verknüpfungs-Layers als <code>Verknüpfungsfeld</code>. </div>
+  <div class="content">Wählen Sie die <code>Verknüpfungsoperation</code> (Eins-zu-Eins oder Eins-zu-Vielen).</div>
 </div>
 
-### Statistiken
+**Eins-zu-Eins:**
+Wenn mehrere Features im Verknüpfungs-Layer auf ein einzelnes Feature im Ziel-Layer passen, müssen Sie wählen, wie diese behandelt werden sollen:
+- **Erster Datensatz:** Verwendet den ersten passenden Datensatz (willkürliche Sortierung).
+- **Statistiken berechnen:** Aggregiert die passenden Datensätze (z.B. Summe, Mittelwert, Minimum, Maximum).
+- **Nur zählen:** Zählt lediglich, wie viele Übereinstimmungen gefunden wurden.
+
+**Eins-zu-Vielen:**
+Erstellt für *jedes* passende Feature im Verknüpfungs-Layer ein separates Feature in der Ausgabe (kann Zielgeometrien duplizieren).
+
+### Ausführen
 
 <div class="step">
   <div class="step-number">7</div>
-  <div class="content"> Wählen Sie die <code>Statistikmethode</code>, die verwendet werden soll, um das Attribut zu verknüpfen. </div>
-</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>. Das Ergebnis wird der Karte hinzugefügt.</div>
 
-**Sie können zwischen verschiedenen statistischen Operationen wählen**. Einige Methoden sind nur für spezifische Datentypen verfügbar. Die folgende Liste bietet eine Übersicht über die verfügbaren Methoden:
-
-| Methode | Datentypen | Beschreibung |
-| -------|------| ------------|
-| Anzahl  | `string`,`number`    | Zählt die Anzahl der nicht-null Werte in der ausgewählten Spalte|
-| Summe    | `number`   | Berechnet die Summe aller Zahlen in der ausgewählten Spalte|
-| Mittelwert   | `number`   | Berechnet den Durchschnitt (Mittelwert) aller numerischen Werte in der ausgewählten Spalte|
-| Median | `number`   | Ergibt den mittleren Wert in der sortierten Liste numerischer Werte der ausgewählten Spalte|
-| Min    | `number`   | Ergibt den Minimalwert der ausgewählten Spalte|
-| Max    | `number`   | Ergibt den Maximalwert der ausgewählten Spalte|
-
-<div class="step">
-  <div class="step-number">8</div>
-  <div class="content">Wählen Sie die <code>Feldstatistiken</code>, für die Sie die statistische Operation anwenden möchten.</div>
-</div>
-
-<div class="step">
-  <div class="step-number">9</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>.</div>
-</div>
 
 
 ### Ergebnisse
