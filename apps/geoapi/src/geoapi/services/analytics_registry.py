@@ -8,12 +8,16 @@ import logging
 from typing import Any
 
 from goatlib.analysis.statistics import (
+    AggregationStatsInput,
+    AggregationStatsResult,
     AreaStatisticsInput,
     AreaStatisticsResult,
     ClassBreaksInput,
     ClassBreaksResult,
     FeatureCountInput,
     FeatureCountResult,
+    HistogramInput,
+    HistogramResult,
     UniqueValuesInput,
     UniqueValuesResult,
 )
@@ -62,6 +66,18 @@ class AreaStatisticsProcessInput(AreaStatisticsInput):
     collection: str = Field(description="Layer ID (UUID)")
 
 
+class AggregationStatsProcessInput(AggregationStatsInput):
+    """Aggregation statistics input with collection (layer ID)."""
+
+    collection: str = Field(description="Layer ID (UUID)")
+
+
+class HistogramProcessInput(HistogramInput):
+    """Histogram input with collection (layer ID)."""
+
+    collection: str = Field(description="Layer ID (UUID)")
+
+
 # Analytics process definitions
 ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
     "feature-count": {
@@ -98,6 +114,24 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "output_model": AreaStatisticsResult,
         "keywords": ["analytics", "statistics", "area", "polygon"],
         "tool_key": "area_statistics",  # Translation key
+        "hidden": True,  # Hide from toolbox UI (used internally)
+    },
+    "aggregation-stats": {
+        "title": "Aggregation Statistics",
+        "description": "Calculate aggregation statistics (sum, count, mean, min, max) with optional grouping",
+        "input_model": AggregationStatsProcessInput,
+        "output_model": AggregationStatsResult,
+        "keywords": ["analytics", "statistics", "aggregation", "grouping"],
+        "tool_key": "aggregation_stats",  # Translation key
+        "hidden": True,  # Hide from toolbox UI (used internally)
+    },
+    "histogram": {
+        "title": "Histogram",
+        "description": "Calculate histogram bins for a numeric column",
+        "input_model": HistogramProcessInput,
+        "output_model": HistogramResult,
+        "keywords": ["analytics", "statistics", "histogram", "distribution"],
+        "tool_key": "histogram",  # Translation key
         "hidden": True,  # Hide from toolbox UI (used internally)
     },
 }

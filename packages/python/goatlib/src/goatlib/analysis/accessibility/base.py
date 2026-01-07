@@ -42,7 +42,7 @@ class HeatmapToolBase(AnalysisTool):
         # Get schema from parquet file(s)
         try:
             schema_result = self.con.execute(f"""
-                SELECT DISTINCT column_name
+                SELECT DISTINCT name
                 FROM parquet_schema('{path}')
             """).fetchall()
             columns = {row[0].lower() for row in schema_result}
@@ -269,7 +269,8 @@ class HeatmapToolBase(AnalysisTool):
         query = f"""
             COPY (
                 SELECT
-                    *,
+                    {h3_column}::BIGINT AS {h3_column},
+                    * EXCLUDE ({h3_column}),
                     ST_AsWKB(ST_GeomFromText(h3_cell_to_boundary_wkt({h3_column}))) AS geometry
                 FROM {results_table}
                 ORDER BY {h3_column}
