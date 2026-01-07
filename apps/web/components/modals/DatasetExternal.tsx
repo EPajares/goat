@@ -37,8 +37,8 @@ import { toast } from "react-toastify";
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import { useFolders } from "@/lib/api/folders";
-import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createRasterLayer, layerFeatureUrlUpload } from "@/lib/api/layers";
+import { createLayer, createRasterLayer } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { addProjectLayers, useProject, useProjectLayers } from "@/lib/api/projects";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { generateLayerGetLegendGraphicUrl, generateWmsUrl } from "@/lib/transformers/wms";
@@ -52,8 +52,8 @@ import type { LayerMetadata } from "@/lib/validations/layer";
 import {
   createLayerFromDatasetSchema,
   createRasterLayerSchema,
-  externalDatasetFeatureUrlSchema,
   layerMetadataSchema,
+  rasterLayerPropertiesSchema,
 } from "@/lib/validations/layer";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
@@ -101,6 +101,11 @@ const externalDatasetTypes: ExternalDatasetType[] = [
     value: "xyz",
     icon: ICON_NAME.XYZ,
   },
+  {
+    name: "Cloud Optimized GeoTIFF (COG)",
+    value: imageryDataType.Enum.cog,
+    icon: ICON_NAME.LAYERS,
+  },
 ];
 
 const columnsMap = {
@@ -108,13 +113,39 @@ const columnsMap = {
   wms: ["Title", "Name", "Abstract"],
   wmts: ["Title", "Identifier", "Style", "Format", "Abstract"],
   xyz: ["Title", "Identifier"],
+  cog: ["Title", "Format"],
+};
+
+// Utility function to extract filename from URL
+const extractFilenameFromUrl = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+    const pathname = parsedUrl.pathname;
+    const filename = pathname.split("/").pop() || "";
+    // Remove file extension for display
+    return filename.replace(/\.[^/.]+$/, "");
+  } catch (error) {
+    console.error("Invalid URL", error);
+    return "COG Layer";
+  }
 };
 
 const findExternalDatasetType = (url: string): CapabilitiesType | null => {
+  // COG pattern - ends with .tif or .tiff (supports query params and hash fragments)
+  const cogPattern = /^https?:\/\/.*\.(tiff?|TIF|TIFF)(\?.*)?(\#.*)?$/;
+
   // XYZ pattern (Should contain {x}, {y}, {z} and shouldn't contain {TileRow} and {TileCol})
   const xyzPattern = /^(?=.*\{z\})(?=.*\{x\})(?=.*\{y\})(?!.*\{TileRow\})(?!.*\{TileCol\}).*$/;
   const wmtsPattern =
     /^(?=.*\{TileRow\})(?=.*\{TileCol\})(?=.*\{TileMatrix\})(?!.*\{x\})(?!.*\{y\})(?!.*\{z\})(?!.*\{Style\})(?!.*\{TileMatrixSet\}).*$/;
+
+  if (cogPattern.test(url)) {
+    return {
+      type: imageryDataType.Enum.cog,
+      directUrl: url,
+    };
+  }
+
   // Check if the URL matches the xyz pattern
   if (xyzPattern.test(url)) {
     // Return the capabilities object for xyz
@@ -459,6 +490,13 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
         if (preselectedFolder) {
           setSelectedFolder(preselectedFolder);
         }
+
+        // For COG type, set default layer name from URL filename
+        if (urlCapabilities.type === imageryDataType.Enum.cog) {
+          const filename = extractFilenameFromUrl(externalUrl);
+          setValue("name", filename || "COG Layer");
+        }
+
         // Skip dataset selection step if it's a direct link and go to destination and metadata step
         setActiveStep((prevActiveStep) => prevActiveStep + 2);
         return;
@@ -553,7 +591,9 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
     try {
       setIsBusy(true);
       if (capabilities?.type === vectorDataType.Enum.wfs) {
-        const featureUrlPayload = externalDatasetFeatureUrlSchema.parse({
+        // Direct WFS import via OGC API Processes
+        const payload = createLayerFromDatasetSchema.parse({
+          ...layerPayload,
           data_type: capabilities.type,
           url: externalUrl,
           other_properties: {
@@ -562,15 +602,9 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
             srs: selectedDatasets[0].DefaultCRS,
           },
         });
-        const uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
-        const s3Key = uploadResponse?.s3_key;
-        const payload = createLayerFromDatasetSchema.parse({
-          ...layerPayload,
-          s3_key: s3Key,
-          ...featureUrlPayload,
-        });
-        const response = await createFeatureLayer(payload, projectId);
-        const jobId = response?.job_id;
+        const response = await createLayer({ ...payload, url: externalUrl ?? undefined }, projectId);
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));
@@ -578,7 +612,8 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
       } else if (
         capabilities?.type === imageryDataType.Enum.wms ||
         capabilities?.type === imageryDataType.Enum.wmts ||
-        (capabilities?.type === imageryDataType.Enum.xyz && capabilities.directUrl)
+        (capabilities?.type === imageryDataType.Enum.xyz && capabilities.directUrl) ||
+        capabilities?.type === imageryDataType.Enum.cog
       ) {
         let layers = [] as string[];
         let url = externalUrl;
@@ -611,12 +646,22 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           }
         } else if (capabilities.type === imageryDataType.Enum.xyz && capabilities.directUrl) {
           url = capabilities.directUrl;
+        } else if (capabilities.type === imageryDataType.Enum.cog) {
+          // For COG, save the URL as-is (client will handle cog:// prefix)
+          url = externalUrl;
         }
+
+        // Parse default raster properties using the schema
+        const defaultRasterProperties = rasterLayerPropertiesSchema.parse({
+          visibility: true,
+        });
+
         const payload = createRasterLayerSchema.parse({
           ...layerPayload,
           type: "raster",
           data_type: capabilities.type,
           url,
+          properties: defaultRasterProperties,
           other_properties: {
             ...(layers && { layers }),
             ...(legendUrls.length && { legend_urls: legendUrls }),

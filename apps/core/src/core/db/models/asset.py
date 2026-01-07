@@ -14,6 +14,7 @@ from core.db.models._base_class import DateTimeBase
 def enum_values(enum_class: type[enum.Enum]) -> list[str]:
     return [status.value for status in enum_class]
 
+
 class AssetType(str, Enum):
     IMAGE = "image"
     ICON = "icon"
@@ -74,7 +75,7 @@ class UploadedAsset(DateTimeBase, table=True):
     asset_type: AssetType = Field(
         sa_column=Column(
             nullable=False,
-            type_= SqlEnum(AssetType, values_callable=enum_values),
+            type_=SqlEnum(AssetType, values_callable=enum_values),
         ),
         description="Type of asset: 'image' or 'icon'.",
     )

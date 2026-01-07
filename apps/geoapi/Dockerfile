@@ -25,12 +25,13 @@ RUN apt-get install --no-install-recommends -y tzdata
 # ===== STAGE 2: Python environment ====
 FROM linux-base AS python-base
 # Install debian dependencies
-RUN apt-get install --no-install-recommends -y build-essential gettext
+RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 
 # Create virtual environment and install dependencies
 COPY apps/geoapi /app/apps/geoapi
+COPY packages/python/goatlib /app/packages/python/goatlib
 COPY pyproject.toml uv.lock /app/
 
 WORKDIR /app
@@ -55,4 +56,5 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/geoapi/src/geoapi/main.py"]
+
 

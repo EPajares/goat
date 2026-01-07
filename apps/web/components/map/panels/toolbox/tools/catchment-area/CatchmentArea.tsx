@@ -11,7 +11,7 @@ import {
   computeCarCatchmentArea,
   computePTCatchmentArea,
 } from "@/lib/api/catchmentArea";
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { useProjectLayers } from "@/lib/api/projects";
 import { STREET_NETWORK_LAYER_ID } from "@/lib/constants";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
@@ -44,6 +44,7 @@ import {
   useScenarioItems,
   useStartingPointMethods,
 } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import FormLabelHelper from "@/components/common/FormLabelHelper";
@@ -203,6 +204,11 @@ const CatchmentArea = ({ onBack, onClose }: IndicatorBaseProps) => {
     return projectLayers?.find((layer) => layer.id === startingPointLayerItem?.value);
   }, [projectLayers, startingPointLayerItem?.value]);
 
+  // Fetch starting point layer feature count on-demand
+  const { featureCount: startingPointLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: startingPointLayer,
+  });
+
   const { maxStartingPoints } = useCatchmeMaxStartingPoints(selectedRouting);
 
   const isValid = useMemo(() => {
@@ -212,7 +218,7 @@ const CatchmentArea = ({ onBack, onClose }: IndicatorBaseProps) => {
 
     if (startingPointMethod.value === "map" && (!startingPoints || startingPoints.length === 0)) return false;
 
-    const startingPointCount = startingPoints?.length || startingPointLayer?.filtered_count || 0;
+    const startingPointCount = startingPoints?.length || startingPointLayerFeatureCount || 0;
     if (startingPointCount > maxStartingPoints) return false;
 
     return true;
@@ -223,7 +229,7 @@ const CatchmentArea = ({ onBack, onClose }: IndicatorBaseProps) => {
     isRoutingValid,
     maxStartingPoints,
     selectedRouting?.value,
-    startingPointLayer?.filtered_count,
+    startingPointLayerFeatureCount,
     startingPointLayerItem?.value,
     startingPointMethod.value,
     startingPoints,
@@ -566,7 +572,7 @@ const CatchmentArea = ({ onBack, onClose }: IndicatorBaseProps) => {
                     startingPointMethods={startingPointMethods}
                     startingPointLayer={startingPointLayerItem}
                     setStartingPointLayer={setSelectedStartingPointLayerItem}
-                    currentStartingPoints={startingPoints?.length || startingPointLayer?.filtered_count || 0}
+                    currentStartingPoints={startingPoints?.length || startingPointLayerFeatureCount || 0}
                     maxStartingPoints={maxStartingPoints}
                   />
                 </>

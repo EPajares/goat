@@ -18,11 +18,11 @@ inputs:
   cwd:
     description: "Changes node's process.cwd() if the project is not located on the root. Default to process.cwd()"
     required: false
-    default: '.'
+    default: "."
   node_version:
     description: "Node version to use"
     required: false
-    default: v18.x
+    default: v22.x
 
 runs:
   using: "composite"
@@ -43,7 +43,7 @@ runs:
           **/.turbo/**
           **/dist/**
         key: ${{ runner.os }}-${{ env.cache-name }}-${{ env.key-1 }}-${{ env.key-2 }}-${{ env.key-3 }}-${{ env.key-4 }}
-        
+
     - run: pnpm run build
       working-directory: ${{ inputs.cwd }}
       if: steps.cache-build.outputs.cache-hit != 'true'

@@ -1,21 +1,11 @@
-import {
-  Badge,
-  Box,
-  Button,
-  Divider,
-  IconButton,
-  Paper,
-  Stack,
-  Tooltip,
-  Typography,
-  styled,
-} from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import DownloadIcon from "@mui/icons-material/Download";
+import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { setJobsReadStatus, useJobs } from "@/lib/api/jobs";
+import { type Job, useJobs } from "@/lib/api/processes";
 
 import { ArrowPopper as JobStatusMenu } from "@/components/ArrowPoper";
 import JobProgressItem from "@/components/jobs/JobProgressItem";
@@ -52,63 +42,56 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 export default function JobsPopper() {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
-  const { jobs, mutate } = useJobs({
-    read: false,
-  });
+  const { jobs } = useJobs({ read: false });
 
+  // Filter to get running/accepted jobs using OGC status
   const runningJobs = useMemo(() => {
-    return jobs?.items?.filter((job) => job.status_simple === "running");
-  }, [jobs?.items]);
+    return jobs?.jobs?.filter((job) => job.status === "running" || job.status === "accepted");
+  }, [jobs?.jobs]);
 
-  const [intervalId, setIntervalId] = useState<number | null>(null);
-  useEffect(() => {
-    if (!runningJobs) return;
-    const runningJobsCount = runningJobs.length;
-    if (runningJobsCount === 0) {
-      // no running jobs, clear interval and return
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-      return;
-    }
-
-    // at least one running job, set interval if not already set
-    if (!intervalId) {
-      const id = setInterval(() => {
-        mutate();
-      }, 5000) as unknown as number;
-      setIntervalId(id);
-    }
-
-    // cleanup function
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-        setIntervalId(null);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runningJobs, intervalId]);
-
-  const [isBusy, setIsBusy] = useState(false);
-
-  const handleClearAll = async () => {
-    const jobIds = jobs?.items?.map((job) => job.id);
-    if (!jobIds) return;
-    setIsBusy(true);
+  // Handle download for LayerExport jobs
+  const handleExportDownload = async (payload: Record<string, unknown> | undefined) => {
+    if (!payload) return;
     try {
-      await setJobsReadStatus(jobIds);
-      mutate();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsBusy(false);
+      const downloadUrl = payload.download_url as string;
+      const fileName = (payload.file_name as string) || "export.zip";
+      if (!downloadUrl) {
+        throw new Error("No download_url in job payload");
+      }
+      // Trigger download
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Download failed:", error);
     }
   };
+
+  // Helper to render download button for export jobs
+  const renderExportDownloadButton = (job: Job) => {
+    const result = job.result as Record<string, unknown> | undefined;
+    const canDownload = job.status === "successful" && result?.download_url;
+
+    if (!canDownload) return undefined;
+
+    return (
+      <Tooltip title={t("download")}>
+        <IconButton
+          size="small"
+          onClick={() => handleExportDownload(result)}
+          sx={{ fontSize: "1.2rem", color: "success.main" }}>
+          <DownloadIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
   return (
     <>
-      {jobs?.items && jobs.items.length > 0 && (
+      {jobs?.jobs && jobs.jobs.length > 0 && (
         <JobStatusMenu
           content={
             <Paper
@@ -132,41 +115,34 @@ export default function JobsPopper() {
                   py: 2,
                 }}>
                 <Stack direction="column">
-                  {jobs?.items?.map((job, index) => (
-                    <Box key={job.id}>
-                      <JobProgressItem
-                        id={job.id}
-                        type={job.type}
-                        status={job.status_simple}
-                        name={job.id}
-                        date={job.updated_at}
-                        errorMessage={job.status_simple === "failed" ? job.msg_simple : undefined}
-                      />
-                      {index < jobs.items.length - 1 && <Divider />}
-                    </Box>
-                  ))}
+                  {jobs?.jobs?.map((job, index) => {
+                    // Add download button for LayerExport jobs
+                    const actionButton =
+                      job.processID === "layer_export" ? renderExportDownloadButton(job) : undefined;
+
+                    return (
+                      <Box key={job.jobID}>
+                        <JobProgressItem
+                          id={job.jobID}
+                          type={job.processID}
+                          status={job.status}
+                          name={job.jobID}
+                          date={job.updated || job.created || ""}
+                          errorMessage={job.status === "failed" ? job.message : undefined}
+                          actionButton={actionButton}
+                        />
+                        {index < jobs.jobs.length - 1 && <Divider />}
+                      </Box>
+                    );
+                  })}
                 </Stack>
               </Box>
-              <Divider sx={{ mt: 0 }} />
-              <Stack direction="row" justifyContent="end" alignItems="center" sx={{ py: 1 }}>
-                <Button
-                  disabled={isBusy}
-                  variant="text"
-                  onClick={handleClearAll}
-                  sx={{
-                    mr: 4,
-                  }}>
-                  <Typography variant="body2" fontWeight="bold" color="inherit">
-                    {t("clear_all")}
-                  </Typography>
-                </Button>
-              </Stack>
             </Paper>
           }
           open={open}
           placement="bottom"
           onClose={() => setOpen(false)}>
-          {jobs?.items && jobs.items.length > 0 ? (
+          {jobs?.jobs && jobs.jobs.length > 0 ? (
             <Tooltip title={t("job_status")}>
               <IconButton
                 onClick={() => {

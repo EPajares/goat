@@ -31,6 +31,7 @@ jobs:
         with:
           enable-corepack: true
           cwd: ${{ github.workspace }}
+          node_version: 22
 
       - name: 🏗️ Keycloak build
         shell: bash
@@ -38,7 +39,6 @@ jobs:
           cd ${{github.workspace}}/packages/keycloak-theme
           KEYCLOAKIFY_ARTIFACT_ID="${{ inputs.keycloak-theme-artifact-id }}" KEYCLOAKIFY_GROUP_ID="com.plan4better.auth.keycloak" pnpm run build-keycloak-theme
           mv build_keycloak/target/*.jar build_keycloak/target/${{inputs.keycloak-theme-artifact-id}}.jar
-
 
       - name: 📥 Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1

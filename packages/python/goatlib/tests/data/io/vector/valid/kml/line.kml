@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document id="root_doc">
+<Schema name="valid" id="valid">
+	<SimpleField name="fid" type="float"></SimpleField>
+	<SimpleField name="id" type="float"></SimpleField>
+	<SimpleField name="length_m" type="float"></SimpleField>
+	<SimpleField name="osm_id" type="float"></SimpleField>
+	<SimpleField name="bicycle" type="string"></SimpleField>
+	<SimpleField name="foot" type="string"></SimpleField>
+	<SimpleField name="oneway" type="string"></SimpleField>
+	<SimpleField name="crossing" type="string"></SimpleField>
+	<SimpleField name="crossing_d" type="string"></SimpleField>
+	<SimpleField name="bicycle_ro" type="string"></SimpleField>
+	<SimpleField name="cycleway" type="string"></SimpleField>
+	<SimpleField name="highway" type="string"></SimpleField>
+	<SimpleField name="incline" type="string"></SimpleField>
+	<SimpleField name="lanes" type="float"></SimpleField>
+	<SimpleField name="lit" type="string"></SimpleField>
+	<SimpleField name="lit_classi" type="string"></SimpleField>
+	<SimpleField name="parking" type="string"></SimpleField>
+	<SimpleField name="parking_la" type="string"></SimpleField>
+	<SimpleField name="parking__1" type="string"></SimpleField>
+	<SimpleField name="parking__2" type="string"></SimpleField>
+	<SimpleField name="segregated" type="string"></SimpleField>
+	<SimpleField name="sidewalk" type="string"></SimpleField>
+	<SimpleField name="sidewalk_b" type="string"></SimpleField>
+	<SimpleField name="sidewalk_l" type="string"></SimpleField>
+	<SimpleField name="sidewalk_r" type="string"></SimpleField>
+	<SimpleField name="smoothness" type="string"></SimpleField>
+	<SimpleField name="surface" type="string"></SimpleField>
+	<SimpleField name="wheelchair" type="string"></SimpleField>
+	<SimpleField name="wheelcha_1" type="string"></SimpleField>
+	<SimpleField name="width" type="string"></SimpleField>
+	<SimpleField name="s_imp" type="float"></SimpleField>
+	<SimpleField name="rs_imp" type="float"></SimpleField>
+	<SimpleField name="impedance_" type="float"></SimpleField>
+	<SimpleField name="length_385" type="float"></SimpleField>
+	<SimpleField name="scenario_i" type="string"></SimpleField>
+	<SimpleField name="class_id" type="float"></SimpleField>
+	<SimpleField name="one_way" type="float"></SimpleField>
+	<SimpleField name="maxspeed_f" type="float"></SimpleField>
+	<SimpleField name="maxspeed_b" type="float"></SimpleField>
+	<SimpleField name="one_link_c" type="string"></SimpleField>
+	<SimpleField name="incline_pe" type="float"></SimpleField>
+	<SimpleField name="death_end" type="string"></SimpleField>
+	<SimpleField name="source" type="float"></SimpleField>
+	<SimpleField name="target" type="float"></SimpleField>
+	<SimpleField name="edge_id" type="string"></SimpleField>
+</Schema>
+<Folder><name>valid</name>
+  <Placemark>
+	<name>Lindestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">1</SimpleData>
+		<SimpleData name="id">29311977</SimpleData>
+		<SimpleData name="length_m">727.947606196146467</SimpleData>
+		<SimpleData name="osm_id">462918527</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="lanes">2.000000000000000</SimpleData>
+		<SimpleData name="surface">concrete</SimpleData>
+		<SimpleData name="s_imp">0.002140399442915</SimpleData>
+		<SimpleData name="rs_imp">0.001649011459009</SimpleData>
+		<SimpleData name="length_385">1158.609842672788318</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22850768</SimpleData>
+		<SimpleData name="target">22854020</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8097725,51.1253602 3.8125211,51.1243886 3.8153615,51.1233278 3.8158948,51.1230553 3.8162022,51.1228677 3.8166085,51.1225311 3.8172327,51.1219733 3.8174171,51.121806 3.8176486,51.1216293 3.8179052,51.1214497</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Busstraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">2</SimpleData>
+		<SimpleData name="id">30104829</SimpleData>
+		<SimpleData name="length_m">906.731646340755333</SimpleData>
+		<SimpleData name="osm_id">30108568</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="lanes">2.000000000000000</SimpleData>
+		<SimpleData name="surface">concrete</SimpleData>
+		<SimpleData name="s_imp">0.003282449435742</SimpleData>
+		<SimpleData name="rs_imp">0.001285695341314</SimpleData>
+		<SimpleData name="length_385">1443.250908323855356</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22850767</SimpleData>
+		<SimpleData name="target">22850768</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8200839,51.1302484 3.819354,51.1298103 3.8182486,51.1291416 3.8176537,51.128785 3.8172447,51.1285595 3.8170085,51.1284485 3.8168619,51.1284012 3.8166997,51.1283598 3.8159947,51.1280793 3.8153031,51.1277853 3.8134389,51.1269911 3.81157,51.1261815 3.8097725,51.1253602</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Lindestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">3</SimpleData>
+		<SimpleData name="id">31065606</SimpleData>
+		<SimpleData name="length_m">96.200419144435386</SimpleData>
+		<SimpleData name="osm_id">462918526</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="surface">concrete</SimpleData>
+		<SimpleData name="s_imp">0.004753983439960</SimpleData>
+		<SimpleData name="rs_imp">-0.002769099340510</SimpleData>
+		<SimpleData name="length_385">152.990907290622232</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">0</SimpleData>
+		<SimpleData name="source">22848584</SimpleData>
+		<SimpleData name="target">22849810</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8081764,51.1252757 3.8087117,51.1253918 3.8089985,51.1254333 3.8092724,51.1254427 3.8095097,51.1254231</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Lindestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">4</SimpleData>
+		<SimpleData name="id">30147323</SimpleData>
+		<SimpleData name="length_m">19.684014213352562</SimpleData>
+		<SimpleData name="osm_id">462918526</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="surface">concrete</SimpleData>
+		<SimpleData name="s_imp">0.508599032105515</SimpleData>
+		<SimpleData name="rs_imp">0.492749599679064</SimpleData>
+		<SimpleData name="length_385">31.309865846908338</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">0</SimpleData>
+		<SimpleData name="source">22849810</SimpleData>
+		<SimpleData name="target">22850768</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8095097,51.1254231 3.8097725,51.1253602</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Lindestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">5</SimpleData>
+		<SimpleData name="id">29694486</SimpleData>
+		<SimpleData name="length_m">320.334088904427915</SimpleData>
+		<SimpleData name="osm_id">37687598</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="s_imp">0.006979959183443</SimpleData>
+		<SimpleData name="rs_imp">-0.003876934680359</SimpleData>
+		<SimpleData name="length_385">509.614871613416256</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">0</SimpleData>
+		<SimpleData name="source">22848584</SimpleData>
+		<SimpleData name="target">22851453</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8081764,51.1252757 3.8077279,51.1251784 3.8068882,51.1249829 3.8045544,51.1242368 3.8040716,51.1240254</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">6</SimpleData>
+		<SimpleData name="id">30744863</SimpleData>
+		<SimpleData name="length_m">246.889394510396244</SimpleData>
+		<SimpleData name="osm_id">231090261</SimpleData>
+		<SimpleData name="highway">cycleway</SimpleData>
+		<SimpleData name="surface">asphalt</SimpleData>
+		<SimpleData name="s_imp">0.002800254139401</SimpleData>
+		<SimpleData name="rs_imp">0.000805754847966</SimpleData>
+		<SimpleData name="length_385">392.762383249931133</SimpleData>
+		<SimpleData name="class_id">118</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22849682</SimpleData>
+		<SimpleData name="target">22852542</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8031302,51.1272573 3.8030813,51.1272581 3.801055,51.1272936 3.8009393,51.1272956 3.8004335,51.1272897 3.8003477,51.1273368 3.800337,51.1273671 3.8003531,51.1274092 3.8004121,51.1275607 3.8003745,51.1276112 3.8002983,51.1276616 3.8001734,51.1277139</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">7</SimpleData>
+		<SimpleData name="id">30637413</SimpleData>
+		<SimpleData name="length_m">199.124253409993543</SimpleData>
+		<SimpleData name="osm_id">401750099</SimpleData>
+		<SimpleData name="highway">track</SimpleData>
+		<SimpleData name="surface">gravel</SimpleData>
+		<SimpleData name="s_imp">0.001322821213777</SimpleData>
+		<SimpleData name="rs_imp">0.003567786640581</SimpleData>
+		<SimpleData name="impedance_">0.300000000000000</SimpleData>
+		<SimpleData name="length_385">316.632590529749336</SimpleData>
+		<SimpleData name="class_id">113</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22850161</SimpleData>
+		<SimpleData name="target">22850158</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8007331,51.1257464 3.8008454,51.1257571 3.8013094,51.1257784 3.8013996,51.1257826 3.8020508,51.1257964 3.8024954,51.1257767 3.8033408,51.1257728 3.8035698,51.125748</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Keurestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">8</SimpleData>
+		<SimpleData name="id">29761448</SimpleData>
+		<SimpleData name="length_m">306.631626527934884</SimpleData>
+		<SimpleData name="osm_id">231090250</SimpleData>
+		<SimpleData name="highway">residential</SimpleData>
+		<SimpleData name="s_imp">-0.000478960884005</SimpleData>
+		<SimpleData name="rs_imp">0.003381256981589</SimpleData>
+		<SimpleData name="length_385">488.879031021090100</SimpleData>
+		<SimpleData name="class_id">110</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">0</SimpleData>
+		<SimpleData name="source">22849681</SimpleData>
+		<SimpleData name="target">22849682</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8026394,51.1299909 3.8026117,51.1297416 3.802702,51.1292119 3.8028222,51.1286664 3.8029569,51.1279135 3.8031302,51.1272573</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Keurestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">9</SimpleData>
+		<SimpleData name="id">30676141</SimpleData>
+		<SimpleData name="length_m">170.707618814127670</SimpleData>
+		<SimpleData name="osm_id">231090251</SimpleData>
+		<SimpleData name="highway">residential</SimpleData>
+		<SimpleData name="s_imp">0.007362997323407</SimpleData>
+		<SimpleData name="rs_imp">-0.003653636906751</SimpleData>
+		<SimpleData name="length_385">272.144167465860562</SimpleData>
+		<SimpleData name="class_id">110</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22849682</SimpleData>
+		<SimpleData name="target">22850158</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8031302,51.1272573 3.8035698,51.125748</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Putteveldestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">10</SimpleData>
+		<SimpleData name="id">31049095</SimpleData>
+		<SimpleData name="length_m">656.017388508600334</SimpleData>
+		<SimpleData name="osm_id">166808234</SimpleData>
+		<SimpleData name="highway">track</SimpleData>
+		<SimpleData name="lanes">1.000000000000000</SimpleData>
+		<SimpleData name="surface">gravel</SimpleData>
+		<SimpleData name="s_imp">0.003048335946391</SimpleData>
+		<SimpleData name="rs_imp">0.001352789386870</SimpleData>
+		<SimpleData name="impedance_">0.300000000000000</SimpleData>
+		<SimpleData name="length_385">1044.673657325874728</SimpleData>
+		<SimpleData name="class_id">113</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22849809</SimpleData>
+		<SimpleData name="target">22849810</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8032978,51.1296886 3.8033399,51.1296129 3.8034396,51.1294151 3.8035886,51.129215 3.8042604,51.1286051 3.8058934,51.127364 3.8068805,51.12663 3.8072498,51.1264552 3.8077817,51.1263338 3.8081328,51.1262131 3.8085005,51.126024 3.8092264,51.1256237 3.8095097,51.1254231</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Keurestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">11</SimpleData>
+		<SimpleData name="id">29730615</SimpleData>
+		<SimpleData name="length_m">194.833770311373286</SimpleData>
+		<SimpleData name="osm_id">654222499</SimpleData>
+		<SimpleData name="highway">residential</SimpleData>
+		<SimpleData name="s_imp">0.011161023349074</SimpleData>
+		<SimpleData name="rs_imp">-0.008059535910475</SimpleData>
+		<SimpleData name="length_385">310.595580936340752</SimpleData>
+		<SimpleData name="class_id">110</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">0</SimpleData>
+		<SimpleData name="source">22850158</SimpleData>
+		<SimpleData name="target">22851453</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8035698,51.125748 3.8040716,51.1240254</coordinates></LineString></MultiGeometry>
+  </Placemark>
+  <Placemark>
+	<name>Lindestraat</name>
+	<Style><LineStyle><color>ff0000ff</color></LineStyle><PolyStyle><fill>0</fill></PolyStyle></Style>
+	<ExtendedData><SchemaData schemaUrl="#valid">
+		<SimpleData name="fid">12</SimpleData>
+		<SimpleData name="id">29408906</SimpleData>
+		<SimpleData name="length_m">331.960692000981567</SimpleData>
+		<SimpleData name="osm_id">37687598</SimpleData>
+		<SimpleData name="highway">tertiary</SimpleData>
+		<SimpleData name="s_imp">0.003307097100995</SimpleData>
+		<SimpleData name="rs_imp">0.000492492126550</SimpleData>
+		<SimpleData name="length_385">528.194626462186079</SimpleData>
+		<SimpleData name="class_id">109</SimpleData>
+		<SimpleData name="one_way">0</SimpleData>
+		<SimpleData name="maxspeed_f">50</SimpleData>
+		<SimpleData name="maxspeed_b">50</SimpleData>
+		<SimpleData name="incline_pe">1</SimpleData>
+		<SimpleData name="source">22851453</SimpleData>
+		<SimpleData name="target">22851346</SimpleData>
+	</SchemaData></ExtendedData>
+      <MultiGeometry><LineString><coordinates>3.8040716,51.1240254 3.8028815,51.1234811 3.8016627,51.1229702 3.8013395,51.1228897 3.8008623,51.1228002 3.8004372,51.1226718 3.8000145,51.1225173</coordinates></LineString></MultiGeometry>
+  </Placemark>
+</Folder>
+</Document></kml>

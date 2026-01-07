@@ -1,4 +1,5 @@
-import { Collapse, Divider, Stack } from "@mui/material";
+import { Collapse, Divider, Stack, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 const SectionOptions = ({
   active,
@@ -11,6 +12,7 @@ const SectionOptions = ({
   advancedOptions?: React.ReactNode;
   collapsed?: boolean;
 }) => {
+  const { t } = useTranslation("common");
   return (
     <Collapse in={!!active}>
       <Stack direction="row" alignItems="center" sx={{ pl: 2, height: "100%" }}>
@@ -20,7 +22,14 @@ const SectionOptions = ({
           {/* { Options } */}
           {advancedOptions && (
             <Collapse in={!collapsed}>
-              <Stack spacing={4}>{advancedOptions}</Stack>
+              <Stack spacing={4}>
+                <Divider sx={{ mt: 2 }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {t("advanced_options")}
+                  </Typography>
+                </Divider>
+                {advancedOptions}
+              </Stack>
             </Collapse>
           )}
         </Stack>

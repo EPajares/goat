@@ -198,7 +198,7 @@ class CRUDNearbyStationAccess(CRUDToolBase):
         # TODO: Return the job id.
         # TO BE DISCUSSED: For the tests we should consider mocking the catchment area request as otherswise it is very hard to test the catchment area in isolation.
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Nearby station access created.",
         }
 

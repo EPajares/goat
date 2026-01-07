@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { computeOriginDestination } from "@/lib/api/tools";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { LayerFieldType } from "@/lib/validations/layer";
@@ -18,6 +18,7 @@ import type { IndicatorBaseProps } from "@/types/map/toolbox";
 import useLayerFields from "@/hooks/map/CommonHooks";
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useLayerByGeomType, useLayerDatasetId } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import LayerFieldSelector from "@/components/map/common/LayerFieldSelector";
@@ -59,6 +60,11 @@ const OriginDestination = ({ onBack, onClose }: IndicatorBaseProps) => {
   const ODLayer = useMemo(() => {
     return projectLayers.find((layer) => layer.id === ODLayerItem?.value);
   }, [ODLayerItem, projectLayers]);
+
+  // Fetch OD layer feature count on-demand
+  const { featureCount: ODLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: ODLayer,
+  });
 
   const odLayerDatasetId = useLayerDatasetId(ODLayerItem?.value as number | undefined, projectId as string);
   const { layerFields: ODLayerFields } = useLayerFields(odLayerDatasetId || "");
@@ -124,19 +130,11 @@ const OriginDestination = ({ onBack, onClose }: IndicatorBaseProps) => {
     if (!ODLayerItem || !ODMatrix || !uniqueIdField || !originField || !destinationField || !weightField) {
       return false;
     }
-    if (!ODLayer?.filtered_count || ODLayer.filtered_count > maxFeatureCnt.origin_destination) {
+    if (ODLayerFeatureCount === undefined || ODLayerFeatureCount > maxFeatureCnt.origin_destination) {
       return false;
     }
     return true;
-  }, [
-    ODLayerItem,
-    ODMatrix,
-    destinationField,
-    originField,
-    uniqueIdField,
-    weightField,
-    ODLayer?.filtered_count,
-  ]);
+  }, [ODLayerItem, ODMatrix, destinationField, originField, uniqueIdField, weightField, ODLayerFeatureCount]);
 
   const handleRun = async () => {
     const payload = {
@@ -219,10 +217,10 @@ const OriginDestination = ({ onBack, onClose }: IndicatorBaseProps) => {
                     />
 
                     {!!maxFeatureCnt.origin_destination &&
-                      !!ODLayer?.filtered_count &&
-                      ODLayer.filtered_count > maxFeatureCnt.origin_destination && (
+                      ODLayerFeatureCount !== undefined &&
+                      ODLayerFeatureCount > maxFeatureCnt.origin_destination && (
                         <LayerNumberOfFeaturesAlert
-                          currentFeatures={ODLayer.filtered_count}
+                          currentFeatures={ODLayerFeatureCount}
                           maxFeatures={maxFeatureCnt.origin_destination}
                           texts={{
                             maxFeaturesText: t("maximum_number_of_features"),

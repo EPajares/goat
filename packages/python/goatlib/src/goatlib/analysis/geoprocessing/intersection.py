@@ -1,0 +1,181 @@
+import logging
+from pathlib import Path
+from typing import List, Self, Tuple
+
+from goatlib.analysis.core.base import AnalysisTool
+from goatlib.analysis.schemas.geoprocessing import IntersectionParams
+from goatlib.models.io import DatasetMetadata
+
+logger = logging.getLogger(__name__)
+
+
+class IntersectionTool(AnalysisTool):
+    """Tool for computing intersection of features from input and overlay layers.
+
+    This tool implements the standard intersection operation using DuckDB views with bbox optimization.
+    Unlike clip, this keeps attributes from BOTH input and overlay layers. Automatically handles bbox
+    columns for spatial indexing - creates them if needed or uses existing ones. Follows GeoParquet
+    spatial indexing specification.
+    """
+
+    def _run_implementation(
+        self: Self, params: IntersectionParams
+    ) -> List[Tuple[Path, DatasetMetadata]]:
+        """Perform intersection operation using views with bbox spatial optimization.
+
+        Args:
+            params: IntersectionParams object with input_path, overlay_path, and other options.
+
+        Returns:
+            List containing tuple of (output_path, metadata).
+        """
+        # Import input and overlay datasets with automatic bbox handling
+        input_meta, input_view = self.import_input(params.input_path, "input_data")
+        overlay_meta, overlay_view = self.import_input(
+            params.overlay_path, "overlay_data"
+        )
+
+        # Validate geometry columns
+        input_geom = input_meta.geometry_column
+        overlay_geom = overlay_meta.geometry_column
+
+        if not input_geom:
+            raise ValueError(
+                f"Could not detect geometry column for input: {params.input_path}"
+            )
+
+        if not overlay_geom:
+            raise ValueError(
+                f"Could not detect geometry column for overlay: {params.overlay_path}"
+            )
+
+        # Validate geometry types
+        self.validate_geometry_types(
+            input_view, input_geom, params.accepted_input_geometry_types, "input"
+        )
+        self.validate_geometry_types(
+            overlay_view,
+            overlay_geom,
+            params.accepted_overlay_geometry_types,
+            "overlay",
+        )
+
+        # Get CRS from input metadata, fallback to output_crs or EPSG:4326
+        crs = input_meta.crs
+        if crs:
+            crs_str = crs.to_string()
+        else:
+            crs_str = params.output_crs or "EPSG:4326"
+            logger.warning(
+                "Could not detect CRS for %s, using fallback: %s",
+                params.input_path,
+                crs_str,
+            )
+
+        # Define output path
+        if not params.output_path:
+            params.output_path = str(
+                Path(params.input_path).parent
+                / f"{Path(params.input_path).stem}_intersection.parquet"
+            )
+        output_path = Path(params.output_path)
+
+        # Perform intersection operation using views with bbox optimization
+        logger.info("Performing view-based intersection with bbox spatial filtering")
+
+        # Detect input geometry type to filter output appropriately
+        input_geom_type = self.con.execute(f"""
+            SELECT ST_GeometryType({input_geom}) 
+            FROM {input_view} 
+            LIMIT 1
+        """).fetchone()[0]
+
+        # Determine allowed output geometry types based on input type
+        # Accept both single and multi versions of the same geometry family
+        input_geom_upper = input_geom_type.upper()
+        if "POLYGON" in input_geom_upper:  # Matches POLYGON or MULTIPOLYGON
+            allowed_types = "('POLYGON', 'MULTIPOLYGON')"
+        elif "LINESTRING" in input_geom_upper:  # Matches LINESTRING or MULTILINESTRING
+            allowed_types = "('LINESTRING', 'MULTILINESTRING')"
+        elif "POINT" in input_geom_upper:  # Matches POINT or MULTIPOINT
+            allowed_types = "('POINT', 'MULTIPOINT')"
+        else:
+            # Fallback: allow any geometry type
+            allowed_types = None
+
+        logger.info(
+            f"Input geometry type: {input_geom_type}, filtering output to: {allowed_types}"
+        )
+
+        # Get all columns from both datasets to merge attributes
+        input_cols = self.con.execute(f"DESCRIBE {input_view}").fetchall()
+        overlay_cols = self.con.execute(f"DESCRIBE {overlay_view}").fetchall()
+
+        # Build field selections (exclude geometry and bbox from both)
+        # Quote column names for special characters
+        input_fields = ", ".join(
+            [
+                f'i."{col[0]}"'
+                for col in input_cols
+                if col[0] not in (input_geom, "bbox")
+            ]
+        )
+
+        # Add prefix to overlay fields to avoid conflicts
+        # Quote column names for special characters
+        overlay_prefix = params.overlay_fields_prefix or "intersection_"
+        overlay_fields = ", ".join(
+            [
+                f'o."{col[0]}" AS "{overlay_prefix}{col[0]}"'
+                for col in overlay_cols
+                if col[0] not in (overlay_geom, "bbox")
+            ]
+        )
+
+        # Build geometry type filter clause
+        geom_type_filter = (
+            f"AND ST_GeometryType(ST_Intersection(i.{input_geom}, o.{overlay_geom})) IN {allowed_types}"
+            if allowed_types
+            else ""
+        )
+
+        # Compute intersection with attribute merging
+        self.con.execute(f"""
+            CREATE OR REPLACE VIEW intersection_result AS
+            SELECT
+                {input_fields},
+                {overlay_fields},
+                ST_Intersection(i.{input_geom}, o.{overlay_geom}) AS {input_geom}
+            FROM {input_view} i
+            INNER JOIN {overlay_view} o
+                ON ST_Intersects(i.{input_geom}, o.{overlay_geom})
+                -- Bbox-based spatial filter for performance (GeoParquet spatial indexing)
+                AND i.bbox.minx <= o.bbox.maxx
+                AND i.bbox.maxx >= o.bbox.minx
+                AND i.bbox.miny <= o.bbox.maxy
+                AND i.bbox.maxy >= o.bbox.miny
+            WHERE ST_IsValid(i.{input_geom})
+                AND ST_IsValid(o.{overlay_geom})
+                AND NOT ST_IsEmpty(ST_Intersection(i.{input_geom}, o.{overlay_geom}))
+                -- Filter out degenerate geometries - keep only same type as input
+                {geom_type_filter}
+        """)
+
+        # Export view result to file
+        self.con.execute(
+            f"COPY intersection_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        )
+
+        logger.info("Intersection data written to %s", output_path)
+
+        # Create metadata for output
+        output_metadata = DatasetMetadata(
+            path=str(output_path),
+            source_type="vector",
+            geometry_column=input_geom,
+            crs=crs_str,
+            schema="public",
+            table_name=output_path.stem,
+        )
+
+        return [(output_path, output_metadata)]

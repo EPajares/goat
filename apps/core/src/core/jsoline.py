@@ -17,7 +17,9 @@ MAX_COORDS = 20000
 
 
 @njit
-def get_contour(surface: NDArray[np.float64], width: int, height: int, cutoff: float) -> NDArray[np.int8]:
+def get_contour(
+    surface: NDArray[np.float64], width: int, height: int, cutoff: float
+) -> NDArray[np.int8]:
     """
     Get a contouring grid. Exported for testing purposes, not generally used
     outside jsolines testing

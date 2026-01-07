@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/jobs";
+import { useJobs } from "@/lib/api/processes";
 import { computeBuffer } from "@/lib/api/tools";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import { bufferDefaults, bufferSchema, maxFeatureCnt } from "@/lib/validations/tools";
@@ -16,6 +16,7 @@ import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useLayerByGeomType, useScenarioItems } from "@/hooks/map/ToolsHooks";
+import { useProjectLayerFeatureCount } from "@/hooks/map/useProjectLayerFeatureCount";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import FormLabelHelper from "@/components/common/FormLabelHelper";
@@ -69,17 +70,22 @@ const Buffer = ({ onBack, onClose }: IndicatorBaseProps) => {
     return projectLayers?.find((layer) => layer.id === bufferLayerItem?.value);
   }, [bufferLayerItem, projectLayers]);
 
+  // Fetch buffer layer feature count on-demand
+  const { featureCount: bufferLayerFeatureCount } = useProjectLayerFeatureCount({
+    projectLayer: bufferLayer,
+  });
+
   const isValid = useMemo(() => {
     if (
       !!bufferLayerItem &&
       distance > 0 &&
-      bufferLayer?.filtered_count &&
-      bufferLayer?.filtered_count < maxFeatureCnt.buffer
+      bufferLayerFeatureCount !== undefined &&
+      bufferLayerFeatureCount < maxFeatureCnt.buffer
     ) {
       return true;
     }
     return false;
-  }, [bufferLayerItem, distance, bufferLayer?.filtered_count]);
+  }, [bufferLayerItem, distance, bufferLayerFeatureCount]);
 
   const handleRun = async () => {
     const payload = {
@@ -162,10 +168,10 @@ const Buffer = ({ onBack, onClose }: IndicatorBaseProps) => {
                     tooltip={t("select_buffer_layer_tooltip")}
                   />
                   {!!maxFeatureCnt.buffer &&
-                    !!bufferLayer?.filtered_count &&
-                    bufferLayer.filtered_count > maxFeatureCnt.buffer && (
+                    bufferLayerFeatureCount !== undefined &&
+                    bufferLayerFeatureCount > maxFeatureCnt.buffer && (
                       <LayerNumberOfFeaturesAlert
-                        currentFeatures={bufferLayer.filtered_count}
+                        currentFeatures={bufferLayerFeatureCount}
                         maxFeatures={maxFeatureCnt.buffer}
                         texts={{
                           maxFeaturesText: t("maximum_number_of_features"),

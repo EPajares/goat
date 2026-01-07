@@ -1,0 +1,111 @@
+{
+  "timings": {
+    "pre_request_start": 252086.868084452,
+    "pre_request_duration": 0.015210015000775456,
+    "request_start": 252086.883297258,
+    "request_duration": 1.8289501790131908,
+    "post_processing_start": 252088.712268895,
+    "post_processing_duration": 0.0005992910009808838,
+    "validation_start": 252088.712871269,
+    "validation_duration": 0.003948077006498352
+  },
+  "memory_usage": {
+    "pre_request_start": {
+      "current_mb": 6.29425048828125e-05,
+      "peak_mb": 6.29425048828125e-05,
+      "process_rss_mb": 245.921875
+    },
+    "pre_request_end": {
+      "current_mb": 0.011930465698242188,
+      "peak_mb": 0.04093742370605469,
+      "process_rss_mb": 247.515625
+    },
+    "request_start": {
+      "current_mb": 0.012215614318847656,
+      "peak_mb": 0.05260658264160156,
+      "process_rss_mb": 247.515625
+    },
+    "request_end": {
+      "current_mb": 0.5366010665893555,
+      "peak_mb": 1.5127201080322266,
+      "process_rss_mb": 250.75390625
+    },
+    "post_processing_start": {
+      "current_mb": 0.5369358062744141,
+      "peak_mb": 1.5127201080322266,
+      "process_rss_mb": 250.75390625
+    },
+    "post_processing_end": {
+      "current_mb": 0.5371112823486328,
+      "peak_mb": 1.5127201080322266,
+      "process_rss_mb": 250.75390625
+    }
+  },
+  "network_stats": {
+    "bytes_sent": 13611,
+    "bytes_received": 49475,
+    "packets_sent": 93,
+    "packets_received": 93
+  },
+  "response_stats": {
+    "route_count": 5,
+    "total_legs": 37,
+    "total_distance_m": 980062.604,
+    "total_duration_s": 68700.0,
+    "modes_used": [
+      "tram",
+      "rail",
+      "walk",
+      "subway",
+      "bus"
+    ],
+    "mode_count": 5,
+    "transfer_count": 11,
+    "walking_legs": 21,
+    "transit_legs": 16,
+    "avg_route_distance": 196012.5208,
+    "avg_route_duration": 13740.0,
+    "max_results_requested": 5,
+    "transport_modes_requested": [
+      "transit",
+      "walk"
+    ]
+  },
+  "validation_stats": {
+    "valid_routes": 5,
+    "total_routes": 5,
+    "validation_success_rate": 1.0,
+    "route_errors": [],
+    "leg_errors": [],
+    "error_count": 0,
+    "plausibility": {
+      "average_score": 76.0,
+      "issues_by_severity": {
+        "error": 2,
+        "warning": 7,
+        "info": 0
+      },
+      "total_issues": 9,
+      "most_common_issues": [
+        [
+          "Extremely long leg distance",
+          5
+        ],
+        [
+          "Very long transfer",
+          2
+        ],
+        [
+          "Speed too high for walk",
+          2
+        ]
+      ],
+      "score_distribution": {
+        "min": 65.0,
+        "max": 90.0,
+        "avg": 76.0
+      }
+    }
+  },
+  "timestamp": "2026-01-01T22:21:14.118416"
+}

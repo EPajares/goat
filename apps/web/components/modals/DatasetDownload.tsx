@@ -15,7 +15,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
-import { downloadDataset } from "@/lib/api/layers";
+import { startDatasetExport } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
+import { useUserProfile } from "@/lib/api/users";
+import { setRunningJobIds } from "@/lib/store/jobs/slice";
 import type { FeatureDataExchangeType } from "@/lib/validations/common";
 import {
   featureDataExchangeCRS,
@@ -25,6 +28,8 @@ import {
 import type { DatasetDownloadRequest, Layer } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 
+import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
+
 interface DownloadDatasetDialogProps {
   open: boolean;
   onClose?: () => void;
@@ -33,7 +38,7 @@ interface DownloadDatasetDialogProps {
   dataset: ProjectLayer | Layer;
 }
 
-const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
+const DatasetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
   open,
   disabled,
   onClose,
@@ -41,24 +46,41 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
   dataset,
 }) => {
   const { t } = useTranslation("common");
+  const dispatch = useAppDispatch();
+  const runningJobIds = useAppSelector((state) => state.jobs.runningJobIds);
+  const { mutate } = useJobs({ read: false });
+  const { userProfile } = useUserProfile();
+
+  // Support both 'type' (Layer schema) and 'layer_type' (ProjectLayerTreeNode)
+  // For ProjectLayerTreeNode, 'type' is "layer" or "group", so we need 'layer_type' for the actual layer type
+  const layerType = (dataset as { layer_type?: string }).layer_type || dataset.type;
+  const isSpatialLayer = layerType === "feature" || layerType === "raster";
+
   const [dataDownloadType, setDataDownloadType] = useState<FeatureDataExchangeType>(
-    dataset.type === "feature" ? featureDataExchangeType.Enum.gpkg : tableDataExchangeType.Enum.csv
+    isSpatialLayer ? featureDataExchangeType.Enum.gpkg : tableDataExchangeType.Enum.csv
   );
 
   const [isBusy, setIsBusy] = useState(false);
 
   const [dataCrs, setDataCrs] = useState<string | null>(
-    dataset.type === "feature" ? featureDataExchangeCRS.Enum["3857"] : null
+    isSpatialLayer ? featureDataExchangeCRS.Enum["3857"] : null
   );
 
   const handleDownload = async () => {
     try {
-      if (!dataset) return;
+      if (!dataset || !userProfile?.id) return;
       setIsBusy(true);
+
+      // Get layer owner ID (for DuckLake lookup)
+      // For project layers, user_id is the owner; for regular layers, we use the dataset's user_id
+      const layerOwnerId = (dataset as { user_id?: string }).user_id || userProfile.id;
+
       const payload = {
         id: dataset["layer_id"] || dataset["id"],
         file_type: dataDownloadType,
         file_name: dataset.name,
+        user_id: userProfile.id,
+        layer_owner_id: layerOwnerId,
       };
       if (dataCrs) {
         payload["crs"] = `EPSG:${dataCrs}`;
@@ -67,22 +89,27 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
         payload["query"] = dataset["query"]["cql"];
       }
 
-      const dataBlob = await downloadDataset(payload as DatasetDownloadRequest);
-      const url = window.URL.createObjectURL(new Blob([dataBlob]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `${dataset.name}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Start the export job via OGC API Processes
+      const response = await startDatasetExport(
+        payload as DatasetDownloadRequest & { user_id: string; layer_owner_id: string }
+      );
+
+      // OGC Job response has jobID not job_id
+      const jobId = response?.jobID;
+      if (jobId) {
+        // Force immediate revalidation to show the new job
+        await mutate();
+        dispatch(setRunningJobIds([...runningJobIds, jobId]));
+      }
+
+      toast.info(t("export_started") || "Export started. Check the jobs menu for progress.");
+      onDownload?.();
     } catch {
       toast.error(`${t("error_downloading")} ${dataset.name}`);
     } finally {
       setIsBusy(false);
       onClose?.();
     }
-
-    onDownload?.();
   };
 
   return (
@@ -101,13 +128,13 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
               id="download-simple-select"
               value={dataDownloadType}
               onChange={(e) => setDataDownloadType(e.target.value as FeatureDataExchangeType)}>
-              {dataset.type === "feature" &&
+              {isSpatialLayer &&
                 featureDataExchangeType.options.map((type: string) => (
                   <MenuItem key={type} value={type}>
                     {t(`${type}`)}
                   </MenuItem>
                 ))}
-              {dataset.type !== "feature" &&
+              {!isSpatialLayer &&
                 tableDataExchangeType.options.map((type: string) => (
                   <MenuItem key={type} value={type}>
                     {t(`${type}`)}
@@ -115,7 +142,7 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
                 ))}
             </Select>
           </Box>
-          {dataset.type === "feature" && (
+          {isSpatialLayer && (
             <Box>
               <Typography variant="caption">{t(`download_crs`)}</Typography>
               <Select
@@ -127,12 +154,11 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
                 id="download-crs-select"
                 value={dataCrs}
                 onChange={(e) => setDataCrs(e.target.value as string)}>
-                {dataset.type === "feature" &&
-                  featureDataExchangeCRS.options.map((type: string) => (
-                    <MenuItem key={type} value={type}>
-                      {t(`${type}`)}
-                    </MenuItem>
-                  ))}
+                {featureDataExchangeCRS.options.map((type: string) => (
+                  <MenuItem key={type} value={type}>
+                    {t(`${type}`)}
+                  </MenuItem>
+                ))}
               </Select>
             </Box>
           )}
@@ -143,7 +169,7 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
         sx={{
           pb: 2,
         }}>
-        <Button onClick={onClose} variant="text">
+        <Button onClick={onClose} variant="text" disabled={isBusy}>
           <Typography variant="body2" fontWeight="bold">
             {t("cancel")}
           </Typography>
@@ -158,4 +184,4 @@ const DatsetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
   );
 };
 
-export default DatsetDownloadModal;
+export default DatasetDownloadModal;

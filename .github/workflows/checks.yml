@@ -35,6 +35,10 @@ on:
         description: "Storybook changed"
         value: ${{ jobs.checks.outputs.storybook }}
 
+      processes:
+        description: "Processes (Windmill workers) changed"
+        value: ${{ jobs.checks.outputs.processes }}
+
       sha-short:
         description: "Short sha"
         value: ${{ jobs.checks.outputs.sha-short }}
@@ -56,6 +60,7 @@ jobs:
       docs: ${{ steps.changes.outputs.docs }}
       keycloak-theme: ${{ steps.changes.outputs.keycloak-theme }}
       storybook: ${{ steps.changes.outputs.storybook }}
+      processes: ${{ steps.changes.outputs.processes }}
       sha-short: ${{ steps.sha-short.outputs.sha-short }}
     steps:
       - name: 📥 Checkout
@@ -77,16 +82,19 @@ jobs:
 
             core:
                 - 'apps/core/**'
+                - 'packages/python/goatlib/**'
                 - 'pyproject.toml'
                 - 'uv.lock'
 
             geoapi:
                 - 'apps/geoapi/**'
+                - 'packages/python/goatlib/**'
                 - 'pyproject.toml'
                 - 'uv.lock'
 
             routing:
                 - 'apps/routing/**'
+                - 'packages/python/goatlib/**'
                 - 'pyproject.toml'
                 - 'uv.lock'
 
@@ -120,6 +128,12 @@ jobs:
                 - 'packages/js/types/**'
                 - '.prettier*'
                 - 'pnpm-lock.yaml'
+
+            processes:
+                - 'apps/processes/**'
+                - 'packages/python/goatlib/**'
+                - 'pyproject.toml'
+                - 'uv.lock'
 
       - name: 🕵️ Set sha-short
         id: sha-short

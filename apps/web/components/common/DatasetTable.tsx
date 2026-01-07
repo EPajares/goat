@@ -10,6 +10,16 @@ import type { DatasetCollectionItems } from "@/lib/validations/layer";
 import { FieldTypeTag } from "@/components/map/common/LayerFieldSelector";
 import NoValuesFound from "@/components/map/common/NoValuesFound";
 
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return String(value);
+};
+
 const Row = ({ row, fields }) => {
   const [open, setOpen] = useState(false);
 
@@ -28,7 +38,7 @@ const Row = ({ row, fields }) => {
           </TableCell>
         )}
         {primitiveFields.map((field, fieldIndex) => (
-          <TableCell key={fieldIndex}>{row.properties[field.name]}</TableCell>
+          <TableCell key={fieldIndex}>{formatCellValue(row.properties[field.name])}</TableCell>
         ))}
       </TableRow>
 
@@ -38,7 +48,9 @@ const Row = ({ row, fields }) => {
             <Collapse in={open} timeout="auto" unmountOnExit>
               <Box sx={{ margin: 2 }}>
                 {objectFields.map((field) => {
-                  const jsonData = JSON.parse(row.properties[field.name]);
+                  const rawValue = row.properties[field.name];
+                  // Handle both string (JSON) and object values
+                  const jsonData = typeof rawValue === "string" ? JSON.parse(rawValue) : rawValue;
                   const isJsonDataArrayOfObjects =
                     Array.isArray(jsonData) &&
                     jsonData.length > 0 &&
@@ -66,7 +78,7 @@ const Row = ({ row, fields }) => {
                             {jsonData.map((item, rowIndex) => (
                               <TableRow key={rowIndex}>
                                 {Object.values(item).map((value: string, cellIndex) => (
-                                  <TableCell key={cellIndex}>{value.toString()}</TableCell>
+                                  <TableCell key={cellIndex}>{formatCellValue(value)}</TableCell>
                                 ))}
                               </TableRow>
                             ))}

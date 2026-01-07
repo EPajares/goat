@@ -27,11 +27,14 @@ class CatchmentAreaStartingPointsActiveMobility(CatchmentAreaStartingPointsBase)
         check_starting_points(1000, self.latitude, self.longitude)
         return self
 
+
 class CatchmentAreaStartingPointsMotorizedMobility(CatchmentAreaStartingPointsBase):
     """Model for the active mobility catchment area starting points."""
 
     @model_validator(mode="after")
-    def validate_starting_points(self) -> "CatchmentAreaStartingPointsMotorizedMobility":
+    def validate_starting_points(
+        self,
+    ) -> "CatchmentAreaStartingPointsMotorizedMobility":
         """Ensure that the number of starting points does not exceed 1."""
         check_starting_points(1, self.latitude, self.longitude)
         return self

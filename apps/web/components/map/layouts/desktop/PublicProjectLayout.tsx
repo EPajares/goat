@@ -4,22 +4,34 @@ import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { MAPBOX_TOKEN } from "@/lib/constants";
-import { removeTemporaryFilter, setGeocoderResult, setSelectedBuilderItem } from "@/lib/store/map/slice";
+import { setSelectedLayers } from "@/lib/store/layer/slice";
+import {
+  removeTemporaryFilter,
+  setActiveRightPanel,
+  setGeocoderResult,
+  setSelectedBuilderItem,
+} from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema } from "@/lib/validations/project";
 import {
   type BuilderPanelSchema,
   type Project,
   type ProjectLayer,
+  type ProjectLayerGroup,
   builderPanelSchema,
 } from "@/lib/validations/project";
 
+import { MapSidebarItemID } from "@/types/map/common";
+
+import { useLayerStyleChange } from "@/hooks/map/LayerStyleHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
+import { useMeasureTool } from "@/hooks/map/useMeasureTool";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
 import { Container } from "@/components/builder/PanelContainer";
 import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
+import { FloatingPanel } from "@/components/common/FloatingPanel";
 import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
@@ -28,10 +40,15 @@ import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
+import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/measure";
+import ViewContainer from "@/components/map/panels/Container";
+import PropertiesPanel from "@/components/map/panels/properties/Properties";
+import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
 
 export interface PublicProjectLayoutProps {
   project?: Project;
   projectLayers?: ProjectLayer[];
+  projectLayerGroups?: ProjectLayerGroup[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProjectUpdate?: (key: string, value: any, refresh?: boolean) => void;
   // add property isEditing to the interface
@@ -40,12 +57,18 @@ export interface PublicProjectLayoutProps {
 
 const PublicProjectLayout = ({
   projectLayers = [],
+  projectLayerGroups = [],
   project,
   onProjectUpdate,
   viewOnly,
 }: PublicProjectLayoutProps) => {
   const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
+  // Layer style change hook
+  const { handleStyleChange } = useLayerStyleChange(projectLayers, viewOnly);
+
+  // Measure tool - using the reusable hook
+  const measureTool = useMeasureTool();
 
   const { translatedBaseMaps, activeBasemap } = useBasemap(project);
   const temporaryFilters = useAppSelector((state) => state.map.temporaryFilters);
@@ -55,6 +78,42 @@ const PublicProjectLayout = ({
   const panels = useMemo(() => builderConfig?.interface ?? [], [builderConfig]);
   const PANEL_SIZE = 300;
   const COLLAPSED_SIZE = 40; // Should match the collapsedSize in Container component
+  const activeRight = useAppSelector((state) => state.map.activeRightPanel);
+
+  // Layer settings logic (public version)
+  const selectedLayerIds = useAppSelector((state) => state.layers.selectedLayerIds || []);
+  const activeLayer = useMemo(() => {
+    if (selectedLayerIds.length === 1) {
+      return projectLayers.find((l) => l.id === selectedLayerIds[0]);
+    }
+    return null;
+  }, [selectedLayerIds, projectLayers]);
+
+  const activeRightComponent = useMemo(() => {
+    // Check for layer configuration panel ID (public version - only Properties and Style)
+    const layerSettingsIds = [MapSidebarItemID.PROPERTIES, MapSidebarItemID.STYLE];
+
+    if (activeRight && layerSettingsIds.includes(activeRight) && activeLayer) {
+      let title = "Layer Settings";
+      let content: React.ReactNode = null;
+
+      if (activeRight === MapSidebarItemID.PROPERTIES) {
+        title = `${t("data_source_info")}: ${activeLayer.name || t("layer")}`;
+        content = <PropertiesPanel activeLayer={activeLayer} />;
+      } else if (activeRight === MapSidebarItemID.STYLE) {
+        title = `${t("style")}: ${activeLayer.name || t("layer")}`;
+        content = <SimpleLayerStyle activeLayer={activeLayer} onStyleChange={handleStyleChange} />;
+      }
+
+      return { title, content };
+    }
+    return null;
+  }, [activeRight, activeLayer, handleStyleChange, t]);
+
+  const handleClose = () => {
+    dispatch(setSelectedLayers([]));
+    dispatch(setActiveRightPanel(undefined));
+  };
 
   // Count total number of panels top, bottom, left, right using useMemo
   const topPanels = useMemo(() => panels.filter((panel) => panel.position === "top"), [panels]);
@@ -388,6 +447,7 @@ const PublicProjectLayout = ({
                   key={panel.id}
                   panel={panel}
                   projectLayers={projectLayers}
+                  projectLayerGroups={projectLayerGroups}
                   viewOnly={viewOnly}
                   selected={selectedPanel?.type === "panel" && selectedPanel?.id === panel.id}
                   onChangeOrder={handleChangeOrder}
@@ -441,6 +501,7 @@ const PublicProjectLayout = ({
                   dispatch(setGeocoderResult(result));
                 }}
               />
+              {builderConfig?.settings.measure && <MeasureButton {...measureTool} />}
             </Box>
           )}
           {/* Top-Right Controls  */}
@@ -456,6 +517,38 @@ const PublicProjectLayout = ({
               <ProjectInfo project={project} viewOnly={viewOnly} onProjectUpdate={onProjectUpdate} />
             )}
           </Box>
+          {/* Right Floating Panel - Measure Results and Layer Settings */}
+          {(builderConfig?.settings.measure || activeRightComponent) && (
+            <Box
+              sx={{
+                position: "absolute",
+                right: getOccupiedSpace.right + 16,
+                top: getOccupiedSpace.top + 16,
+                bottom: getOccupiedSpace.bottom + 16,
+                zIndex: 10000,
+                pointerEvents: "none",
+                transition: "all 0.3s",
+                display: "flex",
+                flexDirection: "row",
+                alignItems: "flex-start",
+                gap: 2,
+              }}>
+              {/* Measurement Results Panel */}
+              {builderConfig?.settings.measure && <MeasureResultsPanel {...measureTool} />}
+              {/* Layer Settings Panel */}
+              {activeRightComponent && (
+                <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
+                  <ViewContainer
+                    title={activeRightComponent.title}
+                    disablePadding={true}
+                    close={handleClose}
+                    body={activeRightComponent.content}
+                  />
+                </FloatingPanel>
+              )}
+            </Box>
+          )}
+
           {/* Bottom-Right Controls */}
           <Box
             sx={{

@@ -1,11 +1,12 @@
 import { Box, Collapse, IconButton, LinearProgress, Stack, Typography, useTheme } from "@mui/material";
 import { format, parseISO } from "date-fns";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import type { JobStatusType, JobType } from "@/lib/validations/jobs";
+import type { JobStatusType, JobType } from "@/lib/api/processes";
 
 import { OverflowTypograpy } from "@/components/common/OverflowTypography";
 
@@ -16,15 +17,17 @@ interface JobProgressItemProps {
   errorMessage?: string;
   name: string;
   date: string;
+  /** Optional custom action button to replace the default status icon */
+  actionButton?: ReactNode;
 }
 
+// OGC status to icon mapping
 const statusIcons: Record<JobStatusType, ICON_NAME> = {
   running: ICON_NAME.CLOSE,
-  killed: ICON_NAME.CIRCLEINFO,
-  finished: ICON_NAME.CIRCLECHECK,
-  pending: ICON_NAME.CLOCK,
+  accepted: ICON_NAME.CLOCK,
+  successful: ICON_NAME.CIRCLECHECK,
   failed: ICON_NAME.CIRCLEINFO,
-  timeout: ICON_NAME.CLOCK,
+  dismissed: ICON_NAME.CIRCLEINFO,
 };
 
 export default function JobProgressItem(props: JobProgressItemProps) {
@@ -33,13 +36,22 @@ export default function JobProgressItem(props: JobProgressItemProps) {
   const { type, status, name, date } = props;
   const [showDetails, setShowDetails] = useState(false);
 
+  // OGC status to color mapping
   const statusColors: Record<JobStatusType, string> = {
-    killed: theme.palette.error.main,
     running: theme.palette.primary.main,
-    finished: theme.palette.success.main,
-    pending: theme.palette.grey[500],
+    accepted: theme.palette.grey[500],
+    successful: theme.palette.success.main,
     failed: theme.palette.error.main,
-    timeout: theme.palette.grey[500],
+    dismissed: theme.palette.error.main,
+  };
+
+  // Map OGC status to display text keys
+  const statusTextMap: Record<JobStatusType, string> = {
+    running: "running",
+    accepted: "pending",
+    successful: "finished_successfully",
+    failed: "failed",
+    dismissed: "terminated",
   };
   return (
     <Box
@@ -70,12 +82,12 @@ export default function JobProgressItem(props: JobProgressItemProps) {
             </OverflowTypograpy>
           </Box>
           <LinearProgress
-            {...(status === "failed" || status === "finished" || status === "killed"
+            {...(status === "failed" || status === "successful" || status === "dismissed"
               ? { variant: "determinate", value: 100 }
               : {})}
             sx={{
               width: "100%",
-              ...(status === "pending" && {
+              ...(status === "accepted" && {
                 backgroundColor: theme.palette.grey[300],
               }),
               "& .MuiLinearProgress-bar": {
@@ -85,15 +97,7 @@ export default function JobProgressItem(props: JobProgressItemProps) {
           />
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="caption" fontWeight="bold">
-              {
-                {
-                  running: t("running"),
-                  finished: t("finished_successfully"),
-                  pending: t("pending"),
-                  failed: t("failed"),
-                  killed: t("terminated"),
-                }[status]
-              }
+              {t(statusTextMap[status])}
             </Typography>
             {props.errorMessage && (
               <Typography
@@ -117,15 +121,19 @@ export default function JobProgressItem(props: JobProgressItemProps) {
           )}
         </Stack>
       </Box>
-      <IconButton
-        size="small"
-        disabled={status === "pending" || status === "running"}
-        sx={{
-          fontSize: "1.2rem",
-          color: statusColors[status],
-        }}>
-        <Icon iconName={statusIcons[status]} htmlColor="inherit" fontSize="inherit" />
-      </IconButton>
+      {props.actionButton ? (
+        props.actionButton
+      ) : (
+        <IconButton
+          size="small"
+          disabled={status === "accepted" || status === "running"}
+          sx={{
+            fontSize: "1.2rem",
+            color: statusColors[status],
+          }}>
+          <Icon iconName={statusIcons[status]} htmlColor="inherit" fontSize="inherit" />
+        </IconButton>
+      )}
     </Box>
   );
 }

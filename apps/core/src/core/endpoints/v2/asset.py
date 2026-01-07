@@ -133,7 +133,6 @@ async def upload_asset(
 
     s3_key = f"goat/{settings.ENVIRONMENT}/users/{user_id}/{asset_type.value}/{uuid.uuid4().hex}{file_extension}"
 
-
     settings.S3_CLIENT.upload_fileobj(
         Fileobj=io.BytesIO(file_content),
         Bucket=settings.AWS_S3_ASSETS_BUCKET,
@@ -142,7 +141,6 @@ async def upload_asset(
         Callback=None,
         Config=None,
     )
-
 
     # 5. Save metadata into DB
     new_asset = UploadedAsset(

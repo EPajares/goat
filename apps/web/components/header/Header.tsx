@@ -6,7 +6,7 @@ import Divider from "@mui/material/Divider";
 import { format, formatDistance, parseISO } from "date-fns";
 import { useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { useMap } from "react-map-gl";
+import { useMap } from "react-map-gl/maplibre";
 
 import { GOATLogoIconOnlyGreen } from "@p4b/ui/assets/svg/GOATLogoIconOnlyGreen";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -274,6 +274,23 @@ export default function Header(props: HeaderProps) {
               ))}
           </>
         }
+        CenterToolbarChild={
+          <>
+            {props.mapHeader && !viewOnly && (
+              <SlidingToggle
+                options={[
+                  { label: t("common:map"), value: "data" },
+                  { label: t("common:reports"), value: "reports" },
+                  { label: t("common:builder"), value: "builder" },
+                ]}
+                activeOption={mapMode}
+                onToggle={(value: "data" | "builder" | "reports") => {
+                  dispatch(setMapMode(value));
+                }}
+              />
+            )}
+          </>
+        }
         RightToolbarChild={
           <>
             {!props.viewOnly && (
@@ -307,18 +324,6 @@ export default function Header(props: HeaderProps) {
                 )}
                 {props.mapHeader && (
                   <>
-                    <Stack sx={{ px: 4 }}>
-                      <SlidingToggle
-                        options={[
-                          { label: t("common:data"), value: "data" },
-                          { label: t("common:builder"), value: "builder" },
-                        ]}
-                        activeOption={mapMode}
-                        onToggle={(value: "data" | "builder") => {
-                          dispatch(setMapMode(value));
-                        }}
-                      />
-                    </Stack>
                     <Divider orientation="vertical" flexItem />
                     <Stack sx={{ px: 4 }} spacing={2} direction="row">
                       <Button

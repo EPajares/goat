@@ -5,13 +5,15 @@ from fastapi import Depends, HTTPException, Path, Request, status
 from httpx import AsyncClient, Timeout
 from jose import jwt
 from pydantic import UUID4
-from qgis.core import QgsApplication
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.core.config import settings
+from core.crud.crud_folder import folder as crud_folder
 from core.crud.crud_scenario import scenario as crud_scenario
 from core.db.models.scenario import Scenario
+from core.db.models.user import User
 from core.db.session import session_manager
+from core.schemas.folder import FolderCreate
 
 http_client: Optional[AsyncClient] = None
 
@@ -93,17 +95,37 @@ async def close_http_client() -> None:
         http_client = None
 
 
-def initialize_qgis_application() -> QgsApplication:
-    """Initialize QGIS session and resources."""
+async def ensure_home_folder(
+    async_session: AsyncSession = Depends(get_db),
+    user_id: UUID4 = Depends(get_user_id),
+) -> None:
+    """Ensure the user has a home folder, create one if not exists.
 
-    QgsApplication.setPrefixPath("/usr", True)
-    application = QgsApplication([], False)
-    application.initQgis()
-    return application
+    This provides lazy initialization for users who authenticate via external
+    providers (e.g., Keycloak) but don't have local data yet.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.exc import IntegrityError
 
+    # First ensure user exists (for external auth providers like Keycloak)
+    user_result = await async_session.execute(select(User).where(User.id == user_id))
+    if not user_result.scalar_one_or_none():
+        try:
+            user = User(id=user_id)
+            async_session.add(user)
+            await async_session.commit()
+        except IntegrityError:
+            # Another request already created the user (race condition)
+            await async_session.rollback()
 
-def close_qgis_application(application: QgsApplication) -> None:
-    """Terminate QGIS session and clean-up resources."""
-
-    application.exitQgis()
-    QgsApplication.exit()
+    # Then ensure home folder exists
+    existing = await crud_folder.get_by_multi_keys(
+        async_session, keys={"user_id": user_id, "name": "home"}
+    )
+    if not existing:
+        try:
+            folder = FolderCreate(name="home", user_id=user_id)
+            await crud_folder.create(async_session, obj_in=folder)
+        except IntegrityError:
+            # Another request already created the folder (race condition)
+            await async_session.rollback()

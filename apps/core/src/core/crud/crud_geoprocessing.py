@@ -131,7 +131,7 @@ class CRUDBuffer(CRUDToolBase):
         await self.delete_temp_tables()
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Feature were successfully buffered.",
         }
 

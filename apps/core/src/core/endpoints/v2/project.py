@@ -8,7 +8,6 @@ from fastapi import (
     HTTPException,
     Path,
     Query,
-    Request,
     status,
 )
 from fastapi.responses import JSONResponse
@@ -16,35 +15,40 @@ from fastapi_pagination import Page
 from fastapi_pagination import Params as PaginationParams
 from pydantic import UUID4
 from sqlalchemy import select
+from sqlmodel import update
 
-from core.core.chart import read_chart_data
 from core.crud.crud_layer_project import layer_project as crud_layer_project
+from core.crud.crud_layer_project_group import (
+    layer_project_group as crud_layer_project_group,
+)
 from core.crud.crud_project import project as crud_project
 from core.crud.crud_scenario import scenario as crud_scenario
 from core.crud.crud_user_project import user_project as crud_user_project
 from core.db.models._link_model import (
+    LayerProjectGroup,
     LayerProjectLink,
-    ScenarioScenarioFeatureLink,
     UserProjectLink,
 )
 from core.db.models.project import Project
 from core.db.models.scenario import Scenario
-from core.db.models.scenario_feature import ScenarioFeature
 from core.db.session import AsyncSession
-from core.deps.auth import auth_z, auth_z_lite
+from core.deps.auth import auth_z
 from core.endpoints.deps import get_db, get_scenario, get_user_id
 from core.schemas.common import OrderEnum
-from core.schemas.error import HTTPErrorHandler
 from core.schemas.project import (
     IFeatureStandardProjectRead,
     IFeatureStreetNetworkProjectRead,
     IFeatureToolProjectRead,
+    ILayerProjectGroupCreate,
+    ILayerProjectGroupRead,
+    ILayerProjectGroupUpdate,
     InitialViewState,
     IProjectBaseUpdate,
     IProjectCreate,
     IProjectRead,
     IRasterProjectRead,
     ITableProjectRead,
+    LayerTreeUpdate,
     ProjectPublicRead,
 )
 from core.schemas.project import (
@@ -59,8 +63,7 @@ from core.schemas.scenario import (
 from core.schemas.scenario import (
     request_examples as scenario_request_examples,
 )
-from core.schemas.toolbox_base import ColumnStatisticsOperation
-from core.utils import delete_orphans, to_feature_collection
+from core.utils import to_feature_collection
 
 router = APIRouter()
 
@@ -540,228 +543,6 @@ async def delete_layer_from_project(
     return None
 
 
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/chart-data",
-    response_model=dict,
-    response_model_exclude_none=True,
-    status_code=200,
-    dependencies=[Depends(auth_z)],
-)
-async def get_chart_data(
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    cumsum: bool = Query(
-        False,
-        description="Specify if the data should be cumulated. This only works if the x-axis is a number.",
-        example=False,
-    ),
-) -> Dict[str, Any]:
-    """Get chart data from a layer in a project by its ID."""
-
-    # Get chart data
-    with HTTPErrorHandler():
-        return await read_chart_data(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            cumsum=cumsum,
-        )
-
-
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/statistic-aggregation",
-    summary="Get aggregated statistics for a column",
-    response_model=dict,
-    status_code=200,
-)
-async def get_statistic_aggregation(
-    request: Request,
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    operation_type: ColumnStatisticsOperation | None = Query(
-        None,
-        description="The operation to perform",
-        example="sum",
-    ),
-    operation_value: str | None = Query(
-        None,
-        description="The value to use for the operation. Column name for operations like sum, avg or QGIS expression for expression operations.",
-        example="population",
-    ),
-    group_by_column_name: str | None = Query(
-        None,
-        description="The name of the column to group by",
-        example="name",
-    ),
-    size: int = Query(
-        100, description="The number of grouped values to return", example=5
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    order: OrderEnum = Query(
-        "descendent",
-        description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="descendent",
-    ),
-) -> Dict[str, Any]:
-    """Get aggregated statistics for a numeric column based on the supplied group-by column and CQL-filter."""
-
-    # Check authorization status
-    try:
-        await auth_z_lite(request, async_session)
-    except HTTPException:
-        # Check publication status if unauthorized
-        public_project = await crud_project.get_public_project(
-            async_session=async_session,
-            project_id=str(project_id),
-        )
-        if not public_project:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-
-    # Ensure an operation or expression is specified
-    if operation_type is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An operation must be specified.",
-        )
-
-    # Ensure a column name is specified for all operations except count
-    if (
-        operation_type
-        and operation_type != ColumnStatisticsOperation.count
-        and operation_value is None
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A column name or expression must be specified for the operation except for count.",
-        )
-
-
-    # Ensure the size is not excessively large
-    if size > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The size is limited to 100.",
-        )
-
-    with HTTPErrorHandler():
-        values = await crud_layer_project.get_statistic_aggregation(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            operation_type=operation_type,
-            group_by_column_name=group_by_column_name,
-            operation_value=operation_value,
-            size=size,
-            query=query,
-            order=order,
-        )
-
-    # Return result
-    return values
-
-
-@router.get(
-    "/{project_id}/layer/{layer_project_id}/statistic-histogram",
-    summary="Get histogram statistics for a column",
-    response_model=dict,
-    status_code=200,
-)
-async def get_statistic_histogram(
-    request: Request,
-    async_session: AsyncSession = Depends(get_db),
-    project_id: UUID4 = Path(
-        ...,
-        description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    ),
-    layer_project_id: int = Path(
-        ...,
-        description="Layer Project ID to get chart data",
-        example="1",
-    ),
-    column_name: str = Query(
-        ...,
-        description="The column name to get the unique values from",
-        example="name",
-    ),
-    num_bins: int = Query(
-        ...,
-        description="The number of bins / classes the histogram should have",
-        example=5,
-    ),
-    query: str = Query(
-        None,
-        description="CQL2-Filter in JSON format",
-        example={"op": "=", "args": [{"property": "category"}, "bus_stop"]},
-    ),
-    order: OrderEnum = Query(
-        "ascendent",
-        description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="ascendent",
-    ),
-) -> Dict[str, Any]:
-    """Get histogram statistics for a numeric column based on the specified number of bins and CQL-filter."""
-
-    # Check authorization status
-    try:
-        await auth_z_lite(request, async_session)
-    except HTTPException:
-        # Check publication status if unauthorized
-        public_project = await crud_project.get_public_project(
-            async_session=async_session,
-            project_id=str(project_id),
-        )
-        if not public_project:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
-            )
-
-    # Ensure the number of bins is not excessively large
-    if num_bins > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The number of bins is limited to 100.",
-        )
-
-    with HTTPErrorHandler():
-        values = await crud_layer_project.get_statistic_histogram(
-            async_session=async_session,
-            project_id=project_id,
-            layer_project_id=layer_project_id,
-            column_name=column_name,
-            num_bins=num_bins,
-            query=query,
-            order=order,
-        )
-
-    # Return result
-    return values
-
-
 ##############################################
 ### Scenario endpoints
 ##############################################
@@ -886,15 +667,7 @@ async def delete_scenario(
     """Delete scenario."""
 
     await crud_scenario.remove(db=async_session, id=scenario.id)
-    # Deletes scenario features that are not linked to any scenario (orphans).
-    # This can't be achieved using CASCADE because the relationship is many-to-many.
-    await delete_orphans(
-        async_session,
-        ScenarioFeature,
-        ScenarioFeature.id.key,
-        ScenarioScenarioFeatureLink,
-        ScenarioScenarioFeatureLink.scenario_feature_id.key,
-    )
+
     return None
 
 
@@ -1109,3 +882,219 @@ async def unpublish_project(
     await crud_project.unpublish_project(
         async_session=async_session, project_id=project_id
     )
+
+
+##############################################
+### Layer Group Endpoints
+##############################################
+
+
+@router.get(
+    "/{project_id}/group",
+    summary="Get project layer groups",
+    response_model=List[ILayerProjectGroupRead],
+    status_code=200,
+    dependencies=[Depends(auth_z)],
+)
+async def get_project_layer_groups(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(..., description="The ID of the project"),
+) -> List[ILayerProjectGroupRead]:
+    """
+    Get all layer groups for a project.
+    Returns groups in hierarchical order.
+    """
+    return await crud_layer_project_group.get_groups_by_project(
+        async_session=async_session, project_id=project_id
+    )
+
+
+@router.post(
+    "/{project_id}/group",
+    summary="Create a layer group",
+    response_model=ILayerProjectGroupRead,
+    status_code=201,
+    dependencies=[Depends(auth_z)],
+)
+async def create_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_in: ILayerProjectGroupCreate = Body(...),
+) -> ILayerProjectGroupRead:
+    """
+    Create a new layer group.
+    Supports nesting up to 2 levels.
+    """
+    return await crud_layer_project_group.create(
+        async_session=async_session, project_id=project_id, obj_in=group_in
+    )
+
+
+@router.put(
+    "/{project_id}/group/{group_id}",
+    summary="Update a layer group",
+    response_model=ILayerProjectGroupRead,
+    status_code=200,
+)
+async def update_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_id: int = Path(...),
+    group_in: ILayerProjectGroupUpdate = Body(...),
+) -> LayerProjectGroup:
+    group = await crud_layer_project_group.get(async_session, group_id)
+    if not group or group.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    return await crud_layer_project_group.update(
+        async_session=async_session, db_obj=group, obj_in=group_in
+    )
+
+
+@router.delete(
+    "/{project_id}/group/{group_id}", summary="Delete a layer group", status_code=204
+)
+async def delete_layer_group(
+    async_session: AsyncSession = Depends(get_db),
+    project_id: UUID4 = Path(...),
+    group_id: int = Path(...),
+) -> None:
+    """
+    Delete a group.
+    Database Cascade will automatically delete:
+    1. The Group
+    2. Any Sub-groups
+    3. Any Layers linked to these groups (via LayerProjectLink)
+    """
+
+    group = await crud_layer_project_group.get(async_session, group_id)
+    if not group or group.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Group not found")
+
+    await crud_layer_project_group.remove(async_session, group_id)
+
+    return None
+
+
+@router.put(
+    "/{project_id}/layer-tree",
+    summary="Update layer tree structure (Reorder/Reparent)",
+    status_code=204,
+)
+async def update_project_layer_tree(
+    project_id: UUID4 = Path(..., description="The Project ID"),
+    tree_in: LayerTreeUpdate = Body(
+        ..., description="The flat list of items with updated positions"
+    ),
+    async_session: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Batch updates the structure of the sidebar.
+    This handles reordering items and reparenting (moving layers into/out of folders).
+    Also updates visibility, collapsed states, and expanded states for both groups and layers.
+    """
+
+    updates_groups = []
+    updates_layers = []
+
+    # 1. Separate updates by type for efficient batch processing
+    for item in tree_in.items:
+        if item.type == "group":
+            update_data = {
+                "id": item.id,
+                "parent_id": item.parent_id,
+                "order": item.order,
+            }
+            # Handle properties for groups (visibility, expanded, etc.)
+            if item.properties:
+                # Get current group to preserve existing properties
+                current_group = await async_session.get(LayerProjectGroup, item.id)
+                if current_group and current_group.project_id == project_id:
+                    current_properties = current_group.properties or {}
+
+                    # Update visibility if provided
+                    if "visibility" in item.properties:
+                        current_properties["visibility"] = item.properties["visibility"]
+
+                    # Update expanded state if provided
+                    if "expanded" in item.properties:
+                        current_properties["expanded"] = item.properties["expanded"]
+
+                    update_data["properties"] = current_properties
+            updates_groups.append(update_data)
+
+        elif item.type == "layer":
+            update_data = {
+                "id": item.id,
+                # Map standard 'parent_id' back to the specific DB column
+                "layer_project_group_id": item.parent_id,
+                "order": item.order,
+            }
+            # Handle properties for layers (visibility, legend.collapsed, etc.)
+            if item.properties:
+                # Get current layer to preserve existing properties
+                current_layer = await async_session.get(LayerProjectLink, item.id)
+                if current_layer and current_layer.project_id == project_id:
+                    current_properties = current_layer.properties or {}
+
+                    # Update visibility if provided
+                    if "visibility" in item.properties:
+                        current_properties["visibility"] = item.properties["visibility"]
+
+                    # Update legend collapsed state if provided
+                    if "legend" in item.properties:
+                        if "legend" not in current_properties:
+                            current_properties["legend"] = {}
+
+                        # Merge legend properties
+                        for key, value in item.properties["legend"].items():
+                            current_properties["legend"][key] = value
+
+                    update_data["properties"] = current_properties
+            updates_layers.append(update_data)
+
+    try:
+        # 2. Update Groups (Iterative update is safer than bulk for complex constraints)
+        if updates_groups:
+            for g in updates_groups:
+                update_values = {"parent_id": g["parent_id"], "order": g["order"]}
+                # Include properties if updated
+                if "properties" in g:
+                    update_values["properties"] = g["properties"]
+
+                await async_session.execute(
+                    update(LayerProjectGroup)
+                    .where(LayerProjectGroup.id == g["id"])
+                    .where(LayerProjectGroup.project_id == project_id)  # Security check
+                    .values(**update_values)
+                )
+
+        # 3. Update Layers
+        if updates_layers:
+            for l in updates_layers:
+                update_values = {
+                    "layer_project_group_id": l["layer_project_group_id"],
+                    "order": l["order"],
+                }
+                # Include properties if provided
+                if "properties" in l:
+                    update_values["properties"] = l["properties"]
+
+                await async_session.execute(
+                    update(LayerProjectLink)
+                    .where(LayerProjectLink.id == l["id"])
+                    .where(LayerProjectLink.project_id == project_id)  # Security check
+                    .values(**update_values)
+                )
+
+        await async_session.commit()
+
+    except Exception:
+        await async_session.rollback()
+        # In production, log the actual error 'e'
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update layer tree structure.",
+        )
+
+    return None

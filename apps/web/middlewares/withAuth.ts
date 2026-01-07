@@ -12,13 +12,21 @@ const protectedPaths = [
   "/map",
   "/onboarding/organization/create",
   "/onboarding/organization/suspended",
+  "/onboarding/organization/invite",
 ];
 
-const publicPaths = ["/map/public"];
+const publicPaths = ["/map/public", "/print"];
 
 export const withAuth: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
-    if (process.env.NEXT_PUBLIC_AUTH_DISABLED || !process.env.NEXTAUTH_URL || !process.env.NEXTAUTH_SECRET) {
+    // Check if auth is disabled - handle both actual values and unreplaced placeholders
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED;
+    const isAuthDisabled =
+      authDisabled &&
+      authDisabled !== "APP_NEXT_PUBLIC_AUTH_DISABLED" &&
+      authDisabled.toLowerCase() === "true";
+
+    if (isAuthDisabled || !process.env.NEXTAUTH_URL || !process.env.NEXTAUTH_SECRET) {
       return next(request, _next);
     }
     const { pathname, search, origin, basePath } = request.nextUrl;

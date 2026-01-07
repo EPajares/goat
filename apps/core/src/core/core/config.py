@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     TEST_MODE: bool = False
     ENVIRONMENT: str = "dev"
     API_V2_STR: str = "/api/v2"
-    DATA_DIR: str = "/app/apps/core/data"
+    DATA_DIR: str = "/app/data"
     TEST_DATA_DIR: str = "/app/apps/core/tests/data"
     PROJECT_NAME: str = "GOAT Core API"
     USER_DATA_SCHEMA: str = "user_data"
@@ -205,7 +205,24 @@ class Settings(BaseSettings):
     S3_FORCE_PATH_STYLE: bool = False  # needed for MinIO
     S3_BUCKET_PATH: Optional[str] = ""  # will be set depending on ENVIRONMENT
     S3_BUCKET_NAME: Optional[str] = "goat"
-    MAX_UPLOAD_DATASET_FILE_SIZE: int = 300 * 1024 * 1024  # 300MB
+    MAX_UPLOAD_DATASET_FILE_SIZE: int = 5 * 1024 * 1024 * 1024  # 5GB
+
+    # Print service settings
+    PRINT_FRONTEND_URL: Optional[str] = "http://localhost:3000"  # Next.js frontend URL
+    PRINT_TIMEOUT: int = 120  # seconds to wait for page to render
+    PRINT_OUTPUT_DIR: Optional[str] = "prints"  # S3 subdirectory for print outputs
+
+    # DuckLake settings for user data storage
+    # When enabled, new layers use DuckLake/GeoParquet instead of PostgreSQL
+    DUCKLAKE_ENABLED: bool = False
+    DUCKLAKE_CATALOG_SCHEMA: str = "ducklake"  # PostgreSQL schema for DuckLake catalog
+    # Storage path: defaults to DATA_DIR/ducklake, can override with S3 bucket
+    DUCKLAKE_S3_ENDPOINT: Optional[str] = None  # e.g., "http://minio:9000"
+    DUCKLAKE_S3_ACCESS_KEY: Optional[str] = None
+    DUCKLAKE_S3_SECRET_KEY: Optional[str] = None
+    DUCKLAKE_S3_BUCKET: Optional[str] = (
+        None  # e.g., "s3://goat-ducklake" - if set, uses S3 instead of local
+    )
 
     class Config:
         case_sensitive = True

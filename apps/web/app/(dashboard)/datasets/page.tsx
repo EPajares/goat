@@ -56,7 +56,7 @@ const Datasets = () => {
   } = useLayers(queryParams, datasetSchema);
 
   const { isOrgEditor } = useAuthZ();
-  useJobStatus(mutate);
+  useJobStatus(mutate, mutate);
 
   const [addDatasetModal, setAddDatasetModal] = useState<AddLayerSourceType | null>(null);
 

@@ -19,6 +19,7 @@ export enum MapLayerActions {
   RENAME = "rename",
   ZOOM_TO = "zoomTo",
   PROPERTIES = "properties",
+  STYLE = "style",
 }
 
 export enum ScenarioActions {

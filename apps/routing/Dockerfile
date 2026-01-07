@@ -25,7 +25,7 @@ RUN apt-get install --no-install-recommends -y tzdata
 # Stage 2: Python environment
 FROM linux-base AS python-base
 # Install debian dependencies
-RUN apt-get install --no-install-recommends -y build-essential gettext
+RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 
@@ -55,3 +55,4 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/routing/src/routing/main.py"]
+

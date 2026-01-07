@@ -8,7 +8,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import and_
 
-from core.core.config import settings
 from core.core.content import (
     build_shared_with_object,
     create_query_shared_content,
@@ -73,13 +72,13 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
             ).model_dump(),
         )
         # If not in testing environment add default layers to project
-        if not settings.TESTING:
-            # Add network layer to project
-            await crud_layer_project.create(
-                async_session=async_session,
-                project_id=project.id,
-                layer_ids=[settings.BASE_STREET_NETWORK],
-            )
+        # if not settings.TESTING:
+        #     # Add network layer to project
+        #     await crud_layer_project.create(
+        #         async_session=async_session,
+        #         project_id=project.id,
+        #         layer_ids=[settings.BASE_STREET_NETWORK],
+        #     )
         # Doing unneeded type conversion to make sure the relations of project are not loaded
         return IProjectRead(**project.model_dump())
 
@@ -226,6 +225,20 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
             async_session=async_session, project_id=project_id
         )
 
+        # Import here to avoid circular imports
+        from core.crud.crud_layer_project_group import layer_project_group
+        from core.schemas.project import ILayerProjectGroupRead
+
+        project_layer_groups_db = await layer_project_group.get_groups_by_project(
+            async_session=async_session, project_id=project_id
+        )
+
+        # Convert to schema objects
+        project_layer_groups = [
+            ILayerProjectGroupRead(**group.model_dump())
+            for group in project_layer_groups_db
+        ]
+
         new_project_public_project_config = ProjectPublicProjectConfig(
             id=project.id,
             name=project.name,
@@ -241,10 +254,12 @@ class CRUDProject(CRUDBase[Project, Any, Any]):
         )
         new_project_public_config = ProjectPublicConfig(
             layers=project_layers,
+            layer_groups=project_layer_groups,
             project=new_project_public_project_config,
         )
         new_project_public = ProjectPublic(
-            project_id=project_id, config=json.loads(new_project_public_config.model_dump_json())
+            project_id=project_id,
+            config=json.loads(new_project_public_config.model_dump_json()),
         )
 
         async_session.add(new_project_public)

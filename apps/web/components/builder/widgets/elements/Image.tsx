@@ -13,9 +13,19 @@ const PLACEHOLDER_URL = "https://assets.plan4better.de/img/image-placeholder.web
 const IMAGE_NOT_FOUND_PLACEHOLDER = "https://assets.plan4better.de/img/image-not-found-placeholder.webp";
 
 // Base image component
-const ImageElementBase = ({ config }: { config: ImageElementSchema }) => (
+const ImageElementBase = ({
+  config,
+  fitMode = "auto",
+}: {
+  config: ImageElementSchema;
+  fitMode?: "auto" | "contain";
+}) => (
   <img
-    style={{ width: "100%", height: "auto", display: "block" }}
+    style={
+      fitMode === "contain"
+        ? { width: "100%", height: "100%", objectFit: "contain", display: "block" }
+        : { width: "100%", height: "auto", display: "block" }
+    }
     src={config.setup.url || PLACEHOLDER_URL}
     alt={config.setup.alt}
     onError={(e) => {
@@ -89,10 +99,12 @@ const ImageElementWidget = ({
   config,
   viewOnly,
   onWidgetUpdate,
+  fitMode = "auto",
 }: {
   config: ImageElementSchema;
   viewOnly?: boolean;
   onWidgetUpdate?: (newConfig: ImageElementSchema) => void;
+  fitMode?: "auto" | "contain";
 }) => {
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation("common");
@@ -101,12 +113,12 @@ const ImageElementWidget = ({
     return (
       <Box
         sx={{
-          height: "fit-content",
-          maxHeight: "fit-content",
+          height: fitMode === "contain" ? "100%" : "fit-content",
+          maxHeight: fitMode === "contain" ? "100%" : "fit-content",
           width: "100%",
           ...(config.options?.has_padding && { p: 2 }),
         }}>
-        <ImageElementBase config={config} />
+        <ImageElementBase config={config} fitMode={fitMode} />
       </Box>
     );
   }

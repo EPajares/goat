@@ -1,0 +1,777 @@
+{
+  "sections": {
+    "routing": {
+      "label": "Routing"
+    },
+    "configuration": {
+      "label": "Configuration"
+    },
+    "opportunities": {
+      "label": "Opportunities"
+    },
+    "scenario": {
+      "label": "Scenario"
+    },
+    "input": {
+      "label": "Input"
+    },
+    "pick_source_layer": {
+      "label": "Layer to Aggregate"
+    },
+    "output": {
+      "label": "Output"
+    },
+    "options": {
+      "label": "Options"
+    },
+    "statistics": {
+      "label": "Statistics"
+    },
+    "time": {
+      "label": "Time"
+    },
+    "calculation_time": {
+      "label": "Calculation Time"
+    },
+    "area": {
+      "label": "Area"
+    },
+    "summary_areas": {
+      "label": "Summary Areas"
+    },
+    "buffer": {
+      "label": "Buffer Settings"
+    },
+    "overlay": {
+      "label": "Overlay"
+    },
+    "field_selection": {
+      "label": "Field Selection"
+    },
+    "geocoding": {
+      "label": "Geocoding"
+    },
+    "matrix": {
+      "label": "Matrix Data"
+    },
+    "columns": {
+      "label": "Column Mapping"
+    },
+    "source": {
+      "label": "Import Source"
+    },
+    "wfs_options": {
+      "label": "WFS Options"
+    },
+    "metadata": {
+      "label": "Metadata"
+    },
+    "starting_points": {
+      "label": "Starting Points"
+    },
+    "join_layer": {
+      "label": "Join Layer"
+    },
+    "join_method": {
+      "label": "Join Method"
+    },
+    "spatial_settings": {
+      "label": "Spatial Relationship"
+    },
+    "attribute_settings": {
+      "label": "Attribute Relationship"
+    },
+    "join_options": {
+      "label": "Join Options"
+    }
+  },
+  "fields": {
+    "routing_mode": {
+      "label": "Transport Mode",
+      "description": "Select the transport mode for accessibility analysis"
+    },
+    "routing_pt_mode": {
+      "label": "PT Modes",
+      "description": "Select public transport modes to include in the analysis"
+    },
+    "max_traveltime": {
+      "label": "Travel time limit (Min)",
+      "description": "Define the maximum travel time in minutes"
+    },
+    "steps": {
+      "label": "Number of breaks (Steps)",
+      "description": "Define the number of breaks"
+    },
+    "speed": {
+      "label": "Travel speed (Km/h)",
+      "description": "Define the travel speed"
+    },
+    "access_mode": {
+      "label": "Access Mode",
+      "description": "Mode of transport to access public transport stations"
+    },
+    "pt_egress_mode": {
+      "label": "Egress Mode",
+      "description": "Mode of transport after leaving public transport stations"
+    },
+    "catchment_area_type": {
+      "label": "Catchment area shape",
+      "description": "Select the shape of the catchment area geometry."
+    },
+    "polygon_difference": {
+      "label": "Polygon Difference",
+      "description": "If enabled, polygons show the difference between consecutive steps"
+    },
+    "choose_pt_mode": {
+      "label": "Choose PT Modes",
+      "description": "Select public transport modes to include in the analysis"
+    },
+    "impedance": {
+      "label": "Impedance Function",
+      "description": "Distance decay function for gravity calculation"
+    },
+    "max_sensitivity": {
+      "label": "Maximum Sensitivity",
+      "description": "Maximum sensitivity value used for normalization"
+    },
+    "opportunities": {
+      "label": "Opportunities",
+      "description": "List of opportunity datasets with gravity parameters"
+    },
+    "input_path": {
+      "label": "Input Layer",
+      "description": "Select the input layer for analysis"
+    },
+    "input_layer_id": {
+      "label": "Input Layer",
+      "description": "Select the input layer for analysis"
+    },
+    "overlay_layer_id": {
+      "label": "Overlay Layer",
+      "description": "Select the overlay layer"
+    },
+    "output_name": {
+      "label": "Output Name",
+      "description": "Name for the output layer"
+    },
+    "max_cost": {
+      "label": "Travel Time Limit",
+      "description": "Maximum travel time in minutes"
+    },
+    "sensitivity": {
+      "label": "Sensitivity",
+      "description": "Decay sensitivity parameter for gravity model"
+    },
+    "potential_field": {
+      "label": "Potential Field",
+      "description": "Field name containing destination potential values"
+    },
+    "potential_constant": {
+      "label": "Constant Potential",
+      "description": "Use a constant value for all destinations"
+    },
+    "potential_expression": {
+      "label": "Potential Expression",
+      "description": "Expression to calculate potential (e.g., 'area', 'perimeter')"
+    },
+    "n_destinations": {
+      "label": "Number of Destinations",
+      "description": "Number of closest destinations to average"
+    },
+    "reference_area_path": {
+      "label": "Reference Area",
+      "description": "Layer defining the reference area for connectivity analysis"
+    },
+    "weekday": {
+      "label": "Day",
+      "description": "Type of day for public transport schedule"
+    },
+    "from_time": {
+      "label": "Start Time",
+      "description": "Start time of the analysis window"
+    },
+    "to_time": {
+      "label": "End Time",
+      "description": "End time of the analysis window"
+    },
+    "catchment_type": {
+      "label": "Catchment Area Type",
+      "description": "Method for calculating catchment areas"
+    },
+    "distance_type": {
+      "label": "Distance Source",
+      "description": "How to determine the buffer distance"
+    },
+    "distances": {
+      "label": "Buffer Distances",
+      "description": "List of buffer distances to create"
+    },
+    "distance_field": {
+      "label": "Distance Field",
+      "description": "Field containing buffer distance for each feature"
+    },
+    "units": {
+      "label": "Distance Units",
+      "description": "Unit of measurement for distances"
+    },
+    "dissolve": {
+      "label": "Dissolve",
+      "description": "Merge overlapping buffers into single geometry"
+    },
+    "num_triangles": {
+      "label": "Curve Smoothness",
+      "description": "Number of segments to approximate curves"
+    },
+    "cap_style": {
+      "label": "Cap Style",
+      "description": "Style for line endpoints"
+    },
+    "join_style": {
+      "label": "Join Style",
+      "description": "Style for corner joins between segments"
+    },
+    "mitre_limit": {
+      "label": "Mitre Limit",
+      "description": "Ratio for mitred join length"
+    },
+    "scenario_id": {
+      "label": "Scenario",
+      "description": "Select a scenario for analysis"
+    },
+    "od_matrix_path": {
+      "label": "OD Matrix",
+      "description": "Path to origin-destination matrix"
+    },
+    "overlay_path": {
+      "label": "Overlay Layer",
+      "description": "Select the overlay layer"
+    },
+    "input_fields": {
+      "label": "Input Fields",
+      "description": "Fields to keep from input layer"
+    },
+    "overlay_fields": {
+      "label": "Overlay Fields",
+      "description": "Fields to keep from overlay layer"
+    },
+    "overlay_fields_prefix": {
+      "label": "Overlay Fields Prefix",
+      "description": "Prefix for overlay field names"
+    },
+    "geometry_path": {
+      "label": "Geometry Layer",
+      "description": "Layer containing origin/destination geometries"
+    },
+    "geometry_layer_id": {
+      "label": "Geometry Layer",
+      "description": "Layer with origin/destination geometries (points or polygons)"
+    },
+    "matrix_layer_id": {
+      "label": "Matrix Layer",
+      "description": "Layer containing the origin-destination matrix"
+    },
+    "matrix_path": {
+      "label": "Matrix File",
+      "description": "Origin-destination matrix file (parquet/csv)"
+    },
+    "unique_id_column": {
+      "label": "Unique ID Column",
+      "description": "Column with unique feature IDs"
+    },
+    "origin_column": {
+      "label": "Origin Column",
+      "description": "Column containing origin IDs"
+    },
+    "destination_column": {
+      "label": "Destination Column",
+      "description": "Column containing destination IDs"
+    },
+    "weight_column": {
+      "label": "Weight Column",
+      "description": "Column containing flow weights"
+    },
+    "output_path": {
+      "label": "Output Path",
+      "description": "Destination path for output"
+    },
+    "output_crs": {
+      "label": "Output CRS",
+      "description": "Coordinate reference system for output"
+    },
+    "layer_id": {
+      "label": "Layer",
+      "description": "Select the layer"
+    },
+    "s3_key": {
+      "label": "File",
+      "description": "Uploaded file to import"
+    },
+    "wfs_url": {
+      "label": "WFS URL",
+      "description": "URL of the WFS service"
+    },
+    "wfs_layer_name": {
+      "label": "WFS Layer Name",
+      "description": "Name of the layer in WFS service"
+    },
+    "data_type": {
+      "label": "Data Type",
+      "description": "Type of data for WFS layer"
+    },
+    "name": {
+      "label": "Name",
+      "description": "Layer name"
+    },
+    "description": {
+      "label": "Description",
+      "description": "Layer description"
+    },
+    "tags": {
+      "label": "Tags",
+      "description": "Tags for categorizing the layer"
+    },
+    "file_type": {
+      "label": "File Format",
+      "description": "Output file format"
+    },
+    "file_name": {
+      "label": "File Name",
+      "description": "Name for the exported file"
+    },
+    "crs": {
+      "label": "Target CRS",
+      "description": "Coordinate reference system for reprojection"
+    },
+    "query": {
+      "label": "Filter Query",
+      "description": "SQL WHERE clause to filter features"
+    },
+    "collection": {
+      "label": "Layer",
+      "description": "Select the layer to analyze"
+    },
+    "attribute": {
+      "label": "Attribute",
+      "description": "Attribute/column name to analyze"
+    },
+    "filter": {
+      "label": "Filter",
+      "description": "CQL2 filter expression"
+    },
+    "order": {
+      "label": "Sort Order",
+      "description": "Sort order by count"
+    },
+    "limit": {
+      "label": "Limit",
+      "description": "Maximum values to return"
+    },
+    "offset": {
+      "label": "Offset",
+      "description": "Offset for pagination"
+    },
+    "method": {
+      "label": "Classification Method",
+      "description": "Method for calculating class breaks"
+    },
+    "breaks": {
+      "label": "Number of Classes",
+      "description": "Number of classes to create"
+    },
+    "strip_zeros": {
+      "label": "Exclude Zeros",
+      "description": "Exclude zero values from analysis"
+    },
+    "operation": {
+      "label": "Operation",
+      "description": "Statistical operation to perform"
+    },
+    "measure_type": {
+      "label": "Catchment area type",
+      "description": "Calculate catchment area by time or distance"
+    },
+    "max_distance": {
+      "label": "Travel distance",
+      "description": "Define the maximum travel distance in meters"
+    },
+    "source_layer_id": {
+      "label": "Input Point Layer",
+      "description": "Select the point layer to aggregate"
+    },
+    "select_source_layer": {
+      "label": "Input Point Layer",
+      "description": "Select the point layer to aggregate"
+    },
+    "area_type": {
+      "label": "Area Type",
+      "description": "Type of area to aggregate points into"
+    },
+    "select_area_type": {
+      "label": "Area Type",
+      "description": "Type of area to aggregate points into"
+    },
+    "area_layer_id": {
+      "label": "Area Layer",
+      "description": "Select the polygon layer for aggregation"
+    },
+    "select_area_layer": {
+      "label": "Area Layer",
+      "description": "Select the polygon layer for aggregation"
+    },
+    "h3_resolution": {
+      "label": "H3 Resolution",
+      "description": "H3 grid resolution (3-10). Higher values create smaller hexagons."
+    },
+    "select_h3_grid_resolution": {
+      "label": "H3 Grid Resolution",
+      "description": "H3 grid resolution (3-10). Higher values create smaller hexagons."
+    },
+    "statistics_operation": {
+      "label": "Operation",
+      "description": "Statistical operation to perform"
+    },
+    "select_statistic_method": {
+      "label": "Statistic Method",
+      "description": "Statistical operation to perform: count, sum, mean, min, or max."
+    },
+    "statistics_field": {
+      "label": "Statistics Field",
+      "description": "Field to compute statistics on"
+    },
+    "select_field_to_calculate_statistics": {
+      "label": "Statistics Field",
+      "description": "Select the field to compute statistics on."
+    },
+    "group_by_field": {
+      "label": "Group By",
+      "description": "Field(s) to group aggregated results by"
+    },
+    "select_group_fields": {
+      "label": "Group Fields",
+      "description": "Optional field(s) to group aggregated results by."
+    },
+    "weighted_by_intersecting_area": {
+      "label": "Weight by Intersection Area",
+      "description": "If enabled, statistics are weighted proportionally by the area of intersection between source and target polygons."
+    },
+    "select_statistics_configuration": {
+      "label": "Statistics Configuration",
+      "description": "Configure the statistical operation and field for aggregation."
+    },
+    "input_mode": {
+      "label": "Input Mode",
+      "description": "How address input is provided"
+    },
+    "full_address_field": {
+      "label": "Address Field",
+      "description": "Column containing complete address (e.g., 'Marienplatz 1, Munich, Germany')"
+    },
+    "address_field": {
+      "label": "Street Address",
+      "description": "Column for street address (e.g., 'Marienplatz 1')"
+    },
+    "locality_field": {
+      "label": "City/Town",
+      "description": "Column for city or town name"
+    },
+    "region_field": {
+      "label": "State/Province",
+      "description": "Column for state, province, or region"
+    },
+    "postalcode_field": {
+      "label": "Postal Code",
+      "description": "Column for postal/ZIP code"
+    },
+    "country_field": {
+      "label": "Country Field",
+      "description": "Column for country (name or ISO code). Leave empty to use default."
+    },
+    "country_constant": {
+      "label": "Default Country",
+      "description": "Default country when no country field is selected"
+    },
+    "target_layer_id": {
+      "label": "Target Layer",
+      "description": "The layer to which join layer fields will be appended"
+    },
+    "join_layer_id": {
+      "label": "Join Layer",
+      "description": "The layer containing fields to append to the target layer"
+    },
+    "join_method": {
+      "label": "Join Method",
+      "description": "How to match features between the target and join layers"
+    },
+    "spatial_relationship": {
+      "label": "Spatial Relationship",
+      "description": "The spatial relationship used to match features"
+    },
+    "distance": {
+      "label": "Search Distance",
+      "description": "Search distance for the within_distance relationship"
+    },
+    "distance_units": {
+      "label": "Distance Units",
+      "description": "Units for the search distance"
+    },
+    "attribute_relationships": {
+      "label": "Match Fields",
+      "description": "Fields to match between target and join layers"
+    },
+    "target_field": {
+      "label": "Target Field",
+      "description": "Field in target layer to match"
+    },
+    "join_field": {
+      "label": "Join Field",
+      "description": "Field in join layer to match"
+    },
+    "join_operation": {
+      "label": "Join Operation",
+      "description": "How to handle multiple matching features"
+    },
+    "multiple_matching_records": {
+      "label": "Multiple Matches",
+      "description": "How to handle multiple matching records in one-to-one joins"
+    },
+    "join_type": {
+      "label": "Keep All Target Features",
+      "description": "Whether to keep all target features or only matching ones"
+    },
+    "sort_configuration": {
+      "label": "Order By",
+      "description": "Sort order for selecting the first matching record"
+    },
+    "field_statistics": {
+      "label": "Statistics",
+      "description": "Statistics to calculate for matching records"
+    }
+  },
+  "enums": {
+    "routing_mode": {
+      "walking": "Walking",
+      "bicycle": "Bicycle",
+      "pedelec": "Pedelec (E-Bike)",
+      "public_transport": "Public Transport",
+      "car": "Car"
+    },
+    "impedance_function": {
+      "gaussian": "Gaussian",
+      "linear": "Linear",
+      "exponential": "Exponential",
+      "power": "Power"
+    },
+    "units": {
+      "meters": "Meters",
+      "kilometers": "Kilometers",
+      "feet": "Feet",
+      "miles": "Miles",
+      "nautical_miles": "Nautical Miles",
+      "yards": "Yards"
+    },
+    "cap_style": {
+      "CAP_ROUND": "Round",
+      "CAP_FLAT": "Flat",
+      "CAP_SQUARE": "Square"
+    },
+    "join_style": {
+      "JOIN_ROUND": "Round",
+      "JOIN_MITRE": "Mitre",
+      "JOIN_BEVEL": "Bevel"
+    },
+    "sort_order": {
+      "ascendent": "Ascending",
+      "descendent": "Descending",
+      "ascending": "Ascending",
+      "descending": "Descending"
+    },
+    "join_method": {
+      "spatial": "Spatial",
+      "attribute": "Attribute",
+      "spatial_and_attribute": "Spatial and Attribute"
+    },
+    "spatial_relationship_type": {
+      "intersects": "Intersects",
+      "within_distance": "Within Distance",
+      "identical_to": "Identical To",
+      "completely_contains": "Completely Contains",
+      "completely_within": "Completely Within"
+    },
+    "join_operation_type": {
+      "one_to_one": "One to One",
+      "one_to_many": "One to Many"
+    },
+    "multiple_matching_records_type": {
+      "first_record": "First Record",
+      "calculate_statistics": "Calculate Statistics",
+      "count_only": "Count Only"
+    },
+    "join_type": {
+      "inner": "Only Matching Features",
+      "left": "All Target Features"
+    },
+    "class_break_method": {
+      "quantile": "Quantile",
+      "equal_interval": "Equal Interval",
+      "standard_deviation": "Standard Deviation",
+      "heads_and_tails": "Heads and Tails"
+    },
+    "area_operation": {
+      "sum": "Sum",
+      "mean": "Mean",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "weekday": {
+      "weekday": "Weekday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "catchment_type": {
+      "buffer": "Buffer"
+    },
+    "distance_type": {
+      "constant": "Constant",
+      "field": "Field"
+    },
+    "input_mode": {
+      "full_address": "Full Address",
+      "structured": "Structured"
+    },
+    "geocoding_input_mode": {
+      "full_address": "Full Address",
+      "structured": "Structured"
+    },
+    "measure_type": {
+      "time": "Time",
+      "distance": "Distance"
+    },
+    "catchment_area_type": {
+      "polygon": "Polygon",
+      "network": "Network",
+      "rectangular_grid": "Hexagonal Grid"
+    },
+    "aggregation_area_type": {
+      "polygon": "Polygon",
+      "h3_grid": "H3 Grid"
+    },
+    "statistics_operation": {
+      "count": "Count",
+      "sum": "Sum",
+      "mean": "Mean",
+      "min": "Minimum",
+      "max": "Maximum"
+    }
+  },
+  "tools": {
+    "buffer": {
+      "title": "Buffer",
+      "description": "Creates buffer polygons around input features at a specified distance. Supports multiple distance values and dissolving overlapping buffers."
+    },
+    "clip": {
+      "title": "Clip",
+      "description": "Extracts input features that fall within the clip geometry. Only the portions of input features inside the clip boundary are kept."
+    },
+    "centroid": {
+      "title": "Centroid",
+      "description": "Creates a point feature class containing the geometric center (centroid) of each input feature."
+    },
+    "intersection": {
+      "title": "Intersect",
+      "description": "Computes the geometric intersection of two layers. Features or portions of features that overlap in both layers are written to the output, preserving attributes from both."
+    },
+    "aggregate_points": {
+      "title": "Aggregate Points",
+      "description": "Summarizes point features within designated areas. Calculates the total count of points and computes statistics like sum, mean, min, or max for each area."
+    },
+    "union": {
+      "title": "Union",
+      "description": "Computes the geometric union of two layers. All features and their attributes from both input layers are written to the output."
+    },
+    "difference": {
+      "title": "Erase",
+      "description": "Creates a feature class by overlaying input features with erase features. Only portions of input features falling outside the erase geometry are kept."
+    },
+    "origin_destination": {
+      "title": "Origin-Destination",
+      "description": "The Origin-Destination analysis is used in various fields such as transport planning and urban planning to study movements or flows between different locations."
+    },
+    "heatmap_gravity": {
+      "title": "Heatmap Gravity",
+      "description": "The accessibility is calculated from each grid cell to multiple locations simultaneously. The travel times are weighted and aggregated using an impedance function."
+    },
+    "heatmap_closest_average": {
+      "title": "Heatmap Closest Average",
+      "description": "The average travel time to the nearest N destinations is shown, starting from each grid cell."
+    },
+    "heatmap_connectivity": {
+      "title": "Heatmap Connectivity",
+      "description": "Connectivity of transport routes is determined by calculating catchment areas for each grid cell, where the reached area is the measure for connectivity."
+    },
+    "oev_gueteklassen": {
+      "title": "ÖV-Güteklassen",
+      "description": "The Public Transport Quality Classes (German: ÖV-Güteklassen) show the attractiveness of public transport services for a selected area."
+    },
+    "layer_import": {
+      "title": "Import Layer",
+      "description": "Import geospatial data from external sources"
+    },
+    "layer_export": {
+      "title": "Export Layer",
+      "description": "Export layer to file format"
+    },
+    "layer_delete": {
+      "title": "Delete Layer",
+      "description": "Remove layer from storage"
+    },
+    "feature_count": {
+      "title": "Feature Count",
+      "description": "Count features in a collection with optional filtering"
+    },
+    "unique_values": {
+      "title": "Unique Values",
+      "description": "Get unique values for an attribute with occurrence counts"
+    },
+    "class_breaks": {
+      "title": "Class Breaks",
+      "description": "Calculate classification breaks for a numeric attribute"
+    },
+    "area_statistics": {
+      "title": "Area Statistics",
+      "description": "Calculate area statistics for polygon features"
+    },
+    "catchment_area": {
+      "title": "Catchment Area",
+      "description": "Catchment Areas show how far people can travel within a set travel time or distance from one or more selected points.",
+      "docs_path": "toolbox/accessibility_indicators/catchments"
+    },
+    "aggregate_polygon": {
+      "title": "Aggregate Polygons",
+      "description": "Summarizes polygon features within designated areas. Calculates statistics like count, sum, mean, min, or max for each area. Supports weighting by intersection area ratio."
+    },
+    "geocoding": {
+      "title": "Geocoding",
+      "description": "Convert addresses to geographic coordinates. Supports both full address strings and structured address components."
+    },
+    "join": {
+      "title": "Join Features",
+      "description": "Transfers attributes from one layer to another based on spatial and attribute relationships. Optionally, statistics can be calculated for the joined features."
+    }
+  },
+  "routing_modes": {
+    "walk": "Walk",
+    "walking": "Walk",
+    "bicycle": "Bicycle",
+    "pedelec": "Pedelec",
+    "car": "Car",
+    "pt": "Public Transport",
+    "bus": "Bus",
+    "tram": "Tram",
+    "rail": "Rail",
+    "subway": "Subway",
+    "ferry": "Ferry",
+    "cable_car": "Cable Car",
+    "gondola": "Gondola",
+    "funicular": "Funicular"
+  }
+}

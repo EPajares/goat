@@ -271,7 +271,7 @@ class CRUDHeatmapGravity(CRUDHeatmapBase):
         )
 
         return {
-            "status": JobStatusType.finished.value,
+            "status": JobStatusType.successful.value,
             "msg": "Heatmap gravity was successfully computed.",
         }
 

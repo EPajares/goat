@@ -21,8 +21,8 @@ import { toast } from "react-toastify";
 
 import { requestDatasetUpload } from "@/lib/api/datasets";
 import { useFolders } from "@/lib/api/folders";
-import { useJobs } from "@/lib/api/jobs";
-import { createFeatureLayer, createTableLayer } from "@/lib/api/layers";
+import { createLayer } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { useProject } from "@/lib/api/projects";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
@@ -61,7 +61,6 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   const [fileValue, setFileValue] = useState<File>();
   const [fileUploadError, setFileUploadError] = useState<string>();
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>();
-  const [datasetType, setDatasetType] = useState<"feature_layer" | "table">("feature_layer");
   const [isBusy, setIsBusy] = useState(false);
   useEffect(() => {
     const homeFolder = folders?.find((folder) => folder.name === "home");
@@ -91,7 +90,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
   };
 
   const acceptedFileTypes = useMemo(() => {
-    return [".gpkg", ".geojson", ".zip", ".kml", ".csv", ".xlsx"];
+    return [".gpkg", ".geojson", ".zip", ".kml", ".csv", ".xlsx", ".parquet"];
   }, []);
 
   const handleChange = (file) => {
@@ -104,17 +103,17 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         return;
       }
 
-      // Autodetect dataset type
+      // Autodetect dataset type (for UI feedback only - backend does actual detection)
       const isFeatureLayer =
         file.name.endsWith(".gpkg") ||
         file.name.endsWith(".geojson") ||
         file.name.endsWith(".shp") ||
-        file.name.endsWith(".kml");
+        file.name.endsWith(".kml") ||
+        file.name.endsWith(".parquet");
       const isTable = file.name.endsWith(".csv") || file.name.endsWith(".xlsx");
-      if (isFeatureLayer) {
-        setDatasetType("feature_layer");
-      } else if (isTable) {
-        setDatasetType("table");
+      if (!isFeatureLayer && !isTable) {
+        setFileUploadError("Invalid file type");
+        return;
       }
       setFileValue(file);
     }
@@ -163,17 +162,11 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
         s3_key: presigned.fields.key,
       });
 
-      // Kick off layer creation depending on type
-      let response;
-      if (datasetType === "table") {
-        response = await createTableLayer(payload, projectId);
-      } else if (datasetType === "feature_layer") {
-        response = await createFeatureLayer(payload, projectId);
-      } else {
-        throw new Error("Unsupported dataset type");
-      }
+      // Kick off layer creation via OGC API Processes
+      const response = await createLayer(payload, projectId);
 
-      const jobId = response?.job_id;
+      // OGC Job response has jobID not job_id
+      const jobId = response?.jobID;
       if (jobId) {
         mutate();
         dispatch(setRunningJobIds([...runningJobIds, jobId]));
@@ -218,7 +211,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
               value={fileValue}
               multiple={false}
               onChange={handleChange}
-              placeholder={`${t("eg")} file.gpkg, file.geojson, shapefile.zip`}
+              placeholder={`${t("eg")} file.gpkg, file.geojson, file.parquet, shapefile.zip`}
             />
             <Typography variant="caption">
               {t("supported")} <b>GeoPackage</b>, <b>GeoJSON</b>, <b>Shapefile (.zip)</b>, <b>KML</b>,{" "}

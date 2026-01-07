@@ -45,7 +45,10 @@ class ContentBaseAttributes(SQLModel):
     )
     name: str | None = Field(
         default=None,
-        sa_type=Text, description="Layer name", max_length=255, nullable=False
+        sa_type=Text,
+        description="Layer name",
+        max_length=255,
+        nullable=False,
     )
     description: str | None = Field(
         default=None,

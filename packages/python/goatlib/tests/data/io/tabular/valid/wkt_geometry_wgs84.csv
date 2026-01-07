@@ -1,0 +1,4 @@
+id,name,geometry
+1,Point A,"POINT(11.5 48.1)"
+2,Point B,"POINT(11.6 48.2)"
+3,Point C,"POINT(11.7 48.15)"

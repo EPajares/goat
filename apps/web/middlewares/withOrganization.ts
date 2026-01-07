@@ -12,9 +12,23 @@ const publicPaths = ["/map/public"];
 
 export const withOrganization: MiddlewareFactory = (next) => {
   return async (request: NextRequest, _next) => {
+    // Check if auth/accounts are disabled - handle both actual values and unreplaced placeholders
+    const authDisabled = process.env.NEXT_PUBLIC_AUTH_DISABLED;
+    const accountsDisabled = process.env.NEXT_PUBLIC_ACCOUNTS_DISABLED;
+
+    const isAuthDisabled =
+      authDisabled &&
+      authDisabled !== "APP_NEXT_PUBLIC_AUTH_DISABLED" &&
+      authDisabled.toLowerCase() === "true";
+
+    const isAccountsDisabled =
+      accountsDisabled &&
+      accountsDisabled !== "APP_NEXT_PUBLIC_ACCOUNTS_DISABLED" &&
+      accountsDisabled.toLowerCase() === "true";
+
     if (
-      process.env.NEXT_PUBLIC_AUTH_DISABLED ||
-      process.env.NEXT_PUBLIC_ACCOUNTS_DISABLED ||
+      isAuthDisabled ||
+      isAccountsDisabled ||
       !process.env.NEXTAUTH_URL ||
       !process.env.NEXTAUTH_SECRET ||
       !process.env.NEXT_PUBLIC_ACCOUNTS_API_URL

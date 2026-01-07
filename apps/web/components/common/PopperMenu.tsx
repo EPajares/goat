@@ -22,10 +22,11 @@ export interface PopperMenuProps {
   menuButton: React.ReactNode;
   onSelect?: (item: PopperMenuItem) => void;
   disablePortal?: boolean;
+  placement?: "bottom" | "right" | "left" | "top";
 }
 
 export default function PopperMenu(props: PopperMenuProps) {
-  const { menuItems, menuButton, selectedItem, disablePortal = true } = props;
+  const { menuItems, menuButton, selectedItem, disablePortal = true, placement = "bottom" } = props;
   const theme = useTheme();
   const [popperMenuOpen, setPopperMenuOpen] = useState<boolean>(false);
 
@@ -45,11 +46,11 @@ export default function PopperMenu(props: PopperMenuProps) {
   return (
     <ArrowPopper
       open={popperMenuOpen}
-      placement="bottom"
+      placement={placement}
       onClose={() => setPopperMenuOpen(false)}
       disablePortal={disablePortal}
       arrow={false}
-      popperStyle={{ zIndex: 10000 }} // Ensure the popper menu is above any other element
+      popperStyle={{ zIndex: 10000, pointerEvents: "all" }} // Ensure the popper menu is above any other element and clickable
       content={
         <Paper
           elevation={8}
@@ -58,6 +59,7 @@ export default function PopperMenu(props: PopperMenuProps) {
             maxWidth: 340,
             overflow: "auto",
             py: theme.spacing(2),
+            pointerEvents: "all",
           }}>
           <List dense={true} disablePadding>
             {Object.keys(groupedMenuItems).map((group, groupIndex) => (
@@ -111,6 +113,7 @@ export default function PopperMenu(props: PopperMenuProps) {
         </Paper>
       }>
       <div
+        style={{ pointerEvents: "all" }}
         onClick={(event) => {
           event.stopPropagation();
           setPopperMenuOpen(!popperMenuOpen);

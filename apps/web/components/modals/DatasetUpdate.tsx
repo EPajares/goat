@@ -14,11 +14,10 @@ import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { requestDatasetUpload } from "@/lib/api/datasets";
-import { useJobs } from "@/lib/api/jobs";
-import { layerFeatureUrlUpload, updateLayerDataset } from "@/lib/api/layers";
+import { updateLayerDataset } from "@/lib/api/layers";
+import { useJobs } from "@/lib/api/processes";
 import { uploadFileToS3 } from "@/lib/services/s3";
 import { setRunningJobIds } from "@/lib/store/jobs/slice";
-import { externalDatasetFeatureUrlSchema } from "@/lib/validations/layer";
 
 import type { ContentDialogBaseProps } from "@/types/dashboard/content";
 
@@ -46,17 +45,16 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
   const handleUpdate = async () => {
     try {
       setIsBusy(true);
-      let uploadResponse;
-      let s3Key;
+      let s3Key: string | undefined;
+
       if (content?.data_type === "wfs") {
-        const featureUrlPayload = externalDatasetFeatureUrlSchema.parse({
-          data_type: "wfs",
-          url: content.other_properties.url,
-          other_properties: content.other_properties,
-        });
-        uploadResponse = await layerFeatureUrlUpload(featureUrlPayload);
-        if (!uploadResponse) {
-          throw new Error("Failed to upload dataset");
+        // Direct WFS refresh via OGC API Processes
+        const response = await updateLayerDataset(content.id, { refresh_wfs: true });
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
+        if (jobId) {
+          mutate();
+          dispatch(setRunningJobIds([...runningJobIds, jobId]));
         }
       } else if (fileValue) {
         // Request backend for presigned URL
@@ -69,15 +67,15 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
         // Upload file to S3 directly
         await uploadFileToS3(fileValue, presigned);
         s3Key = presigned?.fields?.key;
-      }
 
-      const datasetId = uploadResponse?.dataset_id;
-      const layerId = content.id;
-      const response = await updateLayerDataset(layerId, datasetId, s3Key);
-      const jobId = response?.job_id;
-      if (jobId) {
-        mutate();
-        dispatch(setRunningJobIds([...runningJobIds, jobId]));
+        const layerId = content.id;
+        const response = await updateLayerDataset(layerId, { s3_key: s3Key });
+        // OGC Job response has jobID not job_id
+        const jobId = response?.jobID;
+        if (jobId) {
+          mutate();
+          dispatch(setRunningJobIds([...runningJobIds, jobId]));
+        }
       }
       toast.info(`"${t("dataset_update")}" - ${t("job_started")}`);
     } catch (error) {
@@ -119,7 +117,7 @@ const DatasetUpdateModal: React.FC<ContentDialogBaseProps> = ({ open, onClose, c
                   value={fileValue}
                   multiple={false}
                   onChange={handleChange}
-                  placeholder={`${t("eg")} file.gpkg, file.geojson, shapefile.zip`}
+                  placeholder={`${t("eg")} file.gpkg, file.geojson, file.parquet, shapefile.zip`}
                 />
                 <Typography variant="caption">
                   {t("supported")} <b>GeoPackage</b>, <b>GeoJSON</b>, <b>Shapefile (.zip)</b>, <b>KML</b>,{" "}

@@ -3,6 +3,7 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 import type { MapGeoJSONFeature } from "react-map-gl/maplibre";
 
 import { MAPTILER_KEY } from "@/lib/constants";
+import type { UnitPreference } from "@/lib/utils/measurementUnits";
 import type { BuilderPanelSchema, BuilderWidgetSchema, Project } from "@/lib/validations/project";
 import type { Scenario } from "@/lib/validations/scenario";
 
@@ -11,6 +12,37 @@ import { MapSidebarItemID } from "@/types/map/common";
 import type { Result } from "@/types/map/controllers";
 import type { MapPopoverEditorProps, MapPopoverInfoProps } from "@/types/map/popover";
 
+export type MeasureToolType = "line" | "distance" | "circle" | "area" | "walking" | "car";
+
+export type Measurement = {
+  id: string;
+  drawFeatureId: string; // Links to the MapboxDraw feature ID
+  type: MeasureToolType;
+  value: number;
+  formattedValue: string;
+  geometry: GeoJSON.Geometry;
+  unitSystem?: UnitPreference;
+  properties?: {
+    perimeter?: number;
+    formattedPerimeter?: string;
+    radius?: number;
+    formattedRadius?: string;
+    azimuth?: number; // Bearing angle in degrees (0-360) for circles
+    formattedAzimuth?: string;
+    center?: [number, number]; // Center point for circles
+    // Routing-specific properties
+    routeDistance?: number; // Route distance in meters (from routing engine)
+    duration?: number; // Route duration in seconds
+    formattedDuration?: string; // Formatted duration string
+    legs?: Array<{
+      mode: string;
+      duration: number;
+      distance: number;
+    }>; // Route leg details
+    transfers?: number; // Number of transfers (for transit routes)
+  };
+};
+
 export type TemporaryFilter = {
   id: string; // unique identifier
   layer_id: number; // layer id
@@ -18,7 +50,7 @@ export type TemporaryFilter = {
   spatial_cross_filter?: object | undefined;
 };
 
-export type MapMode = "data" | "builder" | "public";
+export type MapMode = "data" | "builder" | "reports" | "workflows" | "public";
 
 export interface MapState {
   project: Project | undefined;
@@ -48,6 +80,11 @@ export interface MapState {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   temporaryFilters: TemporaryFilter[]; // Temporary filters for the map,
   collapsedPanels: Record<string, boolean>;
+  // Measurement state
+  activeMeasureTool: MeasureToolType | undefined;
+  measurements: Measurement[];
+  isMeasuring: boolean;
+  selectedMeasurementId: string | undefined;
 }
 
 const initialState = {
@@ -121,6 +158,10 @@ const initialState = {
   selectedBuilderItem: undefined,
   temporaryFilters: [] as TemporaryFilter[],
   collapsedPanels: {},
+  activeMeasureTool: undefined,
+  measurements: [] as Measurement[],
+  isMeasuring: false,
+  selectedMeasurementId: undefined,
 } as MapState;
 
 const mapSlice = createSlice({
@@ -232,6 +273,37 @@ const mapSlice = createSlice({
         ...action.payload,
       };
     },
+    // Measurement reducers
+    setActiveMeasureTool: (state, action: PayloadAction<MeasureToolType | undefined>) => {
+      state.activeMeasureTool = action.payload;
+      state.isMeasuring = action.payload !== undefined;
+    },
+    addMeasurement: (state, action: PayloadAction<Measurement>) => {
+      state.measurements.push(action.payload);
+    },
+    updateMeasurement: (state, action: PayloadAction<Measurement>) => {
+      const index = state.measurements.findIndex((m) => m.id === action.payload.id);
+      if (index !== -1) {
+        state.measurements[index] = action.payload;
+      }
+    },
+    removeMeasurement: (state, action: PayloadAction<string>) => {
+      state.measurements = state.measurements.filter((m) => m.id !== action.payload);
+      // Clear selection if the removed measurement was selected
+      if (state.selectedMeasurementId === action.payload) {
+        state.selectedMeasurementId = undefined;
+      }
+    },
+    clearMeasurements: (state) => {
+      state.measurements = [];
+      state.selectedMeasurementId = undefined;
+    },
+    setIsMeasuring: (state, action: PayloadAction<boolean>) => {
+      state.isMeasuring = action.payload;
+    },
+    setSelectedMeasurementId: (state, action: PayloadAction<string | undefined>) => {
+      state.selectedMeasurementId = action.payload;
+    },
   },
 });
 
@@ -259,6 +331,13 @@ export const {
   updateTemporaryFilter,
   removeTemporaryFilter,
   setCollapsedPanels,
+  setActiveMeasureTool,
+  addMeasurement,
+  updateMeasurement,
+  removeMeasurement,
+  clearMeasurements,
+  setIsMeasuring,
+  setSelectedMeasurementId,
 } = mapSlice.actions;
 
 export const mapReducer = mapSlice.reducer;

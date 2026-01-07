@@ -1,15 +1,20 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, List, Literal, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, HttpUrl, ValidationInfo, computed_field, field_validator
+from pydantic import (
+    UUID4,
+    BaseModel,
+    HttpUrl,
+    ValidationInfo,
+    field_validator,
+)
 from sqlmodel import ARRAY, Column, Field, ForeignKey, SQLModel, Text
 from sqlmodel import UUID as UUID_PG
 
 from core.core.config import settings
 from core.db.models._base_class import ContentBaseAttributes, DateTimeBase
-from core.db.models.layer import internal_layer_table_name
 from core.schemas.common import CQLQuery
 from core.schemas.layer import (
     ExternalServiceOtherProperties,
@@ -19,7 +24,7 @@ from core.schemas.layer import (
     RasterRead,
     TableRead,
 )
-from core.utils import build_where, optional
+from core.utils import optional
 
 
 ################################################################################
@@ -175,42 +180,26 @@ class IFeatureBaseProjectRead(IFeatureBaseProject):
     filtered_count: int | None = Field(
         None, description="Filtered count of features in the layer"
     )
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
 
 class IFeatureStandardProjectRead(
     LayerProjectIds, FeatureStandardRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureToolProjectRead(
     LayerProjectIds, FeatureToolRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureStreetNetworkProjectRead(
     LayerProjectIds, FeatureStreetNetworkRead, IFeatureBaseProjectRead
 ):
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    pass
 
 
 class IFeatureStandardProjectUpdate(IFeatureBaseProject):
@@ -245,15 +234,8 @@ class ITableProjectRead(LayerProjectIds, TableRead, CQLQuery):
     filtered_count: int | None = Field(
         None, description="Filtered count of features in the layer"
     )
-
-    # Compute table_name and where_query
-    @computed_field
-    def table_name(self) -> str:
-        return internal_layer_table_name(self)
-
-    @computed_field
-    def where_query(self) -> str | None:
-        return where_query(self)
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
 
 @optional
@@ -268,6 +250,8 @@ class IRasterProjectRead(LayerProjectIds, RasterRead):
         None,
         description="Layer properties",
     )
+    order: int = Field(0, description="Visual sorting order")
+    layer_project_group_id: int | None = Field(None, description="Parent group ID")
 
 
 @optional
@@ -327,6 +311,9 @@ class ProjectPublicConfig(BaseModel):
         | ITableProjectRead
         | IRasterProjectRead
     ] = Field(..., description="Layers of the project")
+    layer_groups: list["ILayerProjectGroupRead"] = Field(
+        ..., description="Layer groups of the project"
+    )
     project: ProjectPublicProjectConfig = Field(
         ..., description="Project configuration"
     )
@@ -339,20 +326,39 @@ class ProjectPublicRead(BaseModel):
     config: ProjectPublicConfig
 
 
-def where_query(
-    values: IFeatureStandardProjectRead
-    | IFeatureToolProjectRead
-    | IFeatureStreetNetworkProjectRead
-    | ITableProjectRead,
-) -> str | None:
-    table_name = internal_layer_table_name(values)
-    # Check if query exists then build where query
-    return build_where(
-        id=values.layer_id,
-        table_name=table_name,
-        query=values.query,
-        attribute_mapping=values.attribute_mapping,
-    )
+# --- Schemas for Tree Structure Updates (Drag & Drop) ---
+
+
+# WRITE Model (PUT) - for the bulk update
+class LayerTreeItem(BaseModel):
+    id: int
+    type: Literal["group", "layer"]
+    order: int
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class LayerTreeUpdate(BaseModel):
+    items: List[LayerTreeItem]
+
+
+# --- Schemas for Group CRUD (Renamed) ---
+class ILayerProjectGroupCreate(BaseModel):
+    name: str
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class ILayerProjectGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    properties: dict[str, Any] | None = None
+    parent_id: Optional[int] = None
+
+
+class ILayerProjectGroupRead(ILayerProjectGroupCreate):
+    id: int
+    project_id: UUID4
+    order: int
 
 
 # TODO: Refactor

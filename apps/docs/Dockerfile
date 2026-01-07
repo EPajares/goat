@@ -1,4 +1,4 @@
-FROM node:18-alpine AS installer
+FROM node:22-alpine AS installer
 RUN npm install -g corepack@latest
 RUN corepack enable && corepack prepare pnpm@latest --activate
 

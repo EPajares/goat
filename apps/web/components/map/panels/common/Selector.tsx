@@ -78,7 +78,13 @@ const Selector = (props: SelectorProps) => {
       {label && (
         <FormLabelHelper
           label={label}
-          color={disabled ? theme.palette.secondary.main : focused ? theme.palette.primary.main : "inherit"}
+          color={
+            disabled
+              ? theme.palette.secondary.main
+              : focused
+                ? theme.palette.primary.main
+                : theme.palette.text.secondary
+          }
           tooltip={tooltip}
         />
       )}
