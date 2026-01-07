@@ -55,7 +55,7 @@ export const sizeScale = z.enum(["linear", "logarithmic", "exponential"]);
 const layerFieldType = z.object({
   $ref: z.string().optional(),
   name: z.string(),
-  type: z.union([z.literal("string"), z.literal("number"), z.literal("object")]),
+  type: z.string(),
 });
 
 export const layerClassBreaks = z.object({

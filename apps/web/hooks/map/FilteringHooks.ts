@@ -1,12 +1,11 @@
 import { useMemo } from "react";
-
-import { useTranslation } from 'react-i18next'
+import { useTranslation } from "react-i18next";
 
 import type { SelectorItem } from "@/types/map/common";
 
-const useLogicalExpressionOperations = (
-  selectedField?: "string" | "number" | "date" | "boolean" | "object"
-) => {
+type FieldType = "string" | "number" | "date" | "boolean" | "object";
+
+const useLogicalExpressionOperations = (selectedField?: FieldType | (string & NonNullable<unknown>)) => {
   const { t } = useTranslation("common");
   const logicalExpressionTypes: SelectorItem[] = useMemo(() => {
     const baseItems = [
