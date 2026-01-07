@@ -8,26 +8,25 @@
   "customizations": {
     "vscode": {
         "extensions": [
-          "ban.spellright", // Spell check for docs
-          "DavidAnson.vscode-markdownlint", // markdown linting
-          "dbaeumer.vscode-eslint", // eslint plugin
-          "esbenp.prettier-vscode", // prettier plugin
-          "yzhang.markdown-all-in-one", // nicer markdown support
-          "lokalise.i18n-ally", // i18n plugin
-          // Python
-          "ms-python.mypy-type-checker", // mypy type checker
-          "ms-python.python", // python plugin
-          "ms-python.debugpy", // python debugger
-          "ms-python.vscode-pylance", // pylance plugin
-          "charliermarsh.ruff", // ruff plugin
-          "tamasfe.even-better-toml", // TOML plugin
-          // Utilities
-          "github.copilot", // GitHub Copilot
-          "github.copilot-chat", // GitHub Copilot Chat
-          "ms-vscode.vscode-copilot-vision", // GitHub Copilot Vision
-          "ms-vscode.vscode-copilot-data-analysis", // GitHub Copilot Data Analysis
-          "gruntfuggly.todo-tree", // todo tree
-          "aaron-bond.better-comments" // better comments
+          "ban.spellright",
+          "DavidAnson.vscode-markdownlint",
+          "dbaeumer.vscode-eslint",
+          "esbenp.prettier-vscode",
+          "yzhang.markdown-all-in-one",
+          "lokalise.i18n-ally",
+          "ms-python.mypy-type-checker",
+          "ms-python.python",
+          "ms-python.debugpy",
+          "ms-python.vscode-pylance",
+          "charliermarsh.ruff",
+          "tamasfe.even-better-toml",
+          "github.copilot",
+          "github.copilot-chat",
+          "ms-vscode.vscode-copilot-vision",
+          "ms-vscode.vscode-copilot-data-analysis",
+          "gruntfuggly.todo-tree",
+          "aaron-bond.better-comments",
+          "lucien-martijn.parquet-visualizer"
         ]
     }
   },

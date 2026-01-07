@@ -1,0 +1,8 @@
+{
+  "label": "Datenverwaltung",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Um Ihre Daten zu verwalten, können Sie verschiedene Arten von Verknüpfungsoperationen durchführen, entweder basierend auf einem übereinstimmenden Attribut oder basierend auf einer räumlichen Überschneidung."
+  }
+}

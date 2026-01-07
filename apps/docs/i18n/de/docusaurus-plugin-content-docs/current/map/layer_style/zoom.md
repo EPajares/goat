@@ -5,38 +5,68 @@ import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
 
-# Sichtbarkeit Zoomen
 
-Mit der Zoom-Sichtbarkeitsleiste können Sie den Zoom-Bereich einstellen, in dem jeder Layer auf der Karte erscheint. Dies hilft Ihnen, die **relevantesten Daten auf verschiedenen Zoom-Leveln anzuzeigen**: zum Beispiel detaillierte Informationen bei der Vergrößerung.
+# Zoom-Sichtbarkeit
 
-::::info
-Standardmäßig sind alle Layer im Bereich von 1-22 Zoom-Level sichtbar, sofern dies nicht geändert wird.
-::::
-
-Der Bereich reicht von **Weltansicht (0) bis Straßenebenen-Detail (22)**, und das aktuelle Zoom-Level wird auf der Skala angezeigt.
+**Die Zoom-Sichtbarkeitsfunktion kontrolliert den Zoom-Bereich, in dem jeder Layer auf Ihrer Karte erscheint.** Dies hilft Ihnen, die relevantesten Daten bei verschiedenen Zoom-Stufen anzuzeigen und die Kartenleistung zu optimieren.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/map/styling/zoom.png').default} alt="Zoom-Sichtbarkeitsskala in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div>
 
-  <img src={require('/img/map/styling/zoom_scale.png').default} alt="zoom scale" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 
-</div> 
+## Zoom-Stufen verstehen
 
-<br></br>
+GOAT verwendet Zoom-Stufen von **0 (Weltansicht) bis 22 (Straßenebenen-Detail)**:
 
-Sie können die Zoom-Level **manuell** eingeben oder sie direkt **auf der Skala anpassen**.
+| Zoom-Stufe | Typischer Anwendungsfall         |
+| ---------- | -------------------------------- |
+| **0-8**    | Globaler bis regionaler Kontext  |
+| **9-14**   | Stadt- bis Nachbarschaftsanalyse |
+| **15-22**  | Straßenebenen-Details            |
+
+:::info Standardeinstellungen
+Alle Layer sind über die Zoom-Stufen 1-22 sichtbar, sofern nicht anders konfiguriert.
+:::
+
+
+## Wie man Zoom-Sichtbarkeit einstellt
+
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">Wählen Sie Ihren Layer und navigieren Sie zu <code>Layer Design</code> <img src={require('/img/icons/styling.png').default} alt="Styling Icon" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> und finden Sie den <code>Zoom-Sichtbarkeitsbereich</code></div>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Stellen Sie Ihren Bereich ein, indem Sie <strong>die Griffe auf der Skala ziehen oder Werte manuell eingeben.</strong></div>
+</div>
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/map/styling/zoom_adjust.gif').default} alt="Color Picker" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
-</div> 
+  <img src={require('/img/map/styling/zoom_adjust.gif').default} alt="Zoom-Sichtbarkeitseinstellungen anpassen" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+</div>
 
-## Tipps
 
-- Layer mit *vielen Details* (z. B. Gebäude oder POIs) sind oft besser bei **höheren Zoom-Leveln** zu sehen.
-- **Engere Zoom-Bereiche** helfen, dichte Layer übersichtlich zu halten.
-- Für *Hintergrund- oder Kontext-Layer* ist ein **breiterer Bereich** in der Regel am besten.
+## Bewährte Praktiken
+
+<b>Detaillierte Features</b> (Gebäude, POIs): Verwenden Sie höhere Zoom-Stufen (14-22), um Durcheinander zu vermeiden.
+
+<b>Regionale Daten</b> (Demografie, Grenzen): Verwenden Sie mittlere Stufen (8-16) für Kontext.
+
+<b>Hintergrund-Layer</b> (Straßen, Wasser): Verwenden Sie den vollen Bereich (1-22) für konsistente Referenz.
+
+<b>Zusammenfassende Daten</b> (Heatmaps, Aggregiert): Verwenden Sie niedrigere Stufen (1-14) für Überblick.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/map/styling/zooming_out.gif').default} alt="Zoom-Sichtbarkeits-Demonstration" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+</div>
 
-  <img src={require('/img/map/styling/zooming_out.gif').default} alt="zoom scale screen" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+<p></p>
 
-</div> 
+:::tip Profi-Tipp
+Testen Sie Ihre Einstellungen, indem Sie hinein- und herauszoomen, um zu sehen, wie Layer bei verschiedenen Maßstäben erscheinen.
+:::
+
+:::info Verwandte Funktionen
+Erkunden Sie andere [Layer-Styling](../../category/style) Optionen und kombinieren Sie mit [Filter](../filter) für erweiterte Datenpräsentation.
+::: 

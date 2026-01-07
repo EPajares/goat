@@ -94,7 +94,7 @@ Die **Quantil-Klassifizierung** ist eine in Geografischen Informationssystemen (
 
 In GIS wird die Quantilklassifizierung häufig zur Erstellung von Choroplethen-Karten verwendet, d. h. von Karten, die verschiedene Werte einer Variablen farblich darstellen. Ein Beispiel: eine Choroplethenkarte der Bevölkerungsdichte einer Stadt. Die Karte wäre z. B. in fünf farbcodierte Kategorien unterteilt, wobei jede Kategorie einen anderen Bereich der Bevölkerungsdichte darstellt. 
 
-Die Quantil-Klassifizierung kann für [attribute-based styling](../map/layer_style/attribute_based_styling.md) in GOAT verwendet werden. 
+Die Quantil-Klassifizierung kann für [attribute-based styling](../map/layer_style/style/attribute_based_styling) in GOAT verwendet werden. 
 
 ### Routing 
 **Routing** <img src={require('/img/literature/glossary/routing_logo.webp').default} width="1000px" alt="routing" style={{width: "100px", height: "170px", maxHeight: "50px", maxWidth: "50px", objectFit: "cover"}}/> bezieht sich auf den Prozess der Suche nach dem schnellsten oder kürzesten Weg von einem Ort zum anderen. Dies wird häufig in der Verkehrsplanung und in Navigationssystemen verwendet, um Menschen dabei zu helfen, von Punkt A nach Punkt B zu gelangen, ist aber auch für die Analyse der Barrierefreiheit von entscheidender Bedeutung.
