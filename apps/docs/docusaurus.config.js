@@ -58,6 +58,24 @@ const config = {
       }),
     ],
   ],
+  plugins: [
+    [
+      "@docusaurus/plugin-content-docs",
+      {
+        id: "tutorials",
+        path: "tutorials",
+        routeBasePath: "tutorials",
+        sidebarPath: require.resolve("./sidebarsTutorials.js"),
+        editUrl: ({ locale, docPath }) => {
+          const translation = locale || 'en';
+          if (translation !== 'en') {
+            return `https://github.com/plan4better/goat/edit/main/apps/docs/i18n/${translation}/docusaurus-plugin-content-docs-tutorials/current/${docPath}`;
+          }
+          return `https://github.com/plan4better/goat/edit/main/apps/docs/tutorials/${docPath}`;
+        },
+      },
+    ],
+  ],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -75,6 +93,12 @@ const config = {
             sidebarId: "tutorialSidebar",
             position: "left",
             label: "Docs",
+          },
+          {
+            to: "/tutorials",
+            label: "Tutorials",
+            position: "left",
+            activeBaseRegex: `/tutorials/`,
           },
           {
             to: "https://plan4better.de/en/blog/",

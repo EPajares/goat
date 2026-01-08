@@ -8,12 +8,12 @@ The tool creates buffer zones around features from an input layer.
 
 import logging
 from pathlib import Path
-from typing import Self
+from typing import Any, Self
 
 from pydantic import ConfigDict
 
 from goatlib.analysis.geoprocessing.buffer import BufferTool
-from goatlib.analysis.schemas.geoprocessing import BufferParams
+from goatlib.analysis.schemas.geoprocessing import BufferParams, DistanceType
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
@@ -66,6 +66,38 @@ class BufferToolRunner(BaseToolRunner[BufferToolParams]):
     tool_class = BufferTool
     output_geometry_type = "polygon"
     default_output_name = "Buffer"
+
+    def get_layer_properties(
+        self: Self,
+        params: BufferToolParams,
+        metadata: DatasetMetadata,
+        table_info: dict[str, Any] | None = None,
+    ) -> dict[str, Any] | None:
+        """Return style for buffer with ordinal scale based on buffer_distance values.
+
+        Creates an ordinal color map where each buffer distance gets a distinct color.
+        Uses the shared get_ordinal_polygon_style utility with color interpolation.
+        """
+        from goatlib.tools.style import get_ordinal_polygon_style
+
+        # Get buffer distances from params (only for constant distances)
+        if params.distance_type == DistanceType.constant and params.distances:
+            from goatlib.utils.helper import UNIT_TO_METERS
+
+            unit_mult = UNIT_TO_METERS.get(params.units, 1.0)
+            # Convert to integers (matching how they're stored in the parquet)
+            distances = sorted([int(round(d * unit_mult)) for d in params.distances])
+        else:
+            # For field-based distances, use default style
+            return None
+
+        # Use shared ordinal style utility with OrRd (orange-red) palette
+        return get_ordinal_polygon_style(
+            color_field="buffer_distance",
+            values=distances,
+            palette="OrRd",
+            opacity=0.7,
+        )
 
     def process(
         self: Self, params: BufferToolParams, temp_dir: Path
