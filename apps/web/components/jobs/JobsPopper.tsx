@@ -1,7 +1,8 @@
 import DownloadIcon from "@mui/icons-material/Download";
 import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
@@ -44,13 +45,18 @@ export default function JobsPopper() {
   const [open, setOpen] = useState(false);
   const { jobs } = useJobs({ read: false });
 
+  // Track which export jobs have been auto-downloaded to avoid duplicate downloads
+  const downloadedJobsRef = useRef<Set<string>>(new Set());
+  // Track jobs that were already successful on initial load (don't auto-download these)
+  const initialSuccessfulJobsRef = useRef<Set<string> | null>(null);
+
   // Filter to get running/accepted jobs using OGC status
   const runningJobs = useMemo(() => {
     return jobs?.jobs?.filter((job) => job.status === "running" || job.status === "accepted");
   }, [jobs?.jobs]);
 
   // Handle download for LayerExport jobs
-  const handleExportDownload = async (payload: Record<string, unknown> | undefined) => {
+  const handleExportDownload = async (payload: Record<string, unknown> | undefined, showToast = false) => {
     if (!payload) return;
     try {
       const downloadUrl = payload.download_url as string;
@@ -65,10 +71,52 @@ export default function JobsPopper() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
+      if (showToast) {
+        toast.success(t("download_started") || "Download started");
+      }
     } catch (error) {
       console.error("Download failed:", error);
+      if (showToast) {
+        toast.error(t("error_downloading") || "Download failed");
+      }
     }
   };
+
+  // Auto-download completed export jobs (only for jobs that complete AFTER initial load)
+  useEffect(() => {
+    if (!jobs?.jobs) return;
+
+    // On first load, capture which jobs are already successful (don't auto-download these)
+    if (initialSuccessfulJobsRef.current === null) {
+      initialSuccessfulJobsRef.current = new Set(
+        jobs.jobs
+          .filter((job) => job.processID === "layer_export" && job.status === "successful")
+          .map((job) => job.jobID)
+      );
+      return;
+    }
+
+    jobs.jobs.forEach((job) => {
+      // Only auto-download layer_export jobs that:
+      // 1. Completed successfully
+      // 2. Were NOT already successful on initial load
+      // 3. Haven't been downloaded yet in this session
+      if (
+        job.processID === "layer_export" &&
+        job.status === "successful" &&
+        !initialSuccessfulJobsRef.current?.has(job.jobID) &&
+        !downloadedJobsRef.current.has(job.jobID)
+      ) {
+        const result = job.result as Record<string, unknown> | undefined;
+        if (result?.download_url) {
+          // Mark as downloaded before triggering to prevent race conditions
+          downloadedJobsRef.current.add(job.jobID);
+          handleExportDownload(result, true);
+        }
+      }
+    });
+  }, [jobs?.jobs, t]);
 
   // Helper to render download button for export jobs
   const renderExportDownloadButton = (job: Job) => {

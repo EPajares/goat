@@ -1,9 +1,12 @@
 import logging
 from pathlib import Path
-from typing import List, Optional, Self, Tuple
+from typing import TYPE_CHECKING, List, Optional, Self, Tuple
+
+if TYPE_CHECKING:
+    import duckdb
 
 from goatlib.analysis.core.base import AnalysisTool
-from goatlib.analysis.schemas.geoprocessing import BufferParams
+from goatlib.analysis.schemas.geoprocessing import BufferParams, DistanceType
 from goatlib.models.io import DatasetMetadata
 from goatlib.utils.helper import UNIT_TO_METERS
 
@@ -79,8 +82,16 @@ class BufferTool(AnalysisTool):
         input_crs_str: Optional[str],
         output_path: Path,
     ) -> None:
-        """Execute the buffer operation in DuckDB."""
+        """Execute the buffer operation in DuckDB.
+
+        Supports:
+        - Constant distances (list of distances applied to all features)
+        - Field-based distances (per-feature distance from a column)
+        - Polygon difference (incremental rings between distance steps)
+        - Dissolve (merge overlapping buffers)
+        """
         con = self.con
+        unit_multiplier = UNIT_TO_METERS[params.units]
 
         work_view = "v_work"
         con.execute(
@@ -104,30 +115,24 @@ class BufferTool(AnalysisTool):
         wgs84_proj = "'+proj=longlat +datum=WGS84 +no_defs'"
 
         if input_crs_str and input_crs_str != "EPSG:4326":
-            # Convert input to WGS84 first
             geom_wgs84 = f"ST_Transform(geom, '{input_crs_str}', {wgs84_proj})"
         else:
-            # Assume input is already WGS84 Lon/Lat.
-            # We explicitly do NOT transform from 'EPSG:4326' here because PROJ might
-            # interpret EPSG:4326 as Lat/Lon, initializing a flip if our data is Lon/Lat.
             geom_wgs84 = "geom"
 
         # 2. Dynamic UTM Zone Expression based on Centroid
-        # Calculates EPSG code: 326xx (North) or 327xx (South) + zone number
         utm_zone_expr = f"""
             ('EPSG:' || CAST((
-                CASE WHEN ST_Y(ST_Centroid({geom_wgs84})) >= 0 THEN 32600 ELSE 32700 END 
+                CASE WHEN ST_Y(ST_Centroid({geom_wgs84})) >= 0 THEN 32600 ELSE 32700 END
                 + CAST(FLOOR((ST_X(ST_Centroid({geom_wgs84})) + 180) / 6) + 1 AS INT)
             ) AS VARCHAR))
         """
 
-        # 3. Project to Dynamic UTM -> Buffer -> Project back to WGS84
-        # We do this all in one expression to ensure the same UTM zone is used for both transforms
+        # 3. Buffer expression template (distance placeholder)
         buffer_expr_template = f"""
             ST_Transform(
                 ST_Buffer(
-                    ST_Transform({geom_wgs84}, {wgs84_proj}, {utm_zone_expr}), 
-                    {{dist}}, 
+                    ST_Transform({geom_wgs84}, {wgs84_proj}, {utm_zone_expr}),
+                    {{dist_expr}},
                     {opts}
                 ),
                 {utm_zone_expr},
@@ -135,49 +140,102 @@ class BufferTool(AnalysisTool):
             )
         """
 
-        # --- Convert distance units
-        distances_m = [
-            d * UNIT_TO_METERS[params.units] for d in (params.distances or [])
-        ]
-
-        # --- Buffer execution
-        buffer_tables = []
-        for i, dist in enumerate(distances_m):
-            tmp = f"buf_{i}"
-            # Inject distance into the template
-            dist_expr = buffer_expr_template.format(dist=dist)
+        # --- Handle distance_field vs constant distances
+        if params.distance_type == DistanceType.field and params.distance_field:
+            # Per-feature buffer using a field value
+            dist_expr = f'"{params.distance_field}" * {unit_multiplier}'
+            buffer_expr = buffer_expr_template.format(dist_expr=dist_expr)
 
             con.execute(
                 f"""
-                CREATE OR REPLACE TEMP TABLE {tmp} AS
+                CREATE OR REPLACE TEMP TABLE buffers AS
                 SELECT * EXCLUDE (geom),
-                    {dist_expr} AS geometry
+                    "{params.distance_field}" AS buffer_distance,
+                    {buffer_expr} AS geometry
                 FROM {work_view}
+                WHERE "{params.distance_field}" IS NOT NULL
+                  AND "{params.distance_field}" > 0
                 """
             )
-            buffer_tables.append(tmp)
+        else:
+            # Constant distances - create multiple buffers per feature
+            distances_m = [d * unit_multiplier for d in (params.distances or [])]
 
-        con.execute(
-            "CREATE OR REPLACE TEMP TABLE buffers AS "
-            + " UNION ALL ".join(f"SELECT * FROM {t}" for t in buffer_tables)
-        )
+            buffer_tables = []
+            for i, dist in enumerate(sorted(distances_m)):
+                tmp = f"buf_{i}"
+                buffer_expr = buffer_expr_template.format(dist_expr=str(dist))
+                # Store as integer for ordinal styling
+                dist_int = int(round(dist))
 
-        # --- Result is now in WGS84 ({wgs84_proj})
+                con.execute(
+                    f"""
+                    CREATE OR REPLACE TEMP TABLE {tmp} AS
+                    SELECT * EXCLUDE (geom),
+                        {dist_int} AS buffer_distance,
+                        {buffer_expr} AS geometry
+                    FROM {work_view}
+                    """
+                )
+                buffer_tables.append(tmp)
 
-        # --- Optional dissolve
-        source = "buffers"
-        if params.dissolve:
             con.execute(
-                """
+                "CREATE OR REPLACE TEMP TABLE buffers AS "
+                + " UNION ALL ".join(f"SELECT * FROM {t}" for t in buffer_tables)
+            )
+
+        # --- Optional polygon union (merge overlapping buffers at same distance)
+        # Must happen BEFORE polygon difference
+        source = "buffers"
+        polygon_union = getattr(params, "polygon_union", False)
+        if polygon_union:
+            # When merging, group by buffer_distance to preserve the rings
+            con.execute(
+                f"""
                 CREATE OR REPLACE TEMP TABLE dissolved AS
-                SELECT ST_Union_Agg(geometry) AS geometry
-                FROM buffers
+                SELECT buffer_distance,
+                    ST_Union_Agg(geometry) AS geometry
+                FROM {source}
+                GROUP BY buffer_distance
                 """
             )
             source = "dissolved"
 
+        # --- Optional polygon difference (incremental rings)
+        # Must happen AFTER polygon union to get clean rings
+        polygon_difference = getattr(params, "polygon_difference", False)
+
+        if (
+            polygon_difference
+            and polygon_union  # Difference only makes sense with union
+            and params.distance_type == DistanceType.constant
+            and params.distances
+            and len(params.distances) > 1
+        ):
+            # Create difference polygons - subtract smaller buffer from larger
+            # After union, we have one geometry per buffer_distance
+            con.execute(
+                f"""
+                CREATE OR REPLACE TEMP TABLE diff_buffers AS
+                WITH ordered AS (
+                    SELECT *,
+                        LAG(geometry) OVER (ORDER BY buffer_distance) AS prev_geometry
+                    FROM {source}
+                ),
+                diffed AS (
+                    SELECT buffer_distance,
+                        CASE
+                            WHEN prev_geometry IS NULL THEN geometry
+                            ELSE ST_Difference(geometry, prev_geometry)
+                        END AS geometry
+                    FROM ordered
+                )
+                SELECT * FROM diffed
+                """
+            )
+            source = "diff_buffers"
+
         # --- Reproject back to input CRS if needed
-        # The result is currently WGS84. If input was different, transform back.
         if input_crs_str and input_crs_str != "EPSG:4326":
             con.execute(
                 f"""
@@ -194,3 +252,31 @@ class BufferTool(AnalysisTool):
         )
 
         logger.info("GeoParquet written to %s", output_path)
+
+    def _get_id_columns(
+        self: Self, con: "duckdb.DuckDBPyConnection", table_name: str
+    ) -> str:
+        """Get a list of columns that can be used as feature identifiers.
+
+        Returns a SQL expression for partitioning in window functions.
+        Falls back to using all non-geometry columns if no id column exists.
+        """
+        result = con.execute(
+            f"SELECT column_name FROM information_schema.columns "
+            f"WHERE table_name = '{table_name}' "
+            f"AND column_name NOT IN ('geometry', 'geom', 'buffer_distance')"
+        ).fetchall()
+
+        columns = [row[0] for row in result]
+
+        # Look for common ID column names
+        id_cols = [c for c in columns if c.lower() in ("id", "fid", "gid", "ogc_fid")]
+        if id_cols:
+            return id_cols[0]
+
+        # Fallback: use all other columns (may not be unique)
+        if columns:
+            return ", ".join(f'"{c}"' for c in columns[:3])  # Limit to first 3
+
+        # Last resort: just use rowid-like expression
+        return "1"  # Will effectively not partition

@@ -72,6 +72,10 @@ class BufferParams(BaseModel):
         json_schema_extra=ui_field(
             section="configuration",
             field_order=1,
+            enum_labels={
+                "constant": "enums.distance_type.constant",
+                "field": "enums.distance_type.field",
+            },
         ),
     )
 
@@ -108,11 +112,28 @@ class BufferParams(BaseModel):
         json_schema_extra=ui_field(section="configuration", field_order=3),
     )
 
-    # Controls whether overlapping buffers are dissolved into a single geometry
-    dissolve: bool = Field(
+    # Controls whether overlapping buffers are merged (unioned) into a single geometry per distance
+    polygon_union: bool = Field(
         False,
-        description="If True, overlapping buffers will be merged (dissolved) into a single geometry.",
-        json_schema_extra=ui_field(section="configuration", field_order=4),
+        description="If True, overlapping buffers at the same distance will be merged "
+        "(unioned) into a single geometry.",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=4,
+            label_key="polygon_union",
+        ),
+    )
+
+    # Controls whether to create incremental (difference) polygons between buffer steps
+    polygon_difference: bool = Field(
+        False,
+        description="If True, creates incremental polygons showing the difference between "
+        "consecutive buffer steps (like catchment area rings). Requires polygon_union to be enabled.",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=5,
+            visible_when={"polygon_union": True},
+        ),
     )
 
     # Advanced buffer parameters (GEOS / ST_Buffer options)
@@ -178,6 +199,12 @@ class BufferParams(BaseModel):
                 raise ValueError(
                     "distance_field must be set when distance_type is 'field'."
                 )
+
+        # Validate polygon_difference requires polygon_union
+        if self.polygon_difference and not self.polygon_union:
+            raise ValueError(
+                "polygon_difference can only be True when polygon_union is also True."
+            )
 
         # Validate mitre_limit usage
         if self.join_style != "JOIN_MITRE" and self.mitre_limit != 1.0:

@@ -467,7 +467,8 @@ class WindmillClient:
 
                     async def fetch_job_details(job: dict[str, Any]) -> None:
                         try:
-                            full_job = await self.get_job_status(job["id"])
+                            # Use get_job_with_result to get both status and result
+                            full_job = await self.get_job_with_result(job["id"])
                             # Merge full job details into the list item
                             job["args"] = full_job.get("args")
                             if full_job.get("success") is True:
