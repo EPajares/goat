@@ -1,38 +1,67 @@
 ---
-sidebar_position: 3
+sidebar_position: 2
 ---
 
+# Data Types
 
-# Attribute Types
+GOAT supports various data types to handle different kinds of information in your datasets. Understanding these data types helps you work more effectively with your data and ensures optimal performance.
 
-GOAT handles a wide range of geometry types for spatial data. This capability is achieved by using a [PostgreSQL](https://www.postgresql.org/docs/) database enhanced with the [PostGIS](https://postgis.net/documentation/) extension. GOAT stores all geometries in the **PostGIS geometry type** (PostGIS geometry type is a way to store and work with various shapes and locations on a map within a PostgreSQL database. It allows you to keep details about points (such as landmarks), lines (such as roads), and areas (such as districts) directly in your database) within the **EPSG:4326** coordinate reference system. However, for operations involving length or area measurements, the PostGIS geography type is used. This type allows calculations in meters and offers higher accuracy.
+## Spatial Data Storage
 
-Furthermore, GOAT adopts a structured approach to data management by categorizing the data types. This categorization is intended to optimize the database schema for enhanced performance and scalability. The current schema includes a limited number of columns per data type:
+GOAT uses a powerful combination of **PostgreSQ database with the PostGIS extension to handle spatial data**. Here's how it works:
 
-| Data Type  | Description | Maximum Number of Columns |
-|------------|-------------|--------------|
-| integer    | Whole numbers without any decimal points (e.g., 1, 100, -5) |  15 |
-| bigint     | Very large whole numbers, larger than what 'integer' can store | 5  |
-| float      | Numbers with decimal points that need precision (e.g., 3.14, -0.001) | 10 |
-| text       | Any kind of text, including letters, numbers, and symbols | 20 |
-| timestamp  | Specific dates and times, including year, month, day, hour, minute, and second | 3  |
-| arrfloat (Array of Floats)   | A list of numbers with decimal points, stored together as one entry | 3  |
-| arrint (Array of Integers)   | A list of whole numbers, stored together as one entry | 3  |
-| arrtext (Array of Text)   | A list of text items, stored together as one entry | 3 |
-| jsonb (Binary JSON)    | 	Data formatted as JSON (a way to store information in an organized, easy-to-access manner), stored in an efficient binary format | 3  |
-| boolean    | True or false values, used for decisions or to indicate if something is on or off |3 |
+- **Geometry Storage**: All spatial features (points, lines, polygons) are stored using the **PostGIS geometry type** in the **EPSG:4326** coordinate reference system
+- **Accurate Calculations**: For precise distance and area measurements, GOAT uses the PostGIS geography type, which provides meter-based calculations with higher accuracy
 
-::::tip
+## Supported Data Types
 
-Visualize the layer data table.
+GOAT organizes data into specific types to optimize database performance and ensure scalability. Each data type has a maximum number of columns to maintain efficient processing:
 
-Under <img src={require('/img/map/filter/3dots.png').default} alt="Options" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code> More Options </code> click <code> View Data</code>:
+| Data Type  | Description | Examples | Max Columns |
+|------------|-------------|----------|-------------|
+| **integer** | Whole numbers without decimal points | 1, 100, -5 | 15 |
+| **bigint** | Very large whole numbers | Population counts, large IDs | 5 |
+| **float** | Numbers with decimal points | 3.14, -0.001, 45.67 | 10 |
+| **text** | Text and character data | Street names, categories, descriptions | 20 |
+| **timestamp** | Date and time information | 2024-01-15 14:30:00 | 3 |
+| **arrfloat** | Array of decimal numbers | [1.5, 2.7, 3.9] | 3 |
+| **arrint** | Array of whole numbers | [1, 5, 10, 15] | 3 |
+| **arrtext** | Array of text values | ["red", "green", "blue"] | 3 |
+| **jsonb**    | Structured data in JSON format | `{"name": "value", "count": 42}` | 3 |
+| **boolean** | True/false values | true, false | 3 |
 
-![More Options](/img/data/view-data-layer.png "More Options")
+:::info Why These Limits?
+The column limits ensure optimal database performance and prevent system overload. If you need more columns of a specific type, consider splitting your data across multiple datasets or using array types for related values.
+:::
 
-Scroll the data table. On top of each field you will find the data type:
+## How to view Data Types
 
-![More Options](/img/data/data-table.png  "More Options" )
+You can easily check the data types of your layer attributes:
+
+<div class="step">
+  <div class="step-number">1</div>
+  <div class="content">Click on <img src={require('/img/icons/3dots.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>More Options</code> button on your layer</div>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <div class="content">Select <code>View Data</code> from the menu</div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <div class="content">In the data table, you'll see the data type displayed above each column header</div>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/data/view-data-layer.png').default} alt="More Options" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <p style={{ textAlign: 'center', fontStyle: 'italic', marginTop: '8px', color: '#666' }}>Accessing the View Data option</p>
+</div>
 
 
-::::
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  <img src={require('/img/data/data-table.png').default} alt="Data table showing attribute types" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <p style={{ textAlign: 'center', fontStyle: 'italic', marginTop: '8px', color: '#666' }}>Data table displaying attribute types above each column</p>
+</div>
+

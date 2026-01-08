@@ -1,0 +1,8 @@
+{
+  "label": "Geoprozessierung",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Als Geoprozessierungs-Werkzeug können Sie Puffer um Geometrien erstellen."
+  }
+}

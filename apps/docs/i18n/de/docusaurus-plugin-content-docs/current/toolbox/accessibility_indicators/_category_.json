@@ -1,0 +1,8 @@
+{
+  "label": "Erreichbarkeitsindikatoren",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Verschiedene Werkzeuge werden für Erreichbarkeitsanalysen bereitgestellt, einschließlich der Berechnung von Einzugsgebieten, Heatmaps und öffentlichen Verkehrsindikatoren."
+  }
+}

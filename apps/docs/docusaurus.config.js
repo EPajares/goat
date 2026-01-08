@@ -130,7 +130,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Plan4Better GmbH ${new Date().getFullYear()} | All Rights Reserved`,
+        copyright: `Plan4Better GmbH 2026 | All Rights Reserved`,
       },
       algolia: {
         indexName: 'goat-plan4better',
