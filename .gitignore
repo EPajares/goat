@@ -76,3 +76,5 @@ packages/python/goatlib/tests/result/*
 .coverage
 
 data/*
+
+migration_scripts/*

@@ -140,16 +140,31 @@ class LayerExportRunner(SimpleToolRunner):
     Extends SimpleToolRunner for shared infrastructure (DuckDB, S3, settings, logging).
     """
 
-    def _get_table_name(self: Self, user_id: str, layer_id: str) -> str:
-        """Build DuckLake table name from user and layer IDs."""
-        user_schema = f"user_{user_id.replace('-', '')}"
+    def _get_table_name(self: Self, layer_id: str, user_id: str) -> str:
+        """Build DuckLake table name, looking up the actual layer owner.
+
+        This correctly handles catalog/shared layers owned by other users.
+
+        Args:
+            layer_id: Layer UUID string
+            user_id: Fallback user UUID if layer owner lookup fails
+
+        Returns:
+            Fully qualified table name: lake.user_{owner_id}.t_{layer_id}
+        """
+        # Look up the layer's actual owner
+        layer_owner_id = self.get_layer_owner_id_sync(layer_id)
+        if layer_owner_id is None:
+            layer_owner_id = user_id  # Fallback to passed user_id
+
+        user_schema = f"user_{layer_owner_id.replace('-', '')}"
         table_name = f"t_{layer_id.replace('-', '')}"
         return f"lake.{user_schema}.{table_name}"
 
     def _export_to_file(
         self: Self,
-        user_id: str,
         layer_id: str,
+        user_id: str,
         output_path: str,
         output_format: str,
         crs: str | None = None,
@@ -158,14 +173,14 @@ class LayerExportRunner(SimpleToolRunner):
         """Export layer from DuckLake to file.
 
         Args:
-            user_id: User UUID
             layer_id: Layer UUID
+            user_id: User UUID (fallback if layer owner lookup fails)
             output_path: Path for output file
             output_format: GDAL driver name (GPKG, GeoJSON, etc.)
             crs: Target CRS for reprojection
             query: WHERE clause filter
         """
-        table_name = self._get_table_name(user_id, layer_id)
+        table_name = self._get_table_name(layer_id, user_id)
         where_clause = f"WHERE {query}" if query else ""
 
         logger.info(
@@ -321,8 +336,8 @@ class LayerExportRunner(SimpleToolRunner):
                 output_dir, f"{params.file_name}.{params.file_type}"
             )
             self._export_to_file(
-                user_id=params.user_id,
                 layer_id=params.layer_id,
+                user_id=params.user_id,
                 output_path=output_path,
                 output_format=gdal_format,
                 crs=params.crs,

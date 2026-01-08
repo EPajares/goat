@@ -90,6 +90,9 @@ class TileService:
         def is_excluded_type(col_type: str) -> bool:
             """Check if type must be excluded from MVT entirely."""
             type_lower = col_type.lower()
+            # Exclude array types (e.g., VARCHAR[], INTEGER[])
+            if type_lower.endswith("[]"):
+                return True
             return any(type_lower.startswith(t) for t in mvt_excluded_type_prefixes)
 
         def get_cast_type(col_type: str) -> str | None:

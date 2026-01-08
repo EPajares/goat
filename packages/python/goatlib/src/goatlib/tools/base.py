@@ -433,6 +433,48 @@ class SimpleToolRunner:
             max_size=5,
         )
 
+    async def get_layer_owner_id(self: Self, layer_id: str) -> str | None:
+        """Look up the owner (user_id) of a layer from PostgreSQL.
+
+        This is needed to access layers owned by other users (catalog/shared layers).
+
+        Args:
+            layer_id: Layer UUID string
+
+        Returns:
+            Owner's user_id as string, or None if not found
+        """
+        import uuid as uuid_mod
+
+        pool = await self.get_postgres_pool()
+        try:
+            row = await pool.fetchrow(
+                "SELECT user_id FROM customer.layer WHERE id = $1",
+                uuid_mod.UUID(layer_id),
+            )
+            if row:
+                return str(row["user_id"])
+            return None
+        finally:
+            await pool.close()
+
+    def get_layer_owner_id_sync(self: Self, layer_id: str) -> str | None:
+        """Synchronous wrapper for get_layer_owner_id.
+
+        Args:
+            layer_id: Layer UUID string
+
+        Returns:
+            Owner's user_id as string, or None if not found
+        """
+        try:
+            return asyncio.get_event_loop().run_until_complete(
+                self.get_layer_owner_id(layer_id)
+            )
+        except Exception as e:
+            logger.warning("Failed to look up owner for layer %s: %s", layer_id, e)
+            return None
+
     def cleanup(self: Self) -> None:
         """Clean up resources."""
         if self._duckdb_con:
@@ -584,10 +626,12 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         """Export a DuckLake layer to a temporary parquet file.
 
         Supports optional CQL2-JSON filtering and scenario feature merging.
+        The layer's actual owner is looked up from the database to correctly
+        access layers owned by other users (catalog/shared layers).
 
         Args:
             layer_id: Layer UUID string
-            user_id: User UUID string
+            user_id: User UUID string (used for fallback if layer info unavailable)
             cql_filter: Optional CQL2-JSON filter dict to apply
             scenario_id: Optional scenario UUID for merging scenario features
             project_id: Project UUID (required if scenario_id is provided)
@@ -600,7 +644,32 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
 
         from goatlib.storage.query_builder import build_cql_filter
 
-        table_name = self.get_layer_table_path(user_id, layer_id)
+        # Look up the layer's actual owner to correctly access shared/catalog layers
+        layer_owner_id = self.get_layer_owner_id_sync(layer_id)
+        if layer_owner_id is None:
+            layer_owner_id = user_id  # Fallback to passed user_id
+            logger.warning(
+                f"Could not find owner for layer {layer_id}, using current user {user_id}"
+            )
+        elif layer_owner_id != user_id:
+            logger.info(
+                f"Layer {layer_id} owned by {layer_owner_id}, accessed by {user_id}"
+            )
+
+        table_name = self.get_layer_table_path(layer_owner_id, layer_id)
+        logger.debug(f"Resolved table name for layer {layer_id}: {table_name}")
+
+        # Verify the table exists before attempting to export
+        try:
+            check_result = self.duckdb_con.execute(
+                f"SELECT COUNT(*) FROM {table_name} LIMIT 1"
+            ).fetchone()
+            logger.debug(f"Table {table_name} exists with data check: {check_result}")
+        except Exception as e:
+            raise ValueError(
+                f"Cannot access layer {layer_id} - table {table_name} not found. "
+                f"Owner ID: {layer_owner_id}, requested by: {user_id}. Error: {e}"
+            ) from e
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".parquet", delete=False, prefix="layer_"
@@ -632,7 +701,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             layer_info = asyncio.get_event_loop().run_until_complete(
                 self.db_service.get_layer_info(layer_id)
             )
-            attribute_mapping = layer_info.get("attribute_mapping", {}) if layer_info else {}
+            attribute_mapping = (
+                layer_info.get("attribute_mapping", {}) if layer_info else {}
+            )
 
             # Get scenario features from PostgreSQL
             scenario_features = asyncio.get_event_loop().run_until_complete(
@@ -656,7 +727,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                 )
                 logger.info(
                     "Exported layer %s with %d scenario features to %s",
-                    layer_id, len(scenario_features), temp_path
+                    layer_id,
+                    len(scenario_features),
+                    temp_path,
                 )
                 return temp_path
 
@@ -702,7 +775,6 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             where_clause: Optional CQL filter WHERE clause
             params: Parameters for WHERE clause
         """
-        import json
 
         # Separate features by edit type
         modified_deleted_ids = []

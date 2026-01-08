@@ -16,6 +16,10 @@ WfsResult = Union[
     List[Tuple[Path, DatasetMetadata]], Tuple[Path, DatasetMetadata], Tuple[None, None]
 ]
 
+# Maximum number of features allowed from a single WFS layer
+# This prevents accidental imports of massive datasets
+WFS_MAX_FEATURES = 500_000
+
 
 def from_wfs(
     url: str,
@@ -140,18 +144,25 @@ def _convert_single_wfs_layer(
     out_dir: Path,
     target_crs: str | None,
 ) -> List[Tuple[Path, DatasetMetadata]]:
-    """Convert a single WFS layer to Parquet/GeoParquet."""
-    xml_path = None
-    tmp_dir = None
+    """Convert a single WFS layer to Parquet/GeoParquet.
+
+    Uses osgeo/OGR directly to fetch WFS data (avoids DuckDB's bundled GDAL
+    which can have recursion issues with WFS driver).
+    """
+    import tempfile
+
+    tmp_dir = Path(tempfile.mkdtemp(prefix="goatlib_wfs_"))
+    geojson_path = tmp_dir / f"{reader._sanitize_filename(layer_name)}.geojson"
 
     try:
-        # Create WFS datasource XML file
-        xml_path = reader.build_datasource(url, layer=layer_name)
-        tmp_dir = xml_path.parent
+        # Step 1: Use osgeo to fetch WFS data directly to GeoJSON
+        logger.info("Fetching WFS layer '%s' via osgeo...", layer_name)
+        _fetch_wfs_to_geojson(reader, url, layer_name, geojson_path)
 
-        # Convert using the main conversion pipeline
+        # Step 2: Convert GeoJSON to Parquet using DuckDB (no WFS driver needed)
+        logger.info("Converting GeoJSON to Parquet...")
         return convert_any(
-            src_path=str(xml_path),
+            src_path=str(geojson_path),
             dest_dir=out_dir,
             geometry_col=None,
             target_crs=target_crs,
@@ -159,7 +170,87 @@ def _convert_single_wfs_layer(
 
     finally:
         # Clean up temporary files
-        _cleanup_wfs_temp_files(xml_path, tmp_dir)
+        _cleanup_wfs_temp_files(geojson_path, tmp_dir)
+
+
+def _fetch_wfs_to_geojson(
+    reader: WFSReader, url: str, layer_name: str, output_path: Path
+) -> None:
+    """Fetch WFS layer data using osgeo and save to GeoJSON.
+
+    This bypasses DuckDB's ST_Read which has issues with WFS in some environments.
+    """
+    from osgeo import gdal, ogr
+
+    # Clean URL and build connection string
+    clean_url = reader._clean_wfs_url(url)
+    connection_string = f"WFS:{clean_url}"
+
+    logger.info("Opening WFS datasource: %s", connection_string)
+
+    # Open WFS datasource
+    wfs_ds = ogr.Open(connection_string, 0)
+    if wfs_ds is None:
+        error_msg = gdal.GetLastErrorMsg()
+        raise RuntimeError(
+            f"Failed to open WFS datasource: {error_msg or 'Unknown error'}"
+        )
+
+    try:
+        # Get the layer
+        layer = wfs_ds.GetLayerByName(layer_name)
+        if layer is None:
+            available = [
+                wfs_ds.GetLayerByIndex(i).GetName()
+                for i in range(wfs_ds.GetLayerCount())
+            ]
+            raise RuntimeError(
+                f"Layer '{layer_name}' not found. Available: {available}"
+            )
+
+        feature_count = layer.GetFeatureCount()
+        logger.info("WFS layer '%s' has %d features", layer_name, feature_count)
+
+        # Check feature limit
+        if feature_count > WFS_MAX_FEATURES:
+            raise ValueError(
+                f"WFS layer '{layer_name}' has {feature_count:,} features, "
+                f"which exceeds the maximum limit of {WFS_MAX_FEATURES:,}. "
+                f"Please select a smaller layer or apply a spatial filter."
+            )
+
+        # Create GeoJSON output
+        geojson_driver = ogr.GetDriverByName("GeoJSON")
+        if geojson_driver is None:
+            raise RuntimeError("GeoJSON driver not available")
+
+        # Remove output file if it exists
+        if output_path.exists():
+            output_path.unlink()
+
+        out_ds = geojson_driver.CreateDataSource(str(output_path))
+        if out_ds is None:
+            raise RuntimeError(f"Failed to create GeoJSON file: {output_path}")
+
+        try:
+            # Copy layer to GeoJSON
+            out_layer = out_ds.CopyLayer(layer, layer_name)
+            if out_layer is None:
+                error_msg = gdal.GetLastErrorMsg()
+                raise RuntimeError(
+                    f"Failed to copy layer: {error_msg or 'Unknown error'}"
+                )
+
+            # Force write
+            out_ds.FlushCache()
+
+            logger.info("Saved WFS data to GeoJSON: %s", output_path)
+
+        finally:
+            out_ds = None  # Close output
+
+    finally:
+        wfs_ds = None  # Close WFS connection
 
 
 def _cleanup_wfs_temp_files(xml_path: Path | None, tmp_dir: Path | None) -> None:
