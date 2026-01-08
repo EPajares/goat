@@ -377,29 +377,17 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
         """Return style for catchment area with ordinal scale based on minute values.
 
         Queries unique minute values from the DuckLake table and builds a color_map.
+        Uses the shared get_ordinal_polygon_style utility with color interpolation.
         """
         from goatlib.analysis.schemas.statistics import SortOrder
         from goatlib.analysis.statistics import calculate_unique_values
-        from goatlib.tools.style import DEFAULT_POLYGON_STYLE, hex_to_rgb
+        from goatlib.tools.style import get_ordinal_polygon_style
 
         # Use 'minute' as the color field
         color_field = "minute"
 
-        # YlGn (Yellow-Green) color palette from Colorbrewer
-        # Sequential palette from light yellow-green to dark green
-        ylgn_colors = [
-            "#FFFFCC",  # Light yellow
-            "#D9F0A3",  # Light yellow-green
-            "#ADDD8E",  # Yellow-green
-            "#78C679",  # Green
-            "#41AB5D",  # Medium green
-            "#238443",  # Dark green
-            "#006837",  # Darker green
-            "#004529",  # Darkest green
-        ]
-
         # Query actual unique minute values from the table
-        unique_values = []
+        unique_values: list[int | float] = []
         if table_info and table_info.get("table_name"):
             try:
                 result = calculate_unique_values(
@@ -407,7 +395,7 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
                     table_name=table_info["table_name"],
                     attribute=color_field,
                     order=SortOrder.ascendent,
-                    limit=9,
+                    limit=20,  # Allow more values with interpolation
                 )
                 unique_values = [v.value for v in result.values]
                 logger.info("Found unique minute values: %s", unique_values)
@@ -432,32 +420,13 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
                 int(round(step_size * (i + 1))) for i in range(params.steps)
             ]
 
-        # Select colors based on number of unique values
-        num_values = len(unique_values)
-        if num_values <= len(ylgn_colors):
-            colors = ylgn_colors[:num_values]
-        else:
-            colors = ylgn_colors
-
-        # Build color_map: [[str(value)], color] for each unique value
-        color_map = [
-            [[str(val)], colors[i % len(colors)]] for i, val in enumerate(unique_values)
-        ]
-
-        return {
-            **DEFAULT_POLYGON_STYLE,
-            "color": hex_to_rgb(colors[len(colors) // 2]),
-            "opacity": 0.8,
-            "color_field": {"name": color_field, "type": "number"},
-            "color_range": {
-                "name": "YlGn",
-                "type": "custom",
-                "colors": colors,
-                "category": "Colorbrewer",
-                "color_map": color_map,
-            },
-            "color_scale": "ordinal",
-        }
+        # Use shared ordinal style utility with YlGn (yellow-green) palette
+        return get_ordinal_polygon_style(
+            color_field=color_field,
+            values=unique_values,
+            palette="YlGn",
+            opacity=0.8,
+        )
 
     def _extract_coordinates_from_layer(
         self: Self,

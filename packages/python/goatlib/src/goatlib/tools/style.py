@@ -159,6 +159,52 @@ DEFAULT_POLYGON_STYLE = {
     "stroke_color": [217, 25, 85],
 }
 
+# Named color palettes for ordinal scales
+ORDINAL_COLOR_PALETTES: dict[str, list[str]] = {
+    # Yellow-Green (good for catchment areas - proximity feel)
+    "YlGn": [
+        "#FFFFCC",
+        "#D9F0A3",
+        "#ADDD8E",
+        "#78C679",
+        "#41AB5D",
+        "#238443",
+        "#006837",
+        "#004529",
+    ],
+    # Orange-Red (good for buffers - distance/heat feel)
+    "OrRd": [
+        "#FEE5D9",
+        "#FCBBA1",
+        "#FC9272",
+        "#FB6A4A",
+        "#EF3B2C",
+        "#CB181D",
+        "#99000D",
+        "#67000D",
+    ],
+    # Sunset (purple to yellow - good for time-based)
+    "Sunset": [
+        "#f3e79b",
+        "#fac484",
+        "#f8a07e",
+        "#eb7f86",
+        "#ce6693",
+        "#a059a0",
+        "#5c53a5",
+    ],
+    # Blue-Purple (good for density/intensity)
+    "BuPu": [
+        "#EDF8FB",
+        "#BFD3E6",
+        "#9EBCDA",
+        "#8C96C6",
+        "#8C6BB1",
+        "#88419D",
+        "#6E016B",
+    ],
+}
+
 
 def hex_to_rgb(hex_color: str) -> list[int]:
     """Convert hex color to RGB list.
@@ -171,6 +217,137 @@ def hex_to_rgb(hex_color: str) -> list[int]:
     """
     hex_color = hex_color.lstrip("#")
     return [int(hex_color[i : i + 2], 16) for i in (0, 2, 4)]
+
+
+def rgb_to_hex(rgb: list[int]) -> str:
+    """Convert RGB list to hex color.
+
+    Args:
+        rgb: RGB values as [r, g, b]
+
+    Returns:
+        Color in hex format (e.g., "#9e0142")
+    """
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def interpolate_colors(colors: list[str], num_colors: int) -> list[str]:
+    """Interpolate a color palette to produce exactly num_colors colors.
+
+    If num_colors <= len(colors), returns a subset of the original colors.
+    If num_colors > len(colors), interpolates to create additional colors.
+
+    Args:
+        colors: Base color palette in hex format
+        num_colors: Number of colors needed
+
+    Returns:
+        List of hex colors with exactly num_colors entries
+    """
+    if num_colors <= 0:
+        return []
+
+    if num_colors == 1:
+        return [colors[0]]
+
+    if num_colors <= len(colors):
+        # Select evenly spaced colors from the palette
+        if num_colors == len(colors):
+            return colors[:]
+        indices = [
+            int(i * (len(colors) - 1) / (num_colors - 1)) for i in range(num_colors)
+        ]
+        return [colors[i] for i in indices]
+
+    # Need more colors than available - interpolate
+    result = []
+    rgb_colors = [hex_to_rgb(c) for c in colors]
+
+    for i in range(num_colors):
+        # Calculate position in the original color range
+        pos = i * (len(colors) - 1) / (num_colors - 1)
+        lower_idx = int(pos)
+        upper_idx = min(lower_idx + 1, len(colors) - 1)
+        frac = pos - lower_idx
+
+        # Interpolate between adjacent colors
+        r = int(rgb_colors[lower_idx][0] * (1 - frac) + rgb_colors[upper_idx][0] * frac)
+        g = int(rgb_colors[lower_idx][1] * (1 - frac) + rgb_colors[upper_idx][1] * frac)
+        b = int(rgb_colors[lower_idx][2] * (1 - frac) + rgb_colors[upper_idx][2] * frac)
+        result.append(rgb_to_hex([r, g, b]))
+
+    return result
+
+
+def build_ordinal_color_map(
+    values: list[int | float | str],
+    palette: str | list[str] = "OrRd",
+) -> tuple[list[str], list[list]]:
+    """Build an ordinal color map for a list of discrete values.
+
+    Creates a mapping from values to colors, interpolating the palette
+    if there are more values than colors in the palette.
+
+    Args:
+        values: List of discrete values to map to colors
+        palette: Either a palette name from ORDINAL_COLOR_PALETTES,
+                 or a list of hex colors
+
+    Returns:
+        Tuple of (colors_list, color_map) where:
+        - colors_list: List of hex colors used
+        - color_map: List of [[str(value)], hex_color] pairs for ordinal scale
+    """
+    if isinstance(palette, str):
+        base_colors = ORDINAL_COLOR_PALETTES.get(palette, ORDINAL_COLOR_PALETTES["OrRd"])
+    else:
+        base_colors = palette
+
+    # Interpolate colors to match number of values
+    colors = interpolate_colors(base_colors, len(values))
+
+    # Build color_map: [[str(value)], color] for ordinal scale
+    color_map = [[[str(val)], colors[i]] for i, val in enumerate(values)]
+
+    return colors, color_map
+
+
+def get_ordinal_polygon_style(
+    color_field: str,
+    values: list[int | float | str],
+    palette: str | list[str] = "OrRd",
+    opacity: float = 0.7,
+) -> dict[str, Any]:
+    """Generate a complete ordinal polygon style for discrete values.
+
+    This is a convenience function that combines build_ordinal_color_map
+    with DEFAULT_POLYGON_STYLE to create a ready-to-use style dict.
+
+    Args:
+        color_field: Name of the field containing the values
+        values: List of discrete values to map to colors
+        palette: Either a palette name (YlGn, OrRd, Sunset, BuPu) or list of hex colors
+        opacity: Fill opacity (default 0.7)
+
+    Returns:
+        Complete style dict for ordinal polygon visualization
+    """
+    colors, color_map = build_ordinal_color_map(values, palette)
+
+    return {
+        **DEFAULT_POLYGON_STYLE,
+        "color": hex_to_rgb(colors[len(colors) // 2]),  # Middle color as default
+        "opacity": opacity,
+        "color_field": {"name": color_field, "type": "number"},
+        "color_range": {
+            "name": "Custom",
+            "type": "custom",
+            "colors": colors,
+            "category": "Custom",
+            "color_map": color_map,
+        },
+        "color_scale": "ordinal",
+    }
 
 
 def get_default_style(geometry_type: str | None) -> dict[str, Any]:

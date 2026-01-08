@@ -107,10 +107,16 @@ class TileService:
             # Cast everything else to VARCHAR
             return "VARCHAR"
 
+        # Check if 'id' column exists in the data
+        has_id_column = "id" in column_names
+
         # Build property selection - must be explicit columns (no * in subqueries)
         if properties:
             # Use specified properties, excluding geometry
             prop_cols = [p for p in properties if p not in (geom_col,)]
+            # Always include id if it exists in the table (for feature identification)
+            if has_id_column and "id" not in prop_cols:
+                prop_cols.append("id")
         elif column_names:
             # Use all available columns except geometry
             prop_cols = [c for c in column_names if c not in (geom_col,)]
@@ -151,8 +157,17 @@ class TileService:
         struct_fields = [
             f"geometry := ST_AsMVTGeom(ST_Transform(candidates.\"{geom_col}\", 'EPSG:4326', 'EPSG:3857', always_xy := true), ST_Extent(bounds.bbox3857))"
         ]
+
+        # Add id field - use actual id if exists, otherwise use row_num as fallback
+        if has_id_column:
+            struct_fields.append('"id" := candidates."id"')
+        else:
+            struct_fields.append('"id" := candidates.row_num')
+
         for col in prop_cols:
-            struct_fields.append(f'"{col}" := candidates."{col}"')
+            # Skip id since we handle it separately above
+            if col != "id":
+                struct_fields.append(f'"{col}" := candidates."{col}"')
         struct_pack_args = ", ".join(struct_fields)
 
         # Build MVT query following working pattern:
@@ -164,6 +179,10 @@ class TileService:
         if select_props:
             select_clause += f", {select_props}"
 
+        # Add ROW_NUMBER for fallback id when no id column exists
+        # This is computed efficiently within the QUALIFY window function
+        row_num_clause = "" if has_id_column else ", ROW_NUMBER() OVER () AS row_num"
+
         query = f"""
             WITH bounds AS (
                 SELECT
@@ -171,7 +190,7 @@ class TileService:
                     ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
             ),
             candidates AS (
-                SELECT {select_clause}
+                SELECT {select_clause}{row_num_clause}
                 FROM {table}, bounds
                 WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
                 QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
