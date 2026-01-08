@@ -10,9 +10,12 @@ from goatlib.analysis.statistics import (
     AreaOperation,
     ClassBreakMethod,
     SortOrder,
+    StatisticsOperation,
+    calculate_aggregation_stats,
     calculate_area_statistics,
     calculate_class_breaks,
     calculate_feature_count,
+    calculate_histogram,
     calculate_unique_values,
 )
 
@@ -414,3 +417,286 @@ class TestIntegration:
         )
         assert breaks_result.min == 30.0
         assert breaks_result.max == 50.0
+
+
+class TestAggregationStats:
+    """Tests for calculate_aggregation_stats function."""
+
+    def test_count_all(self, sample_data_table):
+        """Test counting all features without grouping."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.count,
+        )
+
+        assert len(result.items) == 1
+        assert result.items[0].operation_value == 10
+        assert result.total_count == 10
+
+    def test_count_grouped(self, sample_data_table):
+        """Test counting features grouped by category."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.count,
+            group_by_column="category",
+            order=SortOrder.descendent,
+        )
+
+        assert len(result.items) == 4  # A, B, C, D
+        assert result.total_items == 4
+        # C has 4 entries, should be first with descendent order
+        assert result.items[0].grouped_value == "C"
+        assert result.items[0].operation_value == 4
+
+    def test_sum_grouped(self, sample_data_table):
+        """Test summing values grouped by category."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.sum,
+            operation_column="value",
+            group_by_column="category",
+        )
+
+        assert len(result.items) == 4
+        # Find category A: 10 + 20 = 30
+        a_item = next(item for item in result.items if item.grouped_value == "A")
+        assert a_item.operation_value == 30.0
+
+    def test_mean_grouped(self, sample_data_table):
+        """Test averaging values grouped by category."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.mean,
+            operation_column="value",
+            group_by_column="category",
+        )
+
+        # Category A: (10 + 20) / 2 = 15
+        a_item = next(item for item in result.items if item.grouped_value == "A")
+        assert a_item.operation_value == 15.0
+
+    def test_min_max_grouped(self, sample_data_table):
+        """Test min and max values grouped by category."""
+        result_min = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.min,
+            operation_column="value",
+            group_by_column="category",
+        )
+
+        result_max = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.max,
+            operation_column="value",
+            group_by_column="category",
+        )
+
+        # Category C: values are 60, 70, 80, 90
+        c_min = next(item for item in result_min.items if item.grouped_value == "C")
+        c_max = next(item for item in result_max.items if item.grouped_value == "C")
+        assert c_min.operation_value == 60.0
+        assert c_max.operation_value == 90.0
+
+    def test_with_filter(self, sample_data_table):
+        """Test aggregation with WHERE clause filter."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.sum,
+            operation_column="value",
+            group_by_column="category",
+            where_clause="value > 50",
+        )
+
+        # Only C and D have values > 50
+        assert len(result.items) == 2
+
+    def test_limit(self, sample_data_table):
+        """Test aggregation with limit."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.count,
+            group_by_column="category",
+            limit=2,
+        )
+
+        assert len(result.items) == 2
+        assert result.total_items == 4  # Still 4 total groups
+
+    def test_ascendent_order(self, sample_data_table):
+        """Test aggregation with ascending order."""
+        result = calculate_aggregation_stats(
+            sample_data_table,
+            "test_data",
+            operation=StatisticsOperation.count,
+            group_by_column="category",
+            order=SortOrder.ascendent,
+        )
+
+        # D has 1 entry, should be first with ascendent order
+        assert result.items[0].grouped_value == "D"
+        assert result.items[0].operation_value == 1
+
+    def test_missing_operation_column_raises(self, sample_data_table):
+        """Test that sum without operation_column raises error."""
+        with pytest.raises(ValueError) as exc_info:
+            calculate_aggregation_stats(
+                sample_data_table,
+                "test_data",
+                operation=StatisticsOperation.sum,
+                # Missing operation_column
+            )
+        assert "operation_column is required" in str(exc_info.value)
+
+
+class TestHistogram:
+    """Tests for calculate_histogram function."""
+
+    def test_basic_histogram(self, sample_data_table):
+        """Test basic histogram calculation."""
+        result = calculate_histogram(
+            sample_data_table,
+            "test_data",
+            column="value",
+            num_bins=5,
+        )
+
+        assert len(result.bins) == 5
+        assert result.total_rows == 10
+        assert result.missing_count == 0
+
+        # Check that all values are accounted for
+        total_in_bins = sum(bin.count for bin in result.bins)
+        assert total_in_bins == 10
+
+    def test_histogram_bins_coverage(self, sample_data_table):
+        """Test that histogram bins cover the full range."""
+        result = calculate_histogram(
+            sample_data_table,
+            "test_data",
+            column="value",
+            num_bins=10,
+        )
+
+        # First bin should start at or before minimum (10)
+        assert result.bins[0].range[0] <= 10.0
+
+        # Last bin should end at or after maximum (100)
+        assert result.bins[-1].range[1] >= 100.0
+
+    def test_histogram_with_filter(self, sample_data_table):
+        """Test histogram with WHERE clause filter."""
+        result = calculate_histogram(
+            sample_data_table,
+            "test_data",
+            column="value",
+            num_bins=3,
+            where_clause="category = 'C'",
+        )
+
+        # C has 4 values: 60, 70, 80, 90
+        assert result.total_rows == 4
+        total_in_bins = sum(bin.count for bin in result.bins)
+        assert total_in_bins == 4
+
+    def test_histogram_descendent_order(self, sample_data_table):
+        """Test histogram with descending bin order."""
+        result = calculate_histogram(
+            sample_data_table,
+            "test_data",
+            column="value",
+            num_bins=5,
+            order=SortOrder.descendent,
+        )
+
+        # Bins should be in descending order
+        for i in range(len(result.bins) - 1):
+            assert result.bins[i].range[0] > result.bins[i + 1].range[0]
+
+    def test_histogram_with_nulls(self, duckdb_connection):
+        """Test histogram correctly counts NULL values."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE data_with_nulls (
+                id INTEGER,
+                value DOUBLE
+            )
+        """)
+        con.execute("""
+            INSERT INTO data_with_nulls VALUES
+                (1, 10.0),
+                (2, 20.0),
+                (3, NULL),
+                (4, 30.0),
+                (5, NULL)
+        """)
+
+        result = calculate_histogram(
+            con,
+            "data_with_nulls",
+            column="value",
+            num_bins=3,
+        )
+
+        assert result.total_rows == 5
+        assert result.missing_count == 2
+        total_in_bins = sum(bin.count for bin in result.bins)
+        assert total_in_bins == 3
+
+    def test_histogram_single_value(self, duckdb_connection):
+        """Test histogram when all values are the same."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE single_value (
+                id INTEGER,
+                value DOUBLE
+            )
+        """)
+        con.execute("""
+            INSERT INTO single_value VALUES
+                (1, 50.0),
+                (2, 50.0),
+                (3, 50.0)
+        """)
+
+        result = calculate_histogram(
+            con,
+            "single_value",
+            column="value",
+            num_bins=5,
+        )
+
+        # Should return a single bin with all values
+        assert len(result.bins) == 1
+        assert result.bins[0].count == 3
+
+    def test_histogram_empty_table(self, duckdb_connection):
+        """Test histogram on empty table."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE empty_table (
+                id INTEGER,
+                value DOUBLE
+            )
+        """)
+
+        result = calculate_histogram(
+            con,
+            "empty_table",
+            column="value",
+            num_bins=5,
+        )
+
+        assert len(result.bins) == 0
+        assert result.total_rows == 0
+        assert result.missing_count == 0

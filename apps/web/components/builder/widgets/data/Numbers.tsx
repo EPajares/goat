@@ -24,15 +24,14 @@ interface NumbersDataProps {
 export const NumbersDataWidget = ({ config: rawConfig }: NumbersDataProps) => {
   const { i18n } = useTranslation("common");
   const theme = useTheme();
-  const { config, queryParams, projectId } = useChartWidget(
+  const { config, queryParams, layerId } = useChartWidget(
     rawConfig,
     numbersDataConfigSchema,
     aggregationStatsQueryParams
   );
 
   const { aggregationStats, isLoading, isError } = useProjectLayerAggregationStats(
-    projectId,
-    config?.setup?.layer_project_id,
+    layerId,
     queryParams as AggregationStatsQueryParams
   );
 

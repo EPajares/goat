@@ -20,15 +20,14 @@ const OPACITY_MODIFIER = "33";
 
 export const PieChartWidget = ({ config: rawConfig }: { config: PieChartSchema }) => {
   const { t, i18n } = useTranslation("common");
-  const { config, queryParams, projectId } = useChartWidget(
+  const { config, queryParams, layerId } = useChartWidget(
     rawConfig,
     pieChartConfigSchema,
     aggregationStatsQueryParams
   );
 
   const { aggregationStats, isLoading, isError } = useProjectLayerAggregationStats(
-    projectId,
-    config?.setup?.layer_project_id,
+    layerId,
     queryParams as AggregationStatsQueryParams
   );
 

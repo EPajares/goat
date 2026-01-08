@@ -149,3 +149,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN uv pip install playwright && playwright install chromium && playwright install-deps chromium
 
 ENV WORKER_TAGS=print
+

@@ -1,6 +1,7 @@
 import useSWR from "swr";
 
 import { apiRequestAuth, fetcher } from "@/lib/api/fetcher";
+import { PROCESSES_API_BASE_URL } from "@/lib/api/processes";
 import type { GetContentQueryParams } from "@/lib/validations/common";
 import type {
   AggregationStatsQueryParams,
@@ -141,17 +142,57 @@ export const useProjectLayerChartData = (projectId: string, layerId: number, cum
   };
 };
 
+/**
+ * Hook to get aggregation statistics for a layer using GeoAPI OGC Processes
+ * @param layerId - The layer UUID (not layer_project_id)
+ * @param queryParams - Query parameters including operation_type, group_by_column_name, etc.
+ */
 export const useProjectLayerAggregationStats = (
-  projectId: string,
-  layerId?: number,
+  layerId?: string,
   queryParams?: AggregationStatsQueryParams
 ) => {
+  // Only require layerId and operation_type - group_by_column is optional (for Numbers widget)
+  const shouldFetch = layerId && queryParams?.operation_type;
+
   const { data, isLoading, error, mutate, isValidating } = useSWR<AggregationStatsResponse>(
-    () =>
-      queryParams && layerId
-        ? [`${PROJECTS_API_BASE_URL}/${projectId}/layer/${layerId}/statistic-aggregation`, queryParams]
-        : null,
-    fetcher,
+    shouldFetch
+      ? [
+          `${PROCESSES_API_BASE_URL}/aggregation-stats/execution`,
+          {
+            inputs: {
+              collection: layerId,
+              group_by_column: queryParams.group_by_column_name || undefined,
+              operation: queryParams.operation_type,
+              operation_column: queryParams.operation_value,
+              limit: queryParams.size || 10,
+              order: queryParams.order,
+              filter: queryParams.query,
+            },
+          },
+        ]
+      : null,
+    async ([url, body]) => {
+      const response = await apiRequestAuth(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail?.detail || error.detail || "Failed to get aggregation stats");
+      }
+      const result = await response.json();
+      // Transform response to match expected format
+      return {
+        items:
+          result.items?.map((item: { grouped_value: string; operation_value: number }) => ({
+            grouped_value: item.grouped_value,
+            operation_value: item.operation_value,
+          })) || [],
+        total_items: result.total_items || 0,
+        total_count: result.total_count || 0,
+      };
+    },
     {
       keepPreviousData: true,
     }
@@ -165,17 +206,50 @@ export const useProjectLayerAggregationStats = (
   };
 };
 
-export const useProjectLayerHistogramStats = (
-  projectId: string,
-  layerId?: number,
-  queryParams?: HistogramStatsQueryParams
-) => {
+/**
+ * Hook to get histogram statistics for a layer using GeoAPI OGC Processes
+ * @param layerId - The layer UUID (not layer_project_id)
+ * @param queryParams - Query parameters including column_name, num_bins, etc.
+ */
+export const useProjectLayerHistogramStats = (layerId?: string, queryParams?: HistogramStatsQueryParams) => {
+  const shouldFetch = layerId && queryParams?.column_name;
+
   const { data, isLoading, error, mutate, isValidating } = useSWR<HistogramStatsResponse>(
-    () =>
-      queryParams && layerId
-        ? [`${PROJECTS_API_BASE_URL}/${projectId}/layer/${layerId}/statistic-histogram`, queryParams]
-        : null,
-    fetcher,
+    shouldFetch
+      ? [
+          `${PROCESSES_API_BASE_URL}/histogram/execution`,
+          {
+            inputs: {
+              collection: layerId,
+              column: queryParams.column_name,
+              num_bins: queryParams.num_bins || 10,
+              filter: queryParams.query,
+            },
+          },
+        ]
+      : null,
+    async ([url, body]) => {
+      const response = await apiRequestAuth(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail?.detail || error.detail || "Failed to get histogram stats");
+      }
+      const result = await response.json();
+      // Response already matches expected format (bins with range and count)
+      return {
+        bins:
+          result.bins?.map((bin: { range: [number, number]; count: number }) => ({
+            range: bin.range,
+            count: bin.count,
+          })) || [],
+        missing_count: result.missing_count || 0,
+        total_rows: result.total_rows || 0,
+      };
+    },
     {
       keepPreviousData: true,
     }
