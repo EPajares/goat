@@ -120,7 +120,13 @@ export const projectLayerSchema = layerSchema.extend({
   query: z
     .object({
       metadata: z.object({}).passthrough().optional(),
-      cql: z.object({}).passthrough().optional(),
+      cql: z
+        .object({
+          op: z.string().optional(),
+          args: z.array(z.unknown()).optional(),
+        })
+        .passthrough()
+        .optional(),
     })
     .nullable()
     .optional(),
