@@ -14,6 +14,8 @@ from goatlib.analysis.statistics import (
     AreaStatisticsResult,
     ClassBreaksInput,
     ClassBreaksResult,
+    ExtentInput,
+    ExtentResult,
     FeatureCountInput,
     FeatureCountResult,
     HistogramInput,
@@ -66,6 +68,11 @@ class AreaStatisticsProcessInput(AreaStatisticsInput):
     collection: str = Field(description="Layer ID (UUID)")
 
 
+class ExtentProcessInput(ExtentInput):
+    """Extent input with collection (layer ID)."""
+
+    collection: str = Field(description="Layer ID (UUID)")
+
 class AggregationStatsProcessInput(AggregationStatsInput):
     """Aggregation statistics input with collection (layer ID)."""
 
@@ -114,6 +121,15 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "output_model": AreaStatisticsResult,
         "keywords": ["analytics", "statistics", "area", "polygon"],
         "tool_key": "area_statistics",  # Translation key
+        "hidden": True,  # Hide from toolbox UI (used internally)
+    },
+    "extent": {
+        "title": "Layer Extent",
+        "description": "Calculate bounding box extent of features with optional filtering",
+        "input_model": ExtentProcessInput,
+        "output_model": ExtentResult,
+        "keywords": ["analytics", "extent", "bbox", "bounds"],
+        "tool_key": "extent",  # Translation key
         "hidden": True,  # Hide from toolbox UI (used internally)
     },
     "aggregation-stats": {

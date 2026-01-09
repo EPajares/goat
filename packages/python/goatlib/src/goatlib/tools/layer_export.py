@@ -26,7 +26,7 @@ import shutil
 import tempfile
 import zipfile
 from datetime import datetime
-from typing import Self
+from typing import Any, Self
 
 from pydantic import ConfigDict, Field
 
@@ -110,9 +110,9 @@ class LayerExportParams(ToolInputBase):
             widget="crs-selector",
         ),
     )
-    query: str | None = Field(
+    query: str | dict[str, Any] | None = Field(
         None,
-        description="WHERE clause to filter features",
+        description="WHERE clause or CQL2 filter to filter features",
         json_schema_extra=ui_field(
             section="options",
             field_order=2,
@@ -161,6 +161,43 @@ class LayerExportRunner(SimpleToolRunner):
         table_name = f"t_{layer_id.replace('-', '')}"
         return f"lake.{user_schema}.{table_name}"
 
+    def _get_column_names(self: Self, table_name: str) -> list[str]:
+        """Get column names for a table."""
+        result = self.duckdb_con.execute(
+            f"SELECT column_name FROM information_schema.columns WHERE table_schema || '.' || table_name = '{table_name.replace('lake.', '')}'"
+        ).fetchall()
+        return [row[0] for row in result]
+
+    def _convert_cql2_to_sql(
+        self: Self, query: str | dict[str, Any] | None, table_name: str
+    ) -> str | None:
+        """Convert CQL2 filter dict to SQL WHERE clause.
+
+        Args:
+            query: SQL string or CQL2 filter dict
+            table_name: Table name for column validation
+
+        Returns:
+            SQL WHERE clause string with parameters substituted, or None
+        """
+        if query is None:
+            return None
+
+        # If already a string, return as-is (raw SQL)
+        if isinstance(query, str):
+            return query
+
+        # Convert CQL2 dict to SQL using shared utility
+        try:
+            from goatlib.storage import cql_to_where_clause
+
+            column_names = self._get_column_names(table_name)
+            # Use inline=True since COPY doesn't support parameterized queries
+            return cql_to_where_clause(query, column_names, "geometry", inline=True)
+        except Exception as e:
+            logger.warning("Failed to convert CQL2 filter to SQL: %s", e)
+            return None
+
     def _export_to_file(
         self: Self,
         layer_id: str,
@@ -168,7 +205,7 @@ class LayerExportRunner(SimpleToolRunner):
         output_path: str,
         output_format: str,
         crs: str | None = None,
-        query: str | None = None,
+        query: str | dict[str, Any] | None = None,
     ) -> None:
         """Export layer from DuckLake to file.
 
@@ -178,10 +215,13 @@ class LayerExportRunner(SimpleToolRunner):
             output_path: Path for output file
             output_format: GDAL driver name (GPKG, GeoJSON, etc.)
             crs: Target CRS for reprojection
-            query: WHERE clause filter
+            query: WHERE clause filter (string or CQL2 dict)
         """
-        table_name = self._get_table_name(layer_id, user_id)
-        where_clause = f"WHERE {query}" if query else ""
+        table_name = self._get_table_name(user_id, layer_id)
+
+        # Convert CQL2 filter to SQL if needed
+        sql_query = self._convert_cql2_to_sql(query, table_name)
+        where_clause = f"WHERE {sql_query}" if sql_query else ""
 
         logger.info(
             "Exporting layer: table=%s, format=%s, output=%s",
@@ -276,6 +316,8 @@ class LayerExportRunner(SimpleToolRunner):
             Presigned URL (valid for 24 hours)
         """
         # Use public S3 client to generate URLs accessible from outside the cluster
+        # The s3_public_client MUST be configured with the public endpoint URL
+        # (e.g., localhost:9000) for the signature to be valid when accessed from browser
         url = self.s3_public_client.generate_presigned_url(
             "get_object",
             Params={

@@ -5,6 +5,7 @@ This module provides functions for calculating various statistics on DuckDB tabl
 - Unique values: Get unique values with occurrence counts
 - Class breaks: Calculate classification breaks using various methods
 - Area statistics: Calculate area-based statistics for polygon features
+- Extent: Calculate bounding box extent with optional filtering
 - Aggregation stats: Calculate grouped aggregation statistics (sum, count, mean, etc.)
 - Histogram: Calculate histogram bins for numeric columns
 """
@@ -19,6 +20,8 @@ from goatlib.analysis.schemas.statistics import (
     ClassBreakMethod,
     ClassBreaksInput,
     ClassBreaksResult,
+    ExtentInput,
+    ExtentResult,
     FeatureCountInput,
     FeatureCountResult,
     HistogramBin,
@@ -33,6 +36,7 @@ from goatlib.analysis.schemas.statistics import (
 from goatlib.analysis.statistics.aggregation_stats import calculate_aggregation_stats
 from goatlib.analysis.statistics.area_statistics import calculate_area_statistics
 from goatlib.analysis.statistics.class_breaks import calculate_class_breaks
+from goatlib.analysis.statistics.extent import calculate_extent
 from goatlib.analysis.statistics.feature_count import calculate_feature_count
 from goatlib.analysis.statistics.histogram import calculate_histogram
 from goatlib.analysis.statistics.unique_values import calculate_unique_values
@@ -43,6 +47,7 @@ __all__ = [
     "calculate_unique_values",
     "calculate_class_breaks",
     "calculate_area_statistics",
+    "calculate_extent",
     "calculate_aggregation_stats",
     "calculate_histogram",
     # Schemas - Enums
@@ -55,6 +60,7 @@ __all__ = [
     "AreaStatisticsInput",
     "UniqueValuesInput",
     "ClassBreaksInput",
+    "ExtentInput",
     "AggregationStatsInput",
     "HistogramInput",
     # Schemas - Results
@@ -63,6 +69,7 @@ __all__ = [
     "UniqueValuesResult",
     "ClassBreaksResult",
     "AreaStatisticsResult",
+    "ExtentResult",
     "AggregationStatsItem",
     "AggregationStatsResult",
     "HistogramBin",

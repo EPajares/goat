@@ -43,7 +43,7 @@ import {
   setEditingScenario,
   setSelectedScenarioLayer,
 } from "@/lib/store/map/slice";
-import { zoomToLayer } from "@/lib/utils/map/navigate";
+import { zoomToProjectLayer } from "@/lib/utils/map/navigate";
 import type { Layer } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 
@@ -657,7 +657,7 @@ const LayerPanel = ({ projectId }: PanelProps) => {
                                 await duplicateLayer(layer);
                               } else if (menuItem.id === MapLayerActions.ZOOM_TO) {
                                 if (map) {
-                                  zoomToLayer(map, layer.extent);
+                                  await zoomToProjectLayer(map, layer);
                                 }
                               } else {
                                 openMoreMenu(menuItem, layer);

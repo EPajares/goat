@@ -6,7 +6,7 @@ import { useMap } from "react-map-gl/maplibre";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import { formatNumber, rgbToHex } from "@/lib/utils/helpers";
-import { zoomToLayer } from "@/lib/utils/map/navigate";
+import { zoomToProjectLayer } from "@/lib/utils/map/navigate";
 import type {
   FeatureLayerPointProperties,
   FeatureLayerProperties,
@@ -466,7 +466,7 @@ export function Legend(props: LegendProps) {
                       onSelect={async (menuItem: PopperMenuItem) => {
                         if (menuItem.id === MapLayerActions.ZOOM_TO) {
                           if (map) {
-                            zoomToLayer(map, layer.extent);
+                            await zoomToProjectLayer(map, layer);
                           }
                         } else {
                           openMoreMenu(menuItem, layer);

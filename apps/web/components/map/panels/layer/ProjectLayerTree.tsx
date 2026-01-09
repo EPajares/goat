@@ -29,7 +29,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 import { setSelectedLayers } from "@/lib/store/layer/slice";
 import { setActiveRightPanel } from "@/lib/store/map/slice";
 import { rgbToHex } from "@/lib/utils/helpers";
-import { zoomToLayer } from "@/lib/utils/map/navigate";
+import { zoomToLayer, zoomToProjectLayer } from "@/lib/utils/map/navigate";
 // API & Store
 import type {
   ProjectLayer,
@@ -628,7 +628,16 @@ export const ProjectLayerTree = ({
             onSelect={async (menuItem: PopperMenuItem) => {
               // Handle Zoom To for both layers and groups
               if (menuItem.id === MapLayerActions.ZOOM_TO) {
-                if (map && node.extent) zoomToLayer(map, node.extent);
+                if (map) {
+                  if (node.type === "layer") {
+                    // For layers, use smart zoom with filter support
+                    const target = castNodeToProjectLayer(node);
+                    await zoomToProjectLayer(map, target);
+                  } else if (node.extent) {
+                    // For groups, use stored extent
+                    zoomToLayer(map, node.extent);
+                  }
+                }
                 return;
               }
               // Handle layer-specific actions

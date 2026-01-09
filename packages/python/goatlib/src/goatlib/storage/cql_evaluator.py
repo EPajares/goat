@@ -341,3 +341,80 @@ def parse_cql2_filter(
         from pygeofilter.parsers.cql2_text import parse as cql2_text_parser
 
         return cql2_text_parser(filter_str)
+
+
+def inline_params(sql: str, params: list[Any]) -> str:
+    """Inline parameters into SQL string.
+
+    Replaces ? placeholders with actual parameter values.
+    Useful for commands that don't support parameterized queries (e.g., COPY).
+
+    Args:
+        sql: SQL string with ? placeholders
+        params: Parameter values to substitute
+
+    Returns:
+        SQL string with parameters inlined
+    """
+    result = sql
+    for param in params:
+        if isinstance(param, str):
+            # Escape single quotes and wrap in quotes
+            escaped = param.replace("'", "''")
+            result = result.replace("?", f"'{escaped}'", 1)
+        elif param is None:
+            result = result.replace("?", "NULL", 1)
+        elif isinstance(param, bool):
+            result = result.replace("?", "TRUE" if param else "FALSE", 1)
+        else:
+            # Numbers, etc.
+            result = result.replace("?", str(param), 1)
+    return result
+
+
+def cql_to_where_clause(
+    cql_filter: dict | str,
+    column_names: list[str],
+    geometry_column: str = "geometry",
+    inline: bool = False,
+) -> tuple[str, list[Any]] | str:
+    """Convert CQL2 filter to SQL WHERE clause.
+
+    High-level utility that handles JSON parsing and conversion.
+
+    Args:
+        cql_filter: CQL2 filter as dict or JSON string
+        column_names: Valid column names for the table
+        geometry_column: Name of geometry column
+        inline: If True, return SQL string with params inlined (for COPY commands)
+                If False, return (where_clause, params) tuple
+
+    Returns:
+        If inline=False: (where_clause, params) tuple
+        If inline=True: SQL string with parameters substituted
+
+    Example:
+        # For parameterized queries:
+        where, params = cql_to_where_clause(filter_dict, columns)
+        con.execute(f"SELECT * FROM t WHERE {where}", params)
+
+        # For COPY commands:
+        where = cql_to_where_clause(filter_dict, columns, inline=True)
+        con.execute(f"COPY (SELECT * FROM t WHERE {where}) TO ...")
+    """
+    import json
+
+    # Parse JSON string if needed
+    if isinstance(cql_filter, str):
+        cql_filter = json.loads(cql_filter)
+
+    # Parse the CQL2 filter
+    filter_json = json.dumps(cql_filter)
+    ast = parse_cql2_filter(filter_json, "cql2-json")
+
+    # Convert to SQL
+    sql, params = cql2_to_duckdb_sql(ast, column_names, geometry_column)
+
+    if inline:
+        return inline_params(sql, params)
+    return sql, params

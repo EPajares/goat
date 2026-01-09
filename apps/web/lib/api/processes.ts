@@ -136,6 +136,17 @@ export interface FeatureCountOutput {
   count: number;
 }
 
+// Extent types
+export interface ExtentInput {
+  collection: string;
+  filter?: string;
+}
+
+export interface ExtentOutput {
+  bbox: [number, number, number, number] | null;
+  feature_count: number;
+}
+
 // Area Statistics types
 export type AreaStatisticsOperation = "sum" | "mean" | "min" | "max";
 
@@ -365,6 +376,18 @@ export async function getFeatureCount(layerId: string, filter?: string): Promise
     ...(filter && { filter }),
   };
   return executeProcess<FeatureCountInput, FeatureCountOutput>("feature-count", inputs);
+}
+
+/**
+ * Get extent (bounding box) for a collection
+ * Supports optional CQL filter to get extent of filtered features
+ */
+export async function getExtent(layerId: string, filter?: string): Promise<ExtentOutput> {
+  const inputs: ExtentInput = {
+    collection: layerId,
+    ...(filter && { filter }),
+  };
+  return executeProcess<ExtentInput, ExtentOutput>("extent", inputs);
 }
 
 /**
