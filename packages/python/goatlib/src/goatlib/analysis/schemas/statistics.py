@@ -122,3 +122,19 @@ class AreaStatisticsResult(BaseModel):
     total_area: float | None = Field(None, description="Total area of all features")
     feature_count: int = Field(0, description="Number of features")
     unit: str = Field("m²", description="Unit of area measurement")
+
+
+class ExtentInput(BaseModel):
+    """Input for extent calculation operation."""
+
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+
+
+class ExtentResult(BaseModel):
+    """Result of extent calculation - bounding box in WGS84 (EPSG:4326)."""
+
+    bbox: list[float] | None = Field(
+        None,
+        description="Bounding box as [minx, miny, maxx, maxy] in WGS84 coordinates",
+    )
+    feature_count: int = Field(0, description="Number of features in the extent")

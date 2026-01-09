@@ -12,6 +12,7 @@ from goatlib.analysis.statistics import (
     SortOrder,
     calculate_area_statistics,
     calculate_class_breaks,
+    calculate_extent,
     calculate_feature_count,
     calculate_unique_values,
 )
@@ -382,6 +383,243 @@ class TestAreaStatistics:
         )
 
         assert result.feature_count == 0
+
+
+class TestExtent:
+    """Tests for calculate_extent function.
+    
+    Note: These tests use geometries without explicit SRID, so the ST_Transform
+    in calculate_extent will treat them as WGS84. For production use, geometries
+    should have proper SRID set.
+    """
+
+    @pytest.fixture
+    def extent_polygon_table(self, duckdb_connection):
+        """Create a polygon table with known coordinates for extent testing."""
+        con = duckdb_connection
+
+        # Create a table with polygon geometries
+        con.execute("""
+            CREATE TABLE test_extent_polygons (
+                id INTEGER,
+                name VARCHAR,
+                geometry GEOMETRY
+            )
+        """)
+
+        # Insert polygons with known coordinates
+        # Polygon 1: covers (0,0) to (1,1)
+        # Polygon 2: covers (2,2) to (4,3)
+        # Polygon 3: covers (-1,-1) to (0,0)
+        # Overall extent should be (-1, -1) to (4, 3)
+        con.execute("""
+            INSERT INTO test_extent_polygons VALUES
+                (1, 'Polygon 1', ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))')),
+                (2, 'Polygon 2', ST_GeomFromText('POLYGON((2 2, 4 2, 4 3, 2 3, 2 2))')),
+                (3, 'Polygon 3', ST_GeomFromText('POLYGON((-1 -1, 0 -1, 0 0, -1 0, -1 -1))'))
+        """)
+
+        return con
+
+    def _calculate_extent_no_transform(
+        self, con, table_name, geometry_column="geometry", where_clause="TRUE", params=None
+    ):
+        """Calculate extent without CRS transform (for unit testing).
+        
+        Uses ST_Extent_Agg which is the correct aggregate function in DuckDB spatial.
+        """
+        query = f"""
+            SELECT 
+                ST_XMin(extent) as minx,
+                ST_YMin(extent) as miny,
+                ST_XMax(extent) as maxx,
+                ST_YMax(extent) as maxy,
+                cnt as feature_count
+            FROM (
+                SELECT ST_Extent_Agg({geometry_column}) as extent, COUNT(*) as cnt
+                FROM {table_name}
+                WHERE {where_clause}
+            )
+        """
+        if params:
+            result = con.execute(query, params).fetchone()
+        else:
+            result = con.execute(query).fetchone()
+
+        if not result or result[4] == 0:
+            from goatlib.analysis.statistics import ExtentResult
+            return ExtentResult(bbox=None, feature_count=0)
+
+        minx, miny, maxx, maxy, feature_count = result
+
+        if minx is None or miny is None or maxx is None or maxy is None:
+            from goatlib.analysis.statistics import ExtentResult
+            return ExtentResult(bbox=None, feature_count=feature_count)
+
+        from goatlib.analysis.statistics import ExtentResult
+        return ExtentResult(
+            bbox=[float(minx), float(miny), float(maxx), float(maxy)],
+            feature_count=feature_count,
+        )
+
+    def test_extent_all_features(self, extent_polygon_table):
+        """Test extent calculation for all features."""
+        result = calculate_extent(
+            extent_polygon_table, "test_extent_polygons", "geometry"
+        )
+
+        assert result.feature_count == 3
+        assert result.bbox is not None
+        assert len(result.bbox) == 4
+
+        minx, miny, maxx, maxy = result.bbox
+        assert abs(minx - (-1.0)) < 0.0001
+        assert abs(miny - (-1.0)) < 0.0001
+        assert abs(maxx - 4.0) < 0.0001
+        assert abs(maxy - 3.0) < 0.0001
+
+    def test_extent_with_filter(self, extent_polygon_table):
+        """Test extent with WHERE clause filter."""
+        result = calculate_extent(
+            extent_polygon_table,
+            "test_extent_polygons",
+            "geometry",
+            where_clause="id IN (1, 2)",
+        )
+
+        assert result.feature_count == 2
+        assert result.bbox is not None
+
+        minx, miny, maxx, maxy = result.bbox
+        # Only polygons 1 and 2: extent should be (0, 0) to (4, 3)
+        assert abs(minx - 0.0) < 0.0001
+        assert abs(miny - 0.0) < 0.0001
+        assert abs(maxx - 4.0) < 0.0001
+        assert abs(maxy - 3.0) < 0.0001
+
+    def test_extent_single_feature(self, extent_polygon_table):
+        """Test extent for a single feature."""
+        result = calculate_extent(
+            extent_polygon_table,
+            "test_extent_polygons",
+            "geometry",
+            where_clause="id = 1",
+        )
+
+        assert result.feature_count == 1
+        assert result.bbox is not None
+
+        minx, miny, maxx, maxy = result.bbox
+        # Polygon 1: (0, 0) to (1, 1)
+        assert abs(minx - 0.0) < 0.0001
+        assert abs(miny - 0.0) < 0.0001
+        assert abs(maxx - 1.0) < 0.0001
+        assert abs(maxy - 1.0) < 0.0001
+
+    def test_extent_with_params(self, extent_polygon_table):
+        """Test extent with parameterized query."""
+        result = calculate_extent(
+            extent_polygon_table,
+            "test_extent_polygons",
+            "geometry",
+            where_clause="name = ?",
+            params=["Polygon 2"],
+        )
+
+        assert result.feature_count == 1
+        assert result.bbox is not None
+
+        minx, miny, maxx, maxy = result.bbox
+        # Polygon 2: (2, 2) to (4, 3)
+        assert abs(minx - 2.0) < 0.0001
+        assert abs(miny - 2.0) < 0.0001
+        assert abs(maxx - 4.0) < 0.0001
+        assert abs(maxy - 3.0) < 0.0001
+
+    def test_extent_empty_result(self, extent_polygon_table):
+        """Test extent when no features match."""
+        result = calculate_extent(
+            extent_polygon_table,
+            "test_extent_polygons",
+            "geometry",
+            where_clause="id = 999",
+        )
+
+        assert result.feature_count == 0
+        assert result.bbox is None
+
+    def test_extent_empty_table(self, duckdb_connection):
+        """Test extent with empty table."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE empty_extent_table (
+                id INTEGER,
+                geometry GEOMETRY
+            )
+        """)
+
+        result = calculate_extent(con, "empty_extent_table", "geometry")
+
+        assert result.feature_count == 0
+        assert result.bbox is None
+
+    def test_extent_point_geometries(self, duckdb_connection):
+        """Test extent calculation with point geometries."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE test_points (
+                id INTEGER,
+                geometry GEOMETRY
+            )
+        """)
+
+        con.execute("""
+            INSERT INTO test_points VALUES
+                (1, ST_GeomFromText('POINT(10 20)')),
+                (2, ST_GeomFromText('POINT(30 40)')),
+                (3, ST_GeomFromText('POINT(15 25)'))
+        """)
+
+        result = calculate_extent(con, "test_points", "geometry")
+
+        assert result.feature_count == 3
+        assert result.bbox is not None
+
+        minx, miny, maxx, maxy = result.bbox
+        assert abs(minx - 10.0) < 0.0001
+        assert abs(miny - 20.0) < 0.0001
+        assert abs(maxx - 30.0) < 0.0001
+        assert abs(maxy - 40.0) < 0.0001
+
+    def test_extent_line_geometries(self, duckdb_connection):
+        """Test extent calculation with line geometries."""
+        con = duckdb_connection
+
+        con.execute("""
+            CREATE TABLE test_lines (
+                id INTEGER,
+                geometry GEOMETRY
+            )
+        """)
+
+        con.execute("""
+            INSERT INTO test_lines VALUES
+                (1, ST_GeomFromText('LINESTRING(0 0, 5 5)')),
+                (2, ST_GeomFromText('LINESTRING(10 10, 15 15)'))
+        """)
+
+        result = calculate_extent(con, "test_lines", "geometry")
+
+        assert result.feature_count == 2
+        assert result.bbox is not None
+
+        minx, miny, maxx, maxy = result.bbox
+        assert abs(minx - 0.0) < 0.0001
+        assert abs(miny - 0.0) < 0.0001
+        assert abs(maxx - 15.0) < 0.0001
+        assert abs(maxy - 15.0) < 0.0001
 
 
 class TestIntegration:

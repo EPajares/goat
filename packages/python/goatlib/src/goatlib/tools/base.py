@@ -1052,13 +1052,13 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             if type_result:
                 geometry_type = type_result[0]
 
-            # Get extent
+            # Get extent using ST_Extent_Agg (the correct aggregate function in DuckDB spatial)
             extent_result = con.execute(f"""
                 SELECT
-                    ST_XMin(ST_Extent({geom_col})),
-                    ST_YMin(ST_Extent({geom_col})),
-                    ST_XMax(ST_Extent({geom_col})),
-                    ST_YMax(ST_Extent({geom_col}))
+                    ST_XMin(ST_Extent_Agg({geom_col})),
+                    ST_YMin(ST_Extent_Agg({geom_col})),
+                    ST_XMax(ST_Extent_Agg({geom_col})),
+                    ST_YMax(ST_Extent_Agg({geom_col}))
                 FROM {table_name}
             """).fetchone()
             if extent_result and all(v is not None for v in extent_result):

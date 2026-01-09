@@ -6,6 +6,8 @@ This module provides storage abstractions for DuckLake (GeoParquet + PostgreSQL 
 from goatlib.storage.cql_evaluator import (
     DuckDBCQLEvaluator,
     cql2_to_duckdb_sql,
+    cql_to_where_clause,
+    inline_params,
     parse_cql2_filter,
 )
 from goatlib.storage.ducklake import (
@@ -38,6 +40,8 @@ __all__ = [
     # CQL Evaluator
     "DuckDBCQLEvaluator",
     "cql2_to_duckdb_sql",
+    "cql_to_where_clause",
+    "inline_params",
     "parse_cql2_filter",
     # Query Builder
     "QueryFilters",

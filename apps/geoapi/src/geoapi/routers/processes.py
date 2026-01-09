@@ -95,6 +95,11 @@ def _execute_analytics_sync(process_id: str, inputs: dict[str, Any]) -> dict[str
                 operation=inputs.get("operation", "sum"),
                 filter_expr=inputs.get("filter"),
             )
+        elif process_id == "extent":
+            return analytics_service.extent(
+                collection=inputs.get("collection", ""),
+                filter_expr=inputs.get("filter"),
+            )
         else:
             raise HTTPException(
                 status_code=404, detail=f"Unknown analytics process: {process_id}"

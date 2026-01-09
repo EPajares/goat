@@ -422,7 +422,8 @@ class WindmillClient:
         if process_id:
             # Convert PascalCase/camelCase to snake_case for Windmill path matching
             import re
-            normalized_process_id = re.sub(r'(?<!^)(?=[A-Z])', '_', process_id).lower()
+
+            normalized_process_id = re.sub(r"(?<!^)(?=[A-Z])", "_", process_id).lower()
 
         # Build query params - use indexed filters first
         params: dict[str, Any] = {

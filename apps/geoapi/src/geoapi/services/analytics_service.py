@@ -13,10 +13,11 @@ from goatlib.analysis.statistics import (
     SortOrder,
     calculate_area_statistics,
     calculate_class_breaks,
+    calculate_extent,
     calculate_feature_count,
     calculate_unique_values,
 )
-from goatlib.storage import build_filters
+from goatlib.storage import cql_to_where_clause
 
 from geoapi.dependencies import (
     _layer_id_to_table_name,
@@ -45,11 +46,48 @@ class AnalyticsService:
         table_name = _layer_id_to_table_name(layer_id)
         return f"lake.{schema_name}.{table_name}"
 
-    def _build_where_clause(self, filter_expr: str | None) -> tuple[str, list[Any]]:
+    def _get_column_names(self, table_name: str) -> list[str]:
+        """Get column names for a table.
+
+        Args:
+            table_name: Full table name
+
+        Returns:
+            List of column names
+        """
+        with ducklake_manager.connection() as con:
+            result = con.execute(f"DESCRIBE {table_name}").fetchall()
+            return [row[0] for row in result]
+
+    def _detect_geometry_column(self, table_name: str) -> str:
+        """Detect the geometry column name for a table.
+
+        Args:
+            table_name: Full table name
+
+        Returns:
+            Geometry column name (defaults to 'geometry')
+        """
+        with ducklake_manager.connection() as con:
+            result = con.execute(f"DESCRIBE {table_name}").fetchall()
+            for row in result:
+                col_name, col_type = row[0], row[1]
+                if "GEOMETRY" in col_type.upper():
+                    return col_name
+        return "geometry"
+
+    def _build_where_clause(
+        self,
+        filter_expr: str | None,
+        table_name: str,
+        geometry_column: str = "geometry",
+    ) -> tuple[str, list[Any]]:
         """Build SQL WHERE clause from CQL2 filter.
 
         Args:
-            filter_expr: CQL2 filter expression or None
+            filter_expr: CQL2 filter expression (JSON string) or None
+            table_name: Full table name (for getting column names)
+            geometry_column: Name of geometry column
 
         Returns:
             Tuple of (where_clause, params)
@@ -57,10 +95,20 @@ class AnalyticsService:
         if not filter_expr:
             return "TRUE", []
 
-        # Use goatlib's filter builder
         try:
-            where_clause, params = build_filters(filter_expr)
-            return where_clause or "TRUE", params or []
+            # Get column names for validation
+            column_names = self._get_column_names(table_name)
+
+            # Use shared CQL to SQL conversion utility
+            result = cql_to_where_clause(
+                filter_expr, column_names, geometry_column, inline=False
+            )
+
+            if isinstance(result, tuple):
+                where_clause, params = result
+                return f"({where_clause})", params
+
+            return "TRUE", []
         except Exception as e:
             logger.warning("Failed to parse filter '%s': %s", filter_expr, e)
             return "TRUE", []
@@ -80,7 +128,10 @@ class AnalyticsService:
             Dict with 'count' key
         """
         table_name = self._get_table_name(collection)
-        where_clause, params = self._build_where_clause(filter_expr)
+        geometry_column = self._detect_geometry_column(table_name)
+        where_clause, params = self._build_where_clause(
+            filter_expr, table_name, geometry_column
+        )
 
         with ducklake_manager.connection() as con:
             result = calculate_feature_count(
@@ -115,7 +166,10 @@ class AnalyticsService:
             Dict with attribute, total, and values
         """
         table_name = self._get_table_name(collection)
-        where_clause, params = self._build_where_clause(filter_expr)
+        geometry_column = self._detect_geometry_column(table_name)
+        where_clause, params = self._build_where_clause(
+            filter_expr, table_name, geometry_column
+        )
 
         # Map string to enum
         sort_order = SortOrder.descendent
@@ -159,7 +213,10 @@ class AnalyticsService:
             Dict with breaks, min, max, mean, std_dev
         """
         table_name = self._get_table_name(collection)
-        where_clause, params = self._build_where_clause(filter_expr)
+        geometry_column = self._detect_geometry_column(table_name)
+        where_clause, params = self._build_where_clause(
+            filter_expr, table_name, geometry_column
+        )
 
         # Map string to enum
         break_method = ClassBreakMethod.quantile
@@ -197,7 +254,10 @@ class AnalyticsService:
             Dict with result, total_area, feature_count, unit
         """
         table_name = self._get_table_name(collection)
-        where_clause, params = self._build_where_clause(filter_expr)
+        geometry_column = self._detect_geometry_column(table_name)
+        where_clause, params = self._build_where_clause(
+            filter_expr, table_name, geometry_column
+        )
 
         # Map string to enum
         area_op = AreaOperation.sum
@@ -208,8 +268,47 @@ class AnalyticsService:
             result = calculate_area_statistics(
                 con,
                 table_name,
-                geometry_column="geom",  # Standard geometry column name
+                geometry_column=geometry_column,
                 operation=area_op,
+                where_clause=where_clause,
+                params=params if params else None,
+            )
+
+        return result.model_dump()
+
+    def extent(
+        self,
+        collection: str,
+        filter_expr: str | None = None,
+    ) -> dict[str, Any]:
+        """Calculate bounding box extent for features.
+
+        Args:
+            collection: Layer ID
+            filter_expr: Optional CQL2 filter
+
+        Returns:
+            Dict with bbox [minx, miny, maxx, maxy] and feature_count
+        """
+        table_name = self._get_table_name(collection)
+        geometry_column = self._detect_geometry_column(table_name)
+        where_clause, params = self._build_where_clause(
+            filter_expr, table_name, geometry_column
+        )
+
+        logger.info(
+            "Extent query: table=%s, geom_col=%s, where=%s, params=%s",
+            table_name,
+            geometry_column,
+            where_clause,
+            params,
+        )
+
+        with ducklake_manager.connection() as con:
+            result = calculate_extent(
+                con,
+                table_name,
+                geometry_column=geometry_column,
                 where_clause=where_clause,
                 params=params if params else None,
             )

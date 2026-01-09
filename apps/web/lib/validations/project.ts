@@ -119,8 +119,8 @@ export const projectLayerSchema = layerSchema.extend({
   folder_id: z.string(),
   query: z
     .object({
-      metadata: z.object({}).optional(),
-      cql: z.object({}).optional(),
+      metadata: z.object({}).passthrough().optional(),
+      cql: z.object({}).passthrough().optional(),
     })
     .nullable()
     .optional(),
