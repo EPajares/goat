@@ -630,6 +630,7 @@ class DuckLakePool:
         params: list | tuple | None = None,
         max_retries: int = 2,
         fetch_all: bool = True,
+        timeout: float | None = None,
     ) -> Any:
         """Execute a query with automatic retry on connection errors.
 
@@ -641,6 +642,8 @@ class DuckLakePool:
             params: Query parameters
             max_retries: Number of retry attempts
             fetch_all: If True, fetchall(); if False, fetchone()
+            timeout: Optional query timeout in seconds. If exceeded, the query
+                     is interrupted via conn.interrupt() and TimeoutError is raised.
 
         Returns:
             Query result (fetchall or fetchone)
@@ -649,11 +652,20 @@ class DuckLakePool:
         for attempt in range(max_retries):
             try:
                 with self.connection() as con:
-                    if params:
-                        cursor = con.execute(query, params)
+                    if timeout is not None:
+                        # Execute with timeout using interrupt
+                        return self._execute_with_timeout(
+                            con, query, params, fetch_all, timeout
+                        )
                     else:
-                        cursor = con.execute(query)
-                    return cursor.fetchall() if fetch_all else cursor.fetchone()
+                        if params:
+                            cursor = con.execute(query, params)
+                        else:
+                            cursor = con.execute(query)
+                        return cursor.fetchall() if fetch_all else cursor.fetchone()
+            except TimeoutError:
+                # Don't retry on timeout - it's a deliberate cancellation
+                raise
             except Exception as e:
                 last_error = e
                 if is_connection_error(e) and attempt < max_retries - 1:
@@ -669,6 +681,50 @@ class DuckLakePool:
         # Should not reach here
         if last_error:
             raise last_error
+
+    def _execute_with_timeout(
+        self,
+        con: duckdb.DuckDBPyConnection,
+        query: str,
+        params: list | tuple | None,
+        fetch_all: bool,
+        timeout: float,
+    ) -> Any:
+        """Execute query with timeout, using conn.interrupt() for cancellation.
+
+        Runs the query in a thread and interrupts it if timeout is exceeded.
+        """
+
+        result_container: dict[str, Any] = {}
+        error_container: dict[str, Exception] = {}
+
+        def run_query():
+            try:
+                if params:
+                    cursor = con.execute(query, params)
+                else:
+                    cursor = con.execute(query)
+                result_container["result"] = (
+                    cursor.fetchall() if fetch_all else cursor.fetchone()
+                )
+            except Exception as e:
+                error_container["error"] = e
+
+        thread = threading.Thread(target=run_query, daemon=True)
+        thread.start()
+        thread.join(timeout=timeout)
+
+        if thread.is_alive():
+            # Query exceeded timeout - interrupt it
+            logger.warning("Query timeout (%.1fs) exceeded, interrupting", timeout)
+            con.interrupt()
+            thread.join(timeout=1.0)  # Give it a moment to clean up
+            raise TimeoutError(f"Query exceeded {timeout}s timeout and was interrupted")
+
+        if "error" in error_container:
+            raise error_container["error"]
+
+        return result_container.get("result")
 
     def reconnect(self) -> None:
         """Reconnect all connections in the pool.
