@@ -4,6 +4,7 @@ Uses goatlib statistics functions to compute analytics on DuckLake layers.
 These are synchronous operations that return immediate results.
 """
 
+import json
 import logging
 from typing import Any
 
@@ -11,13 +12,17 @@ from goatlib.analysis.statistics import (
     AreaOperation,
     ClassBreakMethod,
     SortOrder,
+    StatisticsOperation,
+    calculate_aggregation_stats,
     calculate_area_statistics,
     calculate_class_breaks,
     calculate_extent,
     calculate_feature_count,
+    calculate_histogram,
     calculate_unique_values,
 )
 from goatlib.storage import cql_to_where_clause
+from goatlib.storage import build_cql_filter
 
 from geoapi.dependencies import (
     _layer_id_to_table_name,
@@ -96,21 +101,47 @@ class AnalyticsService:
             return "TRUE", []
 
         try:
-            # Get column names for validation
-            column_names = self._get_column_names(table_name)
+            # Parse the filter JSON string
+            if isinstance(filter_expr, str):
+                filter_dict = json.loads(filter_expr)
+            else:
+                filter_dict = filter_expr
 
-            # Use shared CQL to SQL conversion utility
-            result = cql_to_where_clause(
-                filter_expr, column_names, geometry_column, inline=False
+            # Get column names and detect geometry column from the table
+            with ducklake_manager.connection() as con:
+                result = con.execute(f"DESCRIBE {table_name}").fetchall()
+                column_names = [row[0] for row in result]
+                column_types = {row[0]: row[1] for row in result}
+
+            # Detect geometry column name (could be 'geom', 'geometry', etc.)
+            geometry_column = "geometry"  # default
+            for col_name, col_type in column_types.items():
+                if "geometry" in col_type.lower() or col_name.lower() in (
+                    "geom",
+                    "geometry",
+                ):
+                    geometry_column = col_name
+                    break
+
+            # Build CQL filter with proper structure
+            cql_filter = {"filter": filter_dict, "lang": "cql2-json"}
+            query_filters = build_cql_filter(
+                cql_filter,
+                column_names,
+                geometry_column=geometry_column,
             )
 
-            if isinstance(result, tuple):
-                where_clause, params = result
-                return f"({where_clause})", params
+            where_clause = query_filters.to_full_where(default="TRUE")
+            params = query_filters.params
 
+            logger.debug("CQL filter built: %s with params %s", where_clause, params)
+            return where_clause, params
+
+        except json.JSONDecodeError as e:
+            logger.warning("Failed to parse filter JSON '%s': %s", filter_expr, e)
             return "TRUE", []
         except Exception as e:
-            logger.warning("Failed to parse filter '%s': %s", filter_expr, e)
+            logger.warning("Failed to build filter '%s': %s", filter_expr, e)
             return "TRUE", []
 
     def feature_count(
@@ -311,6 +342,96 @@ class AnalyticsService:
                 geometry_column=geometry_column,
                 where_clause=where_clause,
                 params=params if params else None,
+            )
+        return result.model_dump()
+
+    def aggregation_stats(
+        self,
+        collection: str,
+        operation: str = "count",
+        operation_column: str | None = None,
+        group_by_column: str | None = None,
+        filter_expr: str | None = None,
+        order: str = "descendent",
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """Calculate aggregation statistics with optional grouping.
+
+        Args:
+            collection: Layer ID
+            operation: Statistical operation (count, sum, mean, min, max)
+            operation_column: Column to perform the operation on
+            group_by_column: Optional column to group results by
+            filter_expr: Optional CQL2 filter
+            order: Sort order (ascendent or descendent)
+            limit: Maximum number of grouped values to return
+
+        Returns:
+            Dict with items, total_items, and total_count
+        """
+        table_name = self._get_table_name(collection)
+        where_clause, params = self._build_where_clause(filter_expr, table_name)
+
+        # Map string to enum
+        stats_op = StatisticsOperation.count
+        if operation in StatisticsOperation.__members__:
+            stats_op = StatisticsOperation(operation)
+
+        sort_order = SortOrder.descendent
+        if order == "ascendent":
+            sort_order = SortOrder.ascendent
+
+        with ducklake_manager.connection() as con:
+            result = calculate_aggregation_stats(
+                con,
+                table_name,
+                operation=stats_op,
+                operation_column=operation_column,
+                group_by_column=group_by_column,
+                where_clause=where_clause,
+                params=params if params else None,
+                order=sort_order,
+                limit=limit,
+            )
+
+        return result.model_dump()
+
+    def histogram(
+        self,
+        collection: str,
+        column: str,
+        num_bins: int = 10,
+        filter_expr: str | None = None,
+        order: str = "ascendent",
+    ) -> dict[str, Any]:
+        """Calculate histogram for a numeric column.
+
+        Args:
+            collection: Layer ID
+            column: Numeric column name
+            num_bins: Number of histogram bins
+            filter_expr: Optional CQL2 filter
+            order: Sort order of bins (ascendent or descendent)
+
+        Returns:
+            Dict with bins, missing_count, and total_rows
+        """
+        table_name = self._get_table_name(collection)
+        where_clause, params = self._build_where_clause(filter_expr, table_name)
+
+        sort_order = SortOrder.ascendent
+        if order == "descendent":
+            sort_order = SortOrder.descendent
+
+        with ducklake_manager.connection() as con:
+            result = calculate_histogram(
+                con,
+                table_name,
+                column=column,
+                num_bins=num_bins,
+                where_clause=where_clause,
+                params=params if params else None,
+                order=sort_order,
             )
 
         return result.model_dump()

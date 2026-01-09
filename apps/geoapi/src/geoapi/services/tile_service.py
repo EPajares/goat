@@ -81,6 +81,9 @@ class TileService:
             "bool",
         }
 
+        # Types that need casting to BIGINT (unsigned integers)
+        unsigned_int_types = {"ubigint", "uinteger", "uint64", "uint32", "uhugeint"}
+
         # Types that cannot be included in MVT at all (even with casting)
         mvt_excluded_type_prefixes = {"struct", "map", "list", "union"}
 
@@ -89,10 +92,17 @@ class TileService:
             type_lower = col_type.lower()
             return any(type_lower.startswith(t) for t in mvt_excluded_type_prefixes)
 
-        def needs_cast(col_type: str) -> bool:
-            """Check if type needs casting to VARCHAR for MVT."""
+        def get_cast_type(col_type: str) -> str | None:
+            """Get the target type for casting, or None if no cast needed."""
             type_lower = col_type.lower()
-            return not any(t in type_lower for t in mvt_supported_types)
+            # Check unsigned integers FIRST (before substring match, since 'ubigint' contains 'int')
+            if type_lower in unsigned_int_types:
+                return "BIGINT"
+            # Check if it's a supported type (no cast needed)
+            if any(t in type_lower for t in mvt_supported_types):
+                return None
+            # Cast everything else to VARCHAR
+            return "VARCHAR"
 
         # Check if 'id' column exists in the data
         has_id_column = "id" in column_names
@@ -120,8 +130,9 @@ class TileService:
         select_parts = []
         for col in prop_cols:
             col_type = col_types.get(col, "VARCHAR")
-            if needs_cast(col_type):
-                select_parts.append(f'CAST("{col}" AS VARCHAR) AS "{col}"')
+            cast_type = get_cast_type(col_type)
+            if cast_type:
+                select_parts.append(f'CAST("{col}" AS {cast_type}) AS "{col}"')
             else:
                 select_parts.append(f'"{col}"')
         select_props = ", ".join(select_parts) if select_parts else None

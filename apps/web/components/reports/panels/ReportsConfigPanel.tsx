@@ -33,14 +33,10 @@ import {
 } from "@/lib/api/reportLayouts";
 import { PAGE_SIZES, type PageSize } from "@/lib/print/units";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
-import type {
-  AtlasConfig,
-  AtlasFeatureCoverage,
-  PageConfig,
-  ReportLayout,
-  ReportLayoutConfig,
-} from "@/lib/validations/reportLayout";
+import type { PageConfig, ReportLayout, ReportLayoutConfig } from "@/lib/validations/reportLayout";
 
+// AtlasConfig and AtlasFeatureCoverage types - needed when Atlas UI is re-enabled
+// import type { AtlasConfig, AtlasFeatureCoverage } from "@/lib/validations/reportLayout";
 import type { SelectorItem } from "@/types/map/common";
 
 import { useAtlasFeatures } from "@/hooks/reports/useAtlasFeatures";
@@ -97,7 +93,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
 
   // Section collapsed state
   const [pageSettingsCollapsed, setPageSettingsCollapsed] = useState(false);
-  const [atlasSettingsCollapsed, setAtlasSettingsCollapsed] = useState(true);
 
   // Local state for settings (derived from selected report)
   const [pageSize, setPageSize] = useState<PageConfig["size"]>("A4");
@@ -107,12 +102,13 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
   const [dpi, setDpi] = useState<number>(300);
   const [exportFormat, setExportFormat] = useState<string>("pdf");
 
-  // Atlas settings state
-  const [atlasEnabled, setAtlasEnabled] = useState<boolean>(false);
-  const [atlasLayerId, setAtlasLayerId] = useState<number | null>(null);
-  const [atlasSortBy, setAtlasSortBy] = useState<string>("");
-  const [atlasSortOrder, setAtlasSortOrder] = useState<"asc" | "desc">("asc");
-  const [atlasFilter, setAtlasFilter] = useState<string>("");
+  // Atlas settings state - commented out, feature not yet ready
+  // TODO: Uncomment when Atlas UI is re-enabled
+  // const [atlasEnabled, setAtlasEnabled] = useState<boolean>(false);
+  // const [atlasLayerId, setAtlasLayerId] = useState<number | null>(null);
+  // const [atlasSortBy, setAtlasSortBy] = useState<string>("");
+  // const [atlasSortOrder, setAtlasSortOrder] = useState<"asc" | "desc">("asc");
+  // const [atlasFilter, setAtlasFilter] = useState<string>("");
 
   // Modal states
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -162,14 +158,15 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     []
   );
 
-  const coverageLayerItems: SelectorItem[] = useMemo(
-    () =>
-      projectLayers.map((layer) => ({
-        label: layer.name,
-        value: layer.id,
-      })),
-    [projectLayers]
-  );
+  // Coverage layer items - kept for later use when Atlas UI is re-enabled
+  // const coverageLayerItems: SelectorItem[] = useMemo(
+  //   () =>
+  //     projectLayers.map((layer) => ({
+  //       label: layer.name,
+  //       value: layer.id,
+  //     })),
+  //   [projectLayers]
+  // );
 
   // Update local state and notify parent when selected report changes
   useEffect(() => {
@@ -182,24 +179,20 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
         setOrientation(report.config.page.orientation);
         setSnapToGuides(report.config.page.snapToGuides ?? false);
         setShowRulers(report.config.page.showRulers ?? false);
-        // Atlas settings
-        const atlas = report.config.atlas;
-        setAtlasEnabled(atlas?.enabled ?? false);
-        if (atlas?.coverage?.type === "feature") {
-          setAtlasLayerId(atlas.coverage.layer_project_id);
-          setAtlasSortBy(atlas.coverage.sort_by ?? "");
-          setAtlasSortOrder(atlas.coverage.sort_order ?? "asc");
-          setAtlasFilter(atlas.coverage.filter ?? "");
-        } else {
-          setAtlasLayerId(null);
-          setAtlasSortBy("");
-          setAtlasSortOrder("asc");
-          setAtlasFilter("");
-        }
-        // Expand atlas section if enabled
-        if (atlas?.enabled) {
-          setAtlasSettingsCollapsed(false);
-        }
+        // Atlas settings loading - commented out until Atlas UI is ready
+        // const atlas = report.config.atlas;
+        // setAtlasEnabled(atlas?.enabled ?? false);
+        // if (atlas?.coverage?.type === "feature") {
+        //   setAtlasLayerId(atlas.coverage.layer_project_id);
+        //   setAtlasSortBy(atlas.coverage.sort_by ?? "");
+        //   setAtlasSortOrder(atlas.coverage.sort_order ?? "asc");
+        //   setAtlasFilter(atlas.coverage.filter ?? "");
+        // } else {
+        //   setAtlasLayerId(null);
+        //   setAtlasSortBy("");
+        //   setAtlasSortOrder("asc");
+        //   setAtlasFilter("");
+        // }
       }
     } else {
       onSelectReport(null);
@@ -349,55 +342,53 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
     handleSettingChange({ showRulers: enabled });
   };
 
-  // Save atlas settings to database
-  const handleAtlasSettingChange = useCallback(
-    async (updates: Partial<AtlasConfig>) => {
-      if (!project?.id || !selectedReport) return;
+  // Atlas settings save - commented out until Atlas feature is ready
+  // const handleAtlasSettingChange = useCallback(
+  //   async (updates: Partial<AtlasConfig>) => {
+  //     if (!project?.id || !selectedReport) return;
 
-      setIsSaving(true);
-      try {
-        const currentAtlas = selectedReport.config.atlas || { enabled: false };
-        const updatedConfig: ReportLayoutConfig = {
-          ...selectedReport.config,
-          atlas: {
-            ...currentAtlas,
-            ...updates,
-          },
-        };
-        await updateReportLayout(project.id, selectedReport.id, {
-          config: updatedConfig,
-        });
-        await mutate();
-      } catch (error) {
-        console.error("Failed to update atlas settings:", error);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [project?.id, selectedReport, mutate]
-  );
+  //     setIsSaving(true);
+  //     try {
+  //       const currentAtlas = selectedReport.config.atlas || { enabled: false };
+  //       const updatedConfig: ReportLayoutConfig = {
+  //         ...selectedReport.config,
+  //         atlas: {
+  //           ...currentAtlas,
+  //           ...updates,
+  //         },
+  //       };
+  //       await updateReportLayout(project.id, selectedReport.id, {
+  //         config: updatedConfig,
+  //       });
+  //       await mutate();
+  //     } catch (error) {
+  //       console.error("Failed to update atlas settings:", error);
+  //     } finally {
+  //       setIsSaving(false);
+  //     }
+  //   },
+  //   [project?.id, selectedReport, mutate]
+  // );
 
-  const handleAtlasEnabledChange = (enabled: boolean) => {
-    setAtlasEnabled(enabled);
-    handleAtlasSettingChange({ enabled });
-    if (enabled) {
-      setAtlasSettingsCollapsed(false);
-    }
-  };
+  // Atlas UI handlers - commented out until Atlas feature is ready
+  // const handleAtlasEnabledChange = (enabled: boolean) => {
+  //   setAtlasEnabled(enabled);
+  //   handleAtlasSettingChange({ enabled });
+  // };
 
-  const handleAtlasLayerChange = (layerId: number | null) => {
-    setAtlasLayerId(layerId);
-    if (layerId) {
-      const coverage: AtlasFeatureCoverage = {
-        type: "feature",
-        layer_project_id: layerId,
-        sort_by: atlasSortBy || undefined,
-        sort_order: atlasSortOrder,
-        filter: atlasFilter || null,
-      };
-      handleAtlasSettingChange({ coverage });
-    }
-  };
+  // const handleAtlasLayerChange = (layerId: number | null) => {
+  //   setAtlasLayerId(layerId);
+  //   if (layerId) {
+  //     const coverage: AtlasFeatureCoverage = {
+  //       type: "feature",
+  //       layer_project_id: layerId,
+  //       sort_by: atlasSortBy || undefined,
+  //       sort_order: atlasSortOrder,
+  //       filter: atlasFilter || null,
+  //     };
+  //     handleAtlasSettingChange({ coverage });
+  //   }
+  // };
 
   // Menu items for layout actions
   const getLayoutMenuItems = useCallback(
@@ -691,7 +682,8 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
               />
             </Box>
 
-            {/* Atlas/Map Series Section */}
+            {/* Atlas/Map Series Section - Hidden for now, feature not yet complete */}
+            {/* TODO: Uncomment when Atlas feature is ready
             <Box sx={{ overflow: "hidden" }}>
               <SectionHeader
                 active={atlasEnabled}
@@ -706,7 +698,6 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
                 active={atlasEnabled && !atlasSettingsCollapsed}
                 baseOptions={
                   <Stack spacing={3}>
-                    {/* Coverage Layer */}
                     <Selector
                       label={t("coverage_layer")}
                       selectedItems={coverageLayerItems.find((item) => item.value === atlasLayerId)}
@@ -725,6 +716,7 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
                 }
               />
             </Box>
+            */}
           </Stack>
         </Box>
       </Box>

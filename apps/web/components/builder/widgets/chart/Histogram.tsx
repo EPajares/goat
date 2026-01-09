@@ -39,14 +39,13 @@ const CustomTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) =
 export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramChartSchema }) => {
   const theme = useTheme();
   const { t, i18n } = useTranslation("common");
-  const { config, queryParams, projectId } = useChartWidget(
+  const { config, queryParams, layerId } = useChartWidget(
     rawConfig,
     histogramChartConfigSchema,
     histogramStatsQueryParams
   );
   const { histogramStats, isLoading, isError } = useProjectLayerHistogramStats(
-    projectId,
-    config?.setup?.layer_project_id,
+    layerId,
     queryParams as HistogramStatsQueryParams
   );
 
@@ -61,8 +60,8 @@ export const HistogramChartWidget = ({ config: rawConfig }: { config: HistogramC
   }, [histogramStats]);
 
   const isChartConfigured = useMemo(() => {
-    return config?.setup?.layer_project_id && queryParams;
-  }, [config, queryParams]);
+    return layerId && queryParams;
+  }, [layerId, queryParams]);
 
   return (
     <>

@@ -100,6 +100,24 @@ def _execute_analytics_sync(process_id: str, inputs: dict[str, Any]) -> dict[str
                 collection=inputs.get("collection", ""),
                 filter_expr=inputs.get("filter"),
             )
+        elif process_id == "aggregation-stats":
+            return analytics_service.aggregation_stats(
+                collection=inputs.get("collection", ""),
+                operation=inputs.get("operation", "count"),
+                operation_column=inputs.get("operation_column"),
+                group_by_column=inputs.get("group_by_column"),
+                filter_expr=inputs.get("filter"),
+                order=inputs.get("order", "descendent"),
+                limit=inputs.get("limit", 100),
+            )
+        elif process_id == "histogram":
+            return analytics_service.histogram(
+                collection=inputs.get("collection", ""),
+                column=inputs.get("column", ""),
+                num_bins=inputs.get("num_bins", 10),
+                filter_expr=inputs.get("filter"),
+                order=inputs.get("order", "ascendent"),
+            )
         else:
             raise HTTPException(
                 status_code=404, detail=f"Unknown analytics process: {process_id}"

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # Windmill settings for job execution
     WINDMILL_URL: str = os.getenv("WINDMILL_URL", "http://windmill-server:8000")
-    WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "plan4better")
+    WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "goat")
     WINDMILL_TOKEN: str = os.getenv("WINDMILL_TOKEN", "")
 
     # DuckLake settings

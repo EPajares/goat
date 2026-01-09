@@ -1,10 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMap } from "react-map-gl/maplibre";
 import type { ZodSchema } from "zod";
 
+import { useProjectLayers } from "@/lib/api/projects";
+import { selectProjectLayers } from "@/lib/store/layer/selectors";
 import { getMapExtentCQL } from "@/lib/utils/map/navigate";
+
 import { useAppSelector } from "@/hooks/store/ContextHooks";
 
 interface UseLayerFiltersParams {
@@ -16,18 +19,16 @@ interface UseLayerFiltersParams {
  * merging per-layer and spatial cross-filters for the specified layer.
  */
 function useTemporaryFilters({ layerId }: UseLayerFiltersParams) {
-  const { temporaryFilters } = useAppSelector(state => state.map);
+  const { temporaryFilters } = useAppSelector((state) => state.map);
 
   return useMemo(() => {
     if (!layerId) return undefined;
 
-    const nonCross = temporaryFilters
-      .filter(f => f.layer_id === layerId)
-      .map(f => f.filter);
+    const nonCross = temporaryFilters.filter((f) => f.layer_id === layerId).map((f) => f.filter);
 
     const spatialCross = temporaryFilters
-      .filter(f => f.layer_id !== layerId && f.spatial_cross_filter)
-      .map(f => f.spatial_cross_filter as any);
+      .filter((f) => f.layer_id !== layerId && f.spatial_cross_filter)
+      .map((f) => f.spatial_cross_filter as any);
 
     const filters = [...nonCross, ...spatialCross];
     if (!filters.length) return undefined;
@@ -40,11 +41,13 @@ interface ChartWidgetResult<TConfig, TQueryParams> {
   config?: TConfig;
   queryParams?: TQueryParams;
   projectId: string;
+  layerId?: string; // The layer UUID for API calls
 }
 
 /**
  * Hook to parse config, build and update query params for chart widgets.
  * Applies temporary filters only if options.cross_filter is true.
+ * Returns layerId (UUID) for use with GeoAPI analytics endpoints.
  */
 export function useChartWidget<TConfig, TQueryParams>(
   rawConfig: unknown,
@@ -54,10 +57,25 @@ export function useChartWidget<TConfig, TQueryParams>(
   const { map } = useMap();
   const { projectId } = useParams() as { projectId: string };
 
+  // Try Redux store first (populated in public view)
+  const reduxLayers = useAppSelector(selectProjectLayers);
+  // Fall back to API hook (used in builder/authenticated view)
+  const { layers: apiLayers } = useProjectLayers(projectId);
+  // Use Redux layers if available, otherwise fall back to API layers
+  const layers = reduxLayers && reduxLayers.length > 0 ? reduxLayers : apiLayers;
+
   const config = useMemo(() => {
     const result = configSchema.safeParse(rawConfig);
     return result.success ? result.data : undefined;
   }, [rawConfig, configSchema]);
+
+  // Get the layer_id (UUID) from layer_project_id
+  const layerId = useMemo(() => {
+    const layerProjectId = (config as any)?.setup?.layer_project_id;
+    if (!layerProjectId || !layers) return undefined;
+    const layer = layers.find((l) => l.id === layerProjectId);
+    return layer?.layer_id;
+  }, [config, layers]);
 
   // Get temporary filters for this layer
   const tempFilters = useTemporaryFilters({ layerId: (config as any)?.setup?.layer_project_id });
@@ -87,9 +105,7 @@ export function useChartWidget<TConfig, TQueryParams>(
       }
     }
 
-    return cqlQuery
-      ? { ...parsed.data, query: JSON.stringify(cqlQuery) }
-      : (parsed.data as TQueryParams);
+    return cqlQuery ? { ...parsed.data, query: JSON.stringify(cqlQuery) } : (parsed.data as TQueryParams);
   }, [config, map, querySchema, tempFilters]);
 
   const [queryParams, setQueryParams] = useState<TQueryParams | undefined>(() => buildQuery());
@@ -111,5 +127,5 @@ export function useChartWidget<TConfig, TQueryParams>(
     };
   }, [map, config, buildQuery]);
 
-  return { config, queryParams, projectId };
+  return { config, queryParams, projectId, layerId };
 }

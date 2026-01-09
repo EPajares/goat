@@ -21,16 +21,14 @@ const OPACITY_MODIFIER = "33";
 export const CategoriesChartWidget = ({ config: rawConfig }: { config: CategoriesChartSchema }) => {
   const { t, i18n } = useTranslation("common");
   const theme = useTheme();
-  const { config, queryParams, projectId } = useChartWidget(
+  const { config, queryParams, layerId } = useChartWidget(
     rawConfig,
     categoriesChartConfigSchema,
     aggregationStatsQueryParams
   );
 
   const { aggregationStats, isLoading, isError } = useProjectLayerAggregationStats(
-    projectId,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (config as any)?.setup?.layer_project_id,
+    layerId,
     queryParams as AggregationStatsQueryParams
   );
 

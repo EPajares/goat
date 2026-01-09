@@ -31,6 +31,16 @@ class AreaOperation(StrEnum):
     max = "max"
 
 
+class StatisticsOperation(StrEnum):
+    """Statistical operations for aggregation calculations."""
+
+    count = "count"
+    sum = "sum"
+    mean = "mean"
+    min = "min"
+    max = "max"
+
+
 # Input models
 
 
@@ -138,3 +148,86 @@ class ExtentResult(BaseModel):
         description="Bounding box as [minx, miny, maxx, maxy] in WGS84 coordinates",
     )
     feature_count: int = Field(0, description="Number of features in the extent")
+
+# Aggregation Stats models
+
+class AggregationStatsInput(BaseModel):
+    """Input for aggregation statistics operation."""
+
+    operation: StatisticsOperation = Field(
+        default=StatisticsOperation.count,
+        description="Statistical operation to perform",
+    )
+    operation_column: str | None = Field(
+        default=None,
+        description="Column to perform the operation on (required for sum, mean, min, max)",
+    )
+    group_by_column: str | None = Field(
+        default=None, description="Column to group results by"
+    )
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+    order: SortOrder = Field(
+        default=SortOrder.descendent, description="Sort order by operation value"
+    )
+    limit: int = Field(
+        default=100,
+        ge=1,
+        le=100,
+        description="Maximum number of grouped values to return",
+    )
+
+
+class AggregationStatsItem(BaseModel):
+    """Single aggregation result item."""
+
+    grouped_value: str | None = Field(
+        None, description="The grouped value (null if no grouping)"
+    )
+    operation_value: float = Field(
+        ..., description="Result of the statistical operation"
+    )
+
+
+class AggregationStatsResult(BaseModel):
+    """Result of aggregation statistics calculation."""
+
+    items: list[AggregationStatsItem] = Field(
+        default_factory=list, description="List of aggregation results"
+    )
+    total_items: int = Field(
+        0, description="Total number of grouped items (before limit)"
+    )
+    total_count: int = Field(0, description="Total count of rows")
+
+
+# Histogram models
+
+
+class HistogramInput(BaseModel):
+    """Input for histogram calculation."""
+
+    column: str = Field(description="Numeric column to create histogram for")
+    num_bins: int = Field(
+        default=10, ge=1, le=100, description="Number of histogram bins"
+    )
+    filter: str | None = Field(default=None, description="CQL2 filter expression")
+    order: SortOrder = Field(
+        default=SortOrder.ascendent, description="Sort order of bins"
+    )
+
+
+class HistogramBin(BaseModel):
+    """Single histogram bin."""
+
+    range: tuple[float, float] = Field(..., description="Bin range [lower, upper)")
+    count: int = Field(..., description="Number of values in this bin")
+
+
+class HistogramResult(BaseModel):
+    """Result of histogram calculation."""
+
+    bins: list[HistogramBin] = Field(
+        default_factory=list, description="List of histogram bins"
+    )
+    missing_count: int = Field(0, description="Count of NULL values")
+    total_rows: int = Field(0, description="Total number of rows")
