@@ -55,20 +55,20 @@ const ProjectLayerDeleteModal: React.FC<ProjectLayerDeleteDialogProps> = ({
       setIsLoading(true);
       if (!projectLayer) return;
 
+      // Always remove the layer from the project immediately
+      await deleteProjectLayer(projectId, projectLayer.id);
+      mutateProjectLayers();
+
+      // If user also wants to delete the dataset, start the job in background
       if (deleteSourceLayer && dataset) {
         const job = await deleteLayer(dataset.id);
-        // Add job to running jobs for error tracking only
         if (job?.jobID) {
           mutateJobs();
           dispatch(setRunningJobIds([...runningJobIds, job.jobID]));
+          toast.info(`"${t("delete_dataset_source")}" - ${t("job_started")}`);
         }
         // Invalidate dataset layers cache
         mutate(`${LAYERS_API_BASE_URL}`);
-      } else {
-        await deleteProjectLayer(projectId, projectLayer.id);
-        // Only refresh project layers immediately for non-async deletion
-        mutateProjectLayers();
-        toast.success(t("layer_removed_from_project"));
       }
 
       onDelete?.();

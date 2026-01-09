@@ -62,11 +62,11 @@ Die räumlichen Operationen Werkzeugleiste auf der rechten Seite der Kartenoberf
 
 ### Kartennavigation
 
-- <img src={require('/img/icons/magnifYING-GLASS.png').default} alt="Adressen- und Koordinatensuche" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Such-Button</code>: <strong>Suchen Sie nach Adressen</strong> oder Koordinaten, um schnell zu einem bestimmten Ort auf der Karte zu navigieren.
+- <img src={require('/img/icons/magnifying-glass.png').default} alt="Adressen- und Koordinatensuche" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Such-Button</code>: <strong>Suchen Sie nach Adressen</strong> oder Koordinaten, um schnell zu einem bestimmten Ort auf der Karte zu navigieren.
 
 - <img src={require('/img/icons/plus.png').default} alt="Hineinzoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Hineinzoomen</code>
 
-- <img src={require('/img/icons/MINUS.png').default} alt="Rauszoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Rauszoomen</code>
+- <img src={require('/img/icons/minus.png').default} alt="Rauszoomen" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Rauszoomen</code>
   
 - <img src={require('/img/icons/fullscreen.png').default} alt="Vollbild" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/> <code>Vollbild</code>
 

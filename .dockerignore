@@ -10,8 +10,8 @@ coverage
 
 # next.js
 **/.next
-**/out
-**/build
+apps/web/out
+apps/storybook/out
 
 # node
 **/dist
@@ -44,3 +44,7 @@ app.egg-info
 .coverage
 htmlcov
 .venv
+
+# Large data directories
+data/
+lint-results/

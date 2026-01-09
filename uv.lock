@@ -996,6 +996,12 @@ wheels = [
 ]
 
 [[package]]
+name = "gdal"
+version = "3.6.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/45/ce25a03268e6ccab9396acb92537b58eb5d0f4bdfa2144fd0f0e3bfdbacc/GDAL-3.6.4.tar.gz", hash = "sha256:c07d548cbd6544e8a51651fc1e487ca4b39e8fe6b5b3c886082d87f0e49e8313", size = 758072, upload-time = "2023-04-21T13:04:05.772Z" }
+
+[[package]]
 name = "geoalchemy2"
 version = "0.17.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1148,6 +1154,7 @@ dependencies = [
     { name = "asyncpg" },
     { name = "boto3" },
     { name = "duckdb" },
+    { name = "gdal" },
     { name = "geopandas" },
     { name = "httpx" },
     { name = "numba" },
@@ -1167,6 +1174,7 @@ requires-dist = [
     { name = "asyncpg", specifier = ">=0.29.0" },
     { name = "boto3", specifier = ">=1.35.0" },
     { name = "duckdb", specifier = ">=1.4.3" },
+    { name = "gdal", specifier = ">=3.6.0,<3.7.0" },
     { name = "geopandas", specifier = ">=1.0.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "numba", specifier = ">=0.60.0" },

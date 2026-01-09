@@ -90,6 +90,9 @@ class TileService:
         def is_excluded_type(col_type: str) -> bool:
             """Check if type must be excluded from MVT entirely."""
             type_lower = col_type.lower()
+            # Exclude array types (e.g., VARCHAR[], INTEGER[])
+            if type_lower.endswith("[]"):
+                return True
             return any(type_lower.startswith(t) for t in mvt_excluded_type_prefixes)
 
         def get_cast_type(col_type: str) -> str | None:
@@ -171,7 +174,6 @@ class TileService:
         # 1. bounds CTE: compute tile envelope in both projections
         # 2. candidates CTE: filter data using bbox (no ST_AsMVTGeom here)
         # 3. Final SELECT: ST_AsMVT with ST_AsMVTGeom inside struct_pack
-        # Use simple LIMIT instead of QUALIFY+random for better performance
         select_clause = f'"{geom_col}"'
         if select_props:
             select_clause += f", {select_props}"
@@ -180,37 +182,86 @@ class TileService:
         # This is computed efficiently within the QUALIFY window function
         row_num_clause = "" if has_id_column else ", ROW_NUMBER() OVER () AS row_num"
 
-        query = f"""
-            WITH bounds AS (
-                SELECT
-                    ST_TileEnvelope({z}, {x}, {y}) AS bbox3857,
-                    ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
-            ),
-            candidates AS (
-                SELECT {select_clause}{row_num_clause}
-                FROM {table}, bounds
-                WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
-            )
-            SELECT ST_AsMVT(
-                struct_pack({struct_pack_args}),
-                'default'
-            )
-            FROM candidates, bounds
-        """
+        # Check if table has bbox column for fast row group pruning
+        # Support both legacy scalar columns ($minx, etc.) and GeoParquet 1.1 struct bbox
+        has_scalar_bbox = all(
+            c in column_names for c in ["$minx", "$miny", "$maxx", "$maxy"]
+        )
+        has_struct_bbox = "bbox" in column_names
+        has_bbox_columns = has_scalar_bbox or has_struct_bbox
+
+        if has_bbox_columns:
+            # Fast path: use bbox columns for row group pruning
+            # This is 10-100x faster because parquet can skip entire row groups
+            # Prefer scalar columns (legacy) over struct bbox (GeoParquet 1.1)
+            if has_scalar_bbox:
+                bbox_filter = """"$minx" <= ST_XMax(bounds.bbox4326)
+                      AND "$maxx" >= ST_XMin(bounds.bbox4326)
+                      AND "$miny" <= ST_YMax(bounds.bbox4326)
+                      AND "$maxy" >= ST_YMin(bounds.bbox4326)"""
+            else:
+                bbox_filter = """bbox.xmin <= ST_XMax(bounds.bbox4326)
+                      AND bbox.xmax >= ST_XMin(bounds.bbox4326)
+                      AND bbox.ymin <= ST_YMax(bounds.bbox4326)
+                      AND bbox.ymax >= ST_YMin(bounds.bbox4326)"""
+
+            query = f"""
+                WITH bounds AS (
+                    SELECT
+                        ST_TileEnvelope({z}, {x}, {y}) AS bbox3857,
+                        ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
+                ),
+                candidates AS (
+                    SELECT {select_clause}{row_num_clause}
+                    FROM {table}, bounds
+                    WHERE {bbox_filter}
+                      AND ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
+                )
+                SELECT ST_AsMVT(
+                    struct_pack({struct_pack_args}),
+                    'default'
+                )
+                FROM candidates, bounds
+            """
+        else:
+            # Fallback: no bbox columns, use ST_Intersects only
+            query = f"""
+                WITH bounds AS (
+                    SELECT
+                        ST_TileEnvelope({z}, {x}, {y}) AS bbox3857,
+                        ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
+                ),
+                candidates AS (
+                    SELECT {select_clause}{row_num_clause}
+                    FROM {table}, bounds
+                    WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
+                )
+                SELECT ST_AsMVT(
+                    struct_pack({struct_pack_args}),
+                    'default'
+                )
+                FROM candidates, bounds
+            """
 
         try:
             # Use pool's execute_with_retry for automatic connection handling
+            # Apply query timeout to prevent blocking other requests
             result = ducklake_pool.execute_with_retry(
                 query,
                 params=params if params else None,
                 max_retries=3,
                 fetch_all=False,
+                timeout=settings.QUERY_TIMEOUT,
             )
 
             if result and result[0]:
                 return bytes(result[0])
             return None
+        except TimeoutError:
+            logger.warning("Tile query timeout: z=%d, x=%d, y=%d", z, x, y)
+            raise
         except Exception as e:
             logger.error("Tile generation error: %s", e)
             raise

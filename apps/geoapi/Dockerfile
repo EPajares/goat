@@ -24,8 +24,8 @@ RUN apt-get install --no-install-recommends -y tzdata
 
 # ===== STAGE 2: Python environment ====
 FROM linux-base AS python-base
-# Install debian dependencies
-RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext
+# Install debian dependencies including GDAL for building Python bindings
+RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext libgdal-dev
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.2 /uv /usr/local/bin/uv
 
@@ -40,6 +40,9 @@ RUN uv sync --all-extras --frozen --no-dev --no-editable --package=geoapi
 
 # ==== STAGE 3: Webapp environment ====
 FROM linux-base AS webapp
+
+# Install GDAL runtime library needed by Python bindings
+RUN apt-get update && apt-get install --no-install-recommends -y libgdal32 && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m appuser
 
@@ -56,4 +59,3 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/geoapi/src/geoapi/main.py"]
-

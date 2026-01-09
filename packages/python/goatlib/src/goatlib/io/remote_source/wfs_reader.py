@@ -88,6 +88,9 @@ class WFSReader:
         self: WFSReader, url: str, layer: Optional[str], config: Dict[str, str]
     ) -> str:
         """Build WFS datasource XML content."""
+        # Clean the URL to remove GetCapabilities params that confuse GDAL
+        clean_url = self._clean_wfs_url(url)
+
         layer_tag = f"  <Layer>{layer}</Layer>\n" if layer else ""
 
         config_tags = "".join(
@@ -101,8 +104,49 @@ class WFSReader:
         """)
 
         return xml_template.format(
-            url=url, config_tags=config_tags, layer_tag=layer_tag
+            url=clean_url, config_tags=config_tags, layer_tag=layer_tag
         )
+
+    def _clean_wfs_url(self: WFSReader, url: str) -> str:
+        """Remove GetCapabilities parameters from WFS URL.
+
+        GDAL WFS driver expects the base service URL, not a GetCapabilities URL.
+        Parameters like service=WFS, request=GetCapabilities, version=2.0.0
+        can confuse GDAL when it tries to make its own requests.
+        """
+        from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+        parsed = urlparse(url)
+        params = parse_qs(parsed.query, keep_blank_values=True)
+
+        # Remove WFS-specific parameters (case-insensitive)
+        params_to_remove = {
+            "service",
+            "request",
+            "version",
+            "SERVICE",
+            "REQUEST",
+            "VERSION",
+        }
+        cleaned_params = {k: v for k, v in params.items() if k not in params_to_remove}
+
+        # Rebuild URL
+        new_query = urlencode(cleaned_params, doseq=True)
+        cleaned_url = urlunparse(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                parsed.params,
+                new_query,
+                parsed.fragment,
+            )
+        )
+
+        if cleaned_url != url:
+            logger.debug("Cleaned WFS URL: %s -> %s", url, cleaned_url)
+
+        return cleaned_url
 
     def _write_wfs_xml_file(
         self: WFSReader, xml_content: str, layer: Optional[str]
@@ -120,7 +164,10 @@ class WFSReader:
         xml_path = tmp_dir / filename
         xml_path.write_text(xml_content, encoding="utf-8")
 
-        logger.debug("Created WFS datasource XML: %s", xml_path)
+        # Log the XML content for debugging
+        logger.info(
+            "Created WFS datasource XML at %s with content:\n%s", xml_path, xml_content
+        )
         return xml_path
 
     def _sanitize_filename(self: WFSReader, name: str) -> str:

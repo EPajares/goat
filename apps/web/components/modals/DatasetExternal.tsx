@@ -588,6 +588,7 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
       ...getValues(),
       folder_id: selectedFolder?.id,
     };
+    let isJobBased = false;
     try {
       setIsBusy(true);
       if (capabilities?.type === vectorDataType.Enum.wfs) {
@@ -608,6 +609,7 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
         if (jobId) {
           mutate();
           dispatch(setRunningJobIds([...runningJobIds, jobId]));
+          isJobBased = true;
         }
       } else if (
         capabilities?.type === imageryDataType.Enum.wms ||
@@ -674,7 +676,13 @@ const DatasetExternal: React.FC<DatasetExternalProps> = ({ open, onClose, projec
           mutateProject();
         }
       }
-      toast.success(t("success_adding_external_dataset"));
+      // Only show success toast for non-job-based imports
+      // Job-based imports (like WFS) show progress via JobsPopper
+      if (!isJobBased) {
+        toast.success(t("success_adding_external_dataset"));
+      } else {
+        toast.info(`"${t("dataset_external")}" - ${t("job_started")}`);
+      }
     } catch (_error) {
       toast.error(t("error_adding_external_dataset"));
     } finally {

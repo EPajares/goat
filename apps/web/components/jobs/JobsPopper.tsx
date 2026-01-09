@@ -1,6 +1,6 @@
 import DownloadIcon from "@mui/icons-material/Download";
 import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -56,32 +56,35 @@ export default function JobsPopper() {
   }, [jobs?.jobs]);
 
   // Handle download for LayerExport jobs
-  const handleExportDownload = async (payload: Record<string, unknown> | undefined, showToast = false) => {
-    if (!payload) return;
-    try {
-      const downloadUrl = payload.download_url as string;
-      const fileName = (payload.file_name as string) || "export.zip";
-      if (!downloadUrl) {
-        throw new Error("No download_url in job payload");
-      }
-      // Trigger download
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleExportDownload = useCallback(
+    async (payload: Record<string, unknown> | undefined, showToast = false) => {
+      if (!payload) return;
+      try {
+        const downloadUrl = payload.download_url as string;
+        const fileName = (payload.file_name as string) || "export.zip";
+        if (!downloadUrl) {
+          throw new Error("No download_url in job payload");
+        }
+        // Trigger download
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
 
-      if (showToast) {
-        toast.success(t("download_started") || "Download started");
+        if (showToast) {
+          toast.success(t("download_started") || "Download started");
+        }
+      } catch (error) {
+        console.error("Download failed:", error);
+        if (showToast) {
+          toast.error(t("error_downloading") || "Download failed");
+        }
       }
-    } catch (error) {
-      console.error("Download failed:", error);
-      if (showToast) {
-        toast.error(t("error_downloading") || "Download failed");
-      }
-    }
-  };
+    },
+    [t]
+  );
 
   // Auto-download completed export jobs (only for jobs that complete AFTER initial load)
   useEffect(() => {
@@ -116,7 +119,7 @@ export default function JobsPopper() {
         }
       }
     });
-  }, [jobs?.jobs, t]);
+  }, [jobs?.jobs, handleExportDownload]);
 
   // Helper to render download button for export jobs
   const renderExportDownloadButton = (job: Job) => {
