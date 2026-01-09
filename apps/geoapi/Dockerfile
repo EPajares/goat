@@ -56,4 +56,3 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/geoapi/src/geoapi/main.py"]
-
