@@ -34,13 +34,62 @@ This comprehensive glossary provides English to German translations for all the 
 
 ## Spatial Analysis Tools
 
-### Buffer Analysis
+### Geoprocessing Tools
 | English | German | Description |
 |---------|--------|-------------|
 | Buffer | Puffer | Create buffer zones around features |
 | Buffer Distance | Pufferabstand | Distance for buffer creation |
 | Buffer Settings | Puffereinstellungen | Buffer configuration options |
 | Buffer Steps | Pufferstufen | Number of buffer steps |
+| Polygon Union | Polygon-Vereinigung | Combine buffer polygons |
+| Polygon Difference | Polygon-Differenz | Subtract overlapping polygons |
+| **Clip** | **Auschneiden** | Extract features within clip geometry |
+| Clip Layer | Ausschnitt-Layer | Layer used for clipping |
+| **Intersection** | **Überschneiden** | Geometric intersection of two layers |
+| **Union** | **Vereinigen** | Combine features from multiple layers |
+| **Erase/Difference** | **Radieren** | Remove portions that overlap with erase geometry |
+| Erase Layer | Differenz-Layer | Layer used for erasing |
+| **Centroid** | **Mittelpunkt** | Create point features at geometric center |
+| Centroid Points | Schwerpunkt-Punkte | Point features at center |
+| Self-Union | Selbst-Vereinigung | Union operation on single layer |
+| Overlay Layer | Overlay-Layer | Secondary layer for overlay operations |
+| Geometric Operations | Geometrische Operationen | Spatial geometric calculations |
+
+### Geocoding & Geoanalysis
+| English | German | Description |
+|---------|--------|-------------|
+| **Geocoding** | **Geokodierung** | Convert addresses to coordinates |
+| Address Layer | Adressen-Layer | Layer containing address data |
+| Full Address | Vollständige Adresse | Complete address in single field |
+| Structured Address | Strukturierte Adresse | Address components in separate fields |
+| Street | Straße | Street name field |
+| House Number | Hausnummer | Building number field |
+| Postal Code | Postleitzahl | ZIP/postal code field |
+| City | Stadt | City/town name field |
+| Country | Land | Country name field |
+| **Aggregate Points** | **Punkte aggregieren** | Point aggregation analysis |
+| **Aggregate Polygons** | **Polygone aggregieren** | Polygon aggregation analysis |
+| Summary Areas | Aggregierungspolygone | Aggregation target areas |
+| Statistical Method | Statistische Methode | Aggregation calculation method |
+| **Origin-Destination** | **Quell-Ziel-Beziehungen** | Origin-destination analysis |
+| OD Matrix | Matrix-Tabelle | Origin-destination matrix |
+| Origin | Startpunkt | Starting point |
+| Destination | Ziel | Destination point |
+| Origin Field | Feld Quelle | Origin identifier field |
+| Destination Field | Felder Ziel | Destination identifier field |
+
+### Data Management & Joining
+| English | German | Description |
+|---------|--------|-------------|
+| **Join** | **Verknüpfung** | Spatial and attribute-based joins |
+| Join Layer | Join-Layer | Source layer for joining |
+| Target Layer | Ziel-Layer | Destination layer for join |
+| Join Field | Join-Feld | Field used for joining |
+| Target Field | Ziel-Feld | Target field for join |
+| Spatial Join | Räumliche Verknüpfung | Join based on spatial relationship |
+| Attribute Join | Attribut-Verknüpfung | Join based on attribute values |
+| Field Selection | Feldauswahl | Choose which fields to include |
+| Selected Fields | Ausgewählte Felder | Fields chosen for output |
 
 ### Catchment Area Analysis
 | English | German | Description |
@@ -51,6 +100,7 @@ This comprehensive glossary provides English to German translations for all the 
 | Catchment Area PT | Einzugsgebiet ÖV | Public transport accessibility |
 | Travel Time Limit | Reisezeitlimit | Maximum travel time |
 | Travel Time Speed | Reisegeschwindigkeit | Travel speed setting |
+| Isochrone | Isochrone | Area reachable within time limit |
 
 ### Heatmap Analysis
 | English | German | Description |
@@ -58,41 +108,45 @@ This comprehensive glossary provides English to German translations for all the 
 | Heatmap Connectivity | Heatmap Konnektivität | Network connectivity analysis |
 | Heatmap Gravity | Heatmap Gravity | Gravity model accessibility |
 | Heatmap Closest Average | Heatmap Durchschnitt Reisezeit | Average travel time to closest destinations |
+| Opportunities | Gelegenheiten | Destination points for analysis |
+| Sensitivity | Sensitivität | Distance decay parameter |
+| Destination Potential | Destinationspotenzial | Attractiveness weighting factor |
+| Grid Resolution | Gitterauflösung | Hexagonal grid detail level |
+| H3 Grid | H3-Gitter | Hexagonal spatial indexing system |
 
 ### Accessibility Indicators
 | English | German | Description |
 |---------|--------|-------------|
 | Accessibility Indicators | Erreichbarkeitsindikatoren | Accessibility measurements |
+| ÖV-Güteklassen | ÖV-Güteklassen | Public transport quality classes |
 | Nearby Stations | Nahgelegene ÖV-Haltestellen | Nearby public transport stops |
 | Trip Count | Abfahrten ÖPNV | Public transport departures |
-| OV Quality Classes | ÖV-Güteklassen | Public transport quality assessment |
+| GTFS Data | GTFS-Daten | General Transit Feed Specification |
+| Quality Classes | Güteklassen | Service quality assessment levels |
+| Station Coverage | Stationsabdeckung | Public transport station reach |
 
-### Aggregation Tools
+## Layouts & Print
+
 | English | German | Description |
 |---------|--------|-------------|
-| Aggregate Points | Punkte aggregieren | Point aggregation analysis |
-| Aggregate Polygons | Polygone aggregieren | Polygon aggregation analysis |
-| Summary Areas | Aggregierungspolygone | Aggregation target areas |
-| Statistical Method | Statistische Methode | Aggregation calculation method |
-
-### Joining & Grouping
-| English | German | Description |
-|---------|--------|-------------|
-| Join & Group | Join & Group | Data joining and grouping |
-| Join Layer | Join-Layer | Source layer for joining |
-| Target Layer | Ziel-Layer | Destination layer for join |
-| Join Field | Join-Feld | Field used for joining |
-| Target Field | Ziel-Feld | Target field for join |
-
-### Origin-Destination Analysis
-| English | German | Description |
-|---------|--------|-------------|
-| Origin-Destination | Quell-Ziel-Beziehungen | Origin-destination analysis |
-| OD Matrix | Matrix-Tabelle | Origin-destination matrix |
-| Origin | Startpunkt | Starting point |
-| Destination | Ziel | Destination point |
-| Origin Field | Feld Quelle | Origin identifier field |
-| Destination Field | Felder Ziel | Destination identifier field |
+| **Layouts** | **Layouts** | Report layout and printing system |
+| Layout | Layout | Map layout for reports |
+| Print Report | Bericht drucken | Generate PDF/PNG reports |
+| Layout Preview | Layout-Vorschau | Preview of print layout |
+| Settings Panel | Einstellungsbereich | Layout configuration panel |
+| Elements Panel | Elementbereich | Layout components panel |
+| Map Element | Kartenelement | Map component in layout |
+| Text Element | Textelement | Text component in layout |
+| Image Element | Bildelement | Image component in layout |
+| Legend Element | Legendenelement | Map legend in layout |
+| Scale Bar | Maßstabsleiste | Map scale indicator |
+| North Arrow | Nordpfeil | North direction indicator |
+| Title | Titel | Layout title text |
+| Page Setup | Seiteneinrichtung | Page size and orientation |
+| Page Orientation | Seitenausrichtung | Portrait or landscape |
+| Export Format | Exportformat | PDF or PNG output |
+| Atlas | Atlas | Multi-page report generation |
+| Template | Vorlage | Pre-designed layout template |
 
 ## Routing & Transportation
 
@@ -234,6 +288,9 @@ This comprehensive glossary provides English to German translations for all the 
 | **Share** | **Teilen** | Share content |
 | **Duplicate** | **Duplizieren** | Copy item |
 | **Rename** | **Umbenennen** | Change name |
+| **Import** | **Importieren** | Import data |
+| **Export** | **Exportieren** | Export data |
+| **Dissolve** | **Zusammenführen** | Merge adjacent features |
 
 ## Analysis Configuration
 
@@ -246,6 +303,12 @@ This comprehensive glossary provides English to German translations for all the 
 | Starting Points | Startpunkte | Analysis origin points |
 | Reference Layer | Referenz-Layer | Reference data layer |
 | Study Area | Untersuchungsgebiet | Analysis boundary |
+| Input Layer | Eingabe-Layer | Source data layer |
+| Output Layer | Ausgabe-Layer | Result data layer |
+| Geometry Column | Geometrie-Spalte | Spatial data column |
+| Coordinate System | Koordinatensystem | Spatial reference system |
+| CRS | KBS | Coordinate Reference System |
+| EPSG Code | EPSG-Code | Standard spatial reference identifier |
 
 ## Time & Scheduling
 
@@ -282,6 +345,21 @@ This comprehensive glossary provides English to German translations for all the 
 | Metric | Metrisch | Metric system |
 | Imperial | Imperial | Imperial system |
 | **Radius** | **Radius** | Circular distance |
+| Meters | Meter | Distance in meters |
+| Kilometers | Kilometer | Distance in kilometers |
+| Miles | Meilen | Distance in miles |
+| Feet | Fuß | Distance in feet |
+| Buffer Type | Puffertyp | Type of buffer operation |
+| Fixed Distance | Feste Entfernung | Same distance for all features |
+| Variable Distance | Variable Entfernung | Different distance per feature |
+| Distance Field | Entfernungsfeld | Field containing distance values |
+| Cap Style | Endkappen-Stil | Buffer end cap style |
+| Join Style | Verbindungs-Stil | Buffer corner style |
+| Round | Rund | Rounded buffer style |
+| Square | Eckig | Square buffer style |
+| Flat | Flach | Flat buffer end style |
+| Mitre Limit | Gehrungsgrenze | Mitre join limit parameter |
+| Quad Segments | Bogensegmente | Number of segments for curves |
 
 ## Data Formats
 
