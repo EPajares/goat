@@ -1,10 +1,10 @@
 """Join tool for Windmill.
 
 Performs spatial and attribute-based joins between datasets using DuckDB Spatial.
+Matches ArcGIS Join Features tool functionality.
 """
 
 import logging
-from enum import StrEnum
 from pathlib import Path
 from typing import Any, List, Literal, Optional, Self
 
@@ -18,7 +18,6 @@ from goatlib.analysis.schemas.data_management import (
     JoinParams,
     JoinType,
     MultipleMatchingRecordsType,
-    SortConfiguration,
     SpatialRelationshipType,
 )
 from goatlib.analysis.schemas.ui import (
@@ -33,22 +32,6 @@ from goatlib.tools.base import BaseToolRunner
 from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
 
 logger = logging.getLogger(__name__)
-
-
-class JoinMethod(StrEnum):
-    """Method for joining features."""
-
-    spatial = "spatial"
-    attribute = "attribute"
-    spatial_and_attribute = "spatial_and_attribute"
-
-
-# Enum labels for i18n (map enum values to translation keys)
-JOIN_METHOD_LABELS: dict[str, str] = {
-    "spatial": "enums.join_method.spatial",
-    "attribute": "enums.join_method.attribute",
-    "spatial_and_attribute": "enums.join_method.spatial_and_attribute",
-}
 
 SPATIAL_RELATIONSHIP_LABELS: dict[str, str] = {
     "intersects": "enums.spatial_relationship_type.intersects",
@@ -72,12 +55,6 @@ JOIN_OPERATION_LABELS: dict[str, str] = {
     "one_to_many": "enums.join_operation_type.one_to_many",
 }
 
-MULTIPLE_MATCHING_RECORDS_LABELS: dict[str, str] = {
-    "first_record": "enums.multiple_matching_records_type.first_record",
-    "calculate_statistics": "enums.multiple_matching_records_type.calculate_statistics",
-    "count_only": "enums.multiple_matching_records_type.count_only",
-}
-
 JOIN_TYPE_LABELS: dict[str, str] = {
     "inner": "enums.join_type.inner",
     "left": "enums.join_type.left",
@@ -87,6 +64,7 @@ JOIN_TYPE_LABELS: dict[str, str] = {
 class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
     """Parameters for join tool.
 
+    Matches ArcGIS Join Features tool with toggle-based spatial/attribute selection.
     Does NOT inherit from JoinParams to avoid validator conflicts.
     We build JoinParams in the runner instead.
     """
@@ -95,7 +73,7 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
         json_schema_extra=ui_sections(
             SECTION_INPUT,
             UISection(id="join_layer", order=2, icon="layers"),
-            UISection(id="join_method", order=3, icon="route"),
+            UISection(id="join_settings", order=3, icon="route"),
             UISection(id="spatial_settings", order=4, icon="location"),
             UISection(id="attribute_settings", order=5, icon="list"),
             UISection(
@@ -105,14 +83,8 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                 collapsible=True,
             ),
             UISection(
-                id="statistics",
-                order=7,
-                icon="chart",
-                collapsible=True,
-            ),
-            UISection(
                 id="scenario",
-                order=8,
+                order=7,
                 icon="scenario",
                 depends_on={"target_layer_id": {"$ne": None}},
             ),
@@ -150,151 +122,150 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
         json_schema_extra=ui_field(section="join_layer", field_order=2, hidden=True),
     )
 
-    # Join method dropdown
-    join_method: JoinMethod = Field(
-        JoinMethod.attribute,
-        description="How to match features between the target and join layers",
+    # ===== Join Method Toggles (ArcGIS pattern) =====
+    use_spatial_relationship: bool = Field(
+        False,
+        description="Match features based on their spatial location. If both options are enabled, features must match both criteria.",
         json_schema_extra=ui_field(
-            section="join_method",
+            section="join_settings",
             field_order=1,
-            enum_labels=JOIN_METHOD_LABELS,
+            widget="switch",
+            # Only show spatial relationship option when at least one layer has geometry
+            # The _any_layer_has_geometry value is computed by the frontend from selected layers
+            visible_when={"_any_layer_has_geometry": True},
+        ),
+    )
+    use_attribute_relationship: bool = Field(
+        True,  # Default to attribute join
+        description="Match features based on attribute values. If both options are enabled, features must match both criteria.",
+        json_schema_extra=ui_field(
+            section="join_settings",
+            field_order=2,
+            widget="switch",
         ),
     )
 
-    # Spatial relationship settings
+    # ===== Spatial Relationship Settings =====
     spatial_relationship: Optional[SpatialRelationshipType] = Field(
         SpatialRelationshipType.intersects,
-        description="The spatial relationship used to match features",
+        description="How spatial features are joined to each other",
         json_schema_extra=ui_field(
             section="spatial_settings",
             field_order=1,
             enum_labels=SPATIAL_RELATIONSHIP_LABELS,
-            visible_when={"join_method": {"$in": ["spatial", "spatial_and_attribute"]}},
+            visible_when={"use_spatial_relationship": True},
         ),
     )
     distance: Optional[float] = Field(
         None,
-        description="Search distance for the within_distance relationship",
+        description="How close features in the join layer must be to features in the target layer",
         gt=0,
         json_schema_extra=ui_field(
             section="spatial_settings",
             field_order=2,
-            visible_when={"spatial_relationship": "within_distance"},
+            visible_when={
+                "$and": [
+                    {"use_spatial_relationship": True},
+                    {"spatial_relationship": "within_distance"},
+                ]
+            },
         ),
     )
     distance_units: Literal[
         "meters", "kilometers", "feet", "miles", "nautical_miles", "yards"
     ] = Field(
         "meters",
-        description="Units for the search distance",
+        description="Distance units",
         json_schema_extra=ui_field(
             section="spatial_settings",
             field_order=3,
             enum_labels=DISTANCE_UNITS_LABELS,
-            visible_when={"spatial_relationship": "within_distance"},
-        ),
-    )
-
-    # Attribute relationship settings - simple field selectors
-    target_field: Optional[str] = Field(
-        None,
-        description="Field in target layer to match",
-        json_schema_extra=ui_field(
-            section="attribute_settings",
-            field_order=1,
-            widget="field-selector",
-            widget_options={"source_layer": "target_layer_id"},
             visible_when={
-                "join_method": {"$in": ["attribute", "spatial_and_attribute"]}
-            },
-        ),
-    )
-    join_field: Optional[str] = Field(
-        None,
-        description="Field in join layer to match",
-        json_schema_extra=ui_field(
-            section="attribute_settings",
-            field_order=2,
-            widget="field-selector",
-            widget_options={"source_layer": "join_layer_id"},
-            visible_when={
-                "join_method": {"$in": ["attribute", "spatial_and_attribute"]}
+                "$and": [
+                    {"use_spatial_relationship": True},
+                    {"spatial_relationship": "within_distance"},
+                ]
             },
         ),
     )
 
-    # Join operation settings
-    join_operation: JoinOperationType = Field(
-        JoinOperationType.one_to_one,
-        description="How to handle multiple matching features",
+    # ===== Attribute Relationship Settings =====
+    # Support for multiple attribute field pairs (like ArcGIS)
+    attribute_relationships: Optional[List[AttributeRelationship]] = Field(
+        None,
+        description="Attribute relationships. Target field and join field must contain matching values.",
         json_schema_extra=ui_field(
-            section="join_options",
+            section="attribute_settings",
             field_order=1,
-            enum_labels=JOIN_OPERATION_LABELS,
+            visible_when={"use_attribute_relationship": True},
+            repeatable=True,
+            min_items=1,
         ),
     )
-    multiple_matching_records: MultipleMatchingRecordsType = Field(
-        MultipleMatchingRecordsType.first_record,
-        description="How to handle multiple matching records in one-to-one joins",
-        json_schema_extra=ui_field(
-            section="join_options",
-            field_order=2,
-            enum_labels=MULTIPLE_MATCHING_RECORDS_LABELS,
-            visible_when={"join_operation": "one_to_one"},
-        ),
-    )
+
+    # ===== Join Operation Settings =====
     join_type: JoinType = Field(
-        JoinType.left,
-        description="Whether to keep all target features or only matching ones",
+        JoinType.inner,  # Default to inner join
+        description="Determines which features appear in the output. Inner Join keeps only matching features. Left Join keeps all target features even without matches.",
         json_schema_extra=ui_field(
             section="join_options",
-            field_order=3,
+            field_order=1,
             enum_labels=JOIN_TYPE_LABELS,
         ),
     )
-
-    # Sorting configuration
-    sort_configuration: Optional[SortConfiguration] = Field(
-        None,
-        description="Sort order for selecting the first matching record",
+    join_operation: JoinOperationType = Field(
+        JoinOperationType.one_to_one,
+        description="How to handle multiple matching features. One-to-One keeps one result per target feature. One-to-Many creates a row for each match.",
         json_schema_extra=ui_field(
             section="join_options",
-            field_order=4,
-            widget="sort-selector",
-            widget_options={"source_layer": "join_layer_id"},
-            visible_when={"multiple_matching_records": "first_record"},
+            field_order=2,
+            enum_labels=JOIN_OPERATION_LABELS,
         ),
     )
 
-    # Statistics configuration
+    # ===== Statistics Configuration (for one-to-one joins) =====
+    calculate_statistics: bool = Field(
+        False,
+        description="Calculate statistics for numeric fields when multiple records match",
+        json_schema_extra=ui_field(
+            section="join_options",
+            field_order=3,
+            widget="switch",
+            visible_when={"join_operation": "one_to_one"},
+        ),
+    )
     field_statistics: Optional[List[FieldStatistic]] = Field(
         None,
-        description="Statistics to calculate for matching records",
+        description="Field statistics to calculate. Supported statistics: sum, min, max, mean, standard deviation.",
         json_schema_extra=ui_field(
-            section="statistics",
-            field_order=1,
+            section="join_options",
+            field_order=4,
             widget="field-statistics-selector",
             widget_options={"source_layer": "join_layer_id"},
-            visible_when={"multiple_matching_records": "calculate_statistics"},
+            visible_when={
+                "$and": [
+                    {"join_operation": "one_to_one"},
+                    {"calculate_statistics": True},
+                ]
+            },
         ),
     )
 
     @model_validator(mode="after")
     def validate_join_config(self: Self) -> Self:
         """Validate join configuration."""
-        use_spatial = self.join_method in (
-            JoinMethod.spatial,
-            JoinMethod.spatial_and_attribute,
-        )
-        use_attribute = self.join_method in (
-            JoinMethod.attribute,
-            JoinMethod.spatial_and_attribute,
-        )
+        # Must use at least one relationship type
+        if not self.use_spatial_relationship and not self.use_attribute_relationship:
+            raise ValueError(
+                "Either use_spatial_relationship or use_attribute_relationship must be enabled"
+            )
 
         # Spatial relationship validation
-        if use_spatial:
+        if self.use_spatial_relationship:
             if self.spatial_relationship is None:
-                raise ValueError("spatial_relationship is required for spatial joins")
+                raise ValueError(
+                    "spatial_relationship is required when use_spatial_relationship is enabled"
+                )
             if self.spatial_relationship == SpatialRelationshipType.within_distance:
                 if self.distance is None:
                     raise ValueError(
@@ -302,10 +273,20 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                     )
 
         # Attribute relationship validation
-        if use_attribute:
-            if not self.target_field or not self.join_field:
+        if self.use_attribute_relationship:
+            if (
+                not self.attribute_relationships
+                or len(self.attribute_relationships) == 0
+            ):
                 raise ValueError(
-                    "target_field and join_field are required for attribute joins"
+                    "At least one attribute relationship is required when use_attribute_relationship is enabled"
+                )
+
+        # Statistics validation
+        if self.calculate_statistics:
+            if not self.field_statistics or len(self.field_statistics) == 0:
+                raise ValueError(
+                    "field_statistics is required when calculate_statistics is enabled"
                 )
 
         return self
@@ -338,42 +319,35 @@ class JoinToolRunner(BaseToolRunner[JoinToolParams]):
         )
         output_path = temp_dir / "output.parquet"
 
-        # Derive boolean flags from join_method
-        use_spatial = params.join_method in (
-            JoinMethod.spatial,
-            JoinMethod.spatial_and_attribute,
+        # Determine multiple_matching_records based on calculate_statistics toggle
+        # If calculate_statistics is True, use statistics; otherwise use first_record (sorted by ID)
+        multiple_matching_records = (
+            MultipleMatchingRecordsType.calculate_statistics
+            if params.calculate_statistics
+            else MultipleMatchingRecordsType.first_record
         )
-        use_attribute = params.join_method in (
-            JoinMethod.attribute,
-            JoinMethod.spatial_and_attribute,
-        )
-
-        # Build attribute_relationships from simple field selectors
-        attribute_relationships = None
-        if use_attribute and params.target_field and params.join_field:
-            attribute_relationships = [
-                AttributeRelationship(
-                    target_field=params.target_field,
-                    join_field=params.join_field,
-                )
-            ]
 
         # Build JoinParams for the analysis tool
+        # Sort by ID when using first_record (no sort_configuration needed)
         analysis_params = JoinParams(
             target_path=str(target_path),
             join_path=str(join_path),
             output_path=str(output_path),
-            use_spatial_relationship=use_spatial,
-            use_attribute_relationship=use_attribute,
-            spatial_relationship=params.spatial_relationship if use_spatial else None,
+            use_spatial_relationship=params.use_spatial_relationship,
+            use_attribute_relationship=params.use_attribute_relationship,
+            spatial_relationship=params.spatial_relationship
+            if params.use_spatial_relationship
+            else None,
             distance=params.distance,
             distance_units=params.distance_units,
-            attribute_relationships=attribute_relationships,
+            attribute_relationships=params.attribute_relationships,
             join_operation=params.join_operation,
-            multiple_matching_records=params.multiple_matching_records,
+            multiple_matching_records=multiple_matching_records,
             join_type=params.join_type,
-            sort_configuration=params.sort_configuration,
-            field_statistics=params.field_statistics,
+            sort_configuration=None,  # Sort by ID in backend
+            field_statistics=params.field_statistics
+            if params.calculate_statistics
+            else None,
         )
 
         tool = self.tool_class()

@@ -62,11 +62,16 @@ class JoinTool(AnalysisTool):
         if target_meta.geometry_column:
             output_geometry_type = target_meta.geometry_type
 
+        # Convert CRS to string if needed
+        crs_str = target_meta.crs
+        if crs_str is not None and not isinstance(crs_str, str):
+            crs_str = str(crs_str)
+
         metadata = DatasetMetadata(
             path=str(output_path),
             source_type="vector",
             format="geoparquet",
-            crs=target_meta.crs,
+            crs=crs_str,
             geometry_type=output_geometry_type,
         )
 
@@ -130,6 +135,16 @@ class JoinTool(AnalysisTool):
                 output_path,
             )
 
+    # Distance unit conversion factors to meters
+    DISTANCE_UNIT_FACTORS = {
+        "meters": 1.0,
+        "kilometers": 1000.0,
+        "feet": 0.3048,
+        "miles": 1609.344,
+        "nautical_miles": 1852.0,
+        "yards": 0.9144,
+    }
+
     def _build_spatial_condition(
         self: Self, params: JoinParams, target_geom: str, join_geom: str
     ) -> str:
@@ -140,8 +155,12 @@ class JoinTool(AnalysisTool):
         if params.spatial_relationship == SpatialRelationshipType.intersects:
             return f"ST_Intersects({target_geom_ref}, {join_geom_ref})"
         elif params.spatial_relationship == SpatialRelationshipType.within_distance:
+            # Convert distance to meters for ST_Distance (assumes data is in meters/degrees)
+            distance_meters = params.distance * self.DISTANCE_UNIT_FACTORS.get(
+                params.distance_units, 1.0
+            )
             return (
-                f"ST_Distance({target_geom_ref}, {join_geom_ref}) <= {params.distance}"
+                f"ST_Distance({target_geom_ref}, {join_geom_ref}) <= {distance_meters}"
             )
         elif params.spatial_relationship == SpatialRelationshipType.identical_to:
             return f"ST_Equals({target_geom_ref}, {join_geom_ref})"
@@ -238,22 +257,38 @@ class JoinTool(AnalysisTool):
         """Execute join keeping only first matching record per target feature."""
         con = self.con
 
-        # Create ranked join results
-        order_clause = ""
+        # Determine sort order for selecting first record
+        # If sort_configuration is provided, use it; otherwise use row order for deterministic ordering
         if params.sort_configuration:
             order_direction = (
                 "DESC"
                 if params.sort_configuration.sort_order == "descending"
                 else "ASC"
             )
-            order_clause = f"ORDER BY join_data.{params.sort_configuration.field} {order_direction}"
+            order_field = f"join_data.{params.sort_configuration.field}"
+        else:
+            # Add a row number column to the join table for deterministic ordering
+            # since rowid pseudo-column isn't available in JOINs
+            con.execute(f"""
+                CREATE OR REPLACE TEMP TABLE {join_table}_with_rn AS
+                SELECT *, ROW_NUMBER() OVER () as __join_row_order
+                FROM {join_table}
+            """)
+            join_table = f"{join_table}_with_rn"
+            order_field = "join_data.__join_row_order"
+
+        order_clause = (
+            f"ORDER BY {order_field} ASC"
+            if not params.sort_configuration
+            else f"ORDER BY {order_field} {order_direction}"
+        )
 
         target_fields = self._get_table_fields(target_table, "target")
         join_fields = self._get_table_fields(join_table, "join_data", prefix="join_")
 
-        # Get properly formatted field lists
-        target_fields = self._get_table_fields(target_table, "target")
-        join_fields = self._get_table_fields(join_table, "join_data", prefix="join_")
+        # Filter out the internal __join_row_order field from output
+        join_fields = [f for f in join_fields if "__join_row_order" not in f]
+
         all_select_fields = ", ".join(target_fields + join_fields)
 
         # Create window function to rank matches
@@ -294,11 +329,14 @@ class JoinTool(AnalysisTool):
         agg_expressions = ["COUNT(*) as match_count"]
 
         for field_stat in params.field_statistics:
+            operation = field_stat.operation
+            if operation.value == "count":
+                # Count doesn't need a field - already added match_count above
+                continue
             field_name = field_stat.field
-            for operation in field_stat.operations:
-                field_ref = f"join_data.{field_name}"
-                agg_expr = self.get_statistics_sql(field_ref, operation.value)
-                agg_expressions.append(f"{agg_expr} as {field_name}_{operation.value}")
+            field_ref = f"join_data.{field_name}"
+            agg_expr = self.get_statistics_sql(field_ref, operation.value)
+            agg_expressions.append(f"{agg_expr} as {field_name}_{operation.value}")
 
         agg_clause = ", ".join(agg_expressions)
 
