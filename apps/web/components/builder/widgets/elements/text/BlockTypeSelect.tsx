@@ -27,7 +27,17 @@ const getCurrentBlock = (editor: Editor) => {
   return "paragraph";
 };
 
-export const BlockTypeSelect = ({ editor }: { editor: Editor | null }) => {
+export const BlockTypeSelect = ({
+  editor,
+  onOpen,
+  onClose,
+  forceClose,
+}: {
+  editor: Editor | null;
+  onOpen?: () => void;
+  onClose?: () => void;
+  forceClose?: boolean;
+}) => {
   const editorState = useEditorState({
     editor,
     selector: (snapshot) => {
@@ -43,6 +53,9 @@ export const BlockTypeSelect = ({ editor }: { editor: Editor | null }) => {
       buttonValue="blockType"
       items={BLOCK_TYPE_ITEMS}
       value={editorState?.currentBlock ?? "paragraph"}
+      onOpen={onOpen}
+      onClose={onClose}
+      forceClose={forceClose}
       onChange={(val) => {
         switch (val) {
           case "bulletList":

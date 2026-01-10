@@ -34,11 +34,19 @@ export const loadImage = (
       | ImageData
       | ImageBitmap
   ) => {
+    // Check if map exists and is ready (style loaded)
     if (!map) return;
-    if (map.hasImage(marker_name)) {
-      map.removeImage(marker_name);
+    try {
+      // The map might not be ready yet or could have been unmounted
+      // hasImage/removeImage/addImage require the style to be loaded
+      if (map.hasImage(marker_name)) {
+        map.removeImage(marker_name);
+      }
+      map.addImage(marker_name, image, { sdf: sdf ?? true });
+    } catch (error) {
+      // Map may have been unmounted or style not loaded yet - ignore silently
+      console.debug(`Failed to add/update map image "${marker_name}":`, error);
     }
-    map.addImage(marker_name, image, { sdf: sdf ?? true });
   };
 
   const rasterizeToCanvas = (img: HTMLImageElement, targetW: number, targetH: number) => {

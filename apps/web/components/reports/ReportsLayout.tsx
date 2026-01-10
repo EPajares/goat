@@ -98,6 +98,12 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
   // Get project's initial view state for creating map element snapshots
   const { initialView } = useProjectInitialViewState(project?.id ?? "");
 
+  // Handle report selection - deselect element when switching layouts
+  const handleSelectReport = useCallback((report: ReportLayout | null) => {
+    setSelectedElementId(null);
+    setSelectedReport(report);
+  }, []);
+
   // Handle drag start
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -193,6 +199,14 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
             style: {
               padding: 0,
               opacity: 1,
+              // Default border for map elements
+              ...(elementType === "map" && {
+                border: { enabled: true, color: "#cccccc", width: 0.5 },
+              }),
+              // Default background for legend elements
+              ...(elementType === "legend" && {
+                background: { enabled: true, color: "#ffffff", opacity: 0.9 },
+              }),
             },
           };
 
@@ -316,7 +330,7 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
           project={project}
           projectLayers={projectLayers}
           selectedReport={selectedReport}
-          onSelectReport={setSelectedReport}
+          onSelectReport={handleSelectReport}
         />
 
         {/* Middle Section - Canvas */}

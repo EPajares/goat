@@ -283,6 +283,31 @@ const ReportElements: React.FC<ReportElementsProps> = ({
         const widthPx = mmToPx(element.position.width, SCREEN_DPI);
         const heightPx = mmToPx(element.position.height, SCREEN_DPI);
 
+        // Extract border style (width is in mm, needs conversion to px)
+        const borderStyle = (element.style?.border ?? {}) as {
+          enabled?: boolean;
+          color?: string;
+          width?: number;
+        };
+        const borderEnabled = borderStyle.enabled ?? false;
+        const borderColor = borderStyle.color ?? "#000000";
+        const borderWidthPx = borderEnabled ? mmToPx(borderStyle.width ?? 0.5, SCREEN_DPI) : 0;
+
+        // Extract background style
+        const backgroundStyle = (element.style?.background ?? {}) as {
+          enabled?: boolean;
+          color?: string;
+          opacity?: number;
+        };
+        const backgroundEnabled = backgroundStyle.enabled ?? false;
+        const backgroundColor = backgroundStyle.color ?? "#ffffff";
+        const backgroundOpacity = backgroundStyle.opacity ?? 1;
+
+        // Create rgba background color
+        const backgroundRgba = backgroundEnabled
+          ? `rgba(${parseInt(backgroundColor.slice(1, 3), 16)}, ${parseInt(backgroundColor.slice(3, 5), 16)}, ${parseInt(backgroundColor.slice(5, 7), 16)}, ${backgroundOpacity})`
+          : "transparent";
+
         return (
           <Box
             key={element.id}
@@ -294,14 +319,17 @@ const ReportElements: React.FC<ReportElementsProps> = ({
               width: widthPx,
               height: heightPx,
               zIndex: element.position.z_index,
-              backgroundColor: element.style?.background || "transparent",
+              backgroundColor: backgroundRgba,
               opacity: element.style?.opacity ?? 1,
               // No rounded borders in print view
               borderRadius: 0,
-              borderWidth: element.style?.border?.width || 0,
-              borderColor: element.style?.border?.color || "transparent",
-              borderStyle: element.style?.border?.width ? "solid" : "none",
+              borderWidth: borderEnabled ? borderWidthPx : 0,
+              borderColor: borderEnabled ? borderColor : "transparent",
+              borderStyle: borderEnabled ? "solid" : "none",
               overflow: "hidden",
+              // Ensure backgrounds print correctly
+              WebkitPrintColorAdjust: "exact",
+              printColorAdjust: "exact",
             }}>
             {/* Element content using shared renderer */}
             <ElementContentRenderer

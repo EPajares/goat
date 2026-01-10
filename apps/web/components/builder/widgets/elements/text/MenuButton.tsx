@@ -30,6 +30,7 @@ export default function MenuButton({
   children,
   value,
   ref,
+  onClick,
   ...toggleButtonProps
 }: MenuButtonProps) {
   const renderContent =
@@ -38,10 +39,16 @@ export default function MenuButton({
       <Icon iconName={iconName} fontSize="small" color={toggleButtonProps.selected ? "primary" : "inherit"} />
     ) : null);
 
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>, clickedValue: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onClick?.(e, clickedValue);
+  };
+
   return (
     <Root>
       {/* <MenuButtonTooltip label={tooltipLabel} shortcutKeys={tooltipShortcutKeys}> */}
-      <ToggleButton ref={ref} size="small" value={value} {...toggleButtonProps}>
+      <ToggleButton ref={ref} size="small" value={value} onClick={handleClick} {...toggleButtonProps}>
         {renderContent}
       </ToggleButton>
       {/* </MenuButtonTooltip> */}

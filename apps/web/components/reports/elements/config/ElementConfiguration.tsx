@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +10,7 @@ import { chartTypes, elementTypes, widgetTypesWithoutConfig } from "@/lib/valida
 
 import SelectedItemContainer from "@/components/map/panels/Container";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
+import ElementStyleConfig from "@/components/reports/elements/config/ElementStyleConfig";
 import LegendElementConfig from "@/components/reports/elements/config/LegendElementConfig";
 import MapElementConfig from "@/components/reports/elements/config/MapElementConfig";
 import NorthArrowElementConfig from "@/components/reports/elements/config/NorthArrowElementConfig";
@@ -108,6 +109,7 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
         header={<ToolsHeader title={`${elementTypeName} - ${t("settings")}`} onBack={onBack} />}
         body={
           <Stack spacing={2} sx={{ p: 2 }}>
+            {/* Element-specific configuration */}
             {element.type === "map" ? (
               <MapElementConfig element={element} onChange={onChange} />
             ) : element.type === "legend" ? (
@@ -118,13 +120,10 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
               <ScalebarElementConfig element={element} mapElements={mapElements} onChange={onChange} />
             ) : hasConfig ? (
               <ReportElementConfig element={element} onChange={onChange} />
-            ) : (
-              <Box sx={{ py: 4, textAlign: "center" }}>
-                <Typography variant="body2" color="text.secondary">
-                  {t("no_configuration_available")}
-                </Typography>
-              </Box>
-            )}
+            ) : null}
+
+            {/* Style configuration - available for all elements */}
+            <ElementStyleConfig element={element} onChange={onChange} />
           </Stack>
         }
         close={() => {}}

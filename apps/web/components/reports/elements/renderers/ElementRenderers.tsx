@@ -323,6 +323,9 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
             maxHeight: "64px",
             transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
             transition: "transform 0.3s ease",
+            // Explicitly set color to black to ensure visibility on any background
+            // (SVG uses fill="currentColor" which inherits from CSS color property)
+            color: "#000000",
           }}
         />
       </Box>

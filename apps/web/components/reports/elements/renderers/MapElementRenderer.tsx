@@ -77,16 +77,12 @@ const MapElementRenderer: React.FC<MapElementRendererProps> = ({
   // Use live basemap URL from props, fallback to default
   const mapStyleUrl = basemapUrl || DEFAULT_BASEMAP_URL;
 
-  // For the report map, ensure all layers are visible regardless of their visibility state in main map
-  // Deep clone layers and set visibility to true for all
+  // Filter to only include visible layers (synced with main map visibility)
   const visibleLayers = useMemo(() => {
-    return layers.map((layer) => ({
-      ...layer,
-      properties: {
-        ...layer.properties,
-        visibility: true,
-      },
-    }));
+    return layers.filter((layer) => {
+      const props = layer.properties as Record<string, unknown>;
+      return props.visibility !== false;
+    });
   }, [layers]);
 
   // Use controlled viewState to prevent map from changing when container resizes (page zoom)
