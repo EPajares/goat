@@ -29,6 +29,7 @@ import {
 import type { ProcessedSection } from "@/types/map/ogc-processes";
 import type { IndicatorBaseProps } from "@/types/map/toolbox";
 
+import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useProcessDescription, useProcessExecution } from "@/hooks/map/useOgcProcesses";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
@@ -87,7 +88,17 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   // Project for active scenario
   const { project } = useProject(projectId as string);
 
-  // Form state
+  // Project layers for geometry type detection
+  const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
+
+  // Compute default values synchronously when process changes
+  // This ensures visibility conditions work correctly on the first render
+  const defaultValues = useMemo(() => {
+    if (!process) return {};
+    return getDefaultValues(process);
+  }, [process]);
+
+  // Form state - initialize with defaults
   const [values, setValues] = useState<Record<string, unknown>>({});
 
   // Layer filters state - maps layer input names to their CQL filters
@@ -131,6 +142,39 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   const allInputs = useMemo(() => {
     return sections.flatMap((section) => section.inputs);
   }, [sections]);
+
+  // Compute layer geometry types for visibility conditions
+  // Creates computed values like _target_layer_id_has_geometry, _join_layer_id_has_geometry
+  const layerGeometryValues = useMemo(() => {
+    if (!projectLayers) return {};
+
+    const computed: Record<string, boolean> = {};
+    const effectiveValues = { ...defaultValues, ...values };
+
+    // Find all layer inputs and compute their geometry status
+    for (const input of allInputs) {
+      if (input.inputType === "layer") {
+        const layerId = effectiveValues[input.name] as string | undefined;
+        if (layerId) {
+          const layer = projectLayers.find((l) => l.layer_id === layerId);
+          // A layer has geometry if it has a feature_layer_geometry_type
+          computed[`_${input.name}_has_geometry`] = !!layer?.feature_layer_geometry_type;
+        } else {
+          computed[`_${input.name}_has_geometry`] = false;
+        }
+      }
+    }
+
+    // Compute combined values for common patterns
+    // _any_layer_has_geometry: true if ANY selected layer has geometry
+    // _all_layers_have_geometry: true if ALL selected layers have geometry (and at least one is selected)
+    const geometryFlags = Object.values(computed);
+    computed["_any_layer_has_geometry"] = geometryFlags.some((v) => v === true);
+    computed["_all_layers_have_geometry"] =
+      geometryFlags.length > 0 && geometryFlags.every((v) => v === true);
+
+    return computed;
+  }, [projectLayers, allInputs, values, defaultValues]);
 
   // Update a single input value, applying dynamic defaults to dependent fields
   const handleInputChange = useCallback(
@@ -198,12 +242,15 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   const isValid = useMemo(() => {
     if (!process) return false;
 
+    // Merge defaults with user values and computed layer geometry for validation checks
+    const effectiveValues = { ...defaultValues, ...values, ...layerGeometryValues };
+
     // Check required fields across all sections
     for (const section of sections) {
-      const visibleInputs = getVisibleInputs(section.inputs, values);
+      const visibleInputs = getVisibleInputs(section.inputs, effectiveValues);
       for (const input of visibleInputs) {
         if (input.required) {
-          const value = values[input.name];
+          const value = effectiveValues[input.name];
           if (value === undefined || value === null || value === "") {
             return false;
           }
@@ -212,7 +259,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     }
 
     return true;
-  }, [process, sections, values]);
+  }, [process, sections, values, defaultValues, layerGeometryValues]);
 
   // Execute the process
   const handleRun = async () => {
@@ -220,6 +267,9 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
       toast.error(t("error_running_tool"));
       return;
     }
+
+    // Merge defaults with user values and computed layer geometry
+    const effectiveValues = { ...defaultValues, ...values, ...layerGeometryValues };
 
     // Build filter fields from layer filters
     // Convention: layer field "input_layer_id" -> filter field "input_layer_filter"
@@ -235,9 +285,9 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     // Get all visible input names to filter out invisible fields
     const visibleInputNames = new Set<string>();
     for (const section of sections) {
-      const sectionEnabled = isSectionEnabled(section, values);
+      const sectionEnabled = isSectionEnabled(section, effectiveValues);
       if (sectionEnabled) {
-        const visibleInputs = getVisibleInputs(section.inputs, values);
+        const visibleInputs = getVisibleInputs(section.inputs, effectiveValues);
         for (const input of visibleInputs) {
           visibleInputNames.add(input.name);
         }
@@ -246,7 +296,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
 
     // Build payload with only visible inputs (to avoid sending conditional fields that shouldn't be set)
     const visibleValues: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(values)) {
+    for (const [key, value] of Object.entries(effectiveValues)) {
       if (visibleInputNames.has(key)) {
         visibleValues[key] = value;
       }
@@ -348,8 +398,10 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
 
           {/* Render sections dynamically */}
           {sections.map((section) => {
-            const visibleInputs = getVisibleInputs(section.inputs, values);
-            const sectionEnabled = isSectionEnabled(section, values);
+            // Merge defaults with user values and computed layer geometry for visibility checks
+            const effectiveValues = { ...defaultValues, ...values, ...layerGeometryValues };
+            const visibleInputs = getVisibleInputs(section.inputs, effectiveValues);
+            const sectionEnabled = isSectionEnabled(section, effectiveValues);
 
             // Skip empty sections
             if (visibleInputs.length === 0) {
@@ -399,7 +451,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                           <GenericInput
                             key={input.name}
                             input={input}
-                            value={values[input.name]}
+                            value={effectiveValues[input.name]}
                             onChange={(value) => handleInputChange(input.name, value)}
                             onFilterChange={
                               input.inputType === "layer"
@@ -407,7 +459,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                                 : undefined
                             }
                             disabled={isExecuting}
-                            formValues={values}
+                            formValues={effectiveValues}
                             schemaDefs={process.$defs}
                           />
                         ))}
@@ -420,7 +472,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                             <GenericInput
                               key={input.name}
                               input={input}
-                              value={values[input.name]}
+                              value={effectiveValues[input.name]}
                               onChange={(value) => handleInputChange(input.name, value)}
                               onFilterChange={
                                 input.inputType === "layer"
@@ -428,7 +480,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                                   : undefined
                               }
                               disabled={isExecuting}
-                              formValues={values}
+                              formValues={effectiveValues}
                               schemaDefs={process.$defs}
                             />
                           ))}

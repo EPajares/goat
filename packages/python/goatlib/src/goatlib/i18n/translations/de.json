@@ -72,6 +72,9 @@
     "join_layer": {
       "label": "Join-Layer"
     },
+    "join_settings": {
+      "label": "Zuordnungsmethode"
+    },
     "join_method": {
       "label": "Verbindungsmethode"
     },
@@ -496,11 +499,19 @@
     },
     "join_method": {
       "label": "Verbindungsmethode",
-      "description": "Wie Features zwischen Ziel- und Join-Layer zugeordnet werden"
+      "description": "Wie Objekte zwischen Ziel- und Join-Layer zugeordnet werden"
     },
     "spatial_relationship": {
       "label": "Räumliche Beziehung",
-      "description": "Die räumliche Beziehung zur Zuordnung der Features"
+      "description": "Die räumliche Beziehung zur Zuordnung der Objekte"
+    },
+    "use_spatial_relationship": {
+      "label": "Räumliche Zuordnung",
+      "description": "Objekte basierend auf ihrer räumlichen Lage zuordnen"
+    },
+    "use_attribute_relationship": {
+      "label": "Attribut-Zuordnung",
+      "description": "Objekte basierend auf Attributwerten zuordnen"
     },
     "distance": {
       "label": "Suchentfernung",
@@ -511,7 +522,7 @@
       "description": "Einheiten für die Suchentfernung"
     },
     "attribute_relationships": {
-      "label": "Zu übereinstimmende Felder",
+      "label": "Zuordnungsfelder",
       "description": "Felder zur Zuordnung zwischen Ziel- und Join-Layer"
     },
     "target_field": {
@@ -523,16 +534,20 @@
       "description": "Feld im Join-Layer zur Zuordnung"
     },
     "join_operation": {
-      "label": "Verbindungsvorgang",
-      "description": "Wie mehrere übereinstimmende Features behandelt werden"
+      "label": "Übereinstimmungen",
+      "description": "Wie mehrere übereinstimmende Objekte behandelt werden"
     },
     "multiple_matching_records": {
       "label": "Mehrere Übereinstimmungen",
       "description": "Wie mehrere übereinstimmende Datensätze bei Eins-zu-Eins-Verbindungen behandelt werden"
     },
     "join_type": {
-      "label": "Alle Ziel-Features beibehalten",
-      "description": "Ob alle Ziel-Features oder nur übereinstimmende beibehalten werden"
+      "label": "Verbindungstyp",
+      "description": "Bestimmt, welche Objekte in der Ausgabe erscheinen"
+    },
+    "calculate_statistics": {
+      "label": "Statistiken berechnen",
+      "description": "Statistiken für numerische Felder berechnen, wenn mehrere Datensätze übereinstimmen"
     },
     "sort_configuration": {
       "label": "Sortieren nach",
@@ -603,8 +618,8 @@
       "count_only": "Nur zählen"
     },
     "join_type": {
-      "inner": "Nur übereinstimmende Features",
-      "left": "Alle Ziel-Features"
+      "inner": "Inner Join",
+      "left": "Left Join"
     },
     "class_break_method": {
       "quantile": "Quantil",
@@ -669,8 +684,8 @@
       "description": "Extrahiert Eingabeobjekte, die innerhalb des Überlagerungs-Layers liegen. Nur die Teile innerhalb der Überlagerung werden beibehalten."
     },
     "centroid": {
-      "title": "Schwerpunkt",
-      "description": "Erzeugt Punktobjekte am geometrischen Mittelpunkt (Schwerpunkt) jedes Eingabeobjekts."
+      "title": "Mittelpunkt",
+      "description": "Erzeugt Punktobjekte am geometrischen Mittelpunkt (Zentroid) jedes Eingabeobjekts."
     },
     "intersection": {
       "title": "Überschneiden",
@@ -750,8 +765,8 @@
       "description": "Wandelt Adressen in geografische Koordinaten um. Unterstützt sowohl vollständige Adresszeichenfolgen als auch strukturierte Adresskomponenten."
     },
     "join": {
-      "title": "Features verbinden",
-      "description": "Überträgt Attribute zwischen Layern basierend auf räumlichen und Attributbeziehungen. Optional können statistische Daten für die verbundenen Features berechnet werden."
+      "title": "Objekte verbinden",
+      "description": "Überträgt Attribute zwischen Layern basierend auf räumlichen und Attributbeziehungen. Optional können statistische Daten für die verbundenen Objekte berechnet werden."
     }
   },
   "routing_modes": {

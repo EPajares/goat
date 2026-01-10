@@ -72,6 +72,9 @@
     "join_layer": {
       "label": "Join Layer"
     },
+    "join_settings": {
+      "label": "Match Method"
+    },
     "join_method": {
       "label": "Join Method"
     },
@@ -506,6 +509,14 @@
       "label": "Spatial Relationship",
       "description": "The spatial relationship used to match features"
     },
+    "use_spatial_relationship": {
+      "label": "Spatial Match",
+      "description": "Match features based on their spatial location"
+    },
+    "use_attribute_relationship": {
+      "label": "Attribute Match",
+      "description": "Match features based on attribute values"
+    },
     "distance": {
       "label": "Search Distance",
       "description": "Search distance for the within_distance relationship"
@@ -527,7 +538,7 @@
       "description": "Field in join layer to match"
     },
     "join_operation": {
-      "label": "Join Operation",
+      "label": "Match Handling",
       "description": "How to handle multiple matching features"
     },
     "multiple_matching_records": {
@@ -535,8 +546,12 @@
       "description": "How to handle multiple matching records in one-to-one joins"
     },
     "join_type": {
-      "label": "Keep All Target Features",
-      "description": "Whether to keep all target features or only matching ones"
+      "label": "Join Type",
+      "description": "Determines which features appear in the output"
+    },
+    "calculate_statistics": {
+      "label": "Calculate Statistics",
+      "description": "Calculate statistics for numeric fields when multiple records match"
     },
     "sort_configuration": {
       "label": "Order By",
@@ -607,8 +622,8 @@
       "count_only": "Count Only"
     },
     "join_type": {
-      "inner": "Only Matching Features",
-      "left": "All Target Features"
+      "inner": "Inner Join",
+      "left": "Left Join"
     },
     "class_break_method": {
       "quantile": "Quantile",

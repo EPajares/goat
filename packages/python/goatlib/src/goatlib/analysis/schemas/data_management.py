@@ -54,11 +54,28 @@ class SortOrder(StrEnum):
 class AttributeRelationship(BaseModel):
     """Defines an attribute relationship between target and join layers"""
 
+    # Allow extra fields (frontend adds _id for React keys)
+    model_config = {"extra": "ignore"}
+
     target_field: str = Field(
-        ..., description="Field name in the target layer for the join relationship"
+        ...,
+        description="Field name in the target layer for the join relationship",
+        json_schema_extra={
+            "x-ui": {
+                "widget": "field-selector",
+                "widget_options": {"source_layer": "target_layer_id"},
+            }
+        },
     )
     join_field: str = Field(
-        ..., description="Field name in the join layer for the join relationship"
+        ...,
+        description="Field name in the join layer for the join relationship",
+        json_schema_extra={
+            "x-ui": {
+                "widget": "field-selector",
+                "widget_options": {"source_layer": "join_layer_id"},
+            }
+        },
     )
 
 
@@ -193,14 +210,8 @@ class JoinParams(BaseModel):
                 self.multiple_matching_records
                 == MultipleMatchingRecordsType.first_record
             ):
-                # For combined joins, sort_configuration is optional if we have spatial criteria to break ties
-                if (
-                    self.sort_configuration is None
-                    and not self.use_spatial_relationship
-                ):
-                    raise ValueError(
-                        "sort_configuration is required when multiple_matching_records='first_record' for attribute-only joins"
-                    )
+                # sort_configuration is now optional - backend will use ROWID for deterministic ordering
+                pass
 
             elif (
                 self.multiple_matching_records

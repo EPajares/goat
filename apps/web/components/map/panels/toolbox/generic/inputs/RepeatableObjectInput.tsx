@@ -159,8 +159,20 @@ export default function RepeatableObjectInput({
   const theme = useTheme();
 
   // Get item schema (resolve $ref if needed)
+  // Handle anyOf pattern for nullable arrays: anyOf: [{type: "array", items: {...}}, {type: "null"}]
   const itemSchema = useMemo(() => {
-    const schema = input.schema.items;
+    let schema = input.schema.items;
+
+    // If items is not at top level, check for anyOf pattern (nullable array)
+    if (!schema && input.schema.anyOf) {
+      const arrayVariant = input.schema.anyOf.find(
+        (v: { type?: string; items?: unknown }) => v.type === "array" && v.items
+      );
+      if (arrayVariant) {
+        schema = arrayVariant.items;
+      }
+    }
+
     if (!schema) return null;
 
     if (schema.$ref && schemaDefs) {
@@ -168,7 +180,7 @@ export default function RepeatableObjectInput({
       return schemaDefs[refName] || schema;
     }
     return schema;
-  }, [input.schema.items, schemaDefs]);
+  }, [input.schema.items, input.schema.anyOf, schemaDefs]);
 
   // Process item properties into input definitions
   const itemInputs = useMemo(() => {

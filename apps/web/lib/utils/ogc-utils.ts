@@ -91,13 +91,14 @@ export function inferInputType(
     return "scenario";
   }
 
-  // Check for repeatable array of objects (e.g., opportunities in heatmap)
+  // Check for repeatable array of objects (e.g., opportunities in heatmap, attribute relationships in join)
   if (effectiveSchema.type === "array") {
     const itemSchema = effectiveSchema.items;
 
     // Check if it's a repeatable array of objects
+    // Note: for anyOf patterns (nullable arrays), x-ui metadata is at top level, not inside anyOf variants
     if (
-      uiMeta?.repeatable &&
+      (uiMeta?.repeatable || topLevelUiMeta?.repeatable) &&
       itemSchema &&
       (itemSchema.type === "object" || itemSchema.$ref || itemSchema.properties)
     ) {
