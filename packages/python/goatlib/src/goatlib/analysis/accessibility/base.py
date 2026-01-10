@@ -1,10 +1,37 @@
 import logging
+import re
+import unicodedata
 from pathlib import Path
 from typing import Self
 
 from goatlib.analysis.core.base import AnalysisTool
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_sql_name(name: str, fallback_idx: int = 0) -> str:
+    """Sanitize a string to be a valid SQL identifier.
+
+    Normalizes unicode, removes special characters, and ensures valid SQL name.
+
+    Args:
+        name: The original name (e.g., layer name with special characters)
+        fallback_idx: Index to use if name becomes empty after sanitization
+
+    Returns:
+        A valid SQL identifier (lowercase, alphanumeric with underscores)
+    """
+    # Normalize unicode (converts ö to o, etc.)
+    normalized = unicodedata.normalize("NFKD", name)
+    safe_name = normalized.encode("ascii", "ignore").decode("ascii")
+    # Replace non-alphanumeric with underscore, lowercase
+    safe_name = re.sub(r"[^a-zA-Z0-9]", "_", safe_name).lower()
+    # Remove consecutive/trailing underscores
+    safe_name = re.sub(r"_+", "_", safe_name).strip("_")
+    # Ensure not empty
+    if not safe_name:
+        safe_name = f"opp_{fallback_idx}"
+    return safe_name
 
 
 class HeatmapToolBase(AnalysisTool):

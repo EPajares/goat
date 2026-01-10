@@ -39,6 +39,7 @@ router = APIRouter(tags=["Tiles"])
         },
         204: {"description": "Empty tile"},
         404: {"description": "Collection not found"},
+        504: {"description": "Query timeout"},
     },
 )
 async def get_tile(
@@ -66,20 +67,27 @@ async def get_tile(
     columns = metadata.columns
     geometry_column = metadata.geometry_column or "geometry"
 
-    # Run synchronous DuckDB tile generation in thread pool to avoid blocking event loop
-    tile_data = await asyncio.to_thread(
-        tile_service.get_tile,
-        layer_info=layer_info,
-        z=z,
-        x=x,
-        y=y,
-        properties=properties,
-        cql_filter=cql_filter,
-        bbox=bbox,
-        limit=limit,
-        columns=columns,
-        geometry_column=geometry_column,
-    )
+    try:
+        # Run synchronous DuckDB tile generation in thread pool to avoid blocking event loop
+        tile_data = await asyncio.to_thread(
+            tile_service.get_tile,
+            layer_info=layer_info,
+            z=z,
+            x=x,
+            y=y,
+            properties=properties,
+            cql_filter=cql_filter,
+            bbox=bbox,
+            limit=limit,
+            columns=columns,
+            geometry_column=geometry_column,
+        )
+    except TimeoutError:
+        # Query exceeded timeout - return 504 Gateway Timeout
+        raise HTTPException(
+            status_code=504,
+            detail=f"Tile query timeout for z={z}, x={x}, y={y}. Try a higher zoom level or smaller area.",
+        )
 
     if not tile_data:
         return Response(status_code=204)

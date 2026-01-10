@@ -98,6 +98,7 @@ Erstellt für *jedes* passende Feature im Verknüpfungs-Layer ein separates Feat
 <div class="step">
   <div class="step-number">7</div>
   <div class="content">Klicken Sie auf <code>Ausführen</code>. Das Ergebnis wird der Karte hinzugefügt.</div>
+</div>
 
 
 

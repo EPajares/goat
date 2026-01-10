@@ -21,7 +21,6 @@ from goatlib.analysis.statistics import (
     calculate_histogram,
     calculate_unique_values,
 )
-from goatlib.storage import cql_to_where_clause
 from goatlib.storage import build_cql_filter
 
 from geoapi.dependencies import (

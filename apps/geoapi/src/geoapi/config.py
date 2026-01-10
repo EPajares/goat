@@ -70,6 +70,8 @@ class Settings(BaseSettings):
         os.getenv("GEOAPI_TILE_TIMEOUT", "30")
     )  # Increased for large datasets
     FEATURE_TIMEOUT: int = int(os.getenv("GEOAPI_FEATURE_TIMEOUT", "30"))
+    # DuckDB query timeout - queries exceeding this will be interrupted
+    QUERY_TIMEOUT: int = int(os.getenv("GEOAPI_QUERY_TIMEOUT", "10"))
 
     # CORS settings
     CORS_ORIGINS: list[str] = ["*"]

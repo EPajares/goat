@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Self
 
-from goatlib.analysis.accessibility.base import HeatmapToolBase
+from goatlib.analysis.accessibility.base import HeatmapToolBase, sanitize_sql_name
 from goatlib.analysis.schemas.heatmap import (
     HeatmapGravityParams,
     ImpedanceFunction,
@@ -88,16 +88,11 @@ class HeatmapGravityTool(HeatmapToolBase):
         Returns a list of (table_name, display_name).
         """
         opportunity_tables = []
-        used_names = {}
 
         for idx, opp in enumerate(opportunities):
-            # Determine table name and ensure uniqueness
-            table_name = opp.name or Path(opp.input_path).stem
-            if table_name in used_names:
-                used_names[table_name] += 1
-                table_name = f"{table_name}_{used_names[table_name]}"
-            else:
-                used_names[table_name] = 0
+            # Use simple table name (internal), keep display name separate
+            table_name = f"opp_{idx}"
+            display_name = opp.name or Path(opp.input_path).stem
 
             try:
                 # Import into DuckDB and get metadata
@@ -112,7 +107,7 @@ class HeatmapGravityTool(HeatmapToolBase):
                 std_table = self._prepare_opportunity_table(
                     table_name, meta, opp, h3_resolution
                 )
-                opportunity_tables.append((std_table, table_name))
+                opportunity_tables.append((std_table, display_name))
                 logger.info("Prepared standardized table: %s", std_table)
 
             except Exception as e:
@@ -295,8 +290,8 @@ class HeatmapGravityTool(HeatmapToolBase):
 
         # Create a union of all standardized tables with opportunity type
         union_parts = []
-        for std_table, name in standardized_tables:
-            safe_name = name.replace("-", "_").replace(" ", "_").lower()
+        for idx, (std_table, name) in enumerate(standardized_tables):
+            safe_name = sanitize_sql_name(name, idx)
             union_parts.append(f"""
                 SELECT
                     dest_id,
@@ -392,8 +387,9 @@ class HeatmapGravityTool(HeatmapToolBase):
         sum_expressions = []
         safe_names = []
 
-        for std_table, opp_name in standardized_tables:
-            safe_name = opp_name.replace("-", "_").replace(" ", "_").lower()
+        for idx, (std_table, opp_name) in enumerate(standardized_tables):
+            safe_name = sanitize_sql_name(opp_name, idx)
+
             safe_names.append(safe_name)
             impedance_sql = self._impedance_sql(
                 impedance_func, max_sensitivity, safe_name

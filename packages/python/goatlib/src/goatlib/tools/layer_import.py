@@ -276,9 +276,17 @@ class LayerImportRunner(BaseToolRunner[LayerImportParams]):
         output_path = temp_dir / "output.parquet"
 
         if params.wfs_url:
+            # Get layer name from wfs_layer_name or other_properties.layers
+            layer_name = params.wfs_layer_name
+            if not layer_name and params.other_properties:
+                layers = params.other_properties.get("layers", [])
+                if layers:
+                    layer_name = layers[0] if isinstance(layers, list) else layers
+                    logger.info("Using layer from other_properties: %s", layer_name)
+
             metadata = self._import_from_wfs(
                 wfs_url=params.wfs_url,
-                layer_name=params.wfs_layer_name,
+                layer_name=layer_name,
                 temp_dir=temp_dir,
                 output_path=output_path,
             )

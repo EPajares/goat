@@ -437,12 +437,24 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
 
         Args:
             layer_id: Layer UUID string
-            user_id: User UUID string
+            user_id: User UUID string (fallback if layer info unavailable)
 
         Returns:
             Tuple of (latitudes, longitudes) lists
         """
-        table_name = self.get_layer_table_path(user_id, layer_id)
+        # Look up the layer's actual owner to correctly access shared/catalog layers
+        layer_owner_id = self.get_layer_owner_id_sync(layer_id)
+        if layer_owner_id is None:
+            layer_owner_id = user_id  # Fallback to passed user_id
+            logger.warning(
+                f"Could not find owner for layer {layer_id}, using current user {user_id}"
+            )
+        elif layer_owner_id != user_id:
+            logger.info(
+                f"Layer {layer_id} owned by {layer_owner_id}, accessed by {user_id}"
+            )
+
+        table_name = self.get_layer_table_path(layer_owner_id, layer_id)
 
         # Query centroids of all geometries
         result = self.duckdb_con.execute(f"""
