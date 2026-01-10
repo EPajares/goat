@@ -69,6 +69,9 @@
     "starting_points": {
       "label": "Starting Points"
     },
+    "dissolve_settings": {
+      "label": "Dissolve Settings"
+    },
     "join_layer": {
       "label": "Join Layer"
     },
@@ -497,6 +500,10 @@
       "label": "Target Layer",
       "description": "The layer to which join layer fields will be appended"
     },
+    "dissolve_fields": {
+      "label": "Group By Fields",
+      "description": "Fields to group by when dissolving. Features with matching values will be merged. If empty, all features are merged into one."
+    },
     "join_layer_id": {
       "label": "Join Layer",
       "description": "The layer containing fields to append to the target layer"
@@ -771,6 +778,10 @@
     "join": {
       "title": "Join Features",
       "description": "Transfers attributes from one layer to another based on spatial and attribute relationships. Optionally, statistics can be calculated for the joined features."
+    },
+    "dissolve": {
+      "title": "Dissolve",
+      "description": "Aggregates features that have the same values for specified attributes. Optionally computes statistics for numeric fields."
     }
   },
   "routing_modes": {

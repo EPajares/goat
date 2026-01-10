@@ -440,6 +440,9 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                         ? () => toggleSection(section.id)
                         : undefined
                   }
+                  onToggleChange={
+                    section.collapsible && !isFirstSection ? () => toggleSection(section.id) : undefined
+                  }
                 />
                 {!isCollapsed && !isDisabled && (
                   <SectionOptions

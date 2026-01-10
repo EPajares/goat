@@ -16,10 +16,31 @@ logger = logging.getLogger(__name__)
 
 
 class RoutingMode(StrEnum):
+    """All routing modes including public transport.
+
+    Note: For heatmap tools in the processes API, use HeatmapRoutingMode
+    which excludes public_transport (PT uses database-backed matrices,
+    not file-based OD matrices).
+    """
+
     walking = "walking"
     bicycle = "bicycle"
     pedelec = "pedelec"
     public_transport = "public_transport"
+    car = "car"
+
+
+class HeatmapRoutingMode(StrEnum):
+    """Routing modes supported for heatmap tools in the processes API.
+
+    Excludes public_transport because PT traveltime matrices are stored
+    in the database (basic.traveltime_matrix_pt), not as file-based
+    Parquet OD matrices used by the processes API.
+    """
+
+    walking = "walking"
+    bicycle = "bicycle"
+    pedelec = "pedelec"
     car = "car"
 
 
@@ -101,7 +122,6 @@ ROUTING_MODE_ICONS: dict[str, str] = {
     "walking": "run",
     "bicycle": "bicycle",
     "pedelec": "pedelec",
-    "public_transport": "bus",
     "car": "car",
 }
 
@@ -125,7 +145,7 @@ class HeatmapCommon(BaseModel):
     )
 
     # Prefer routing_mode; support legacy aliases
-    routing_mode: RoutingMode = Field(
+    routing_mode: HeatmapRoutingMode = Field(
         description="Transport mode selecting the OD matrix.",
         json_schema_extra=ui_field(
             section="routing",

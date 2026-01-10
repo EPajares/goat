@@ -86,6 +86,9 @@
     },
     "join_options": {
       "label": "Verbindungsoptionen"
+    },
+    "dissolve_settings": {
+      "label": "Auflösungseinstellungen"
     }
   },
   "fields": {
@@ -218,8 +221,8 @@
       "description": "Maßeinheit für Entfernungen"
     },
     "dissolve": {
-      "label": "Auflösen",
-      "description": "Überlappende Puffer zu einer Geometrie zusammenführen"
+      "label": "Zusammenführen",
+      "description": "Überlappende Objekte zu einer Geometrie zusammenführen"
     },
     "num_triangles": {
       "label": "Kurvenglättung",
@@ -556,6 +559,10 @@
     "field_statistics": {
       "label": "Statistiken",
       "description": "Statistiken, die für übereinstimmende Datensätze berechnet werden"
+    },
+    "dissolve_fields": {
+      "label": "Gruppierungsfelder",
+      "description": "Felder zur Gruppierung von Objekten beim Auflösen"
     }
   },
   "enums": {
@@ -767,6 +774,10 @@
     "join": {
       "title": "Objekte verbinden",
       "description": "Überträgt Attribute zwischen Layern basierend auf räumlichen und Attributbeziehungen. Optional können statistische Daten für die verbundenen Objekte berechnet werden."
+    },
+    "dissolve": {
+      "title": "Zusammenführen",
+      "description": "Fasst Objekte mit gleichen Attributwerten zusammen. Optional können Statistiken für numerische Felder berechnet werden."
     }
   },
   "routing_modes": {

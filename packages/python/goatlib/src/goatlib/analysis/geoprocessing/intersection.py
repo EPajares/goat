@@ -113,24 +113,44 @@ class IntersectionTool(AnalysisTool):
 
         # Build field selections (exclude geometry and bbox from both)
         # Quote column names for special characters
-        input_fields = ", ".join(
-            [
-                f'i."{col[0]}"'
-                for col in input_cols
-                if col[0] not in (input_geom, "bbox")
-            ]
-        )
+        # If params.input_fields is specified, only include those fields
+        if params.input_fields:
+            input_fields = ", ".join(
+                [
+                    f'i."{col}"'
+                    for col in params.input_fields
+                    if col not in (input_geom, "bbox")
+                ]
+            )
+        else:
+            input_fields = ", ".join(
+                [
+                    f'i."{col[0]}"'
+                    for col in input_cols
+                    if col[0] not in (input_geom, "bbox")
+                ]
+            )
 
         # Add prefix to overlay fields to avoid conflicts
         # Quote column names for special characters
+        # If params.overlay_fields is specified, only include those fields
         overlay_prefix = params.overlay_fields_prefix or "intersection_"
-        overlay_fields = ", ".join(
-            [
-                f'o."{col[0]}" AS "{overlay_prefix}{col[0]}"'
-                for col in overlay_cols
-                if col[0] not in (overlay_geom, "bbox")
-            ]
-        )
+        if params.overlay_fields:
+            overlay_fields = ", ".join(
+                [
+                    f'o."{col}" AS "{overlay_prefix}{col}"'
+                    for col in params.overlay_fields
+                    if col not in (overlay_geom, "bbox")
+                ]
+            )
+        else:
+            overlay_fields = ", ".join(
+                [
+                    f'o."{col[0]}" AS "{overlay_prefix}{col[0]}"'
+                    for col in overlay_cols
+                    if col[0] not in (overlay_geom, "bbox")
+                ]
+            )
 
         # Build geometry type filter clause
         geom_type_filter = (
