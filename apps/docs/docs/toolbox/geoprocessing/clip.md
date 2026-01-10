@@ -4,11 +4,17 @@ sidebar_position: 2
 
 # Clip
 
-This tool allows you to **extract input features that fall within the clip geometry**.
+This tool allows you to **extract input features that fall within the clip layer**.
 
 ## 1. Explanation
 
 Refers to the process of **extracting a portion of a vector dataset based on the boundary of another polygon layer.** It acts like a "cookie cutter"—only the features (or parts of features) from the input layer that fall inside the clip layer are retained. The attributes of the input features are preserved, but the clip layer's attributes are not transferred.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+  <img src={require('/img/toolbox/geoprocessing/clip.png').default} alt="Buffer Types" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+
+</div> 
 
 ## 2. Example use cases 
 
@@ -29,15 +35,15 @@ Refers to the process of **extracting a portion of a vector dataset based on the
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Select the layer you want to clip (Input Layer).</div>
+  <div class="content">Select the <code>Input layer</code> you want to clip.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Select the layer to use as the boundary (Clip Layer).</div>
+  <div class="content">Select the <code>Overlay layer</code> you want to use as the clip layer.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Click <code>Run</code> to execute the tool. Result will be added to the map.</div>
+  <div class="content">Click <code>Run</code> to execute the tool. The result will be added to the map.</div>
 </div>

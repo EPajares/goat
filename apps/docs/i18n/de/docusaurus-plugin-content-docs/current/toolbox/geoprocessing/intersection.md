@@ -1,45 +1,68 @@
-# Schnittmenge (Intersect)
+---
+sidebar_position: 4
+---
 
-Dieses Werkzeug berechnet die **geometrische Schnittmenge von Features aus zwei Layern**. Das Ergebnis enthält nur die Bereiche, in denen sich die Features beider Layer überschneiden.
+# Überschneiden
+
+Mit diesem Werkzeug können Sie **die geometrische Überschneidung von Features aus zwei Layern berechnen**.
 
 ## 1. Erklärung
 
-Die Schnittmengen-Operation (Intersection) findet die überlappenden Teile von zwei Datensätzen.
+Berechnet die **geometrische Überschneidung zweier Vektor-Layer.** Die Ausgabe enthält nur die Bereiche, in denen sich beide Eingabe-Layer überschneiden. Im Gegensatz zu Zuschneiden werden die Attribute von **beiden** Layern kombiniert und in den Ausgabe-Features beibehalten.
 
-- **Eingabe-Layer:** Der primäre Datensatz.
-- **Schnitt-Layer:** Der Datensatz, mit dem die Überschneidungen gesucht werden.
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-Im Gegensatz zum [Clip-Werkzeug](./clip.md) kombiniert das Intersect-Werkzeug die Attribute beider Layer für die resultierenden Features. Wenn sich beispielsweise ein Wald-Polygon und ein Landkreis-Polygon überschneiden, enthält das Ergebnis-Polygon sowohl die Wald-Informationen als auch die Landkreis-Informationen.
+  <img src={require('/img/toolbox/geoprocessing/intersection.png').default} alt="Buffer Types" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+
+</div> 
 
 ## 2. Beispiel-Anwendungsfälle
 
-- **Landnutzung:** Identifizierung von Wohngebieten, die innerhalb einer Hochwassergefahrenzone liegen.
-- **Politische Analyse:** Feststellung, welche Wahlbezirke von einem geplanten Infrastrukturprojekt betroffen sind.
-- **Ressourcenmanagement:** Berechnung der Waldfläche innerhalb verschiedener Bodentypen.
+- Finden von Bereichen, in denen eine geplante Entwicklung mit geschützten Umweltzonen überlappt.
+- Identifizieren von Grundstücken, die sich in einer bestimmten Hochwasserrisikozone befinden.
 
 ## 3. Wie verwendet man das Werkzeug?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Intersect</code>.</div>
+  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Überschneiden</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie Ihren <code>Eingabe-Layer</code>.</div>
+  <div class="content">Wählen Sie den <code>Eingabe-Layer</code>, den Sie zuschneiden möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie Ihren <code>Schnitt-Layer</code>.</div>
+  <div class="content">Wählen Sie den <code>Überdeckungs-Layer</code>, den Sie als zweite Eingabe verwenden möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>. Das Ergebnis wird der Karte hinzugefügt.</div>
+  <div class="content">Optional können Sie den Umschalter für <code>Feldauswahl</code> aktivieren, um auszuwählen, welche Attribute in die Ausgabe eingeschlossen werden sollen:
+    <ul>
+      <li>Wählen Sie spezifische Felder aus dem <code>Eingabe-Layer</code>, die im Ergebnis beibehalten werden sollen</li>
+      <li>Wählen Sie spezifische Felder aus dem <code>Überdeckungs-Layer</code>, die im Ergebnis beibehalten werden sollen</li>
+      <li>Ändern Sie bei Bedarf das <code>Überdeckungs-Felder-Präfix</code>, um Namenskonflikte zu vermeiden (Standard: "intersection_")</li>
+    </ul>
+  </div>
 </div>
+
+:::tip Hinweis
+
+Wenn keine Felder ausgewählt werden, werden alle Attribute beider Layer in die Ausgabe eingeschlossen.
+
+:::
+    
+
+<div class="step">
+  <div class="step-number">6</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Überschneidung auszuführen. Das Ergebnis wird zur Karte hinzugefügt.</div>
+</div>
+

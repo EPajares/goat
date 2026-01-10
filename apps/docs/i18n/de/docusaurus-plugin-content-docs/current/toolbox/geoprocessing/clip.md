@@ -1,45 +1,49 @@
-# Clip
+---
+sidebar_position: 2
+---
 
-Dieses Werkzeug ermöglicht es Ihnen, **einen Layer auf die Ausdehnung eines anderen Layers zuzuschneiden**. Es funktioniert wie eine Ausstechform, bei der nur die Teile des Eingabe-Layers erhalten bleiben, die innerhalb der Geometrie des Clip-Layers liegen.
+# Ausschneiden
+
+Mit diesem Werkzeug können Sie **Eingabe-Features extrahieren, die innerhalb des Zuschnitt-Layers liegen**.
 
 ## 1. Erklärung
 
-Das Zuschneiden (Clipping) ist eine grundlegende geoprocessing-Operation, die verwendet wird, um einen Datensatz auf ein bestimmtes Untersuchungsgebiet zu begrenzen.
+Bezieht sich auf den Prozess der **Extraktion eines Teils eines Vektor-Datensatzes basierend auf der Grenze eines anderen Polygon-Layers.** Es funktioniert wie ein "Plätzchenausstecher" – nur die Features (oder Teile von Features) aus dem Eingabe-Layer, die innerhalb des Zuschnitt-Layers liegen, werden beibehalten. Die Attribute der Eingabe-Features werden erhalten, aber die Attribute des Zuschnitt-Layers werden nicht übertragen.
 
-- **Eingabe-Layer:** Der Layer, den Sie zuschneiden möchten (z. B. alle Straßen in einem Land).
-- **Clip-Layer:** Der Layer, der die Grenzen definiert (z. B. eine Stadtgrenze).
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-Das Ergebnis enthält nur die Features (oder Teile von Features) aus dem Eingabe-Layer, die sich innerhalb des Clip-Layers befinden. Die Attribute des Eingabe-Layers bleiben erhalten.
+  <img src={require('/img/toolbox/geoprocessing/clip.png').default} alt="Buffer Types" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+
+</div> 
 
 ## 2. Beispiel-Anwendungsfälle
 
-- **Stadtplanung:** Zuschneiden eines nationalen Eisenbahnnetzes auf die Grenzen einer bestimmten Region.
-- **Umweltanalyse:** Extrahieren von Waldgebieten, die innerhalb eines Naturschutzgebietes liegen.
-- **Datenmanagement:** Erstellen eines kleineren, handlicheren Datensatzes für ein lokales Projekt aus einem globalen Datensatz.
+- Extrahieren einer Teilmenge von Stadtstraßen basierend auf einer bestimmten Stadtteilgrenze.
+- Zuschneiden einer Landnutzungskarte auf ein Projektgebiet von Interesse.
 
 ## 3. Wie verwendet man das Werkzeug?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Clip</code>.</div>
+  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Ausschneiden</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie Ihren <code>Eingabe-Layer</code>: Der Layer, der zugeschnitten werden soll.</div>
+  <div class="content">Wählen Sie den <code>Eingabe-Layer</code>, den Sie zuschneiden möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie Ihren <code>Clip-Layer</code>: Der Layer, der die Zuschneidegrenze definiert (muss ein Polygon sein).</div>
+  <div class="content">Wählen Sie den <code>Überdeckungs-Layer</code>, den Sie als Zuschnitt-Layer verwenden möchten.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>. Das Ergebnis wird der Karte hinzugefügt.</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um das Werkzeug auszuführen. Das Ergebnis wird zur Karte hinzugefügt.</div>
 </div>
