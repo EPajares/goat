@@ -59,7 +59,7 @@ Geocoding is the process of **converting addresses (like "Agnes-Pockels-Bogen 1,
       <li>Select the <code>Street Address</code> field to the column containing street information</li>
       <li>Select the <code>Postal Code</code> from a column (optional)</li>
       <li>Select the <code>City/Town</code> from a column (optional)</li>
-      <li>Select the <code>Country</code> either from a column or set a constant value (defaults to "Germany")</li>
+      <li>Select the <code>Country</code> either from a column or set a constant value</li>
       <li>By clicking on <img src={require('/img/icons/options.png').default} alt="Options Icon" style={{ maxHeight: "25px", maxWidth: "25px", objectFit: "cover"}}/> <code>Advanced options</code>, you can select the <code>State/Province</code> from a column (optional)</li>
     </ul>
 
