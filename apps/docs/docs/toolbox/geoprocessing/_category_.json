@@ -1,6 +1,6 @@
 {
   "label": "Geoprocessing",
-  "position": 2,
+  "position": 3,
   "link": {
     "type": "generated-index",
     "description": "As a geoprocessing tool, you can create buffers around geometries."
