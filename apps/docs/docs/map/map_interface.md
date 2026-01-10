@@ -22,7 +22,7 @@ sidebar_position: 1
 - <code>Last Saved</code>: <strong>Shows the timestamp</strong> of the last saved change.
 
 #### Right Side
-- <code>Data/Builder toggle</code>: <strong>Switch between</strong> the Map and Dashboard Builder interfaces.
+- <code>Data/Dashboard toggle</code>: <strong>Switch between</strong> the Map and Dashboard Builder interfaces.
 - <code>Share Project</code>: <strong>Manage the sharing options</strong>.
 - <code>Documentation</code>: <strong>Access the GOAT documentation</strong>.
 - <code>Job Status</code>: <strong>View the status</strong> of ongoing and completed tasks.

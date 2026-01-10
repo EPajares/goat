@@ -10,6 +10,12 @@ This tool allows you to **create point features at the geometric center of each 
 
 Calculates the **geometric center (centroid) of polygon or line features and represents them as points.** For polygons, the centroid is the "center of mass". Note that for irregularly shaped polygons, the true centroid might fall outside the polygon boundary.
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+  <img src={require('/img/toolbox/geoprocessing/centroid.png').default} alt="Buffer Types" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+
+</div> 
+
 ## 2. Example use cases 
 
 - Convert building footprints to points for simplified visualization or analysis.

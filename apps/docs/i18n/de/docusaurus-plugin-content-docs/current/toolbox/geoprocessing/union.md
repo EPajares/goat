@@ -1,45 +1,54 @@
-# Vereinigung (Union)
+---
+sidebar_position: 6
+---
 
-Dieses Werkzeug berechnet die **geometrische Vereinigung von Features aus zwei Layern**. Das Ergebnis enthält alle Features aus beiden Layern, wobei überlappende Bereiche geteilt und Attribute kombiniert werden.
+# Vereinigen
+
+Mit diesem Werkzeug können Sie **die geometrische Vereinigung von Features aus zwei Layern berechnen**.
 
 ## 1. Erklärung
 
-Die Unions-Operation kombiniert zwei Layer so, dass die gesamte Ausdehnung beider Eingaben erhalten bleibt.
+Kombiniert **Features aus zwei Polygon-Layern** zu einem einzigen Layer. Die Ausgabe enthält alle Geometrien aus beiden Eingaben (wie eine boolesche ODER-Operation). Wo sich Features überlappen, werden sie geteilt, und Attribute aus beiden Layern werden den überlappenden Bereichen zugeordnet. Nicht überlappende Bereiche behalten nur Attribute aus ihrem ursprünglichen Layer.
 
-- In Bereichen, in denen sich die Layer **überlappen**, werden neue Features erstellt, die die Attribute beider Layer tragen.
-- In Bereichen, in denen **keine Überlappung** stattfindet, bleiben die Features erhalten, erhalten aber Null-Werte für die Attribute des jeweils anderen Layers.
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-Dieses Werkzeug ist nützlich, um eine umfassende Karte zu erstellen, die alle Variationen und Kombinationen von zwei Datensätzen zeigt.
+  <img src={require('/img/toolbox/geoprocessing/union.png').default} alt="Buffer Types" style={{ maxHeight: "400px", maxWidth: "400px", objectFit: "cover"}}/>
+
+</div> 
 
 ## 2. Beispiel-Anwendungsfälle
 
-- **Kombinierte Planung:** Zusammenführen von zwei verschiedenen Bebauungsplänen, um alle geplanten Flächennutzungen zu sehen.
-- **Risikobewertung:** Kombination von Karten für Hitzeinseln und Karten für vulnerable Bevölkerungsgruppen, um alle Gebiete mit mindestens einem Risiko abzubilden.
-- **Datenintegration:** Vereinigung von zwei Nachbarschaftskarten, um eine vollständige Abdeckung ohne Lücken zu gewährleisten.
+- Kombinieren zweier verschiedener Landnutzungsdatensätze zu einer einzigen umfassenden Karte.
+- Zusammenführung von Zonierungsbezirken mit Schulbezirken zur Analyse aller einzigartigen Kombinationen von Verwaltungsgrenzen.
 
 ## 3. Wie verwendet man das Werkzeug?
 
 <div class="step">
   <div class="step-number">1</div>
-  <div class="content">Klicken Sie auf <code>Toolbox</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>.</div>
+  <div class="content">Klicken Sie auf <code>Werkzeuge</code> <img src={require('/img/icons/toolbox.png').default} alt="Options" style={{ maxHeight: "20px", maxWidth: "20px", objectFit: "cover"}}/>. </div>
 </div>
 
 <div class="step">
   <div class="step-number">2</div>
-  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Union</code>.</div>
+  <div class="content">Unter dem Menü <code>Geoverarbeitung</code> klicken Sie auf <code>Vereinigen</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">3</div>
-  <div class="content">Wählen Sie Ihren <code>Eingabe-Layer</code>.</div>
+  <div class="content">Wählen Sie den ersten <code>Eingabe-Layer</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">4</div>
-  <div class="content">Wählen Sie Ihren <code>Vereinigungs-Layer</code>.</div>
+  <div class="content">Wählen Sie den zweiten Layer für <code>Überdeckungs-Layer</code>.</div>
 </div>
 
 <div class="step">
   <div class="step-number">5</div>
-  <div class="content">Klicken Sie auf <code>Ausführen</code>. Das Ergebnis wird der Karte hinzugefügt.</div>
+  <div class="content">Wählen Sie das <code>Überdeckungs-Felder-Präfix</code>, das den Attributen aus dem Überdeckungs-Layer hinzugefügt wird, um sie in der Ausgabe zu unterscheiden.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">6</div>
+  <div class="content">Klicken Sie auf <code>Ausführen</code>, um die Vereinigung auszuführen. Das Ergebnis wird zur Karte hinzugefügt.</div>
 </div>
