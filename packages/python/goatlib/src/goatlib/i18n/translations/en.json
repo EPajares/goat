@@ -692,7 +692,7 @@
       "description": "Creates a point feature class containing the geometric center (centroid) of each input feature."
     },
     "intersection": {
-      "title": "Intersect",
+      "title": "Intersection",
       "description": "Computes the geometric intersection of two layers. Features or portions of features that overlap in both layers are written to the output, preserving attributes from both."
     },
     "aggregate_points": {

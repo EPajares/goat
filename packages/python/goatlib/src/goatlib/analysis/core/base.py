@@ -153,34 +153,25 @@ class AnalysisTool:
         geom_column = meta.geometry_column
 
         # Handle bbox column creation if geometry column exists
+        # Always recompute bbox from geometry to ensure correctness
         if geom_column:
-            # Check if bbox column already exists
-            bbox_check = self.con.execute(f"""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = '{base_view}' AND column_name = 'bbox'
-            """).fetchall()
+            # Get all columns except existing bbox (if any) to avoid conflicts
+            cols = self.con.execute(f"DESCRIBE {base_view}").fetchall()
+            col_names = [c[0] for c in cols if c[0] != "bbox"]
+            col_select = ", ".join(f'"{c}"' for c in col_names)
 
-            if bbox_check:
-                logger.info("Bbox columns already exist in %s", path)
-                # Just create final view referencing base
-                self.con.execute(
-                    f"CREATE OR REPLACE VIEW {table_name} AS SELECT * FROM {base_view}"
-                )
-            else:
-                logger.info("Adding bbox columns to %s", path)
-                # Create view with bbox columns
-                self.con.execute(f"""
-                    CREATE OR REPLACE VIEW {table_name} AS
-                    SELECT *,
-                        {{
-                            'minx': ST_XMin({geom_column}),
-                            'maxx': ST_XMax({geom_column}),
-                            'miny': ST_YMin({geom_column}),
-                            'maxy': ST_YMax({geom_column})
-                        }} AS bbox
-                    FROM {base_view}
-                """)
+            logger.info("Computing bbox from geometry for %s", path)
+            self.con.execute(f"""
+                CREATE OR REPLACE VIEW {table_name} AS
+                SELECT {col_select},
+                    {{
+                        'xmin': ST_XMin({geom_column}),
+                        'xmax': ST_XMax({geom_column}),
+                        'ymin': ST_YMin({geom_column}),
+                        'ymax': ST_YMax({geom_column})
+                    }} AS bbox
+                FROM {base_view}
+            """)
         else:
             # No geometry column, just create final view
             self.con.execute(

@@ -150,10 +150,10 @@ class IntersectionTool(AnalysisTool):
             INNER JOIN {overlay_view} o
                 ON ST_Intersects(i.{input_geom}, o.{overlay_geom})
                 -- Bbox-based spatial filter for performance (GeoParquet spatial indexing)
-                AND i.bbox.minx <= o.bbox.maxx
-                AND i.bbox.maxx >= o.bbox.minx
-                AND i.bbox.miny <= o.bbox.maxy
-                AND i.bbox.maxy >= o.bbox.miny
+                AND i.bbox.xmin <= o.bbox.xmax
+                AND i.bbox.xmax >= o.bbox.xmin
+                AND i.bbox.ymin <= o.bbox.ymax
+                AND i.bbox.ymax >= o.bbox.ymin
             WHERE ST_IsValid(i.{input_geom})
                 AND ST_IsValid(o.{overlay_geom})
                 AND NOT ST_IsEmpty(ST_Intersection(i.{input_geom}, o.{overlay_geom}))
