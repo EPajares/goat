@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from goatlib.analysis.schemas.base import (
     ALL_GEOMETRY_TYPES,
     POLYGON_TYPES,
+    FieldStatistic,
     GeometryType,
 )
 from goatlib.analysis.schemas.ui import (
@@ -279,7 +280,13 @@ class IntersectionParams(BaseModel):
         json_schema_extra=ui_sections(
             SECTION_INPUT,
             UISection(id="overlay", order=2, icon="layers"),
-            UISection(id="field_selection", order=3, icon="list"),
+            UISection(
+                id="field_selection",
+                order=3,
+                icon="list",
+                collapsible=True,
+                collapsed=True,
+            ),
             SECTION_OUTPUT,
         )
     )
@@ -462,6 +469,73 @@ class DifferenceParams(BaseModel):
     def accepted_overlay_geometry_types(self: Self) -> List[GeometryType]:
         """Geometry types accepted for overlay layer in difference operation (typically polygon)."""
         return POLYGON_TYPES
+
+
+class DissolveParams(BaseModel):
+    """Parameters for performing dissolve (auflösen) operation.
+
+    Dissolve merges features that share common attribute values into single
+    features, optionally computing statistics on other fields.
+
+    This is equivalent to:
+    - QGIS: Vector > Geoprocessing Tools > Dissolve (Auflösen)
+    - ArcGIS: Dissolve
+    - PostGIS: ST_Union with GROUP BY
+    """
+
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_INPUT,
+            UISection(id="dissolve_settings", order=2, icon="aggregate"),
+            UISection(id="statistics", order=3, icon="chart"),
+            SECTION_OUTPUT,
+        )
+    )
+
+    input_path: str = Field(
+        ...,
+        description="Path to the input dataset to dissolve.",
+        json_schema_extra=ui_field(
+            section="input",
+            field_order=1,
+            widget="layer-selector",
+        ),
+    )
+    dissolve_fields: Optional[List[str]] = Field(
+        None,
+        description="Fields to group by when dissolving. Features with matching values will be merged. If empty, all features are merged into one.",
+        json_schema_extra=ui_field(
+            section="dissolve_settings",
+            field_order=1,
+            widget="field-selector",
+            widget_options={"source_layer": "input_path", "multiple": True, "max": 3},
+        ),
+    )
+    field_statistics: Optional[List["FieldStatistic"]] = Field(
+        None,
+        description="Statistics to calculate for each dissolved group.",
+        json_schema_extra=ui_field(
+            section="statistics",
+            field_order=1,
+            widget="field-statistics-selector",
+            widget_options={"source_layer": "input_path"},
+        ),
+    )
+    output_path: Optional[str] = Field(
+        None,
+        description="Destination file path for dissolved output. If not provided, will be auto-generated.",
+        json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
+    )
+    output_crs: Optional[str] = Field(
+        None,
+        description="Target coordinate reference system for the output geometry.",
+        json_schema_extra=ui_field(section="output", field_order=2, hidden=True),
+    )
+
+    @property
+    def accepted_input_geometry_types(self: Self) -> List[GeometryType]:
+        """Geometry types accepted for input layer in dissolve operation."""
+        return ALL_GEOMETRY_TYPES
 
 
 class CentroidParams(BaseModel):

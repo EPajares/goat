@@ -119,10 +119,10 @@ class ClipTool(AnalysisTool):
             SELECT
                 geom as unified_geom,
                 {{
-                    'minx': ST_XMin(geom),
-                    'maxx': ST_XMax(geom),
-                    'miny': ST_YMin(geom),
-                    'maxy': ST_YMax(geom)
+                    'xmin': ST_XMin(geom),
+                    'xmax': ST_XMax(geom),
+                    'ymin': ST_YMin(geom),
+                    'ymax': ST_YMax(geom)
                 }} AS bbox
             FROM unified
         """)
@@ -149,10 +149,10 @@ class ClipTool(AnalysisTool):
             WHERE ST_IsValid(i.{input_geom})
                 AND ST_Intersects(i.{input_geom}, u.unified_geom)
                 -- Bbox-based spatial filter for performance (GeoParquet spatial indexing)
-                AND i.bbox.minx <= u.bbox.maxx
-                AND i.bbox.maxx >= u.bbox.minx
-                AND i.bbox.miny <= u.bbox.maxy
-                AND i.bbox.maxy >= u.bbox.miny
+                AND i.bbox.xmin <= u.bbox.xmax
+                AND i.bbox.xmax >= u.bbox.xmin
+                AND i.bbox.ymin <= u.bbox.ymax
+                AND i.bbox.ymax >= u.bbox.ymin
                 AND NOT ST_IsEmpty(ST_Intersection(i.{input_geom}, u.unified_geom))
                 -- Filter out degenerate geometries - keep only same type as input (ArcGIS/QGIS behavior)
                 {geom_type_filter}

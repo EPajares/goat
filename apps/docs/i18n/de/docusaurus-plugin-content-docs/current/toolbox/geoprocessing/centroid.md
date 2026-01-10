@@ -1,6 +1,6 @@
-# Centroid
+# Mittelpunkt (Zentroid)
 
-Dieses Werkzeug erstellt **Punkt-Features am geometrischen Schwerpunkt** jedes Features im Eingabe-Layer. Es ist nützlich, um Polygone oder Linien für Analysen, die Punkt-Eingaben erfordern, in Punkte umzuwandeln.
+Dieses Werkzeug erstellt **Punkt-Features am geometrischen Mittelpunkt** jedes Features im Eingabe-Layer. Es ist nützlich, um Polygone oder Linien für Analysen, die Punkt-Eingaben erfordern, in Punkte umzuwandeln.
 
 ## 1. Erklärung
 

@@ -55,9 +55,18 @@ export default function FieldStatisticsInput({
   const { t } = useTranslation("common");
   const { projectId } = useParams();
 
-  // Parse the current value
+  // Parse the current value - backend expects array but we show single selector
   const currentValue = useMemo((): FieldStatisticsValue => {
-    if (typeof value === "object" && value !== null) {
+    // Handle array format from backend
+    if (Array.isArray(value) && value.length > 0) {
+      const v = value[0] as FieldStatisticsValue;
+      return {
+        operation: v.operation || "",
+        field: v.field ?? null,
+      };
+    }
+    // Handle single object format (legacy)
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
       const v = value as FieldStatisticsValue;
       return {
         operation: v.operation || "",
@@ -66,6 +75,16 @@ export default function FieldStatisticsInput({
     }
     return { operation: "", field: null };
   }, [value]);
+
+  // Helper to emit value in array format (backend expects List[FieldStatistic])
+  const emitChange = (newValue: FieldStatisticsValue) => {
+    // Only emit if there's a valid operation
+    if (newValue.operation) {
+      onChange([newValue]);
+    } else {
+      onChange(null);
+    }
+  };
 
   // Determine which layer this field relates to from widget_options.source_layer
   const relatedLayerInputName = useMemo(() => {
@@ -111,15 +130,15 @@ export default function FieldStatisticsInput({
   const handleOperationChange = (operation: string) => {
     if (operation === "count") {
       // Count operation doesn't need a field
-      onChange({ operation, field: null });
+      emitChange({ operation, field: null });
     } else {
       // Preserve field if it was already selected, otherwise set to null
-      onChange({ operation, field: currentValue.field || null });
+      emitChange({ operation, field: currentValue.field || null });
     }
   };
 
   const handleFieldChange = (field: LayerFieldType | undefined) => {
-    onChange({
+    emitChange({
       operation: currentValue.operation,
       field: field?.name ?? null,
     });

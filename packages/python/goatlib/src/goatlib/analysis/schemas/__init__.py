@@ -55,6 +55,7 @@ from .heatmap import (
     HeatmapClosestAverageParams,
     HeatmapConnectivityParams,
     HeatmapGravityParams,
+    HeatmapRoutingMode,
     ImpedanceFunction,
     OpportunityClosestAverage,
     OpportunityGravity,
