@@ -16,7 +16,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -417,7 +417,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
   onClose,
   onSelectTemplate,
 }) => {
-  const { t } = useTranslation("common");
+  const { t, i18n } = useTranslation("common");
   const theme = useTheme();
   const [selectedTemplate, setSelectedTemplate] = useState<ReportTemplateType>("single_map_portrait");
   const [expandedCategories, setExpandedCategories] = useState<Record<ReportTemplateCategory, boolean>>({
@@ -426,69 +426,74 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
     blank: false,
   });
 
-  const categories: TemplateCategory[] = [
-    {
-      id: "single_map",
-      name: t("single_map"),
-      description: t("single_map_category_description"),
-      templates: [
-        {
-          id: "single_map_portrait",
-          categoryId: "single_map",
-          name: `${t("single_map")} - ${t("portrait")}`,
-          displayName: t("portrait"),
-          description: t("portrait_layout"),
-          config: getSingleMapPortraitConfig(t),
-        },
-        {
-          id: "single_map_landscape",
-          categoryId: "single_map",
-          name: `${t("single_map")} - ${t("landscape")}`,
-          displayName: t("landscape"),
-          description: t("landscape_layout"),
-          config: getSingleMapLandscapeConfig(t),
-        },
-      ],
-    },
-    {
-      id: "poster",
-      name: t("poster"),
-      description: t("poster_category_description"),
-      templates: [
-        {
-          id: "poster_portrait",
-          categoryId: "poster",
-          name: `${t("poster")} - ${t("portrait")}`,
-          displayName: t("portrait"),
-          description: t("portrait_layout"),
-          config: getPosterPortraitConfig(t),
-        },
-        {
-          id: "poster_landscape",
-          categoryId: "poster",
-          name: `${t("poster")} - ${t("landscape")}`,
-          displayName: t("landscape"),
-          description: t("landscape_layout"),
-          config: getPosterLandscapeConfig(t),
-        },
-      ],
-    },
-    {
-      id: "blank",
-      name: t("blank"),
-      description: t("blank_description"),
-      templates: [
-        {
-          id: "blank",
-          categoryId: "blank",
-          name: t("blank"),
-          displayName: t("blank"),
-          description: t("blank_description"),
-          config: getBlankConfig(),
-        },
-      ],
-    },
-  ];
+  // Memoize categories with i18n.language dependency to ensure translations are updated
+  const categories: TemplateCategory[] = useMemo(
+    () => [
+      {
+        id: "single_map",
+        name: t("single_map"),
+        description: t("single_map_category_description"),
+        templates: [
+          {
+            id: "single_map_portrait",
+            categoryId: "single_map",
+            name: `${t("single_map")} - ${t("portrait")}`,
+            displayName: t("portrait"),
+            description: t("portrait_layout"),
+            config: getSingleMapPortraitConfig(t),
+          },
+          {
+            id: "single_map_landscape",
+            categoryId: "single_map",
+            name: `${t("single_map")} - ${t("landscape")}`,
+            displayName: t("landscape"),
+            description: t("landscape_layout"),
+            config: getSingleMapLandscapeConfig(t),
+          },
+        ],
+      },
+      {
+        id: "poster",
+        name: t("poster"),
+        description: t("poster_category_description"),
+        templates: [
+          {
+            id: "poster_portrait",
+            categoryId: "poster",
+            name: `${t("poster")} - ${t("portrait")}`,
+            displayName: t("portrait"),
+            description: t("portrait_layout"),
+            config: getPosterPortraitConfig(t),
+          },
+          {
+            id: "poster_landscape",
+            categoryId: "poster",
+            name: `${t("poster")} - ${t("landscape")}`,
+            displayName: t("landscape"),
+            description: t("landscape_layout"),
+            config: getPosterLandscapeConfig(t),
+          },
+        ],
+      },
+      {
+        id: "blank",
+        name: t("blank"),
+        description: t("blank_description"),
+        templates: [
+          {
+            id: "blank",
+            categoryId: "blank",
+            name: t("blank"),
+            displayName: t("blank"),
+            description: t("blank_description"),
+            config: getBlankConfig(),
+          },
+        ],
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, i18n.language]
+  );
 
   const allTemplates = categories.flatMap((cat) => cat.templates);
   const selectedTemplateData = allTemplates.find((t) => t.id === selectedTemplate);

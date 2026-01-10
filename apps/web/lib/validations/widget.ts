@@ -204,6 +204,9 @@ export const dividerElementConfigSchema = z.object({
   setup: z
     .object({
       size: z.number().min(1).max(10).optional().default(1),
+      orientation: z.enum(["horizontal", "vertical"]).optional().default("horizontal"),
+      color: z.string().optional().default("#000000"),
+      thickness: z.number().min(0.1).max(5).optional().default(1), // thickness in mm
     })
     .default({}),
 });

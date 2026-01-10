@@ -135,8 +135,20 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
           const paperRect = paperElement?.getBoundingClientRect();
 
           // Default sizes based on element type (in mm)
-          const defaultWidth = elementType === "map" ? 180 : elementType === "legend" ? 40 : 60;
-          const defaultHeight = elementType === "map" ? 120 : elementType === "legend" ? 80 : 30;
+          const getDefaultWidth = () => {
+            if (elementType === "map") return 180;
+            if (elementType === "legend") return 40;
+            if (elementType === "divider") return 150;
+            return 60;
+          };
+          const getDefaultHeight = () => {
+            if (elementType === "map") return 120;
+            if (elementType === "legend") return 80;
+            if (elementType === "divider") return 2;
+            return 30;
+          };
+          const defaultWidth = getDefaultWidth();
+          const defaultHeight = getDefaultHeight();
 
           // Calculate stacking offset based on existing elements (so new elements don't overlap perfectly)
           const existingCount = selectedReport.config.elements?.length ?? 0;

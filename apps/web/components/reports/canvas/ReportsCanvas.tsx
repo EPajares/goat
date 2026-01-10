@@ -315,8 +315,10 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
   const height = mmToPx(element.position.height, SCREEN_DPI) * zoom;
 
   // Minimum size in pixels (accounting for zoom)
+  // Dividers can be very thin, so allow smaller minimum height for them
   const minWidth = mmToPx(MIN_ELEMENT_SIZE_MM, SCREEN_DPI) * zoom;
-  const minHeight = mmToPx(MIN_ELEMENT_SIZE_MM, SCREEN_DPI) * zoom;
+  const minHeightMm = element.type === "divider" ? 1 : MIN_ELEMENT_SIZE_MM;
+  const minHeight = mmToPx(minHeightMm, SCREEN_DPI) * zoom;
 
   // Calculate snap points from other elements and page boundaries
   const snapPoints = useMemo(
