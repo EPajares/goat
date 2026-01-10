@@ -23,7 +23,6 @@ export interface LegendElementConfig {
   layout?: {
     columns?: number;
     showLayerNames?: boolean;
-    showBackground?: boolean;
   };
 }
 
@@ -139,7 +138,6 @@ const LegendElementRenderer: React.FC<LegendElementRendererProps> = ({
 
   // Limit columns to number of layers (no empty columns)
   const columns = Math.min(layoutConfig.columns || 1, filteredLayers.length || 1);
-  const showBackground = layoutConfig.showBackground !== false;
 
   return (
     <Box
@@ -149,8 +147,6 @@ const LegendElementRenderer: React.FC<LegendElementRendererProps> = ({
         overflow: "hidden",
         p: 1,
         boxSizing: "border-box",
-        backgroundColor: showBackground ? "rgba(255, 255, 255, 0.9)" : "transparent",
-        borderRadius: showBackground ? 1 : 0,
         transform: `scale(${zoom})`,
         transformOrigin: "top left",
       }}>

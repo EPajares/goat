@@ -64,6 +64,9 @@ const toWidgetConfig = (element: ReportElement): WidgetConfigSchema | null => {
           type: "divider",
           setup: {
             size: (element.config?.setup?.size ?? element.config?.size ?? 1) as number,
+            orientation: (element.config?.setup?.orientation ?? "horizontal") as "horizontal" | "vertical",
+            color: (element.config?.setup?.color ?? "#000000") as string,
+            thickness: (element.config?.setup?.thickness ?? 1) as number,
           },
         };
     }

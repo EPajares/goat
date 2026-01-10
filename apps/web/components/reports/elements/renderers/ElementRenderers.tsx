@@ -4,6 +4,7 @@ import React from "react";
 import { Icon } from "@p4b/ui/components/Icon";
 
 import type { AtlasPage } from "@/lib/print/atlas-utils";
+import { mmToPx } from "@/lib/print/units";
 import type { ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement, ReportElementType } from "@/lib/validations/reportLayout";
 import type { WidgetChartConfig, WidgetElementConfig } from "@/lib/validations/widget";
@@ -23,8 +24,8 @@ import ScalebarElementRenderer from "@/components/reports/elements/renderers/Sca
 // Types that are rendered as chart widgets (same as dashboard)
 const chartElementTypes: ReportElementType[] = ["histogram_chart", "categories_chart", "pie_chart"];
 
-// Types that are rendered as element widgets (text, image, divider)
-const elementElementTypes: ReportElementType[] = ["text", "image", "divider"];
+// Types that are rendered as element widgets (text, image)
+const elementElementTypes: ReportElementType[] = ["text", "image"];
 
 export const isChartElementType = (type: ReportElementType): boolean => {
   return chartElementTypes.includes(type);
@@ -119,6 +120,9 @@ const toElementConfig = (element: ReportElement): WidgetElementConfig => {
       type: elementTypes.Values.divider,
       setup: {
         size: element.config.setup?.size ?? element.config.size ?? 1,
+        orientation: (element.config.setup?.orientation ?? "horizontal") as "horizontal" | "vertical",
+        color: (element.config.setup?.color ?? "#000000") as string,
+        thickness: (element.config.setup?.thickness ?? 1) as number,
       },
     };
   }
@@ -323,6 +327,39 @@ export const ElementContentRenderer: React.FC<ElementContentRendererProps> = ({
             maxHeight: "64px",
             transform: rotation !== 0 ? `rotate(${rotation}deg)` : undefined,
             transition: "transform 0.3s ease",
+            // Explicitly set color to black to ensure visibility on any background
+            // (SVG uses fill="currentColor" which inherits from CSS color property)
+            color: "#000000",
+          }}
+        />
+      </Box>
+    );
+  }
+
+  // For divider elements - render a centered line
+  if (element.type === "divider") {
+    const orientation = (element.config?.setup?.orientation as "horizontal" | "vertical") ?? "horizontal";
+    const color = (element.config?.setup?.color as string) ?? "#000000";
+    const thicknessMm = (element.config?.setup?.thickness as number) ?? 1;
+    // Convert mm to pixels for rendering
+    const thicknessPx = mmToPx(thicknessMm);
+
+    return (
+      <Box
+        sx={{
+          width: `${100 / zoom}%`,
+          height: `${100 / zoom}%`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transform: `scale(${zoom})`,
+          transformOrigin: "top left",
+        }}>
+        <Box
+          sx={{
+            width: orientation === "horizontal" ? "100%" : `${thicknessPx}px`,
+            height: orientation === "horizontal" ? `${thicknessPx}px` : "100%",
+            backgroundColor: color,
           }}
         />
       </Box>

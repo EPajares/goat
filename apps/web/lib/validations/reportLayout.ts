@@ -42,18 +42,26 @@ export const elementPositionSchema = z.object({
   z_index: z.number().default(0),
 });
 
+// Border style configuration
+export const borderStyleSchema = z.object({
+  enabled: z.boolean().default(false),
+  color: z.string().default("#000000"),
+  width: z.number().min(0.1).max(5).default(0.5), // Width in mm (0.1 to 5mm)
+});
+
+// Background style configuration
+export const backgroundStyleSchema = z.object({
+  enabled: z.boolean().default(false),
+  color: z.string().default("#ffffff"),
+  opacity: z.number().min(0).max(1).default(1),
+});
+
 // Element style
 export const elementStyleSchema = z
   .object({
-    border: z
-      .object({
-        width: z.number().default(0),
-        color: z.string().default("#000000"),
-        radius: z.number().default(0),
-      })
-      .optional(),
+    border: borderStyleSchema.optional(),
+    background: backgroundStyleSchema.optional(),
     padding: z.number().default(0),
-    background: z.string().optional(),
     opacity: z.number().min(0).max(1).default(1),
   })
   .optional();

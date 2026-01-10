@@ -1,4 +1,5 @@
 import DownloadIcon from "@mui/icons-material/Download";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -47,8 +48,12 @@ export default function JobsPopper() {
 
   // Track which export jobs have been auto-downloaded to avoid duplicate downloads
   const downloadedJobsRef = useRef<Set<string>>(new Set());
+  // Track which print jobs have shown toast notifications
+  const notifiedPrintJobsRef = useRef<Set<string>>(new Set());
   // Track jobs that were already successful on initial load (don't auto-download these)
   const initialSuccessfulJobsRef = useRef<Set<string> | null>(null);
+  // Track print jobs that were already completed on initial load (don't show toast for these)
+  const initialCompletedPrintJobsRef = useRef<Set<string> | null>(null);
 
   // Filter to get running/accepted jobs using OGC status
   const runningJobs = useMemo(() => {
@@ -121,6 +126,45 @@ export default function JobsPopper() {
     });
   }, [jobs?.jobs, handleExportDownload]);
 
+  // Show toast notifications for completed print_report jobs
+  useEffect(() => {
+    if (!jobs?.jobs) return;
+
+    // On first load, capture which print jobs are already completed (don't show toast for these)
+    if (initialCompletedPrintJobsRef.current === null) {
+      initialCompletedPrintJobsRef.current = new Set(
+        jobs.jobs
+          .filter(
+            (job) =>
+              job.processID === "print_report" &&
+              (job.status === "successful" || job.status === "failed" || job.status === "dismissed")
+          )
+          .map((job) => job.jobID)
+      );
+      return;
+    }
+
+    jobs.jobs.forEach((job) => {
+      // Only show toast for print_report jobs that:
+      // 1. Have completed (successful or failed)
+      // 2. Were NOT already completed on initial load
+      // 3. Haven't shown a toast yet in this session
+      if (
+        job.processID === "print_report" &&
+        !initialCompletedPrintJobsRef.current?.has(job.jobID) &&
+        !notifiedPrintJobsRef.current.has(job.jobID)
+      ) {
+        if (job.status === "successful") {
+          notifiedPrintJobsRef.current.add(job.jobID);
+          toast.success(`"${t("print_report")}" - ${t("job_success")}`);
+        } else if (job.status === "failed" || job.status === "dismissed") {
+          notifiedPrintJobsRef.current.add(job.jobID);
+          toast.error(`"${t("print_report")}" - ${t("job_failed")}`);
+        }
+      }
+    });
+  }, [jobs?.jobs, t]);
+
   // Helper to render download button for export jobs
   const renderExportDownloadButton = (job: Job) => {
     const result = job.result as Record<string, unknown> | undefined;
@@ -138,6 +182,37 @@ export default function JobsPopper() {
         </IconButton>
       </Tooltip>
     );
+  };
+
+  // Helper to render open button for print_report jobs
+  const renderPrintReportOpenButton = (job: Job) => {
+    const result = job.result as Record<string, unknown> | undefined;
+    const canOpen = job.status === "successful" && result?.download_url;
+
+    if (!canOpen) return undefined;
+
+    const handleOpenPdf = () => {
+      window.open(result.download_url as string, "_blank");
+    };
+
+    return (
+      <Tooltip title={t("view")}>
+        <IconButton size="small" onClick={handleOpenPdf} sx={{ fontSize: "1.2rem", color: "success.main" }}>
+          <OpenInNewIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
+  // Get action button based on job type
+  const getActionButton = (job: Job) => {
+    if (job.processID === "layer_export") {
+      return renderExportDownloadButton(job);
+    }
+    if (job.processID === "print_report") {
+      return renderPrintReportOpenButton(job);
+    }
+    return undefined;
   };
 
   return (
@@ -167,9 +242,7 @@ export default function JobsPopper() {
                 }}>
                 <Stack direction="column">
                   {jobs?.jobs?.map((job, index) => {
-                    // Add download button for LayerExport jobs
-                    const actionButton =
-                      job.processID === "layer_export" ? renderExportDownloadButton(job) : undefined;
+                    const actionButton = getActionButton(job);
 
                     return (
                       <Box key={job.jobID}>

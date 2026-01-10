@@ -98,6 +98,12 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
   // Get project's initial view state for creating map element snapshots
   const { initialView } = useProjectInitialViewState(project?.id ?? "");
 
+  // Handle report selection - deselect element when switching layouts
+  const handleSelectReport = useCallback((report: ReportLayout | null) => {
+    setSelectedElementId(null);
+    setSelectedReport(report);
+  }, []);
+
   // Handle drag start
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const { active } = event;
@@ -129,8 +135,20 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
           const paperRect = paperElement?.getBoundingClientRect();
 
           // Default sizes based on element type (in mm)
-          const defaultWidth = elementType === "map" ? 180 : elementType === "legend" ? 40 : 60;
-          const defaultHeight = elementType === "map" ? 120 : elementType === "legend" ? 80 : 30;
+          const getDefaultWidth = () => {
+            if (elementType === "map") return 180;
+            if (elementType === "legend") return 40;
+            if (elementType === "divider") return 150;
+            return 60;
+          };
+          const getDefaultHeight = () => {
+            if (elementType === "map") return 120;
+            if (elementType === "legend") return 80;
+            if (elementType === "divider") return 2;
+            return 30;
+          };
+          const defaultWidth = getDefaultWidth();
+          const defaultHeight = getDefaultHeight();
 
           // Calculate stacking offset based on existing elements (so new elements don't overlap perfectly)
           const existingCount = selectedReport.config.elements?.length ?? 0;
@@ -193,6 +211,14 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
             style: {
               padding: 0,
               opacity: 1,
+              // Default border for map elements
+              ...(elementType === "map" && {
+                border: { enabled: true, color: "#cccccc", width: 0.5 },
+              }),
+              // Default background for legend elements
+              ...(elementType === "legend" && {
+                background: { enabled: true, color: "#ffffff", opacity: 0.9 },
+              }),
             },
           };
 
@@ -316,7 +342,7 @@ const ReportsLayout: React.FC<ReportsLayoutProps> = ({
           project={project}
           projectLayers={projectLayers}
           selectedReport={selectedReport}
-          onSelectReport={setSelectedReport}
+          onSelectReport={handleSelectReport}
         />
 
         {/* Middle Section - Canvas */}

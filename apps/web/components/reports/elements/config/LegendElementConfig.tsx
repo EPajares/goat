@@ -1,6 +1,6 @@
 "use client";
 
-import { Checkbox, FormControlLabel, Stack, TextField, Typography, useTheme } from "@mui/material";
+import { Stack, TextField, useTheme } from "@mui/material";
 import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -204,23 +204,6 @@ const LegendElementConfig: React.FC<LegendElementConfigProps> = ({ element, mapE
               setSelectedItems={handleColumnsChange}
               items={columnsSelectorItems}
               label={t("columns")}
-            />
-
-            {/* Background */}
-            <FormControlLabel
-              control={
-                <Checkbox
-                  size="small"
-                  color="primary"
-                  checked={layoutConfig.showBackground !== false}
-                  onChange={(e) =>
-                    updateConfig({
-                      layout: { ...layoutConfig, showBackground: e.target.checked },
-                    })
-                  }
-                />
-              }
-              label={<Typography variant="body2">{t("show_background")}</Typography>}
             />
           </Stack>
         }

@@ -1,15 +1,17 @@
 "use client";
 
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import React from "react";
 import { useTranslation } from "react-i18next";
 
 import type { ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement } from "@/lib/validations/reportLayout";
-import { chartTypes, elementTypes, widgetTypesWithoutConfig } from "@/lib/validations/widget";
+import { chartTypes, elementTypes } from "@/lib/validations/widget";
 
 import SelectedItemContainer from "@/components/map/panels/Container";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
+import DividerElementConfig from "@/components/reports/elements/config/DividerElementConfig";
+import ElementStyleConfig from "@/components/reports/elements/config/ElementStyleConfig";
 import LegendElementConfig from "@/components/reports/elements/config/LegendElementConfig";
 import MapElementConfig from "@/components/reports/elements/config/MapElementConfig";
 import NorthArrowElementConfig from "@/components/reports/elements/config/NorthArrowElementConfig";
@@ -47,8 +49,13 @@ const elementHasConfig = (type: string, config?: ReportElement["config"]): boole
     return true;
   }
 
-  // Text and divider from builder don't have config
-  if (widgetTypesWithoutConfig.includes(type as "text" | "divider")) {
+  // Divider elements have their own config in reports
+  if (type === "divider") {
+    return true;
+  }
+
+  // Text from builder doesn't have config
+  if (type === "text") {
     return false;
   }
 
@@ -108,6 +115,7 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
         header={<ToolsHeader title={`${elementTypeName} - ${t("settings")}`} onBack={onBack} />}
         body={
           <Stack spacing={2} sx={{ p: 2 }}>
+            {/* Element-specific configuration */}
             {element.type === "map" ? (
               <MapElementConfig element={element} onChange={onChange} />
             ) : element.type === "legend" ? (
@@ -116,15 +124,14 @@ const ElementConfiguration: React.FC<ElementConfigurationProps> = ({
               <NorthArrowElementConfig element={element} mapElements={mapElements} onChange={onChange} />
             ) : element.type === "scalebar" ? (
               <ScalebarElementConfig element={element} mapElements={mapElements} onChange={onChange} />
+            ) : element.type === "divider" ? (
+              <DividerElementConfig element={element} onChange={onChange} />
             ) : hasConfig ? (
               <ReportElementConfig element={element} onChange={onChange} />
-            ) : (
-              <Box sx={{ py: 4, textAlign: "center" }}>
-                <Typography variant="body2" color="text.secondary">
-                  {t("no_configuration_available")}
-                </Typography>
-              </Box>
-            )}
+            ) : null}
+
+            {/* Style configuration - available for all elements except divider (which has its own style) */}
+            {element.type !== "divider" && <ElementStyleConfig element={element} onChange={onChange} />}
           </Stack>
         }
         close={() => {}}

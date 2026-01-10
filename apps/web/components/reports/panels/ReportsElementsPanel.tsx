@@ -122,6 +122,7 @@ const ElementsTabContent: React.FC = () => {
   const contentElements: ElementConfig[] = [
     { type: "text", label: t("text") },
     { type: "image", label: t("image") },
+    { type: "divider", label: t("divider") },
   ];
 
   return (

@@ -4,7 +4,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
@@ -21,6 +21,9 @@ type MenuSelectProps = {
   buttonValue: string; // e.g. "blockType" or "textAlign"
   buttonIcon?: ICON_NAME; // optional: always show this icon on button
   highlightWhenSelected?: boolean; // optional: make icon primary when value is selected
+  onOpen?: () => void; // callback when dropdown opens (to close others)
+  onClose?: () => void; // callback when dropdown closes
+  forceClose?: boolean; // when true, forces the dropdown to close
 };
 
 export const MenuSelect = ({
@@ -30,17 +33,37 @@ export const MenuSelect = ({
   buttonValue,
   buttonIcon,
   highlightWhenSelected = false,
+  onOpen,
+  onClose,
+  forceClose,
 }: MenuSelectProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
+  // Close when forceClose becomes true
+  useEffect(() => {
+    if (forceClose && anchorEl) {
+      setAnchorEl(null);
+    }
+  }, [forceClose, anchorEl]);
+
   const selectedItem = items.find((item) => item.value === value);
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+    event.stopPropagation();
+    if (anchorEl) {
+      setAnchorEl(null); // Close if already open
+    } else {
+      onOpen?.(); // Notify parent to close other dropdowns
+      setAnchorEl(event.currentTarget); // Open if closed
+    }
   };
 
-  const handleClose = () => setAnchorEl(null);
+  // Allow parent to close this dropdown
+  const handleClose = () => {
+    setAnchorEl(null);
+    onClose?.();
+  };
 
   const handleSelect = (val: string) => {
     onChange(val);
@@ -55,7 +78,7 @@ export const MenuSelect = ({
       <ToggleButton
         value={buttonValue}
         size="small"
-        selected={false}
+        selected={open}
         onClick={handleOpen}
         sx={{ display: "flex", alignItems: "center" }}>
         <Icon
@@ -71,7 +94,14 @@ export const MenuSelect = ({
         open={open}
         onClose={handleClose}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}>
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        sx={{ zIndex: 1500 }}
+        slotProps={{
+          paper: {
+            onMouseDown: (e: React.MouseEvent) => e.stopPropagation(),
+            onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
+          },
+        }}>
         {items.map((item) => (
           <MenuItem
             dense

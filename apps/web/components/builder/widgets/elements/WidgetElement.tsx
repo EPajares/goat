@@ -20,7 +20,7 @@ const hasOptions = (
 
 const WidgetElement: React.FC<WidgetElementProps> = ({ config, onWidgetUpdate, viewOnly, fitMode }) => {
   return (
-    <Box sx={{ width: "100%", height: fitMode === "contain" ? "100%" : undefined }}>
+    <Box sx={{ width: "100%", height: fitMode === "contain" || config.type === "text" ? "100%" : undefined }}>
       {config.type === "text" && (
         <TextElementWidget config={config} viewOnly={viewOnly} onWidgetUpdate={onWidgetUpdate} />
       )}

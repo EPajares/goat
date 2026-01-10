@@ -12,7 +12,17 @@ const ALIGN_ITEMS: MenuItemOption[] = [
   { label: "Justify", value: "justify", icon: ICON_NAME.ALIGN_JUSTIFY },
 ];
 
-export const AlignSelect = ({ editor }: { editor: Editor | null }) => {
+export const AlignSelect = ({
+  editor,
+  onOpen,
+  onClose,
+  forceClose,
+}: {
+  editor: Editor | null;
+  onOpen?: () => void;
+  onClose?: () => void;
+  forceClose?: boolean;
+}) => {
   if (!editor) return null;
 
   const currentAlign =
@@ -26,6 +36,9 @@ export const AlignSelect = ({ editor }: { editor: Editor | null }) => {
       buttonValue="textAlign"
       items={ALIGN_ITEMS}
       value={currentAlign}
+      onOpen={onOpen}
+      onClose={onClose}
+      forceClose={forceClose}
       onChange={(val) => {
         editor.chain().focus().setTextAlign(val).run();
       }}

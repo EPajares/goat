@@ -148,6 +148,7 @@ const ImageElementWidget = ({
       sx={{
         position: "relative",
         width: "100%",
+        height: fitMode === "contain" ? "100%" : "fit-content",
         overflow: "hidden",
         borderRadius: 0,
         cursor: "pointer",
@@ -195,7 +196,7 @@ const ImageElementWidget = ({
       )}
 
       {/* Image */}
-      <ImageElementBase config={config} />
+      <ImageElementBase config={config} fitMode={fitMode} />
     </Box>
   );
 };

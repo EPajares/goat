@@ -133,7 +133,7 @@ const MarginOverlay = styled(Box, {
   right: mmToPx(margins.right, SCREEN_DPI) * zoom,
   bottom: mmToPx(margins.bottom, SCREEN_DPI) * zoom,
   left: mmToPx(margins.left, SCREEN_DPI) * zoom,
-  border: "1px dashed rgba(0, 0, 0, 0.2)",
+  border: "none", // Removed dashed border - users might expect it to print
   pointerEvents: "none",
 }));
 
@@ -315,8 +315,10 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
   const height = mmToPx(element.position.height, SCREEN_DPI) * zoom;
 
   // Minimum size in pixels (accounting for zoom)
+  // Dividers can be very thin, so allow smaller minimum height for them
   const minWidth = mmToPx(MIN_ELEMENT_SIZE_MM, SCREEN_DPI) * zoom;
-  const minHeight = mmToPx(MIN_ELEMENT_SIZE_MM, SCREEN_DPI) * zoom;
+  const minHeightMm = element.type === "divider" ? 1 : MIN_ELEMENT_SIZE_MM;
+  const minHeight = mmToPx(minHeightMm, SCREEN_DPI) * zoom;
 
   // Calculate snap points from other elements and page boundaries
   const snapPoints = useMemo(
@@ -625,6 +627,26 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
       }
     : undefined;
 
+  // Extract border and background styles from element
+  const elementStyle = (element.style ?? {}) as Record<string, unknown>;
+  const borderStyle = (elementStyle.border ?? {}) as { enabled?: boolean; color?: string; width?: number };
+  const backgroundStyle = (elementStyle.background ?? {}) as {
+    enabled?: boolean;
+    color?: string;
+    opacity?: number;
+  };
+
+  // Calculate element border (convert mm to px)
+  const elementBorderEnabled = borderStyle.enabled ?? false;
+  const elementBorderColor = borderStyle.color ?? "#000000";
+  const elementBorderWidthMm = borderStyle.width ?? 0.5;
+  const elementBorderWidthPx = mmToPx(elementBorderWidthMm, SCREEN_DPI) * zoom;
+
+  // Calculate element background
+  const elementBackgroundEnabled = backgroundStyle.enabled ?? false;
+  const elementBackgroundColor = backgroundStyle.color ?? "#ffffff";
+  const elementBackgroundOpacity = backgroundStyle.opacity ?? 1;
+
   return (
     <Rnd
       position={{ x, y }}
@@ -637,9 +659,10 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
       onResizeStop={handleResizeStop}
       enableResizing={isSelected && !isMapNavigating}
       disableDragging={!isSelected || isMapNavigating}
+      cancel=".ProseMirror, .tiptap-toolbar, .MuiMenu-root, .MuiPopover-root"
       bounds="parent"
       style={{
-        zIndex: isSelected ? 100 : element.position.z_index,
+        zIndex: element.position.z_index,
         pointerEvents: isMapNavigating ? "none" : "auto",
       }}
       resizeHandleStyles={resizeHandleClasses}>
@@ -648,8 +671,16 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
         sx={{
           width: "100%",
           height: "100%",
-          backgroundColor: "transparent",
-          border: isSelected ? `2px solid ${theme.palette.primary.main}` : "none",
+          // Apply element background (if enabled)
+          backgroundColor: elementBackgroundEnabled
+            ? `rgba(${parseInt(elementBackgroundColor.slice(1, 3), 16)}, ${parseInt(elementBackgroundColor.slice(3, 5), 16)}, ${parseInt(elementBackgroundColor.slice(5, 7), 16)}, ${elementBackgroundOpacity})`
+            : "transparent",
+          // Apply element border (if enabled), otherwise selection border
+          border: isSelected
+            ? `2px solid ${theme.palette.primary.main}`
+            : elementBorderEnabled
+              ? `${elementBorderWidthPx}px solid ${elementBorderColor}`
+              : "none",
           borderRadius: 0,
           overflow: "hidden",
           cursor: isMapNavigating ? "default" : isSelected ? "move" : "pointer",
@@ -890,7 +921,15 @@ const ReportsCanvas: React.FC<ReportsCanvasProps> = ({
   // Panning with Space + Drag or Middle Mouse Button
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !e.repeat && document.activeElement?.tagName !== "INPUT") {
+      // Don't intercept space when user is typing in an input, textarea, or contenteditable element
+      const activeElement = document.activeElement;
+      const isEditing =
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.getAttribute("contenteditable") === "true" ||
+        activeElement?.closest("[contenteditable='true']") !== null;
+
+      if (e.code === "Space" && !e.repeat && !isEditing) {
         e.preventDefault();
         setIsSpacePressed(true);
       }
@@ -1076,6 +1115,7 @@ const ReportsCanvas: React.FC<ReportsCanvasProps> = ({
             onMouseUp={handlePanEnd}
             onMouseLeave={handlePanEnd}
             onWheel={handleWheel}
+            onClick={handleCanvasClick}
             sx={{
               cursor: canvasCursor,
               // Position canvas area next to rulers
@@ -1094,8 +1134,9 @@ const ReportsCanvas: React.FC<ReportsCanvasProps> = ({
                 justifyContent: "center",
                 // Generous padding around paper for scroll space (like QGIS infinite canvas feel)
                 padding: "100px",
-                // Minimum size ensures scrollability when paper is larger than viewport
-                minWidth: "100%",
+                // Explicit size to ensure the paper + padding fits and can scroll in both directions
+                // This prevents the flexbox centering from cutting off the left side when zoomed
+                width: `max(100%, ${paperDimensions.widthPx * zoom + 200}px)`,
                 minHeight: "100%",
                 boxSizing: "border-box",
               }}>
