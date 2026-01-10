@@ -41,6 +41,9 @@ export interface ReportTemplate {
   config: ReportLayoutConfig;
 }
 
+// Type for translation function
+type TranslationFn = (key: string) => string;
+
 // Default config for blank template
 const getBlankConfig = (): ReportLayoutConfig => ({
   page: {
@@ -61,7 +64,7 @@ const getBlankConfig = (): ReportLayoutConfig => ({
 
 // Single map template - portrait orientation (A4)
 // A4: 210x297mm, with 10mm margins = usable area 190x277mm (from x:10 to x:200, y:10 to y:287)
-const getSingleMapPortraitConfig = (): ReportLayoutConfig => ({
+const getSingleMapPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
   page: {
     size: "A4",
     orientation: "portrait",
@@ -83,7 +86,7 @@ const getSingleMapPortraitConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 10, width: 190, height: 15, z_index: 2 },
       config: {
         type: "text",
-        setup: { text: '<h1 style="text-align: center">TITLE</h1>' },
+        setup: { text: `<h1 style="text-align: center">${t("title_placeholder")}</h1>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -108,7 +111,7 @@ const getSingleMapPortraitConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 242, width: 50, height: 45, z_index: 3 },
       config: {
         type: "text",
-        setup: { text: "<p>Description</p>" },
+        setup: { text: `<p>${t("description_placeholder")}</p>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -137,7 +140,7 @@ const getSingleMapPortraitConfig = (): ReportLayoutConfig => ({
 
 // Single map template - landscape orientation (A4)
 // A4 landscape: 297x210mm, with 10mm margins = usable area 277x190mm (from x:10 to x:287, y:10 to y:200)
-const getSingleMapLandscapeConfig = (): ReportLayoutConfig => ({
+const getSingleMapLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
   page: {
     size: "A4",
     orientation: "landscape",
@@ -159,7 +162,7 @@ const getSingleMapLandscapeConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 10, width: 277, height: 15, z_index: 2 },
       config: {
         type: "text",
-        setup: { text: '<h1 style="text-align: center">TITLE</h1>' },
+        setup: { text: `<h1 style="text-align: center">${t("title_placeholder")}</h1>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -184,7 +187,7 @@ const getSingleMapLandscapeConfig = (): ReportLayoutConfig => ({
       position: { x: 235, y: 28, width: 52, height: 40, z_index: 3 },
       config: {
         type: "text",
-        setup: { text: "<p>Description</p>" },
+        setup: { text: `<p>${t("description_placeholder")}</p>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -213,7 +216,7 @@ const getSingleMapLandscapeConfig = (): ReportLayoutConfig => ({
 
 // Poster template - portrait orientation (A3)
 // A3 portrait: 297x420mm, with 10mm margins = usable area 277x400mm (from x:10 to x:287, y:10 to y:410)
-const getPosterPortraitConfig = (): ReportLayoutConfig => ({
+const getPosterPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
   page: {
     size: "A3",
     orientation: "portrait",
@@ -235,7 +238,7 @@ const getPosterPortraitConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 10, width: 200, height: 20, z_index: 2 },
       config: {
         type: "text",
-        setup: { text: '<h1 style="text-align: left">Poster Title</h1>' },
+        setup: { text: `<h1 style="text-align: left">${t("poster_title_placeholder")}</h1>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -246,7 +249,7 @@ const getPosterPortraitConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 33, width: 200, height: 25, z_index: 3 },
       config: {
         type: "text",
-        setup: { text: "<p>Subtitle or description</p>" },
+        setup: { text: `<p>${t("subtitle_placeholder")}</p>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -300,7 +303,7 @@ const getPosterPortraitConfig = (): ReportLayoutConfig => ({
 
 // Poster template - landscape orientation (A3)
 // A3 landscape: 420x297mm, with 10mm margins = usable area 400x277mm (from x:10 to x:410, y:10 to y:287)
-const getPosterLandscapeConfig = (): ReportLayoutConfig => ({
+const getPosterLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
   page: {
     size: "A3",
     orientation: "landscape",
@@ -322,7 +325,7 @@ const getPosterLandscapeConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 10, width: 90, height: 20, z_index: 2 },
       config: {
         type: "text",
-        setup: { text: '<h1 style="text-align: left">Poster Title</h1>' },
+        setup: { text: `<h1 style="text-align: left">${t("poster_title_placeholder")}</h1>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -333,7 +336,7 @@ const getPosterLandscapeConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 33, width: 90, height: 90, z_index: 3 },
       config: {
         type: "text",
-        setup: { text: "<p>Subtitle or description</p>" },
+        setup: { text: `<p>${t("subtitle_placeholder")}</p>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -354,7 +357,7 @@ const getPosterLandscapeConfig = (): ReportLayoutConfig => ({
       position: { x: 10, y: 193, width: 90, height: 84, z_index: 6 },
       config: {
         type: "text",
-        setup: { text: "<p>Graph description</p>" },
+        setup: { text: `<p>${t("graph_description_placeholder")}</p>` },
       },
       style: { padding: 0, opacity: 1 },
     },
@@ -435,7 +438,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
           name: `${t("single_map")} - ${t("portrait")}`,
           displayName: t("portrait"),
           description: t("portrait_layout"),
-          config: getSingleMapPortraitConfig(),
+          config: getSingleMapPortraitConfig(t),
         },
         {
           id: "single_map_landscape",
@@ -443,7 +446,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
           name: `${t("single_map")} - ${t("landscape")}`,
           displayName: t("landscape"),
           description: t("landscape_layout"),
-          config: getSingleMapLandscapeConfig(),
+          config: getSingleMapLandscapeConfig(t),
         },
       ],
     },
@@ -458,7 +461,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
           name: `${t("poster")} - ${t("portrait")}`,
           displayName: t("portrait"),
           description: t("portrait_layout"),
-          config: getPosterPortraitConfig(),
+          config: getPosterPortraitConfig(t),
         },
         {
           id: "poster_landscape",
@@ -466,7 +469,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
           name: `${t("poster")} - ${t("landscape")}`,
           displayName: t("landscape"),
           description: t("landscape_layout"),
-          config: getPosterLandscapeConfig(),
+          config: getPosterLandscapeConfig(t),
         },
       ],
     },

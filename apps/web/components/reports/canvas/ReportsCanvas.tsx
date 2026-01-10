@@ -660,7 +660,7 @@ const ReportElementRenderer: React.FC<ReportElementRendererProps> = ({
       cancel=".ProseMirror, .tiptap-toolbar, .MuiMenu-root, .MuiPopover-root"
       bounds="parent"
       style={{
-        zIndex: isSelected ? 100 : element.position.z_index,
+        zIndex: element.position.z_index,
         pointerEvents: isMapNavigating ? "none" : "auto",
       }}
       resizeHandleStyles={resizeHandleClasses}>
@@ -1132,8 +1132,9 @@ const ReportsCanvas: React.FC<ReportsCanvasProps> = ({
                 justifyContent: "center",
                 // Generous padding around paper for scroll space (like QGIS infinite canvas feel)
                 padding: "100px",
-                // Minimum size ensures scrollability when paper is larger than viewport
-                minWidth: "100%",
+                // Explicit size to ensure the paper + padding fits and can scroll in both directions
+                // This prevents the flexbox centering from cutting off the left side when zoomed
+                width: `max(100%, ${paperDimensions.widthPx * zoom + 200}px)`,
                 minHeight: "100%",
                 boxSizing: "border-box",
               }}>
