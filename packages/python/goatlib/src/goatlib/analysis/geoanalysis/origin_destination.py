@@ -4,6 +4,7 @@ from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.geoprocessing import OriginDestinationParams
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -80,8 +81,11 @@ class OriginDestinationTool(AnalysisTool):
         """)
 
         # Export lines
-        self.con.execute(
-            f"COPY od_lines_agg TO '{output_path_lines}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            "od_lines_agg",
+            output_path_lines,
+            geometry_column="geom",
         )
 
         # Create points
@@ -105,8 +109,11 @@ class OriginDestinationTool(AnalysisTool):
         """)
 
         # Export points
-        self.con.execute(
-            f"COPY od_points_agg TO '{output_path_points}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            "od_points_agg",
+            output_path_points,
+            geometry_column="geom",
         )
 
         return [

@@ -46,6 +46,11 @@ from typing import Any, Generic, Self, TypeVar
 import asyncpg
 import duckdb
 
+from goatlib.io.config import (
+    PARQUET_COMPRESSION,
+    PARQUET_ROW_GROUP_SIZE,
+    PARQUET_VERSION,
+)
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.db import ToolDatabaseService
 from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
@@ -328,6 +333,19 @@ class SimpleToolRunner:
                 OVERRIDE_DATA_PATH true
             )
         """)
+
+        # Configure DuckLake parquet options for optimal spatial performance:
+        # - ZSTD compression: better compression ratio than Snappy
+        # - V2 format: enables DELTA_BINARY_PACKED, BYTE_STREAM_SPLIT encodings
+        # - Row group size: balances predicate pushdown with parallelism
+        con.execute(
+            f"CALL lake.set_option('parquet_compression', '{PARQUET_COMPRESSION}')"
+        )
+        con.execute(f"CALL lake.set_option('parquet_version', '{PARQUET_VERSION}')")
+        con.execute(
+            f"CALL lake.set_option('parquet_row_group_size', '{PARQUET_ROW_GROUP_SIZE}')"
+        )
+
         return con
 
     def _is_retriable_ducklake_error(self: Self, error: Exception) -> bool:
@@ -1044,14 +1062,39 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                 # Ensure user schema exists
                 con.execute(f"CREATE SCHEMA IF NOT EXISTS lake.{user_schema}")
 
-                # Create table from parquet (use OR REPLACE for retry safety)
-                con.execute(f"""
-                    CREATE TABLE {table_name} AS
-                    SELECT * FROM read_parquet('{parquet_path}')
-                """)
-                logger.info(
-                    "Created DuckLake table: %s from %s", table_name, parquet_path
-                )
+                # Detect geometry column for Hilbert ordering
+                cols = con.execute(
+                    f"DESCRIBE SELECT * FROM read_parquet('{parquet_path}')"
+                ).fetchall()
+                geom_col = None
+                for col_name, col_type, *_ in cols:
+                    if "GEOMETRY" in col_type.upper():
+                        geom_col = col_name
+                        break
+
+                # Create table from parquet with Hilbert ordering for spatial locality
+                # This ensures spatially-close rows are stored together in row groups,
+                # enabling efficient bbox-based row group pruning during queries
+                if geom_col:
+                    con.execute(f"""
+                        CREATE TABLE {table_name} AS
+                        SELECT * FROM read_parquet('{parquet_path}')
+                        ORDER BY ST_Hilbert({geom_col})
+                    """)
+                    logger.info(
+                        "Created DuckLake table: %s from %s (Hilbert-sorted by %s)",
+                        table_name,
+                        parquet_path,
+                        geom_col,
+                    )
+                else:
+                    con.execute(f"""
+                        CREATE TABLE {table_name} AS
+                        SELECT * FROM read_parquet('{parquet_path}')
+                    """)
+                    logger.info(
+                        "Created DuckLake table: %s from %s", table_name, parquet_path
+                    )
 
                 # Get table info
                 table_info = self._get_table_info(con, table_name)

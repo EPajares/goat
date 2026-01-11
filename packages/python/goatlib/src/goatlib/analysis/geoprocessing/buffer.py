@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.geoprocessing import BufferParams, DistanceType
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 from goatlib.utils.helper import UNIT_TO_METERS
 
@@ -247,8 +248,11 @@ class BufferTool(AnalysisTool):
             )
             source = "final_buffers"
 
-        con.execute(
-            f"COPY {source} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            con,
+            source,
+            output_path,
+            geometry_column="geometry",
         )
 
         logger.info("GeoParquet written to %s", output_path)

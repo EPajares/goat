@@ -36,6 +36,7 @@ from goatlib.analysis.schemas.catchment_area import (
     PTMode,
 )
 from goatlib.config.settings import settings
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -1338,13 +1339,16 @@ class CatchmentAreaTool(AnalysisTool):
                 select_cols += ", "
 
             # Export with geometry converted to proper GEOMETRY type
-            con.execute(f"""
-                COPY (
-                    SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
-                    FROM gdf_table
-                )
-                TO '{path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-            """)
+            query = f"""
+                SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
+                FROM gdf_table
+            """
+            write_optimized_parquet(
+                con,
+                query,
+                path,
+                geometry_column="geometry",
+            )
             con.close()
         else:
             gdf.to_file(path, driver="GeoJSON")
@@ -1378,13 +1382,16 @@ class CatchmentAreaTool(AnalysisTool):
                 if select_cols:
                     select_cols += ", "
 
-                con.execute(f"""
-                    COPY (
-                        SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
-                        FROM '{temp_path}'
-                    )
-                    TO '{path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-                """)
+                query = f"""
+                    SELECT {select_cols}ST_GeomFromText(geometry) AS geometry
+                    FROM '{temp_path}'
+                """
+                write_optimized_parquet(
+                    con,
+                    query,
+                    path,
+                    geometry_column="geometry",
+                )
                 logger.info("Converted WKT geometry to GEOMETRY and saved to: %s", path)
             else:
                 # Geometry is already proper format, just copy

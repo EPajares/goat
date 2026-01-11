@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Self
 
 from goatlib.analysis.core.base import AnalysisTool
+from goatlib.io.parquet import write_optimized_parquet
 
 logger = logging.getLogger(__name__)
 
@@ -286,23 +287,30 @@ class HeatmapToolBase(AnalysisTool):
         output_path: str,
         h3_column: str = "h3_index",
     ) -> Path:
-        """Export results"""
+        """Export results with optimized Parquet V2 format and bbox for row group pruning."""
         output_path_obj = Path(output_path)
         output_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
         if output_path_obj.suffix.lower() != ".parquet":
             output_path_obj = output_path_obj.with_suffix(".parquet")
 
+        # Build query that generates H3 polygon geometry
+        # Use native GEOMETRY type (not WKB) for proper GeoParquet output
         query = f"""
-            COPY (
-                SELECT
-                    {h3_column}::BIGINT AS {h3_column},
-                    * EXCLUDE ({h3_column}),
-                    ST_AsWKB(ST_GeomFromText(h3_cell_to_boundary_wkt({h3_column}))) AS geometry
-                FROM {results_table}
-                ORDER BY {h3_column}
-            ) TO '{output_path_obj}' (FORMAT PARQUET, COMPRESSION ZSTD)
+            SELECT
+                {h3_column}::BIGINT AS {h3_column},
+                * EXCLUDE ({h3_column}),
+                ST_GeomFromText(h3_cell_to_boundary_wkt({h3_column})) AS geometry
+            FROM {results_table}
         """
-        self.con.execute(query)
+
+        # Use optimized parquet writer with V2 format, bbox, and Hilbert sort
+        write_optimized_parquet(
+            self.con,
+            query,
+            output_path_obj,
+            geometry_column="geometry",
+        )
+
         logger.info("Results written to: %s", output_path)
         return output_path_obj

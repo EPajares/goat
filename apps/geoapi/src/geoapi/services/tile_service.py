@@ -5,6 +5,7 @@ native ST_AsMVT function.
 """
 
 import logging
+import math
 from typing import Optional
 
 from goatlib.storage import build_filters
@@ -14,6 +15,48 @@ from geoapi.dependencies import LayerInfo
 from geoapi.ducklake_pool import ducklake_pool
 
 logger = logging.getLogger(__name__)
+
+# Web Mercator extent in meters (EPSG:3857)
+WEB_MERCATOR_EXTENT = 20037508.342789244
+
+
+def tile_to_bbox_4326(z: int, x: int, y: int) -> tuple[float, float, float, float]:
+    """Convert tile coordinates to EPSG:4326 (lon/lat) bounding box.
+
+    Args:
+        z: Zoom level
+        x: Tile X coordinate
+        y: Tile Y coordinate
+
+    Returns:
+        Tuple of (xmin, ymin, xmax, ymax) in EPSG:4326
+    """
+    n = 2**z
+    lon_min = x / n * 360.0 - 180.0
+    lon_max = (x + 1) / n * 360.0 - 180.0
+    lat_max = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
+    lat_min = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n))))
+    return (lon_min, lat_min, lon_max, lat_max)
+
+
+def tile_to_bbox_3857(z: int, x: int, y: int) -> tuple[float, float, float, float]:
+    """Convert tile coordinates to EPSG:3857 (Web Mercator) bounding box.
+
+    Args:
+        z: Zoom level
+        x: Tile X coordinate
+        y: Tile Y coordinate
+
+    Returns:
+        Tuple of (xmin, ymin, xmax, ymax) in EPSG:3857
+    """
+    n = 2**z
+    tile_size = 2 * WEB_MERCATOR_EXTENT / n
+    x_min = -WEB_MERCATOR_EXTENT + x * tile_size
+    x_max = -WEB_MERCATOR_EXTENT + (x + 1) * tile_size
+    y_max = WEB_MERCATOR_EXTENT - y * tile_size
+    y_min = WEB_MERCATOR_EXTENT - (y + 1) * tile_size
+    return (x_min, y_min, x_max, y_max)
 
 
 class TileService:
@@ -193,23 +236,33 @@ class TileService:
         if has_bbox_columns:
             # Fast path: use bbox columns for row group pruning
             # This is 10-100x faster because parquet can skip entire row groups
+            #
+            # Compute tile bounds in Python (pure math, no DB query needed!)
+            # Tile bounds are deterministic from z/x/y coordinates.
+            tile_xmin, tile_ymin, tile_xmax, tile_ymax = tile_to_bbox_4326(z, x, y)
+            tile_xmin_3857, tile_ymin_3857, tile_xmax_3857, tile_ymax_3857 = (
+                tile_to_bbox_3857(z, x, y)
+            )
+
             # Prefer scalar columns (legacy) over struct bbox (GeoParquet 1.1)
             if has_scalar_bbox:
-                bbox_filter = """"$minx" <= ST_XMax(bounds.bbox4326)
-                      AND "$maxx" >= ST_XMin(bounds.bbox4326)
-                      AND "$miny" <= ST_YMax(bounds.bbox4326)
-                      AND "$maxy" >= ST_YMin(bounds.bbox4326)"""
+                bbox_filter = f""""$minx" <= {tile_xmax}
+                      AND "$maxx" >= {tile_xmin}
+                      AND "$miny" <= {tile_ymax}
+                      AND "$maxy" >= {tile_ymin}"""
             else:
-                bbox_filter = """bbox.xmin <= ST_XMax(bounds.bbox4326)
-                      AND bbox.xmax >= ST_XMin(bounds.bbox4326)
-                      AND bbox.ymin <= ST_YMax(bounds.bbox4326)
-                      AND bbox.ymax >= ST_YMin(bounds.bbox4326)"""
+                bbox_filter = f"""bbox.xmin <= {tile_xmax}
+                      AND bbox.xmax >= {tile_xmin}
+                      AND bbox.ymin <= {tile_ymax}
+                      AND bbox.ymax >= {tile_ymin}"""
 
+            # Use pre-computed literal bounds everywhere - no ST_TileEnvelope in main query
+            # This eliminates redundant geometry computations
             query = f"""
                 WITH bounds AS (
                     SELECT
-                        ST_TileEnvelope({z}, {x}, {y}) AS bbox3857,
-                        ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
+                        ST_MakeEnvelope({tile_xmin_3857}, {tile_ymin_3857}, {tile_xmax_3857}, {tile_ymax_3857}) AS bbox3857,
+                        ST_MakeEnvelope({tile_xmin}, {tile_ymin}, {tile_xmax}, {tile_ymax}) AS bbox4326
                 ),
                 candidates AS (
                     SELECT {select_clause}{row_num_clause}

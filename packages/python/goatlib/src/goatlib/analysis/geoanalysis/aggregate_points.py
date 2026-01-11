@@ -13,6 +13,7 @@ from goatlib.analysis.schemas.aggregate import (
     AggregatePointsParams,
     AggregationAreaType,
 )
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -110,8 +111,11 @@ class AggregatePointsTool(AnalysisTool):
             self._aggregate_to_h3(params, source_view, source_geom)
 
         # Export results
-        self.con.execute(
-            f"COPY aggregation_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            "aggregation_result",
+            output_path,
+            geometry_column="geometry",
         )
 
         logger.info("Aggregation completed. Output: %s", output_path)
@@ -167,7 +171,11 @@ class AggregatePointsTool(AnalysisTool):
         if stats_operation.value == "count":
             result_col = "count"
         else:
-            result_col = f"{stats_operation.value}_{stats_field}" if stats_field else stats_operation.value
+            result_col = (
+                f"{stats_operation.value}_{stats_field}"
+                if stats_field
+                else stats_operation.value
+            )
 
         # Get all columns from area layer except geometry and bbox
         area_columns = self.con.execute(f"""
@@ -300,7 +308,11 @@ class AggregatePointsTool(AnalysisTool):
         if stats_operation.value == "count":
             result_col = "count"
         else:
-            result_col = f"{stats_operation.value}_{stats_field}" if stats_field else stats_operation.value
+            result_col = (
+                f"{stats_operation.value}_{stats_field}"
+                if stats_field
+                else stats_operation.value
+            )
 
         if params.group_by_field:
             # Build group by columns expression

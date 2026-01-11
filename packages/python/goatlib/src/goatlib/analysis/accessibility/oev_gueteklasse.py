@@ -15,11 +15,12 @@ from typing import Any, Self
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.oev_gueteklasse import (
+    STATION_CONFIG_DEFAULT,
     OevGueteklasseParams,
     OevGueteklasseStationConfig,
     PTTimeWindow,
-    STATION_CONFIG_DEFAULT,
 )
+from goatlib.io.parquet import write_optimized_parquet
 
 logger = logging.getLogger(__name__)
 
@@ -673,40 +674,47 @@ class OevGueteklasseTool(AnalysisTool):
     ) -> dict[str, Any]:
         """Export results and return statistics."""
         # Export quality classes - explode multipolygons into individual polygons
-        self.con.execute(f"""
-            COPY (
+        output_query = """
+            SELECT
+                pt_class,
+                pt_class_label,
+                geom
+            FROM (
                 SELECT
                     pt_class,
                     pt_class_label,
-                    geom
-                FROM (
-                    SELECT
-                        pt_class,
-                        pt_class_label,
-                        UNNEST(ST_Dump(geom)).geom AS geom
-                    FROM oev_gueteklassen_final
-                )
-                WHERE ST_Area(geom) > 0.0000001  -- Filter degenerate polygons
-                ORDER BY pt_class
-            ) TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-        """)
+                    UNNEST(ST_Dump(geom)).geom AS geom
+                FROM oev_gueteklassen_final
+            )
+            WHERE ST_Area(geom) > 0.0000001
+        """
+        write_optimized_parquet(
+            self.con,
+            output_query,
+            output_path,
+            geometry_column="geom",
+        )
 
         # Export stations if path provided
         if stations_output_path:
-            self.con.execute(f"""
-                COPY (
-                    SELECT
-                        stop_id,
-                        stop_name,
-                        transport_group,
-                        CAST(total_trips AS INTEGER) AS total_trips,
-                        ROUND(frequency_minutes, 2) AS frequency_minutes,
-                        station_category,
-                        geom
-                    FROM station_categories
-                    ORDER BY station_category, stop_name
-                ) TO '{stations_output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
-            """)
+            stations_query = """
+                SELECT
+                    stop_id,
+                    stop_name,
+                    transport_group,
+                    CAST(total_trips AS INTEGER) AS total_trips,
+                    ROUND(frequency_minutes, 2) AS frequency_minutes,
+                    station_category,
+                    geom
+                FROM station_categories
+                ORDER BY station_category, stop_name
+            """
+            write_optimized_parquet(
+                self.con,
+                stations_query,
+                stations_output_path,
+                geometry_column="geom",
+            )
 
         # Collect statistics
         total_stations = self.con.execute(

@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.data_management import MergeParams
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -264,8 +265,11 @@ class MergeTool(AnalysisTool):
         logger.info(f"Merged table has {merged_count} rows")
 
         # --- Step 5: Export to output
-        con.execute(
-            f"COPY merged TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            con,
+            "merged",
+            output_path,
+            geometry_column="geometry",
         )
 
         # Determine output geometry type

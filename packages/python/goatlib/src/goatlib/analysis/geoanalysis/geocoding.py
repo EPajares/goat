@@ -19,6 +19,7 @@ from goatlib.analysis.schemas.geocoding import (
     GeocodingParams,
     GeocodingResult,
 )
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -326,8 +327,11 @@ class GeocodingTool(AnalysisTool):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write to parquet
-        self.con.execute(
-            f"COPY (SELECT {columns_str} FROM output_data) TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            f"SELECT {columns_str} FROM output_data",
+            output_path,
+            geometry_column="geometry",
         )
 
         return path

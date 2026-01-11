@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.db.models.folder import Folder
 from core.schemas.error import FolderNotFoundError
 from core.schemas.folder import FolderCreate, FolderUpdate
-from core.storage.ducklake import ducklake_manager
 
 from .base import CRUDBase
 
@@ -28,19 +27,6 @@ class CRUDFolder(CRUDBase[Folder, FolderCreate, FolderUpdate]):
         # Check if folder exists
         if len(db_obj) == 0:
             raise FolderNotFoundError("Folder not found")
-
-        # Get all layers with the folder_id
-        layers = db_obj[0].layers
-
-        # Delete DuckLake tables for all layers BEFORE removing folder
-        # (folder removal will cascade delete layer records)
-        for layer in layers:
-            try:
-                ducklake_manager.delete_layer_table(
-                    user_id=layer.user_id, layer_id=layer.id
-                )
-            except Exception:
-                pass  # Table may not exist, continue
 
         # Remove folder (cascades to layer records)
         await self.remove(async_session, id=db_obj[0].id)
