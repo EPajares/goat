@@ -373,6 +373,17 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         toolbox_hidden=True,
     ),
     ToolDefinition(
+        name="layer_delete_multi",
+        display_name="Layer Delete Multi",
+        description="Delete multiple layers from DuckLake storage (bulk operation)",
+        module_path="goatlib.tools.layer_delete_multi",
+        params_class_name="LayerDeleteMultiParams",
+        windmill_path="f/goat/layer_delete_multi",
+        category="data",
+        keywords=("delete", "remove", "layer", "data", "bulk"),
+        toolbox_hidden=True,
+    ),
+    ToolDefinition(
         name="layer_export",
         display_name="Layer Export",
         description="Export a layer to file formats (GPKG, GeoJSON, CSV, etc.)",
