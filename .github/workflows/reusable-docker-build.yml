@@ -73,18 +73,11 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        platform: [linux/amd64, linux/arm64]
-        include:
-          - platform: linux/amd64
-            runner: ubuntu-latest
-          - platform: linux/arm64
-            runner: ubuntu-latest
-        exclude:
-          - platform: ${{ inputs.platforms != 'linux/amd64,linux/arm64' && 'linux/arm64' || 'skip' }}
+        platform: [linux/amd64]
     steps:
       - name: 📥 Prepare safe identifiers
         run: |
