@@ -10,19 +10,26 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.geoprocessing.buffer import BufferTool
 from goatlib.analysis.schemas.geoprocessing import BufferParams, DistanceType
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
+    ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    LayerInputMixin,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+    get_default_layer_name,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +52,7 @@ class BufferToolParams(
                 icon="settings",
                 depends_on={"input_layer_id": {"$ne": None}},
             ),
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -61,13 +69,28 @@ class BufferToolParams(
     input_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None  # type: ignore[assignment]
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("buffer", "en"),
+        description="Name for the buffer result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("buffer", "en"),
+                "default_de": get_default_layer_name("buffer", "de"),
+            },
+        ),
+    )
+
 
 class BufferToolRunner(BaseToolRunner[BufferToolParams]):
     """Buffer tool runner for Windmill."""
 
     tool_class = BufferTool
     output_geometry_type = "polygon"
-    default_output_name = "Buffer"
+    default_output_name = get_default_layer_name("buffer", "en")
 
     def get_layer_properties(
         self: Self,

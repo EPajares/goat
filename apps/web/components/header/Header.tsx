@@ -26,6 +26,7 @@ import EditableTypography from "@/components/common/EditableTypography";
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
 import MoreMenu from "@/components/common/PopperMenu";
 import SlidingToggle from "@/components/common/SlidingToggle";
+import WhatsNewPopper from "@/components/header/WhatsNewPopper";
 import JobsPopper from "@/components/jobs/JobsPopper";
 import ContentDeleteModal from "@/components/modals/ContentDelete";
 import Metadata from "@/components/modals/Metadata";
@@ -342,6 +343,7 @@ export default function Header(props: HeaderProps) {
                   </>
                 )}
 
+                {!props.mapHeader && <WhatsNewPopper />}
                 <Tooltip title={t("common:open_documentation")}>
                   <IconButton
                     size="small"

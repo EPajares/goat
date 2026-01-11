@@ -23,7 +23,11 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 from goatlib.tools.style import get_trip_count_style
 
 logger = logging.getLogger(__name__)
@@ -34,6 +38,14 @@ GTFS_DATA_PATH = os.environ.get("GTFS_DATA_PATH", "/app/data/gtfs")
 # Section definitions for this tool
 SECTION_CALCULATION_TIME = UISection(id="calculation_time", order=1, icon="clock")
 SECTION_CONFIGURATION = UISection(id="configuration", order=2, icon="settings")
+SECTION_RESULT_TRIP = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label="Result Layer",
+    label_de="Ergebnisebene",
+    depends_on={"reference_area_layer_id": {"$ne": None}},
+)
 
 
 class TripCountToolParams(ScenarioSelectorMixin, ToolInputBase):
@@ -47,6 +59,7 @@ class TripCountToolParams(ScenarioSelectorMixin, ToolInputBase):
         "json_schema_extra": ui_sections(
             SECTION_CALCULATION_TIME,
             SECTION_CONFIGURATION,
+            SECTION_RESULT_TRIP,
             UISection(
                 id="scenario",
                 order=8,
@@ -124,13 +137,28 @@ class TripCountToolParams(ScenarioSelectorMixin, ToolInputBase):
         json_schema_extra=ui_field(section="configuration", hidden=True),
     )
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("trip_count", "en"),
+        description="Name for the trip count result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("trip_count", "en"),
+                "default_de": get_default_layer_name("trip_count", "de"),
+            },
+        ),
+    )
+
 
 class TripCountToolRunner(BaseToolRunner[TripCountToolParams]):
     """Trip Count Station tool runner for Windmill."""
 
     tool_class = TripCountStationTool
     output_geometry_type = "point"
-    default_output_name = "Trip_Count"
+    default_output_name = get_default_layer_name("trip_count", "en")
 
     def get_layer_properties(
         self: Self,

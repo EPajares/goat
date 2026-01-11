@@ -89,6 +89,9 @@
     },
     "dissolve_settings": {
       "label": "Auflösungseinstellungen"
+    },
+    "result": {
+      "label": "Ergebnisse"
     }
   },
   "fields": {
@@ -563,6 +566,26 @@
     "dissolve_fields": {
       "label": "Gruppierungsfelder",
       "description": "Felder zur Gruppierung von Objekten beim Auflösen"
+    },
+    "result_layer_name": {
+      "label": "Name der Ergebnislayer",
+      "description": "Benutzerdefinierter Name für die Ergebnis-Layer"
+    },
+    "starting_points_layer_name": {
+      "label": "Name des Startpunkte-Layer",
+      "description": "Benutzerdefinierter Name für die Startpunkte-Layer"
+    },
+    "lines_layer_name": {
+      "label": "Name des Linien-Layer",
+      "description": "Benutzerdefinierter Name für die Linien-Layer"
+    },
+    "points_layer_name": {
+      "label": "Name der Punkte-Layer",
+      "description": "Benutzerdefinierter Name für die Punkte-Layer"
+    },
+    "stations_layer_name": {
+      "label": "Name des Stationen-Layer",
+      "description": "Benutzerdefinierter Name für die Stationen-Layer"
     }
   },
   "enums": {
@@ -799,5 +822,28 @@
     "cable_car": "Seilbahn",
     "gondola": "Gondel",
     "funicular": "Standseilbahn"
+  },
+  "default_layer_names": {
+    "buffer": "Puffer",
+    "clip": "Ausschneiden",
+    "centroid": "Mittelpunkt",
+    "difference": "Radieren",
+    "dissolve": "Zusammenführen",
+    "intersection": "Überschneiden",
+    "union": "Vereinigen",
+    "aggregate_points": "Punkte aggregieren",
+    "aggregate_polygon": "Polygone aggregieren",
+    "aggregate_polygons": "Polygone aggregieren",
+    "catchment_area": "Einzugsgebiet",
+    "catchment_area_starting_points": "Startpunkte",
+    "heatmap_gravity": "Heatmap Gravity",
+    "heatmap_connectivity": "Heatmap Connectivity",
+    "heatmap_closest_average": "Heatmap Closest Average",
+    "oev_gueteklassen": "ÖV-Güteklassen",
+    "oev_gueteklassen_stations": "ÖV Stationen",
+    "trip_count": "Anzahl Abfahrten Haltepunkte",
+    "origin_destination_lines": "QZ Linien",
+    "origin_destination_points": "QZ Punkte",
+    "join": "Objekte verbinden"
   }
 }

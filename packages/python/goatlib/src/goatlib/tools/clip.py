@@ -7,19 +7,22 @@ import logging
 from pathlib import Path
 from typing import Self
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.geoprocessing.clip import ClipTool
 from goatlib.analysis.schemas.geoprocessing import ClipParams
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
+    ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
 from goatlib.tools.schemas import (
+    get_default_layer_name,
     ScenarioSelectorMixin,
     ToolInputBase,
     TwoLayerInputMixin,
@@ -41,6 +44,7 @@ class ClipToolParams(
         json_schema_extra=ui_sections(
             SECTION_INPUT,
             UISection(id="overlay", order=2, icon="layers"),
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -57,13 +61,28 @@ class ClipToolParams(
     overlay_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("clip", "en"),
+        description="Name for the clip result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("clip", "en"),
+                "default_de": get_default_layer_name("clip", "de"),
+            },
+        ),
+    )
+
 
 class ClipToolRunner(BaseToolRunner[ClipToolParams]):
     """Clip tool runner for Windmill."""
 
     tool_class = ClipTool
     output_geometry_type = None  # Preserves input geometry type
-    default_output_name = "Clip"
+    default_output_name = get_default_layer_name("clip", "en")
 
     def process(
         self: Self, params: ClipToolParams, temp_dir: Path

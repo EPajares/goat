@@ -17,13 +17,19 @@ from goatlib.analysis.schemas.geoprocessing import DissolveParams
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
     ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    LayerInputMixin,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +60,7 @@ class DissolveToolParams(
                 collapsed=True,
                 depends_on={"input_layer_id": {"$ne": None}},
             ),
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -98,13 +105,28 @@ class DissolveToolParams(
         ),
     )
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("dissolve", "en"),
+        description="Name for the dissolve result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("dissolve", "en"),
+                "default_de": get_default_layer_name("dissolve", "de"),
+            },
+        ),
+    )
+
 
 class DissolveToolRunner(BaseToolRunner[DissolveToolParams]):
     """Dissolve tool runner for Windmill."""
 
     tool_class = DissolveTool
     output_geometry_type = None  # Dynamic based on input geometry
-    default_output_name = "Dissolved"
+    default_output_name = get_default_layer_name("dissolve", "en")
 
     def get_layer_properties(
         self: Self,

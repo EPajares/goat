@@ -29,9 +29,23 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 
 logger = logging.getLogger(__name__)
+
+# Result section for join tool (depends on target_layer_id)
+SECTION_RESULT_JOIN = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label="Result Layer",
+    label_de="Ergebnisebene",
+    depends_on={"target_layer_id": {"$ne": None}},
+)
 
 SPATIAL_RELATIONSHIP_LABELS: dict[str, str] = {
     "intersects": "enums.spatial_relationship_type.intersects",
@@ -82,9 +96,10 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                 icon="settings",
                 collapsible=True,
             ),
+            SECTION_RESULT_JOIN,
             UISection(
                 id="scenario",
-                order=7,
+                order=8,
                 icon="scenario",
                 collapsible=True,
                 collapsed=True,
@@ -293,13 +308,28 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
 
         return self
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("join", "en"),
+        description="Name for the join result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("join", "en"),
+                "default_de": get_default_layer_name("join", "de"),
+            },
+        ),
+    )
+
 
 class JoinToolRunner(BaseToolRunner[JoinToolParams]):
     """Join tool runner for Windmill."""
 
     tool_class = JoinTool
     output_geometry_type = None  # Same as target layer
-    default_output_name = "Join"
+    default_output_name = get_default_layer_name("join", "en")
 
     def process(
         self: Self, params: JoinToolParams, temp_dir: Path

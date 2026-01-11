@@ -15,7 +15,7 @@ class DateTimeBase(SQLModel):
         default_factory=lambda: datetime.now(timezone.utc),
         sa_type=DateTime(timezone=True),
         sa_column_kwargs={
-            "onupdate": datetime.now(timezone.utc),
+            "onupdate": lambda: datetime.now(timezone.utc),
         },
         nullable=False,
     )
