@@ -24,49 +24,49 @@ type BlogPost = {
 
 const blogPostsEnglish: BlogPost[] = [
   {
+    title: 'GOAT 2.2.0 "Cashmere" is here',
+    date: "December 16, 2025",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/693fb15bef07eb7497624d4d_GOAT_new-version_cover-p-1600.webp",
+    url: "https://www.plan4better.de/en/post/goat-2-2-0-cashmere-is-here",
+  },
+  {
+    title: 'GOAT 2.1.0 "Ibex" is here',
+    date: "October 21, 2025",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/68ef733d034dbecbd08cc8f3_dashboard-builder-p-1600.webp",
+    url: "https://www.plan4better.de/en/post/goat-2-1-0-ibex-is-here",
+  },
+  {
     title: "GOAT v2 is here!",
     date: "September 19, 2024",
     thumbnail:
       "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/66eaa2b28eb3db409d799756_Blogpost_17.09.2024.%20GOAT%20v2%20announcement.png",
     url: "https://www.plan4better.de/en/post/goat-v2-is-here",
   },
-  {
-    title: "The 15-minute city: an analysis from the perspective of different user groups",
-    date: "November 29, 2023",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/65e5b62b9df36f2de663d2c6_banner%20(2)-p-2000.webp",
-    url: "https://www.plan4better.de/en/post/the-15-minute-city-an-analysis-from-the-perspective-of-different-user-groups",
-  },
-  {
-    title: "Mobility concepts for parking space reduction: Innovative approaches and tools",
-    date: "August 22, 2023",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/65e5b1ea6eb4e8f5c1ae5624_banner-p-1080.webp",
-    url: "https://www.plan4better.de/en/post/mobility-concepts-for-parking-space-reduction-innovative-approaches-and-tools",
-  },
 ];
 
 const blogPostsGerman: BlogPost[] = [
+  {
+    title: 'GOAT 2.2.0 „Cashmere" ist da',
+    date: "16. Dezember 2025",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/693fb15bef07eb7497624d4d_GOAT_new-version_cover-p-1600.webp",
+    url: "https://www.plan4better.de/de/post/goat-2-2-0-cashmere-ist-da",
+  },
+  {
+    title: 'GOAT 2.1.0 "Ibex" ist da',
+    date: "21. Oktober 2025",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/68ef733d034dbecbd08cc8f3_dashboard-builder-p-1600.webp",
+    url: "https://www.plan4better.de/de/post/goat-2-1-0-ibex-is-here",
+  },
   {
     title: "GOAT v2 ist da!",
     date: "19. September 2024",
     thumbnail:
       "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/66eaa2b28eb3db409d799756_Blogpost_17.09.2024.%20GOAT%20v2%20announcement.png",
     url: "https://www.plan4better.de/de/post/goat-v2-is-here",
-  },
-  {
-    title: "Die 15-Minuten-Stadt: Eine Analyse aus Sicht der verschiedenen Nutzergruppen",
-    date: "29. November 2023",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/65e5b62b9df36f2de663d2c6_banner%20(2)-p-2000.webp",
-    url: "https://www.plan4better.de/de/post/the-15-minute-city-an-analysis-from-the-perspective-of-different-user-groups",
-  },
-  {
-    title: "GOAT als akteursübergreifende Planungsplattform in der MRN",
-    date: "22. August 2023",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/65e5b1ea6eb4e8f5c1ae5624_banner-p-1080.webp",
-    url: "https://www.plan4better.de/de/post/mobility-concepts-for-parking-space-reduction-innovative-approaches-and-tools",
   },
 ];
 

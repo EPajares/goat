@@ -187,6 +187,3 @@ class ProjectPublic(DateTimeBase, table=True, extend_existing=True):
     )
 
     project: Project = Relationship(back_populates="project_public")
-
-    # Constraints
-    UniqueConstraint("folder_id", "name")

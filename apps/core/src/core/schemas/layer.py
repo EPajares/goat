@@ -353,7 +353,7 @@ class IFeatureLayerToolCreate(BaseModel):
     attribute_mapping: Dict[str, Any] = Field(
         ..., description="Attribute mapping of the layer"
     )
-    tool_type: ToolType = Field(..., description="Tool type")
+    tool_type: str = Field(..., description="Tool type")
     job_id: UUID = Field(..., description="Job ID")
 
 
@@ -397,7 +397,7 @@ class IFeatureStandardUpdate(FeatureUpdateBase):
 class FeatureToolAttributesBase(BaseModel):
     """Base model for additional attributes feature layer tool."""
 
-    tool_type: ToolType | None = Field(None, description="Tool type")
+    tool_type: str | None = Field(None, description="Tool type")
 
 
 feature_layer_tool_attributes_example = {
