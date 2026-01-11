@@ -38,6 +38,10 @@ from goatlib.tools.geocoding import GeocodingToolParams, GeocodingToolRunner
 from goatlib.tools.intersection import IntersectionToolParams, IntersectionToolRunner
 from goatlib.tools.join import JoinToolParams, JoinToolRunner
 from goatlib.tools.layer_delete import LayerDeleteParams, LayerDeleteRunner
+from goatlib.tools.layer_delete_multi import (
+    LayerDeleteMultiParams,
+    LayerDeleteMultiRunner,
+)
 from goatlib.tools.layer_export import LayerExportParams, LayerExportRunner
 from goatlib.tools.layer_import import LayerImportParams, LayerImportRunner
 from goatlib.tools.origin_destination import (
@@ -86,6 +90,8 @@ __all__ = [
     "LayerImportRunner",
     "LayerDeleteParams",
     "LayerDeleteRunner",
+    "LayerDeleteMultiParams",
+    "LayerDeleteMultiRunner",
     "LayerExportParams",
     "LayerExportRunner",
     "PrintReportParams",

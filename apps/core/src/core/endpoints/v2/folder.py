@@ -2,7 +2,6 @@ from typing import List
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Body,
     Depends,
     HTTPException,
@@ -17,7 +16,7 @@ from core.core.config import settings
 from core.crud.crud_folder import folder as crud_folder
 from core.db.models.folder import Folder
 from core.db.session import AsyncSession
-from core.deps.auth import auth_z
+from core.deps.auth import auth, auth_z
 from core.endpoints.deps import ensure_home_folder, get_db, get_user_id
 from core.schemas.common import OrderEnum
 from core.schemas.folder import (
@@ -201,11 +200,14 @@ async def delete_folder(
         example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
     ),
     user_id: UUID4 = Depends(get_user_id),
-    background_tasks: BackgroundTasks,
+    access_token: str = Depends(auth),
 ) -> None:
     """Delete a folder and all its contents"""
 
     await crud_folder.delete(
-        async_session, background_tasks=background_tasks, id=folder_id, user_id=user_id
+        async_session,
+        id=folder_id,
+        user_id=user_id,
+        access_token=access_token,
     )
     return
