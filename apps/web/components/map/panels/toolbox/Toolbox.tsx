@@ -34,7 +34,7 @@ import Join from "@/components/map/panels/toolbox/tools/join/Join";
 import NearbyStations from "@/components/map/panels/toolbox/tools/nearby-stations/NearbyStations";
 import OevGueteklassen from "@/components/map/panels/toolbox/tools/oev-gueteklassen/OevGueteklassen";
 import OriginDestination from "@/components/map/panels/toolbox/tools/origin-destination/OriginDestination";
-import TripCount from "@/components/map/panels/toolbox/tools/trip-count/TripCount";
+import GenericTool from "@/components/map/panels/toolbox/generic/GenericTool";
 
 const Tabs = ({ tab, handleChange }) => {
   const { t } = useTranslation("common");
@@ -156,9 +156,9 @@ const Toolbox = () => {
       element: <OevGueteklassen onBack={handleOnBack} onClose={handleOnClose} />,
     },
     trip_count: {
-      name: t("trip_count"),
+      name: "trip_count",
       value: "trip_count",
-      element: <TripCount onBack={handleOnBack} onClose={handleOnClose} />,
+      element: <GenericTool processId="trip_count" onBack={handleOnBack} onClose={handleOnClose} />,
     },
     nearby_stations: {
       name: t("nearby_stations"),

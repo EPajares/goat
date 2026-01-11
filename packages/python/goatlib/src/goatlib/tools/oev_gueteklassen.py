@@ -62,6 +62,8 @@ class OevGueteklassenToolParams(ScenarioSelectorMixin, ToolInputBase):
                 id="scenario",
                 order=8,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
                 depends_on={"reference_area_layer_id": {"$ne": None}},
             ),
         )
@@ -148,7 +150,7 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
 
     tool_class = OevGueteklasseTool
     output_geometry_type = "polygon"
-    default_output_name = "OeV_Gueteklassen"
+    default_output_name = "ÖV-Güteklasse"
 
     # Store stations output path for secondary layer creation
     _stations_parquet: Path | None = None
@@ -238,7 +240,7 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
 
         # Stations layer
         stations_layer_id = str(uuid_module.uuid4())
-        stations_output_name = f"{output_name}_Stations"
+        stations_output_name = f"{output_name} Stationen"
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "

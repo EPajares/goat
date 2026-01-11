@@ -13,19 +13,21 @@ import logging
 from pathlib import Path
 from typing import Any, Self
 
-from goatlib.analysis.core.base import AnalysisTool
+from goatlib.analysis.accessibility.base import PTToolBase
+from goatlib.analysis.schemas.base import PTTimeWindow
 from goatlib.analysis.schemas.oev_gueteklasse import (
     STATION_CONFIG_DEFAULT,
     OevGueteklasseParams,
     OevGueteklasseStationConfig,
     PTTimeWindow,
+    STATION_CONFIG_DEFAULT,
 )
 from goatlib.io.parquet import write_optimized_parquet
 
 logger = logging.getLogger(__name__)
 
 
-class OevGueteklasseTool(AnalysisTool):
+class OevGueteklasseTool(PTToolBase):
     """Public Transport Quality Classes (ÖV-Güteklassen) Tool.
 
     This tool calculates public transport quality classes based on the
@@ -46,14 +48,7 @@ class OevGueteklasseTool(AnalysisTool):
         ... ))
     """
 
-    def __init__(self: Self) -> None:
-        super().__init__()
-        self._setup_h3_extension()
-
-    def _setup_h3_extension(self: Self) -> None:
-        """Install H3 extension for hexagonal grid support."""
-        self.con.execute("INSTALL h3 FROM community; LOAD h3;")
-        logger.debug("H3 extension loaded for OevGueteklasseTool.")
+    # Note: __init__ and H3 extension setup are inherited from PTToolBase
 
     def _run_implementation(
         self: Self,
@@ -115,78 +110,8 @@ class OevGueteklasseTool(AnalysisTool):
         logger.info("ÖV-Güteklassen analysis completed successfully.")
         return stats
 
-    def _import_gtfs_stops(self: Self, stops_path: str) -> None:
-        """Import GTFS stops parquet."""
-        self.con.execute(f"""
-            CREATE OR REPLACE VIEW gtfs_stops AS
-            SELECT
-                stop_id,
-                stop_name,
-                stop_lat,
-                stop_lon,
-                location_type,
-                parent_station,
-                h3_3,
-                ST_Point(stop_lon, stop_lat) AS geom
-            FROM read_parquet('{stops_path}')
-            WHERE location_type IS NULL OR location_type = '0' OR location_type = ''
-        """)
-
-    def _import_gtfs_stop_times(self: Self, stop_times_path: str) -> None:
-        """Import GTFS stop_times parquet."""
-        self.con.execute(f"""
-            CREATE OR REPLACE VIEW gtfs_stop_times AS
-            SELECT
-                stop_id,
-                route_type,
-                arrival_time,
-                is_weekday,
-                is_saturday,
-                is_sunday,
-                h3_3
-            FROM read_parquet('{stop_times_path}')
-        """)
-
-    def _get_stations_in_area(self: Self, ref_geom_col: str) -> None:
-        """Find all stops within the reference area.
-
-        Args:
-            ref_geom_col: Name of the geometry column in the reference area.
-        """
-        self.con.execute(f"""
-            CREATE OR REPLACE TABLE stations_in_area AS
-            SELECT DISTINCT
-                s.stop_id,
-                s.stop_name,
-                s.parent_station,
-                s.h3_3,
-                s.geom
-            FROM gtfs_stops s, reference_area r
-            WHERE ST_Intersects(s.geom, r.{ref_geom_col})
-        """)
-
-    def _count_pt_services(self: Self, time_window: PTTimeWindow) -> None:
-        """Count public transport services per station in the time window."""
-        weekday_col = time_window.weekday_column
-        from_time = time_window.from_time_str
-        to_time = time_window.to_time_str
-
-        self.con.execute(f"""
-            CREATE OR REPLACE TABLE station_trip_counts AS
-            SELECT
-                s.stop_id,
-                s.stop_name,
-                s.parent_station,
-                s.geom,
-                t.route_type,
-                COUNT(*) AS trip_count
-            FROM stations_in_area s
-            JOIN gtfs_stop_times t ON s.stop_id = t.stop_id AND s.h3_3 = t.h3_3
-            WHERE t.{weekday_col} = true
-              AND t.arrival_time >= '{from_time}'
-              AND t.arrival_time <= '{to_time}'
-            GROUP BY s.stop_id, s.stop_name, s.parent_station, s.geom, t.route_type
-        """)
+    # Note: _import_gtfs_stops, _import_gtfs_stop_times, _get_stations_in_area,
+    # and _count_pt_services are inherited from PTToolBase
 
     def _calculate_station_categories(
         self: Self,

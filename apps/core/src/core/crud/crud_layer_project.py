@@ -88,7 +88,14 @@ class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
         | ITableProjectRead
         | IRasterProjectRead
     ]:
-        """Get all layers from a project"""
+        """Get all layers from a project, sorted by layer_order.
+
+        Layers are returned in the order defined by the project's layer_order
+        array. Layers at the beginning of layer_order appear first (on top in UI).
+        """
+        # Get project to retrieve layer_order
+        project = await CRUDBase(Project).get(async_session, id=project_id)
+        layer_order = project.layer_order or []
 
         # Get all layers from project
         query = select(Layer, LayerProjectLink).where(
@@ -104,6 +111,17 @@ class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
                 query=query,
             ),
         )
+
+        # Sort layers by layer_order array (first in array = first in result = on top)
+        if layer_order:
+            order_map = {
+                layer_project_id: idx
+                for idx, layer_project_id in enumerate(layer_order)
+            }
+            layer_projects_to_schemas.sort(
+                key=lambda layer: order_map.get(layer.id, len(layer_order))
+            )
+
         return layer_projects_to_schemas
 
     async def get_by_ids(

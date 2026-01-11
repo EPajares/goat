@@ -50,6 +50,8 @@ class AggregatePointsToolParams(
                 id="scenario",
                 order=8,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
                 depends_on={"source_layer_id": {"$ne": None}},
             ),
         )
