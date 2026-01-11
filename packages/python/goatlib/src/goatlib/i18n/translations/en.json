@@ -734,6 +734,10 @@
       "title": "ÖV-Güteklassen",
       "description": "The Public Transport Quality Classes (German: ÖV-Güteklassen) show the attractiveness of public transport services for a selected area."
     },
+    "trip_count": {
+      "title": "Trip Count Platform",
+      "description": "Calculates the number of public transport departures per platform within a given time window, grouped by transport mode (bus, tram, metro, rail). Includes frequency calculation."
+    },
     "layer_import": {
       "title": "Import Layer",
       "description": "Import geospatial data from external sources"

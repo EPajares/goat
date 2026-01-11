@@ -85,22 +85,31 @@ class FeatureService:
         table = layer_info.full_table_name
         geom_col = geometry_column if has_geometry else None
 
-        # Build SELECT clause
+        # Build SELECT clause - always include rowid as fallback for id
+        # Check if 'id' column exists in the table
+        has_id_column = "id" in (column_names or [])
+
         if properties:
             # Ensure id is always included if it exists
-            props_set = set(properties) | {"id"}
+            props_set = set(properties)
+            if has_id_column:
+                props_set.add("id")
             select_cols = ", ".join(f'"{p}"' for p in props_set if p != geom_col)
+            # Add rowid as fallback if no id column
+            rowid_select = "" if has_id_column else ", rowid"
+            if has_geometry and geom_col:
+                select_clause = f'{select_cols}{rowid_select}, ST_AsGeoJSON("{geom_col}") AS geom_json'
+            else:
+                select_clause = f"{select_cols}{rowid_select}"
+        else:
+            # Add rowid to select all
+            rowid_select = "" if has_id_column else ", rowid"
             if has_geometry and geom_col:
                 select_clause = (
-                    f'{select_cols}, ST_AsGeoJSON("{geom_col}") AS geom_json'
+                    f'*{rowid_select}, ST_AsGeoJSON("{geom_col}") AS geom_json'
                 )
             else:
-                select_clause = select_cols
-        else:
-            if has_geometry and geom_col:
-                select_clause = f'*, ST_AsGeoJSON("{geom_col}") AS geom_json'
-            else:
-                select_clause = "*"
+                select_clause = f"*{rowid_select}" if not has_id_column else "*"
 
         # Build WHERE clause using shared query builder
         filters = build_filters(
@@ -162,12 +171,12 @@ class FeatureService:
                     # Remove raw geometry column if present
                     row_dict.pop(geom_col, None)
 
-                # Get ID - use actual id column if present, otherwise use row index + offset
+                # Get ID - use actual id column if present, otherwise use rowid
                 feature_id = row_dict.pop("id", None)
-                # Use actual id if available, otherwise use row index as fallback
-                effective_id = (
-                    feature_id if feature_id is not None else (offset + idx + 1)
-                )
+                if feature_id is None:
+                    # Use DuckLake's stable rowid as fallback
+                    feature_id = row_dict.pop("rowid", None)
+                effective_id = feature_id
 
                 # Sanitize string values to ensure valid UTF-8
                 sanitized_props = sanitize_properties(row_dict)

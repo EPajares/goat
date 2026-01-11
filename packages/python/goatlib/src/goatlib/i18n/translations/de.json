@@ -730,6 +730,10 @@
       "title": "ÖV-Güteklassen",
       "description": "ÖV-Güteklassen zeigen die Attraktivität des öffentlichen Verkehrs in einem bestimmten Gebiet an."
     },
+    "trip_count": {
+      "title": "Anzahl Abfahrten Haltepunkt",
+      "description": "Berechnet die Anzahl der ÖV-Abfahrten pro Haltepunkt in einem definierten Zeitfenster, gruppiert nach Verkehrsmittel (Bus, Straßenbahn, U-Bahn, Bahn). Enthält Taktberechnung."
+    },
     "layer_import": {
       "title": "Layer importieren",
       "description": "Geodaten aus externen Quellen importieren"
