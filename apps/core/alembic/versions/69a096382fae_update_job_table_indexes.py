@@ -8,7 +8,7 @@ Create Date: 2026-01-11 15:20:40.394054
 from alembic import op
 import sqlalchemy as sa
 import geoalchemy2
-import sqlmodel  
+import sqlmodel
 
 from sqlalchemy.dialects import postgresql
 
