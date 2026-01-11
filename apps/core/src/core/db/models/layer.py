@@ -453,7 +453,7 @@ class Layer(LayerBase, GeospatialAttributes, DateTimeBase, table=True):
         sa_column=Column(Text, nullable=True),
         description="Data type to store the source of the layer",
     )
-    tool_type: ToolType | None = Field(
+    tool_type: str | None = Field(
         default=None,
         sa_column=Column(Text, nullable=True),
         description="If it is an tool layer, the tool type",
@@ -527,9 +527,6 @@ class Layer(LayerBase, GeospatialAttributes, DateTimeBase, table=True):
     @computed_field
     def layer_id(self) -> UUID | None:
         return self.id
-
-    # Constraints
-    UniqueConstraint("folder_id", "name")
 
 
 Layer.model_rebuild()

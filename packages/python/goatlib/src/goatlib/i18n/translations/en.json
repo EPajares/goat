@@ -89,6 +89,9 @@
     },
     "join_options": {
       "label": "Join Options"
+    },
+    "result": {
+      "label": "Results"
     }
   },
   "fields": {
@@ -567,6 +570,26 @@
     "field_statistics": {
       "label": "Statistics",
       "description": "Statistics to calculate for matching records"
+    },
+    "result_layer_name": {
+      "label": "Result Layer Name",
+      "description": "Custom name for the result layer"
+    },
+    "starting_points_layer_name": {
+      "label": "Starting Points Layer Name",
+      "description": "Custom name for the starting points layer"
+    },
+    "lines_layer_name": {
+      "label": "Lines Layer Name",
+      "description": "Custom name for the lines layer"
+    },
+    "points_layer_name": {
+      "label": "Points Layer Name",
+      "description": "Custom name for the points layer"
+    },
+    "stations_layer_name": {
+      "label": "Stations Layer Name",
+      "description": "Custom name for the stations layer"
     }
   },
   "enums": {
@@ -803,5 +826,28 @@
     "cable_car": "Cable Car",
     "gondola": "Gondola",
     "funicular": "Funicular"
+  },
+  "default_layer_names": {
+    "buffer": "Buffer",
+    "clip": "Clip",
+    "centroid": "Centroid",
+    "difference": "Difference",
+    "dissolve": "Dissolve",
+    "intersection": "Intersection",
+    "union": "Union",
+    "aggregate_points": "Aggregate Points",
+    "aggregate_polygon": "Aggregate Polygons",
+    "aggregate_polygons": "Aggregate Polygons",
+    "catchment_area": "Catchment Area",
+    "catchment_area_starting_points": "Starting Points",
+    "heatmap_gravity": "Heatmap Gravity",
+    "heatmap_connectivity": "Heatmap Connectivity",
+    "heatmap_closest_average": "Heatmap Closest Average",
+    "oev_gueteklassen": "ÖV-Güteklassen",
+    "oev_gueteklassen_stations": "PT Stations",
+    "trip_count": "Trip Count Platform",
+    "origin_destination_lines": "OD Lines",
+    "origin_destination_points": "OD Points",
+    "join": "Join Features"
   }
 }

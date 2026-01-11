@@ -9,6 +9,22 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from goatlib.analysis.schemas.ui import ui_field
+from goatlib.i18n import get_translator
+
+
+def get_default_layer_name(layer_key: str, lang: str = "en") -> str:
+    """Get default layer name for a tool from i18n translations.
+
+    Args:
+        layer_key: Key from default_layer_names in translation files
+        lang: Language code ("en" or "de")
+
+    Returns:
+        Default layer name in the specified language, or the key if not found
+    """
+    translator = get_translator(lang)
+    name = translator.get_default_layer_name(layer_key)
+    return name if name else layer_key
 
 
 class ToolInputBase(BaseModel):
@@ -44,10 +60,21 @@ class ToolInputBase(BaseModel):
         description="Scenario UUID. If provided, scenario features are merged with layer data for all input layers.",
         json_schema_extra=ui_field(section="output", field_order=96, hidden=True),
     )
+    result_layer_name: str | None = Field(
+        None,
+        description="Custom name for result layer. Uses tool default if not specified.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget="layer-name-input",
+        ),
+    )
+    # Keep output_name as alias for backward compatibility
     output_name: str | None = Field(
         None,
-        description="Custom name for output layer (optional)",
-        json_schema_extra=ui_field(section="output", field_order=1),
+        description="Deprecated: Use result_layer_name instead",
+        json_schema_extra=ui_field(section="output", field_order=1, hidden=True),
     )
 
 

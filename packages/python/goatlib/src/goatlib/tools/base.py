@@ -546,6 +546,39 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
     # Subclasses should set these
     output_geometry_type: str | None = None
     default_output_name: str = "Tool Output"
+    tool_type: str | None = None  # e.g., "catchment_area", "buffer", "join"
+
+    def get_tool_type(self: Self) -> str | None:
+        """Return the tool type for this runner.
+
+        Returns the tool_type class attribute, or derives it from default_output_name
+        by converting to lowercase snake_case.
+
+        Returns:
+            Tool type string (e.g., "catchment_area", "buffer")
+        """
+        if self.tool_type:
+            return self.tool_type
+        # Derive from default_output_name by converting to lowercase snake_case
+        if self.default_output_name:
+            import re
+
+            # Convert CamelCase or spaces to snake_case
+            name = self.default_output_name.replace(" ", "_")
+            name = re.sub(r"([A-Z])", r"_\1", name).lower()
+            name = re.sub(r"_+", "_", name).strip("_")
+            return name
+        return None
+
+    def get_job_id(self: Self) -> str | None:
+        """Get the Windmill job ID from environment.
+
+        Windmill sets WM_JOB_ID environment variable for each job execution.
+
+        Returns:
+            Job ID string if running in Windmill, None otherwise
+        """
+        return os.environ.get("WM_JOB_ID")
 
     def get_feature_layer_type(self: Self, params: TParams) -> str:
         """Return the feature_layer_type for the output.
@@ -956,7 +989,10 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             Dict with layer metadata (ToolOutputBase format)
         """
         output_layer_id = str(uuid_module.uuid4())
-        output_name = params.output_name or self.default_output_name
+        # Use result_layer_name first (new field), then output_name (legacy), then default
+        output_name = (
+            params.result_layer_name or params.output_name or self.default_output_name
+        )
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "
@@ -1291,6 +1327,8 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             feature_count=table_info.get("feature_count", 0),
             size=table_info.get("size", 0),
             properties=custom_properties,
+            tool_type=self.get_tool_type(),
+            job_id=self.get_job_id(),
         )
 
         # Add to project if requested

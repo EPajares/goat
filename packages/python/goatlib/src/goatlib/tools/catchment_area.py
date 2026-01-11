@@ -44,12 +44,12 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ToolInputBase
+from goatlib.tools.schemas import get_default_layer_name, ToolInputBase
 
 logger = logging.getLogger(__name__)
 
 # Custom sections for catchment area UI
-# Order: routing (1), configuration (2), starting_points (3), scenario (4)
+# Order: routing (1), configuration (2), starting_points (3), result (7), scenario (8)
 SECTION_CONFIGURATION = UISection(
     id="configuration",
     order=2,
@@ -66,10 +66,19 @@ SECTION_STARTING = UISection(
     depends_on={"routing_mode": {"$ne": None}},
 )
 
+SECTION_RESULT_CATCHMENT = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label="Result Layer",
+    label_de="Ergebnisebene",
+    depends_on={"routing_mode": {"$ne": None}},
+)
+
 SECTION_SCENARIO = UISection(
     id="scenario",
-    order=4,
-    icon="scenario",
+    order=8,
+    icon="git-branch",  # scenario/branch icon for network modifications
     label_key="scenario",
     collapsible=True,
     collapsed=True,
@@ -89,6 +98,7 @@ class CatchmentAreaWindmillParams(ToolInputBase):
             SECTION_ROUTING,
             SECTION_CONFIGURATION,
             SECTION_STARTING,
+            SECTION_RESULT_CATCHMENT,
             SECTION_SCENARIO,
         )
     }
@@ -350,6 +360,42 @@ class CatchmentAreaWindmillParams(ToolInputBase):
     )
 
     # =========================================================================
+    # Result Layer Naming Section
+    # =========================================================================
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("catchment_area", "en"),
+        description="Name for the catchment area result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("catchment_area", "en"),
+                "default_de": get_default_layer_name("catchment_area", "de"),
+            },
+        ),
+    )
+
+    starting_points_layer_name: str | None = Field(
+        default=get_default_layer_name("catchment_area_starting_points", "en"),
+        description="Name for the starting points layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=2,
+            label_key="starting_points_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name(
+                    "catchment_area_starting_points", "en"
+                ),
+                "default_de": get_default_layer_name(
+                    "catchment_area_starting_points", "de"
+                ),
+            },
+        ),
+    )
+
+    # =========================================================================
     # Scenario Section
     # =========================================================================
     scenario_id: str | None = Field(
@@ -368,7 +414,10 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
 
     tool_class = CatchmentAreaTool
     output_geometry_type = "polygon"  # Default, may vary based on catchment_area_type
-    default_output_name = "Catchment_Area"
+    default_output_name = get_default_layer_name("catchment_area", "en")
+    default_starting_points_name = get_default_layer_name(
+        "catchment_area_starting_points", "en"
+    )
 
     # Store starting points output path for secondary layer creation
     _starting_points_parquet: Path | None = None
@@ -698,13 +747,17 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
         from goatlib.tools.schemas import ToolOutputBase
         from goatlib.tools.style import get_starting_points_style
 
-        # Main polygon layer
+        # Main polygon layer - use result_layer_name, then output_name, then default
         output_layer_id = str(uuid_module.uuid4())
-        output_name = params.output_name or self.default_output_name
+        output_name = (
+            params.result_layer_name or params.output_name or self.default_output_name
+        )
 
-        # Starting points layer
+        # Starting points layer - use custom name or default
         starting_points_layer_id = str(uuid_module.uuid4())
-        starting_points_output_name = f"{output_name} Starting Points"
+        starting_points_output_name = (
+            params.starting_points_layer_name or self.default_starting_points_name
+        )
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "

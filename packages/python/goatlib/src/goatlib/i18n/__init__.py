@@ -167,6 +167,17 @@ class Translator:
         """
         return self.get_tool(tool_name).get("description")
 
+    def get_default_layer_name(self: Self, layer_key: str) -> str | None:
+        """Get translated default layer name.
+
+        Args:
+            layer_key: Layer name key (e.g., "buffer", "catchment_area")
+
+        Returns:
+            Translated default layer name or None if not found
+        """
+        return self._translations.get("default_layer_names", {}).get(layer_key)
+
     def resolve_key(self: Self, key: str) -> str | None:
         """Resolve a dot-separated translation key path.
 
@@ -344,6 +355,16 @@ def _resolve_property(
                     # Fallback: use the key path as-is if translation not found
                     resolved_labels[enum_value] = label_key_path
             x_ui["enum_labels"] = resolved_labels
+
+        # Resolve default value based on language if widget_options contains default_XX
+        if "widget_options" in x_ui:
+            lang_key = f"default_{translator.language}"
+            if lang_key in x_ui["widget_options"]:
+                # Set the schema default to the language-specific value
+                result["default"] = x_ui["widget_options"][lang_key]
+                # Clean up the language-specific defaults from widget_options
+                x_ui["widget_options"].pop("default_en", None)
+                x_ui["widget_options"].pop("default_de", None)
 
     # Apply translations to top-level title/description (override defaults)
     # First check if label_key was provided and resolved in x-ui

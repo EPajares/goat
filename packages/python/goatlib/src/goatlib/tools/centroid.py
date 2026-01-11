@@ -7,19 +7,26 @@ import logging
 from pathlib import Path
 from typing import Self
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 
 from goatlib.analysis.geoprocessing.centroid import CentroidTool
 from goatlib.analysis.schemas.geoprocessing import CentroidParams
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
+    ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    LayerInputMixin,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +43,7 @@ class CentroidToolParams(
     model_config = ConfigDict(
         json_schema_extra=ui_sections(
             SECTION_INPUT,
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -51,13 +59,28 @@ class CentroidToolParams(
     input_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("centroid", "en"),
+        description="Name for the centroid result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("centroid", "en"),
+                "default_de": get_default_layer_name("centroid", "de"),
+            },
+        ),
+    )
+
 
 class CentroidToolRunner(BaseToolRunner[CentroidToolParams]):
     """Centroid tool runner for Windmill."""
 
     tool_class = CentroidTool
     output_geometry_type = "Point"
-    default_output_name = "Centroid"
+    default_output_name = get_default_layer_name("centroid", "en")
 
     def process(
         self: Self, params: CentroidToolParams, temp_dir: Path

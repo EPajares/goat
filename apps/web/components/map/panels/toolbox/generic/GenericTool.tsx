@@ -60,6 +60,7 @@ const SECTION_ICON_MAP: Record<string, ICON_NAME> = {
   chart: ICON_NAME.CHART,
   scenario: ICON_NAME.SCENARIO,
   clock: ICON_NAME.CLOCK,
+  save: ICON_NAME.SAVE,
 };
 
 interface GenericToolProps extends IndicatorBaseProps {
@@ -329,7 +330,13 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
           const itemsAnyOf = input.schema?.anyOf?.find(
             (v: { type?: string; items?: unknown }) => v.type === "array" && v.items
           );
-          const resolvedItemSchema = itemSchema || itemsAnyOf?.items;
+          let resolvedItemSchema = itemSchema || itemsAnyOf?.items;
+
+          // Resolve $ref if present (e.g., { "$ref": "#/$defs/OpportunityGravity" })
+          if (resolvedItemSchema?.$ref && process.$defs) {
+            const refName = resolvedItemSchema.$ref.replace("#/$defs/", "");
+            resolvedItemSchema = process.$defs[refName] || resolvedItemSchema;
+          }
 
           if (resolvedItemSchema?.properties) {
             // Find layer field names in the item schema

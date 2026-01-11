@@ -103,6 +103,8 @@ class ToolDatabaseService:
         other_properties: dict[str, Any] | None = None,
         thumbnail_url: str
         | None = "https://assets.plan4better.de/img/goat_new_dataset_thumbnail.png",
+        tool_type: str | None = None,
+        job_id: str | None = None,
     ) -> dict[str, Any] | None:
         """Create a layer record in customer.layer.
 
@@ -121,6 +123,8 @@ class ToolDatabaseService:
             properties: Layer properties (style, etc.)
             other_properties: Additional properties
             thumbnail_url: Layer thumbnail URL (defaults to standard thumbnail)
+            tool_type: Tool type that created this layer (e.g., "catchment_area")
+            job_id: Windmill job ID that created this layer
 
         Returns:
             The properties dict used (either provided or generated default)
@@ -137,19 +141,23 @@ class ToolDatabaseService:
         properties_json = json.dumps(properties) if properties else None
         other_props_json = json.dumps(other_properties) if other_properties else None
 
+        # Convert job_id string to UUID if provided
+        job_id_uuid = uuid_module.UUID(job_id) if job_id else None
+
         await self.pool.execute(
             f"""
             INSERT INTO {self.schema}.layer (
                 id, user_id, folder_id, name, type, feature_layer_type,
                 feature_layer_geometry_type, extent, attribute_mapping,
-                size, properties, other_properties, thumbnail_url, created_at, updated_at
+                size, properties, other_properties, thumbnail_url,
+                tool_type, job_id, created_at, updated_at
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7,
                 CASE WHEN $8::text IS NOT NULL
                     THEN ST_Multi(ST_GeomFromText($8::text, 4326))
                     ELSE NULL
                 END,
-                $9::jsonb, $10, $11::jsonb, $12::jsonb, $13,
+                $9::jsonb, $10, $11::jsonb, $12::jsonb, $13, $14, $15,
                 NOW(), NOW()
             )
             """,
@@ -166,6 +174,8 @@ class ToolDatabaseService:
             properties_json,
             other_props_json,
             thumbnail_url,
+            tool_type,
+            job_id_uuid,
         )
         logger.info(
             f"Created layer: {layer_id} ({name}) in folder {folder_id} "

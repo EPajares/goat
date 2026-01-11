@@ -15,13 +15,19 @@ from goatlib.analysis.schemas.geoprocessing import UnionParams
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
     ui_field,
     ui_sections,
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import LayerInputMixin, ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    LayerInputMixin,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +46,7 @@ class UnionToolParams(
         json_schema_extra=ui_sections(
             SECTION_INPUT,
             UISection(id="overlay", order=2, icon="layers"),
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -83,13 +90,28 @@ class UnionToolParams(
         ),
     )
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("union", "en"),
+        description="Name for the union result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("union", "en"),
+                "default_de": get_default_layer_name("union", "de"),
+            },
+        ),
+    )
+
 
 class UnionToolRunner(BaseToolRunner[UnionToolParams]):
     """Union tool runner for Windmill."""
 
     tool_class = UnionTool
     output_geometry_type = None  # Depends on input
-    default_output_name = "Union"
+    default_output_name = get_default_layer_name("union", "en")
 
     def process(
         self: Self, params: UnionToolParams, temp_dir: Path
