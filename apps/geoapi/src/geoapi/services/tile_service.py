@@ -95,7 +95,19 @@ class TileService:
         Returns:
             MVT tile bytes or None if empty
         """
-        limit = min(limit or self.max_features, self.max_features)
+        # Dynamic limit based on zoom level to handle dense areas efficiently
+        # Lower zoom = more features visible in tile = stricter limit needed
+        if z <= 8:
+            zoom_limit = 350_000  # World/continent view - strict limit
+        elif z <= 12:
+            zoom_limit = 700_000  # Country/region view
+        elif z <= 15:
+            zoom_limit = 1_400_000  # City view
+        else:
+            zoom_limit = 3_500_000  # Street level - allow more detail
+
+        # Use the most restrictive limit
+        limit = min(limit or self.max_features, self.max_features, zoom_limit)
         table = layer_info.full_table_name
 
         geom_col = geometry_column
@@ -275,7 +287,7 @@ class TileService:
                     FROM {table}, bounds
                     WHERE {bbox_filter}
                       AND ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    LIMIT {limit}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),
@@ -295,7 +307,7 @@ class TileService:
                     SELECT {select_clause}
                     FROM {table}, bounds
                     WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    LIMIT {limit}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),
