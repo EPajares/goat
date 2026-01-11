@@ -258,6 +258,8 @@ class TileService:
 
             # Use pre-computed literal bounds everywhere - no ST_TileEnvelope in main query
             # This eliminates redundant geometry computations
+            # Note: Using LIMIT instead of ORDER BY random() - with Hilbert-ordered data,
+            # this gives spatially coherent results and is much faster (no sort needed)
             query = f"""
                 WITH bounds AS (
                     SELECT
@@ -269,7 +271,7 @@ class TileService:
                     FROM {table}, bounds
                     WHERE {bbox_filter}
                       AND ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
+                    LIMIT {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),
@@ -289,7 +291,7 @@ class TileService:
                     SELECT {select_clause}{row_num_clause}
                     FROM {table}, bounds
                     WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
+                    LIMIT {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),
