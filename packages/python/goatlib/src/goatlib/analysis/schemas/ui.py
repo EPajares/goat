@@ -95,7 +95,9 @@ SECTION_OPPORTUNITIES = UISection(
     icon="location-marker",
     depends_on={"routing_mode": {"$ne": None}},
 )
-SECTION_SCENARIO = UISection(id="scenario", order=4, icon="scenario")
+SECTION_SCENARIO = UISection(
+    id="scenario", order=4, icon="scenario", collapsible=True, collapsed=True
+)
 SECTION_STATISTICS = UISection(id="statistics", order=3, icon="chart")
 SECTION_TIME = UISection(id="time", order=3, icon="clock")
 SECTION_AREA = UISection(

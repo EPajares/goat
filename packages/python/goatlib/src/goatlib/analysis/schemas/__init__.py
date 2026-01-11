@@ -8,6 +8,7 @@ from . import (
     heatmap,
     oev_gueteklasse,
     statistics,
+    trip_count,
     ui,
     vector,
 )
@@ -68,6 +69,7 @@ from .oev_gueteklasse import (
     PTTimeWindow as OevPTTimeWindow,
     STATION_CONFIG_DEFAULT,
 )
+from .trip_count import TripCountStationParams
 from .statistics import (
     AreaOperation,
     AreaStatisticsInput,
@@ -196,4 +198,7 @@ __all__ = [
     "OevPTTimeWindow",
     "OevCatchmentType",
     "STATION_CONFIG_DEFAULT",
+    # Trip Count schemas
+    "trip_count",
+    "TripCountStationParams",
 ]

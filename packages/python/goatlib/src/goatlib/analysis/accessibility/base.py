@@ -6,8 +6,81 @@ from typing import Self
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.io.parquet import write_optimized_parquet
+from goatlib.analysis.schemas.base import PTTimeWindow
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Transport Mode Mapping (GTFS route_type to mode category)
+# =============================================================================
+
+# Based on GTFS extended route types
+TRANSPORT_MODE_MAPPING: dict[str, str] = {
+    # Bus
+    "3": "bus",
+    "11": "bus",
+    "700": "bus",
+    "701": "bus",
+    "702": "bus",
+    "704": "bus",
+    "705": "bus",
+    "710": "bus",
+    "712": "bus",
+    "715": "bus",
+    "800": "bus",
+    # Tram
+    "0": "tram",
+    "5": "tram",
+    "900": "tram",
+    "901": "tram",
+    "902": "tram",
+    "903": "tram",
+    "904": "tram",
+    "905": "tram",
+    "906": "tram",
+    # Metro
+    "1": "metro",
+    "400": "metro",
+    "401": "metro",
+    "402": "metro",
+    "403": "metro",
+    "405": "metro",
+    # Rail
+    "2": "rail",
+    "100": "rail",
+    "101": "rail",
+    "102": "rail",
+    "103": "rail",
+    "104": "rail",
+    "105": "rail",
+    "106": "rail",
+    "107": "rail",
+    "108": "rail",
+    "109": "rail",
+    "110": "rail",
+    "111": "rail",
+    "112": "rail",
+    "114": "rail",
+    "116": "rail",
+    "117": "rail",
+    "202": "rail",
+    # Other
+    "4": "other",
+    "6": "other",
+    "7": "other",
+    "200": "other",
+    "201": "other",
+    "204": "other",
+    "1000": "other",
+    "1300": "other",
+    "1400": "other",
+}
+
+
+# =============================================================================
+# Utility Functions
+# =============================================================================
 
 
 def sanitize_sql_name(name: str, fallback_idx: int = 0) -> str:
@@ -314,3 +387,189 @@ class HeatmapToolBase(AnalysisTool):
 
         logger.info("Results written to: %s", output_path)
         return output_path_obj
+
+
+# =============================================================================
+# Public Transport Tool Base
+# =============================================================================
+
+
+class PTToolBase(AnalysisTool):
+    """Base class for Public Transport analysis tools.
+
+    Provides shared functionality for GTFS data import and station
+    service counting used by Trip Count Station and ÖV-Güteklassen tools.
+
+    Subclasses should call these methods in their _run_implementation()
+    and then add their specific processing logic.
+    """
+
+    def __init__(self: Self) -> None:
+        super().__init__()
+        self._setup_pt_extensions()
+
+    def _setup_pt_extensions(self: Self) -> None:
+        """Install required extensions for PT analysis."""
+        self.con.execute("INSTALL h3 FROM community; LOAD h3;")
+        logger.debug("H3 extension loaded for PT tool.")
+
+    def _import_gtfs_stops(self: Self, stops_path: str) -> None:
+        """Import GTFS stops parquet.
+
+        Creates a view 'gtfs_stops' with standardized columns:
+        - stop_id, stop_name, stop_lat, stop_lon, location_type,
+          parent_station, h3_3, geom
+
+        Args:
+            stops_path: Path to GTFS stops parquet file.
+        """
+        self.con.execute(f"""
+            CREATE OR REPLACE VIEW gtfs_stops AS
+            SELECT
+                stop_id,
+                stop_name,
+                stop_lat,
+                stop_lon,
+                location_type,
+                parent_station,
+                h3_3,
+                ST_Point(stop_lon, stop_lat) AS geom
+            FROM read_parquet('{stops_path}')
+            WHERE location_type IS NULL OR location_type = '0' OR location_type = ''
+        """)
+
+    def _import_gtfs_stop_times(self: Self, stop_times_path: str) -> None:
+        """Import GTFS stop_times parquet.
+
+        Creates a view 'gtfs_stop_times' with standardized columns:
+        - stop_id, route_type, arrival_time, is_weekday, is_saturday,
+          is_sunday, h3_3
+
+        Args:
+            stop_times_path: Path to GTFS stop_times parquet file.
+        """
+        self.con.execute(f"""
+            CREATE OR REPLACE VIEW gtfs_stop_times AS
+            SELECT
+                stop_id,
+                route_type,
+                arrival_time,
+                is_weekday,
+                is_saturday,
+                is_sunday,
+                h3_3
+            FROM read_parquet('{stop_times_path}')
+        """)
+
+    def _get_stations_in_area(self: Self, ref_geom_col: str) -> None:
+        """Find all stops within the reference area.
+
+        Creates a table 'stations_in_area' with stops intersecting
+        the reference area.
+
+        Args:
+            ref_geom_col: Name of the geometry column in the reference_area view.
+
+        Requires:
+            - 'gtfs_stops' view must exist
+            - 'reference_area' view must exist
+        """
+        self.con.execute(f"""
+            CREATE OR REPLACE TABLE stations_in_area AS
+            SELECT DISTINCT
+                s.stop_id,
+                s.stop_name,
+                s.parent_station,
+                s.h3_3,
+                s.geom
+            FROM gtfs_stops s, reference_area r
+            WHERE ST_Intersects(s.geom, r.{ref_geom_col})
+        """)
+
+    def _count_pt_services(self: Self, time_window: PTTimeWindow) -> None:
+        """Count public transport services per station in the time window.
+
+        Creates a table 'station_trip_counts' with trip counts per
+        station and route_type.
+
+        Args:
+            time_window: Time window for counting services.
+
+        Requires:
+            - 'stations_in_area' table must exist
+            - 'gtfs_stop_times' view must exist
+        """
+        weekday_col = time_window.weekday_column
+        from_time = time_window.from_time_str
+        to_time = time_window.to_time_str
+
+        self.con.execute(f"""
+            CREATE OR REPLACE TABLE station_trip_counts AS
+            SELECT
+                s.stop_id,
+                s.stop_name,
+                s.parent_station,
+                s.geom,
+                t.route_type,
+                COUNT(*) AS trip_count
+            FROM stations_in_area s
+            JOIN gtfs_stop_times t ON s.stop_id = t.stop_id AND s.h3_3 = t.h3_3
+            WHERE t.{weekday_col} = true
+              AND t.arrival_time >= '{from_time}'
+              AND t.arrival_time <= '{to_time}'
+            GROUP BY s.stop_id, s.stop_name, s.parent_station, s.geom, t.route_type
+        """)
+
+    def _create_mode_mapping_table(self: Self) -> None:
+        """Create a table mapping route_type to transport mode category.
+
+        Creates 'route_type_modes' table with columns:
+        - route_type: GTFS route type as string
+        - mode: Category (bus, tram, metro, rail, other)
+        """
+        mode_values = ", ".join(
+            f"('{k}', '{v}')" for k, v in TRANSPORT_MODE_MAPPING.items()
+        )
+        self.con.execute(f"""
+            CREATE OR REPLACE TABLE route_type_modes AS
+            SELECT * FROM (VALUES {mode_values}) AS t(route_type, mode)
+        """)
+
+    def _aggregate_trips_by_mode(self: Self, time_window: PTTimeWindow) -> None:
+        """Aggregate trip counts by transport mode per station.
+
+        Creates 'station_mode_counts' table with trip counts per station
+        and mode category (bus, tram, metro, rail, other).
+
+        Args:
+            time_window: Time window (used for frequency calculation).
+
+        Requires:
+            - 'station_trip_counts' table must exist
+            - 'route_type_modes' table must exist
+        """
+        time_window_minutes = time_window.time_window_minutes
+
+        self.con.execute(f"""
+            CREATE OR REPLACE TABLE station_mode_counts AS
+            SELECT
+                stop_id,
+                ANY_VALUE(stop_name) AS stop_name,
+                ANY_VALUE(parent_station) AS parent_station,
+                ANY_VALUE(geom) AS geom,
+                COALESCE(SUM(CASE WHEN mode = 'bus' THEN trip_count ELSE 0 END), 0) AS bus,
+                COALESCE(SUM(CASE WHEN mode = 'tram' THEN trip_count ELSE 0 END), 0) AS tram,
+                COALESCE(SUM(CASE WHEN mode = 'metro' THEN trip_count ELSE 0 END), 0) AS metro,
+                COALESCE(SUM(CASE WHEN mode = 'rail' THEN trip_count ELSE 0 END), 0) AS rail,
+                COALESCE(SUM(CASE WHEN mode = 'other' THEN trip_count ELSE 0 END), 0) AS other,
+                SUM(trip_count) AS total,
+                CASE
+                    WHEN SUM(trip_count) > 0
+                    THEN ROUND({time_window_minutes} / SUM(trip_count), 2)
+                    ELSE NULL
+                END AS frequency
+            FROM station_trip_counts stc
+            LEFT JOIN route_type_modes rtm
+                ON CAST(stc.route_type AS VARCHAR) = rtm.route_type
+            GROUP BY stop_id
+        """)

@@ -69,8 +69,10 @@ SECTION_STARTING = UISection(
 SECTION_SCENARIO = UISection(
     id="scenario",
     order=4,
-    icon="git-branch",  # scenario/branch icon for network modifications
+    icon="scenario",
     label_key="scenario",
+    collapsible=True,
+    collapsed=True,
     depends_on={"routing_mode": {"$ne": None}},
 )
 
@@ -368,6 +370,9 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
     output_geometry_type = "polygon"  # Default, may vary based on catchment_area_type
     default_output_name = "Catchment_Area"
 
+    # Store starting points output path for secondary layer creation
+    _starting_points_parquet: Path | None = None
+
     def get_layer_properties(
         self: Self,
         params: CatchmentAreaWindmillParams,
@@ -519,6 +524,13 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
             params.user_id,
         )
 
+        # PT mode only supports a single starting point
+        if params.routing_mode == CatchmentAreaRoutingMode.pt and len(latitudes) > 1:
+            raise ValueError(
+                "Public transport catchment areas can only be computed for a single "
+                f"starting point. Got {len(latitudes)} starting points."
+            )
+
         # Build time window for PT routing
         time_window = None
         if params.routing_mode == CatchmentAreaRoutingMode.pt:
@@ -618,9 +630,201 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
         try:
             results = tool.run(analysis_params)
             result_path, metadata = results[0]
+
+            # Create starting points parquet file
+            starting_points_path = temp_dir / "starting_points.parquet"
+            self._create_starting_points_parquet(
+                latitudes=latitudes,
+                longitudes=longitudes,
+                output_path=starting_points_path,
+            )
+            if starting_points_path.exists():
+                self._starting_points_parquet = starting_points_path
+                logger.info(
+                    "Starting points output available at: %s", starting_points_path
+                )
+
             return Path(result_path), metadata
         finally:
             tool.cleanup()
+
+    def _create_starting_points_parquet(
+        self: Self,
+        latitudes: list[float],
+        longitudes: list[float],
+        output_path: Path,
+    ) -> None:
+        """Create a GeoParquet file with starting point geometries.
+
+        Uses DuckDB to create proper GeoParquet format with WKB geometry
+        that will be recognized as a feature layer.
+
+        Args:
+            latitudes: List of latitude values
+            longitudes: List of longitude values
+            output_path: Path to write the parquet file
+        """
+        import duckdb
+
+        # Create a temporary DuckDB connection for geometry operations
+        con = duckdb.connect()
+        con.execute("INSTALL spatial; LOAD spatial;")
+
+        # Build a VALUES clause with all points
+        values = ", ".join(
+            f"({i + 1}, ST_Point({lon}, {lat}))"
+            for i, (lat, lon) in enumerate(zip(latitudes, longitudes))
+        )
+
+        # Create and export the points as GeoParquet
+        con.execute(f"""
+            COPY (
+                SELECT
+                    id,
+                    geom
+                FROM (VALUES {values}) AS t(id, geom)
+            ) TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
+        """)
+
+        con.close()
+        logger.info("Created starting points GeoParquet with %d points", len(latitudes))
+
+    def run(self: Self, params: CatchmentAreaWindmillParams) -> dict:
+        """Run tool and create both polygon and starting points layers."""
+        import asyncio
+        import tempfile
+        import uuid as uuid_module
+
+        from goatlib.tools.schemas import ToolOutputBase
+        from goatlib.tools.style import get_starting_points_style
+
+        # Main polygon layer
+        output_layer_id = str(uuid_module.uuid4())
+        output_name = params.output_name or self.default_output_name
+
+        # Starting points layer
+        starting_points_layer_id = str(uuid_module.uuid4())
+        starting_points_output_name = f"{output_name} Starting Points"
+
+        logger.info(
+            f"Starting tool: {self.__class__.__name__} "
+            f"(user={params.user_id}, output={output_layer_id})"
+        )
+
+        # Initialize db_service
+        asyncio.get_event_loop().run_until_complete(self._init_db_service())
+
+        with tempfile.TemporaryDirectory(
+            prefix=f"{self.__class__.__name__.lower()}_"
+        ) as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Step 1: Run analysis (creates both polygon and starting points outputs)
+            output_parquet, metadata = self.process(params, temp_path)
+            logger.info(
+                f"Analysis complete: {metadata.feature_count or 0} features "
+                f"at {output_parquet}"
+            )
+
+            # Step 2: Ingest polygon layer to DuckLake
+            table_info = self._ingest_to_ducklake(
+                user_id=params.user_id,
+                layer_id=output_layer_id,
+                parquet_path=output_parquet,
+            )
+            logger.info(f"DuckLake polygon table created: {table_info['table_name']}")
+
+            # Step 2b: Ingest starting points layer to DuckLake (if available)
+            starting_points_table_info = None
+            if self._starting_points_parquet and self._starting_points_parquet.exists():
+                starting_points_table_info = self._ingest_to_ducklake(
+                    user_id=params.user_id,
+                    layer_id=starting_points_layer_id,
+                    parquet_path=self._starting_points_parquet,
+                )
+                logger.info(
+                    f"DuckLake starting points table created: "
+                    f"{starting_points_table_info['table_name']}"
+                )
+
+            # Refresh database pool
+            asyncio.get_event_loop().run_until_complete(self._close_db_service())
+
+            # Step 3: Create polygon layer DB records
+            result_info = asyncio.get_event_loop().run_until_complete(
+                self._create_db_records(
+                    output_layer_id=output_layer_id,
+                    params=params,
+                    output_name=output_name,
+                    metadata=metadata,
+                    table_info=table_info,
+                )
+            )
+
+            # Step 3b: Create starting points layer DB records (if available)
+            starting_points_result_info = None
+            if starting_points_table_info:
+                starting_points_metadata = DatasetMetadata(
+                    path=str(self._starting_points_parquet),
+                    source_type="vector",
+                    geometry_type="Point",
+                    crs="EPSG:4326",
+                )
+                starting_points_result_info = (
+                    asyncio.get_event_loop().run_until_complete(
+                        self._create_db_records(
+                            output_layer_id=starting_points_layer_id,
+                            params=params,
+                            output_name=starting_points_output_name,
+                            metadata=starting_points_metadata,
+                            table_info=starting_points_table_info,
+                            custom_properties=get_starting_points_style(),
+                        )
+                    )
+                )
+                logger.info(
+                    f"Starting points layer created: {starting_points_layer_id}"
+                )
+
+        # Close database pool
+        asyncio.get_event_loop().run_until_complete(self._close_db_service())
+
+        # Build main output
+        detected_geom_type = table_info.get("geometry_type")
+        is_feature = bool(detected_geom_type)
+        output = ToolOutputBase(
+            layer_id=output_layer_id,
+            name=output_name,
+            folder_id=result_info["folder_id"],
+            user_id=params.user_id,
+            project_id=params.project_id,
+            layer_project_id=result_info.get("layer_project_id"),
+            type="feature" if is_feature else "table",
+            feature_layer_type=self.get_feature_layer_type(params)
+            if is_feature
+            else None,
+            geometry_type=detected_geom_type,
+            feature_count=table_info.get("feature_count", 0),
+            extent=table_info.get("extent"),
+            table_name=table_info["table_name"],
+        )
+
+        result = output.model_dump()
+
+        # Add starting points layer info if created
+        if starting_points_table_info and starting_points_result_info:
+            result["starting_points_layer"] = {
+                "layer_id": starting_points_layer_id,
+                "name": starting_points_output_name,
+                "folder_id": starting_points_result_info["folder_id"],
+                "layer_project_id": starting_points_result_info.get("layer_project_id"),
+                "geometry_type": starting_points_table_info.get("geometry_type"),
+                "feature_count": starting_points_table_info.get("feature_count", 0),
+                "table_name": starting_points_table_info["table_name"],
+            }
+
+        logger.info(f"Tool completed: {output_layer_id} ({output_name})")
+        return result
 
 
 def main(params: CatchmentAreaWindmillParams) -> dict:

@@ -217,7 +217,7 @@ class LayerExportRunner(SimpleToolRunner):
             crs: Target CRS for reprojection
             query: WHERE clause filter (string or CQL2 dict)
         """
-        table_name = self._get_table_name(user_id, layer_id)
+        table_name = self._get_table_name(layer_id, user_id)
 
         # Convert CQL2 filter to SQL if needed
         sql_query = self._convert_cql2_to_sql(query, table_name)
@@ -426,6 +426,8 @@ class LayerExportRunner(SimpleToolRunner):
         except Exception as e:
             output.error = str(e)
             logger.error("Layer export failed: %s", e)
+            # Re-raise to mark job as failed in Windmill
+            raise
 
         finally:
             # Cleanup temp files

@@ -299,7 +299,9 @@ def build_ordinal_color_map(
         - color_map: List of [[str(value)], hex_color] pairs for ordinal scale
     """
     if isinstance(palette, str):
-        base_colors = ORDINAL_COLOR_PALETTES.get(palette, ORDINAL_COLOR_PALETTES["OrRd"])
+        base_colors = ORDINAL_COLOR_PALETTES.get(
+            palette, ORDINAL_COLOR_PALETTES["OrRd"]
+        )
     else:
         base_colors = palette
 
@@ -609,5 +611,82 @@ def get_oev_gueteklassen_stations_style() -> dict[str, Any]:
         },
         "color_scale": "ordinal",
         "marker_size": 10,
+        "fixed_radius": False,
+    }
+
+
+# Trip Count style configuration
+TRIP_COUNT_COLOR_RANGE = {
+    "name": "BuPu",
+    "type": "sequential",
+    "category": "ColorBrewer",
+    "colors": [
+        "#e0ecf4",
+        "#bfd3e6",
+        "#9ebcda",
+        "#8c96c6",
+        "#8c6bb1",
+        "#88419d",
+        "#6e016b",
+    ],
+}
+
+
+def get_trip_count_style(
+    color_scale_breaks: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Generate style for Trip Count station points.
+
+    Uses a quantile color scale based on total trip counts.
+
+    Args:
+        color_scale_breaks: Optional pre-computed break values for quantile scales
+
+    Returns:
+        Style dict configured for trip count point visualization
+    """
+    color_range = TRIP_COUNT_COLOR_RANGE
+
+    style = {
+        **DEFAULT_POINT_STYLE,
+        "color": hex_to_rgb(color_range["colors"][3]),  # Middle color as base
+        "color_field": {"name": "total", "type": "number"},
+        "color_range": color_range,
+        "color_scale": "quantile",
+    }
+
+    if color_scale_breaks:
+        style["color_scale_breaks"] = color_scale_breaks
+
+    return style
+
+
+# Starting point marker configuration (same as GOAT core legacy)
+STARTING_POINT_MARKER = {
+    "url": "https://assets.plan4better.de/icons/maki/foundation-marker.svg",
+    "name": "foundation-marker",
+}
+
+
+def get_starting_points_style() -> dict[str, Any]:
+    """Generate style for starting points used in catchment area analysis.
+
+    Uses a maki marker icon style matching the GOAT core legacy version.
+    The marker is a standard map pin that stands out against catchment area polygons.
+
+    Returns:
+        Style dict configured for starting point visualization with marker icon
+    """
+    return {
+        **DEFAULT_POINT_STYLE,
+        "color": hex_to_rgb("#000000"),  # Black marker
+        "marker": STARTING_POINT_MARKER,
+        "custom_marker": True,
+        "marker_size": 40,
+        "marker_anchor": "bottom",
+        "marker_allow_overlap": True,
+        "marker_offset": [0, 0],
+        "opacity": 1,
+        "stroked": False,
         "fixed_radius": False,
     }

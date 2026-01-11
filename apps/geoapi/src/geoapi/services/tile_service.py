@@ -201,11 +201,12 @@ class TileService:
             f"geometry := ST_AsMVTGeom(ST_Transform(candidates.\"{geom_col}\", 'EPSG:4326', 'EPSG:3857', always_xy := true), ST_Extent(bounds.bbox3857))"
         ]
 
-        # Add id field - use actual id if exists, otherwise use row_num as fallback
+        # Add id field - use actual id if exists, otherwise use DuckLake's rowid
         if has_id_column:
             struct_fields.append('"id" := candidates."id"')
         else:
-            struct_fields.append('"id" := candidates.row_num')
+            # Use DuckLake's built-in rowid which is stable and globally unique
+            struct_fields.append('"id" := candidates.rowid')
 
         for col in prop_cols:
             # Skip id since we handle it separately above
@@ -221,9 +222,9 @@ class TileService:
         if select_props:
             select_clause += f", {select_props}"
 
-        # Add ROW_NUMBER for fallback id when no id column exists
-        # This is computed efficiently within the QUALIFY window function
-        row_num_clause = "" if has_id_column else ", ROW_NUMBER() OVER () AS row_num"
+        # Add rowid to select clause if no id column exists (for stable IDs)
+        if not has_id_column:
+            select_clause += ", rowid"
 
         # Check if table has bbox column for fast row group pruning
         # Support both legacy scalar columns ($minx, etc.) and GeoParquet 1.1 struct bbox
@@ -267,7 +268,7 @@ class TileService:
                         ST_MakeEnvelope({tile_xmin}, {tile_ymin}, {tile_xmax}, {tile_ymax}) AS bbox4326
                 ),
                 candidates AS (
-                    SELECT {select_clause}{row_num_clause}
+                    SELECT {select_clause}
                     FROM {table}, bounds
                     WHERE {bbox_filter}
                       AND ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
@@ -288,7 +289,7 @@ class TileService:
                         ST_Transform(ST_TileEnvelope({z}, {x}, {y}), 'EPSG:3857', 'EPSG:4326', always_xy := true) AS bbox4326
                 ),
                 candidates AS (
-                    SELECT {select_clause}{row_num_clause}
+                    SELECT {select_clause}
                     FROM {table}, bounds
                     WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
                     LIMIT {limit}

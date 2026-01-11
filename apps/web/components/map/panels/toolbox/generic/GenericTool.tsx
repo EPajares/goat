@@ -154,9 +154,11 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     // Find all layer inputs and compute their geometry status
     for (const input of allInputs) {
       if (input.inputType === "layer") {
-        const layerId = effectiveValues[input.name] as string | undefined;
-        if (layerId) {
-          const layer = projectLayers.find((l) => l.layer_id === layerId);
+        const projectLayerId = effectiveValues[input.name] as string | undefined;
+        if (projectLayerId) {
+          // LayerInput stores project layer ID (integer as string), so find by id
+          const numericId = parseInt(projectLayerId, 10);
+          const layer = projectLayers.find((l) => l.id === numericId);
           // A layer has geometry if it has a feature_layer_geometry_type
           computed[`_${input.name}_has_geometry`] = !!layer?.feature_layer_geometry_type;
         } else {
@@ -299,6 +301,67 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     for (const [key, value] of Object.entries(effectiveValues)) {
       if (visibleInputNames.has(key)) {
         visibleValues[key] = value;
+      }
+    }
+
+    // Convert project layer IDs to layer_ids (UUIDs) for layer inputs
+    // LayerInput stores project layer id (integer as string) but backend expects layer_id (UUID)
+    // This handles both top-level layer inputs and layer inputs inside repeatable-object arrays
+    if (projectLayers) {
+      const convertProjectLayerIdToLayerId = (projectLayerId: string): string | undefined => {
+        const numericId = parseInt(projectLayerId, 10);
+        if (isNaN(numericId)) return undefined;
+        const layer = projectLayers.find((l) => l.id === numericId);
+        return layer?.layer_id;
+      };
+
+      for (const input of allInputs) {
+        if (input.inputType === "layer" && visibleValues[input.name]) {
+          // Top-level layer input
+          const layerId = convertProjectLayerIdToLayerId(visibleValues[input.name] as string);
+          if (layerId) {
+            visibleValues[input.name] = layerId;
+          }
+        } else if (input.inputType === "repeatable-object" && Array.isArray(visibleValues[input.name])) {
+          // Repeatable object array - check for layer inputs inside each item
+          // Layer inputs inside repeatable objects use x-ui.widget = "layer-selector"
+          const itemSchema = input.schema?.items;
+          const itemsAnyOf = input.schema?.anyOf?.find(
+            (v: { type?: string; items?: unknown }) => v.type === "array" && v.items
+          );
+          const resolvedItemSchema = itemSchema || itemsAnyOf?.items;
+
+          if (resolvedItemSchema?.properties) {
+            // Find layer field names in the item schema
+            const layerFieldNames: string[] = [];
+            for (const [fieldName, fieldSchema] of Object.entries(resolvedItemSchema.properties)) {
+              const schema = fieldSchema as Record<string, unknown>;
+              const uiMeta = schema["x-ui"] as { widget?: string } | undefined;
+              if (uiMeta?.widget === "layer-selector") {
+                layerFieldNames.push(fieldName);
+              }
+            }
+
+            // Convert layer IDs in each array item
+            if (layerFieldNames.length > 0) {
+              const items = visibleValues[input.name] as Record<string, unknown>[];
+              visibleValues[input.name] = items.map((item) => {
+                const convertedItem = { ...item };
+                for (const fieldName of layerFieldNames) {
+                  if (convertedItem[fieldName]) {
+                    const layerId = convertProjectLayerIdToLayerId(convertedItem[fieldName] as string);
+                    if (layerId) {
+                      convertedItem[fieldName] = layerId;
+                    }
+                  }
+                }
+                // Remove internal _id field used for React keys
+                delete convertedItem._id;
+                return convertedItem;
+              });
+            }
+          }
+        }
       }
     }
 

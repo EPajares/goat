@@ -4,6 +4,10 @@
  * Renders a layer selector based on OGC process input schema.
  * Filters layers by geometry type constraints from metadata.
  * Also captures and exposes the layer's CQL filter (if any).
+ *
+ * NOTE: This component stores the project layer ID (integer as string) internally
+ * for unique identification. The GenericTool converts this to layer_id (UUID)
+ * when submitting to the backend.
  */
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
@@ -80,37 +84,43 @@ export default function LayerInput({
     }
 
     // Exclude already-selected layers (for repeatable objects)
+    // excludedLayerIds contains project layer IDs (as strings)
     if (excludedLayerIds.length > 0) {
-      filtered = filtered.filter((layer) => !excludedLayerIds.includes(layer.layer_id));
+      filtered = filtered.filter((layer) => !excludedLayerIds.includes(String(layer.id)));
     }
 
     return filtered;
   }, [projectLayers, input.geometryConstraints, excludedLayerIds]);
 
   // Convert layers to selector items
+  // Use project layer id as the unique selector value to handle duplicates correctly
   const layerItems: SelectorItem[] = useMemo(() => {
     return filteredLayers.map((layer) => ({
-      value: layer.layer_id,
+      value: String(layer.id), // Use project layer id for uniqueness
       label: layer.name,
     }));
   }, [filteredLayers]);
 
-  // Find selected item
+  // Find selected item by project layer id
   const selectedItem = useMemo(() => {
     if (!value) return undefined;
     return layerItems.find((item) => item.value === value);
   }, [value, layerItems]);
 
   const handleChange = (item: SelectorItem | SelectorItem[] | undefined) => {
-    const newValue = Array.isArray(item) ? item[0]?.value : item?.value;
-    onChange(newValue as string | undefined);
+    const selectedLayerItem = Array.isArray(item) ? item[0] : item;
+    const projectLayerId = selectedLayerItem?.value as string | undefined;
+
+    // Store the project layer id (this uniquely identifies the layer in the project)
+    onChange(projectLayerId);
 
     // Also notify about the associated filter
     if (onFilterChange) {
-      if (!newValue) {
+      if (!projectLayerId) {
         onFilterChange(undefined);
       } else {
-        const selectedLayer = filteredLayers.find((layer) => layer.layer_id === newValue);
+        const numericId = parseInt(projectLayerId, 10);
+        const selectedLayer = filteredLayers.find((layer) => layer.id === numericId);
         // Extract CQL filter from the layer's query
         const cqlFilter = selectedLayer?.query?.cql as Record<string, unknown> | undefined;
         onFilterChange(cqlFilter);

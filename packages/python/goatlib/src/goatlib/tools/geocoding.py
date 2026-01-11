@@ -71,6 +71,8 @@ class GeocodingToolParams(ScenarioSelectorMixin, ToolInputBase, LayerInputMixin)
                 id="scenario",
                 order=8,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
                 depends_on={"input_layer_id": {"$ne": None}},
             ),
             SECTION_OUTPUT,
