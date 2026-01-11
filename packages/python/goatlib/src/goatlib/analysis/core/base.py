@@ -49,7 +49,7 @@ class AnalysisTool:
         """Configure DuckDB with necessary extensions and settings."""
         self.con.execute("INSTALL spatial; LOAD spatial;")
         self.con.execute("INSTALL httpfs; LOAD httpfs;")
-        self.con.execute("SET memory_limit='2GB';")
+        self.con.execute("SET memory_limit='4GB';")
 
     def cleanup(self: Self) -> None:
         """
