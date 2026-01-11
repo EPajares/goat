@@ -44,6 +44,8 @@ class HeatmapClosestAverageToolParams(
                 id="scenario",
                 order=8,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
             ),
         )
     )

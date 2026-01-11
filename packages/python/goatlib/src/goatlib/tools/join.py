@@ -86,6 +86,8 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                 id="scenario",
                 order=7,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
                 depends_on={"target_layer_id": {"$ne": None}},
             ),
             SECTION_OUTPUT,

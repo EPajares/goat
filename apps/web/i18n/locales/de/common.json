@@ -1359,8 +1359,6 @@
   "travel_time_step": "Anzahl der Schritte",
   "travel_time_step_error": "Die Anzahl der Schritte sollte kleiner als die maximale Reisezeit sein",
   "travel_time_step_tooltip": "Definieren Sie die Anzahl der Schritte",
-  "trip_count": "Anzahl Abfahrten Haltepunkt",
-  "trip_count_station": "Anzahl Abfahrten Haltepunkt",
   "try_different_filters": "Versuchen Sie es erneut mit anderen Filtern",
   "type": "Typ",
   "uncategorized": "Nicht kategorisiert",

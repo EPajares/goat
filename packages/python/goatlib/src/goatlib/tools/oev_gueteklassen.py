@@ -62,6 +62,8 @@ class OevGueteklassenToolParams(ScenarioSelectorMixin, ToolInputBase):
                 id="scenario",
                 order=8,
                 icon="scenario",
+                collapsible=True,
+                collapsed=True,
                 depends_on={"reference_area_layer_id": {"$ne": None}},
             ),
         )
