@@ -3,12 +3,12 @@ sidebar_position: 1
 ---
 
 
-# Builder Interface
+# Dashboard Interface
 
-Switching to Builder mode opens the Builder Interface, where **you can design dashboards by arranging panels and widgets, and customize your workspace layout.**
+Switching to Dashboard mode opens the Dashboard Interface, where **you can design dashboards by arranging panels and widgets, and customize your workspace layout.**
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/builder_interface.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/builder/builder_interface.png').default} alt="Dashboard Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
 
 ## Panels
@@ -58,7 +58,7 @@ To delete a panel, click <code>Delete</code> at the bottom of the settings.
 **Widgets are the building blocks of your dashboard**. They let you display data, statistics, charts, and project elements—like text or images. Each widget is highly customizable: you can adjust its content, appearance, and behavior to fit your needs, whether you want to highlight key numbers, visualize trends, or add context with text and graphics.
 
 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-  <img src={require('/img/builder/widgets.png').default} alt="Builder Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
+  <img src={require('/img/builder/widgets.png').default} alt="Dashboard Interface Overview in GOAT" style={{ maxHeight: "auto", maxWidth: "auto", objectFit: "cover"}}/>
 </div>
 
 <p></p>

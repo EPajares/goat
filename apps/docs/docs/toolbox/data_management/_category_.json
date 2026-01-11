@@ -1,6 +1,6 @@
 {
   "label": "Data management",
-  "position": 2,
+  "position": 5,
   "link": {
     "type": "generated-index",
     "description": "In order to manage your data, you can perform different kind of join operations, either based on a matching attribute or based on a spatial intersection."
