@@ -23,9 +23,24 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase, ToolOutputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+    ToolOutputBase,
+)
 
 logger = logging.getLogger(__name__)
+
+# Result section for OD tool
+SECTION_RESULT_OD = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label="Result Layer",
+    label_de="Ergebnisebene",
+    depends_on={"geometry_layer_id": {"$ne": None}},
+)
 
 
 class OriginDestinationToolParams(
@@ -42,6 +57,7 @@ class OriginDestinationToolParams(
             SECTION_INPUT,
             UISection(id="matrix", order=2, icon="grid", label_key="matrix"),
             UISection(id="columns", order=3, icon="list", label_key="columns"),
+            SECTION_RESULT_OD,
             UISection(
                 id="scenario",
                 order=8,
@@ -151,6 +167,36 @@ class OriginDestinationToolParams(
         ),
     )
 
+    # =========================================================================
+    # Result Layer Naming Section
+    # =========================================================================
+    lines_layer_name: str | None = Field(
+        default=get_default_layer_name("origin_destination_lines", "en"),
+        description="Custom name for the OD lines layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="lines_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("origin_destination_lines", "en"),
+                "default_de": get_default_layer_name("origin_destination_lines", "de"),
+            },
+        ),
+    )
+    points_layer_name: str | None = Field(
+        default=get_default_layer_name("origin_destination_points", "en"),
+        description="Custom name for the OD points layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=2,
+            label_key="points_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("origin_destination_points", "en"),
+                "default_de": get_default_layer_name("origin_destination_points", "de"),
+            },
+        ),
+    )
+
     # Hide output CRS
     output_crs: Optional[str] = Field(
         None,
@@ -169,7 +215,10 @@ class OriginDestinationToolRunner(BaseToolRunner[OriginDestinationToolParams]):
 
     tool_class = OriginDestinationTool
     output_geometry_type = "LineString"  # Primary output
-    default_output_name = "OD_Lines"
+    default_lines_name = get_default_layer_name("origin_destination_lines", "en")
+    default_points_name = get_default_layer_name("origin_destination_points", "en")
+    # Keep for backward compatibility
+    default_output_name = get_default_layer_name("origin_destination_lines", "en")
 
     def process(
         self: Self, params: OriginDestinationToolParams, temp_dir: Path
@@ -380,9 +429,15 @@ class OriginDestinationToolRunner(BaseToolRunner[OriginDestinationToolParams]):
         """
         output_layer_id_lines = str(uuid_module.uuid4())
         output_layer_id_points = str(uuid_module.uuid4())
-        output_name = params.output_name or self.default_output_name
-        output_name_lines = f"{output_name}_Lines"
-        output_name_points = f"{output_name}_Points"
+
+        # Use custom names or defaults
+        output_name_lines = (
+            params.lines_layer_name
+            or params.result_layer_name
+            or params.output_name
+            or self.default_lines_name
+        )
+        output_name_points = params.points_layer_name or self.default_points_name
 
         logger.info(
             f"Starting OD tool: {self.__class__.__name__} "

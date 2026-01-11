@@ -14,6 +14,7 @@ from goatlib.analysis.schemas.geoprocessing import IntersectionParams
 from goatlib.analysis.schemas.ui import (
     SECTION_INPUT,
     SECTION_OUTPUT,
+    SECTION_RESULT,
     UISection,
     ui_field,
     ui_sections,
@@ -21,6 +22,7 @@ from goatlib.analysis.schemas.ui import (
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
 from goatlib.tools.schemas import (
+    get_default_layer_name,
     ScenarioSelectorMixin,
     ToolInputBase,
     TwoLayerInputMixin,
@@ -50,6 +52,7 @@ class IntersectionToolParams(
                 collapsible=True,
                 collapsed=True,
             ),
+            SECTION_RESULT,
             UISection(
                 id="scenario",
                 order=8,
@@ -88,13 +91,28 @@ class IntersectionToolParams(
         ),
     )
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("intersection", "en"),
+        description="Name for the intersection result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("intersection", "en"),
+                "default_de": get_default_layer_name("intersection", "de"),
+            },
+        ),
+    )
+
 
 class IntersectionToolRunner(BaseToolRunner[IntersectionToolParams]):
     """Intersection tool runner for Windmill."""
 
     tool_class = IntersectionTool
     output_geometry_type = None  # Depends on input
-    default_output_name = "Intersection"
+    default_output_name = get_default_layer_name("intersection", "en")
 
     def process(
         self: Self, params: IntersectionToolParams, temp_dir: Path

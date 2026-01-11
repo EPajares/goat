@@ -46,6 +46,8 @@ class UISection:
         id: Unique section identifier (e.g., "routing", "opportunities")
         order: Display order (lower numbers first)
         label_key: i18n key for section label (defaults to id)
+        label: Direct label text (overrides label_key if provided)
+        label_de: German translation of label
         icon: Icon name from @p4b/ui/components/Icon (optional)
         collapsible: Whether section can be collapsed (default: False)
         collapsed: Initial collapsed state (default: False)
@@ -56,6 +58,8 @@ class UISection:
     id: str
     order: int = 0
     label_key: str | None = None
+    label: str | None = None
+    label_de: str | None = None
     icon: str | None = None
     collapsible: bool = False
     collapsed: bool = False
@@ -66,8 +70,14 @@ class UISection:
         result: dict[str, Any] = {
             "id": self.id,
             "order": self.order,
-            "label_key": self.label_key or self.id,
         }
+        # Use direct label if provided, otherwise use label_key
+        if self.label:
+            result["label"] = self.label
+            if self.label_de:
+                result["label_de"] = self.label_de
+        else:
+            result["label_key"] = self.label_key or self.id
         if self.icon:
             result["icon"] = self.icon
         if self.collapsible:
@@ -97,6 +107,31 @@ SECTION_OPPORTUNITIES = UISection(
 )
 SECTION_SCENARIO = UISection(
     id="scenario", order=4, icon="scenario", collapsible=True, collapsed=True
+)
+# Section for result layer naming (order=7, before scenario which is usually 8)
+# Uses "save" icon and is only shown when form is ready to run
+SECTION_RESULT = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label_key="result",
+    depends_on={"input_layer_id": {"$ne": None}},
+)
+# Result section variant for routing-based tools (heatmaps)
+SECTION_RESULT_ROUTING = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label_key="result",
+    depends_on={"routing_mode": {"$ne": None}},
+)
+# Result section variant for aggregate tools
+SECTION_RESULT_AGGREGATE = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label_key="result",
+    depends_on={"source_layer_id": {"$ne": None}},
 )
 SECTION_STATISTICS = UISection(id="statistics", order=3, icon="chart")
 SECTION_TIME = UISection(id="time", order=3, icon="clock")
@@ -142,6 +177,8 @@ class UIFieldConfig:
     section: str
     field_order: int = 0
     label_key: str | None = None
+    label: str | None = None  # Direct label text (overrides label_key)
+    label_de: str | None = None  # German translation of label
     description_key: str | None = None
     hidden: bool = False
     advanced: bool = False
@@ -164,7 +201,12 @@ class UIFieldConfig:
             "field_order": self.field_order,
         }
 
-        if self.label_key:
+        # Use direct label if provided, otherwise use label_key
+        if self.label:
+            result["label"] = self.label
+            if self.label_de:
+                result["label_de"] = self.label_de
+        elif self.label_key:
             result["label_key"] = self.label_key
         if self.description_key:
             result["description_key"] = self.description_key
@@ -201,6 +243,8 @@ def ui_field(
     section: str,
     field_order: int = 0,
     label_key: str | None = None,
+    label: str | None = None,
+    label_de: str | None = None,
     description_key: str | None = None,
     hidden: bool = False,
     advanced: bool = False,
@@ -304,6 +348,8 @@ def ui_field(
         section=section,
         field_order=field_order,
         label_key=label_key,
+        label=label,
+        label_de=label_de,
         description_key=description_key,
         hidden=hidden,
         advanced=advanced,

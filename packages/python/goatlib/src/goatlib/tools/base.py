@@ -989,7 +989,10 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             Dict with layer metadata (ToolOutputBase format)
         """
         output_layer_id = str(uuid_module.uuid4())
-        output_name = params.output_name or self.default_output_name
+        # Use result_layer_name first (new field), then output_name (legacy), then default
+        output_name = (
+            params.result_layer_name or params.output_name or self.default_output_name
+        )
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "

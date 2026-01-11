@@ -21,6 +21,7 @@ from goatlib.analysis.schemas.base import FieldStatistic
 from goatlib.analysis.schemas.ui import (
     SECTION_AREA,
     SECTION_INPUT_AGGREGATE,
+    SECTION_RESULT_AGGREGATE,
     SECTION_STATISTICS,
     UISection,
     ui_field,
@@ -28,7 +29,11 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +52,7 @@ class AggregatePolygonToolParams(
             SECTION_INPUT_AGGREGATE,
             SECTION_AREA,
             SECTION_STATISTICS,
+            SECTION_RESULT_AGGREGATE,
             UISection(
                 id="scenario",
                 order=8,
@@ -173,13 +179,28 @@ class AggregatePolygonToolParams(
         )
         return self
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("aggregate_polygon", "en"),
+        description="Name for the aggregate polygon result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("aggregate_polygon", "en"),
+                "default_de": get_default_layer_name("aggregate_polygon", "de"),
+            },
+        ),
+    )
+
 
 class AggregatePolygonToolRunner(BaseToolRunner[AggregatePolygonToolParams]):
     """Aggregate Polygon tool runner for Windmill."""
 
     tool_class = AggregatePolygonTool
     output_geometry_type = "polygon"
-    default_output_name = "Aggregated_Polygons"
+    default_output_name = get_default_layer_name("aggregate_polygons", "en")
 
     def get_layer_properties(
         self: Self,

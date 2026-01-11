@@ -14,6 +14,7 @@ from goatlib.analysis.schemas.heatmap import HeatmapClosestAverageParams
 from goatlib.analysis.schemas.ui import (
     SECTION_CONFIGURATION,
     SECTION_OPPORTUNITIES,
+    SECTION_RESULT_ROUTING,
     SECTION_ROUTING,
     UISection,
     ui_field,
@@ -21,7 +22,11 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 from goatlib.tools.style import get_heatmap_style
 
 logger = logging.getLogger(__name__)
@@ -40,6 +45,7 @@ class HeatmapClosestAverageToolParams(
             SECTION_ROUTING,
             SECTION_CONFIGURATION,
             SECTION_OPPORTUNITIES,
+            SECTION_RESULT_ROUTING,
             UISection(
                 id="scenario",
                 order=8,
@@ -58,13 +64,28 @@ class HeatmapClosestAverageToolParams(
     )
     output_path: str | None = None  # type: ignore[assignment]
 
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("heatmap_closest_average", "en"),
+        description="Name for the heatmap closest average result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_closest_average", "en"),
+                "default_de": get_default_layer_name("heatmap_closest_average", "de"),
+            },
+        ),
+    )
+
 
 class HeatmapClosestAverageToolRunner(BaseToolRunner[HeatmapClosestAverageToolParams]):
     """Heatmap Closest Average tool runner for Windmill."""
 
     tool_class = HeatmapClosestAverageTool
     output_geometry_type = "polygon"  # H3 cells
-    default_output_name = "Heatmap_Closest_Average"
+    default_output_name = get_default_layer_name("heatmap_closest_average", "en")
 
     def get_layer_properties(
         self: Self,

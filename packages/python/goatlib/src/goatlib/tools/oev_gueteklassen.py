@@ -25,7 +25,11 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import ScenarioSelectorMixin, ToolInputBase
+from goatlib.tools.schemas import (
+    get_default_layer_name,
+    ScenarioSelectorMixin,
+    ToolInputBase,
+)
 from goatlib.tools.style import (
     get_oev_gueteklassen_stations_style,
     get_oev_gueteklassen_style,
@@ -36,9 +40,18 @@ logger = logging.getLogger(__name__)
 # Default GTFS data path from environment
 GTFS_DATA_PATH = os.environ.get("GTFS_DATA_PATH", "/app/data/gtfs")
 
-# Section definitions for this tool (no depends_on conditions)
+# Section definitions for this tool
+# Order: calculation_time (1), configuration (2), result (7), scenario (8)
 SECTION_CALCULATION_TIME = UISection(id="calculation_time", order=1, icon="clock")
 SECTION_OEV_CONFIGURATION = UISection(id="configuration", order=2, icon="settings")
+SECTION_RESULT_OEV = UISection(
+    id="result",
+    order=7,
+    icon="save",
+    label="Result Layer",
+    label_de="Ergebnisebene",
+    depends_on={"reference_area_layer_id": {"$ne": None}},
+)
 
 
 class CatchmentType(StrEnum):
@@ -58,6 +71,7 @@ class OevGueteklassenToolParams(ScenarioSelectorMixin, ToolInputBase):
         "json_schema_extra": ui_sections(
             SECTION_CALCULATION_TIME,
             SECTION_OEV_CONFIGURATION,
+            SECTION_RESULT_OEV,
             UISection(
                 id="scenario",
                 order=8,
@@ -126,6 +140,38 @@ class OevGueteklassenToolParams(ScenarioSelectorMixin, ToolInputBase):
         json_schema_extra=ui_field(section="configuration", field_order=3, hidden=True),
     )
 
+    # =========================================================================
+    # Result Layer Naming Section
+    # =========================================================================
+    # Override result_layer_name with tool-specific defaults
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("oev_gueteklassen", "en"),
+        description="Name for the ÖV-Güteklassen result layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("oev_gueteklassen", "en"),
+                "default_de": get_default_layer_name("oev_gueteklassen", "de"),
+            },
+        ),
+    )
+
+    stations_layer_name: str | None = Field(
+        default=get_default_layer_name("oev_gueteklassen_stations", "en"),
+        description="Custom name for the stations layer.",
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=2,
+            label_key="stations_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("oev_gueteklassen_stations", "en"),
+                "default_de": get_default_layer_name("oev_gueteklassen_stations", "de"),
+            },
+        ),
+    )
+
     # Hidden internal fields
     reference_area_path: str | None = None  # type: ignore[assignment]
     stops_path: str | None = Field(
@@ -150,7 +196,8 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
 
     tool_class = OevGueteklasseTool
     output_geometry_type = "polygon"
-    default_output_name = "ÖV-Güteklasse"
+    default_output_name = get_default_layer_name("oev_gueteklassen", "en")
+    default_stations_name = get_default_layer_name("oev_gueteklassen_stations", "en")
 
     # Store stations output path for secondary layer creation
     _stations_parquet: Path | None = None
@@ -234,13 +281,15 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
 
         from goatlib.tools.schemas import ToolOutputBase
 
-        # Main polygon layer
+        # Main polygon layer - use result_layer_name, then output_name, then default
         output_layer_id = str(uuid_module.uuid4())
-        output_name = params.output_name or self.default_output_name
+        output_name = (
+            params.result_layer_name or params.output_name or self.default_output_name
+        )
 
-        # Stations layer
+        # Stations layer - use custom name or default
         stations_layer_id = str(uuid_module.uuid4())
-        stations_output_name = f"{output_name} Stationen"
+        stations_output_name = params.stations_layer_name or self.default_stations_name
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "
