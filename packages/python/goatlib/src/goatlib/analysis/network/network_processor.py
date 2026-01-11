@@ -3,6 +3,7 @@ import uuid
 from typing import Any, Dict
 
 from goatlib.analysis.core.base import AnalysisTool
+from goatlib.io.parquet import write_optimized_parquet
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -338,8 +339,11 @@ class InMemoryNetworkProcessor(AnalysisTool):
 
     def save_table_to_file(self, table_name: str, output_path: str) -> None:
         """Save table to parquet file."""
-        self.con.execute(
-            f"COPY {table_name} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            table_name,
+            output_path,
+            geometry_column="geometry",
         )
 
     def save_table_to_tmp(self, table_name: str) -> str:

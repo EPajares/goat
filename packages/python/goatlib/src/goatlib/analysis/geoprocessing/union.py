@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.geoprocessing import UnionParams
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -211,8 +212,11 @@ class UnionTool(AnalysisTool):
             output_view = "unioned_transformed"
 
         # Export to file
-        self.con.execute(
-            f"COPY {output_view} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            output_view,
+            output_path,
+            geometry_column=input_geom,
         )
 
         logger.info("Self-union data written to %s", output_path)
@@ -358,8 +362,11 @@ class UnionTool(AnalysisTool):
             output_view = "unioned_transformed"
 
         # Export to file
-        self.con.execute(
-            f"COPY {output_view} TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            output_view,
+            output_path,
+            geometry_column=input_geom,
         )
 
         logger.info("Two-layer union data written to %s", output_path)

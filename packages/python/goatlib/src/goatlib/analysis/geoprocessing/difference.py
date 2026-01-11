@@ -4,6 +4,7 @@ from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.geoprocessing import DifferenceParams
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -178,8 +179,11 @@ class DifferenceTool(AnalysisTool):
         """)
 
         # Export view result to file
-        self.con.execute(
-            f"COPY difference_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            self.con,
+            "difference_result",
+            output_path,
+            geometry_column=input_geom,
         )
 
         logger.info("Difference data written to %s", output_path)

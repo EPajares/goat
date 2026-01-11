@@ -9,8 +9,8 @@ from goatlib.analysis.schemas.data_management import (
     JoinType,
     MultipleMatchingRecordsType,
     SpatialRelationshipType,
-    StatisticOperation,
 )
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -192,16 +192,19 @@ class JoinTool(AnalysisTool):
         select_fields = ", ".join(target_fields + join_fields)
 
         query = f"""
-        COPY (
             SELECT {select_fields}
             FROM {target_table} target
             {join_type_sql} {join_table} join_data
             ON {join_condition}
-        ) TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)
         """
 
         logger.info("Executing one-to-many join")
-        con.execute(query)
+        write_optimized_parquet(
+            con,
+            query,
+            output_path,
+            geometry_column="geometry",
+        )
 
     def _execute_one_to_one_join(
         self: Self,
@@ -309,8 +312,11 @@ class JoinTool(AnalysisTool):
         WHERE rn = 1 OR rn IS NULL  -- Keep first match or unmatched targets (for LEFT JOIN)
         """)
 
-        con.execute(
-            f"COPY ranked_joins TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            con,
+            "ranked_joins",
+            output_path,
+            geometry_column="geometry",
         )
 
     def _execute_statistical_join(
@@ -351,8 +357,11 @@ class JoinTool(AnalysisTool):
         """
 
         con.execute(query)
-        con.execute(
-            f"COPY aggregated_joins TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            con,
+            "aggregated_joins",
+            output_path,
+            geometry_column="geometry",
         )
 
     def _execute_count_only_join(
@@ -378,8 +387,11 @@ class JoinTool(AnalysisTool):
         """
 
         con.execute(query)
-        con.execute(
-            f"COPY count_joins TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        write_optimized_parquet(
+            con,
+            "count_joins",
+            output_path,
+            geometry_column="geometry",
         )
 
     def _get_table_fields(

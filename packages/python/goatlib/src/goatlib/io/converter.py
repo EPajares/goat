@@ -12,6 +12,7 @@ import duckdb
 
 from goatlib.config import settings
 from goatlib.io.formats import ALL_EXTS, FileFormat
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.io.utils import detect_path_type, download_if_remote
 from goatlib.models.io import DatasetMetadata
 
@@ -299,7 +300,12 @@ class IOConverter:
 
         # Execute conversion
         logger.info("Writing Parquet file: %s", out_path)
-        self._execute_parquet_conversion(query, out_path, geom_info.has_geometry)
+        self._execute_parquet_conversion(
+            query,
+            out_path,
+            geom_info.has_geometry,
+            geometry_column=geom_info.output_column or "geometry",
+        )
 
         # Build metadata
         logger.debug("Finalizing metadata for: %s", out_path)
@@ -639,12 +645,28 @@ class IOConverter:
             raise ValueError(f"Failed to execute query: {e}")
 
     def _execute_parquet_conversion(
-        self: Self, query: str, out_path: Path, has_geometry: bool
+        self: Self,
+        query: str,
+        out_path: Path,
+        has_geometry: bool,
+        geometry_column: str = "geometry",
     ) -> None:
-        """Execute the conversion query and save to Parquet."""
+        """Execute the conversion query and save to Parquet.
+
+        Uses optimized Parquet V2 format. For spatial data, also adds:
+        - Hilbert spatial sorting for locality
+        - Bounding box columns for fast row group pruning
+        """
         logger.debug("DuckDB COPY start: %s", out_path)
-        self.con.execute(
-            f"COPY ({query}) TO '{out_path}' (FORMAT PARQUET, COMPRESSION ZSTD);"
+
+        # write_optimized_parquet handles both geo and non-geo cases
+        # - Always uses Parquet V2 for better compression
+        # - For geo: adds bbox columns and Hilbert sorting
+        write_optimized_parquet(
+            self.con,
+            query,
+            out_path,
+            geometry_column=geometry_column,
         )
 
     def _build_parquet_metadata(

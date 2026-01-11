@@ -18,7 +18,6 @@ from core.core.config import settings
 from core.db.session import session_manager
 from core.endpoints.deps import close_http_client
 from core.endpoints.v2.api import router as api_router_v2
-from core.storage.ducklake import ducklake_manager
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT:
     sentry_sdk.init(
@@ -32,7 +31,6 @@ if settings.SENTRY_DSN and settings.ENVIRONMENT:
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     print("Starting up...")
     session_manager.init(settings.ASYNC_SQLALCHEMY_DATABASE_URI)
-    ducklake_manager.init(settings)
     logger = logging.getLogger("uvicorn.access")
     handler = logging.StreamHandler()
     handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
@@ -40,7 +38,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     print("Shutting down...")
     await session_manager.close()
-    ducklake_manager.close()
     await close_http_client()
 
 

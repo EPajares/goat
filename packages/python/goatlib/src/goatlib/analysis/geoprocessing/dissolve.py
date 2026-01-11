@@ -7,10 +7,11 @@ Equivalent to QGIS "Auflösen" or ArcGIS "Dissolve".
 
 import logging
 from pathlib import Path
-from typing import List, Optional, Self, Tuple
+from typing import List, Self, Tuple
 
 from goatlib.analysis.core.base import AnalysisTool
 from goatlib.analysis.schemas.geoprocessing import DissolveParams
+from goatlib.io.parquet import write_optimized_parquet
 from goatlib.models.io import DatasetMetadata
 
 logger = logging.getLogger(__name__)
@@ -94,9 +95,12 @@ class DissolveTool(AnalysisTool):
         # Execute dissolve operation
         self._execute_dissolve(params, input_table, input_geom)
 
-        # Export results
-        self.con.execute(
-            f"COPY dissolve_result TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+        # Export results with optimized parquet
+        write_optimized_parquet(
+            self.con,
+            "dissolve_result",
+            output_path,
+            geometry_column="geometry",
         )
 
         logger.info("Dissolve completed. Output: %s", output_path)

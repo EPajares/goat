@@ -212,18 +212,6 @@ class Settings(BaseSettings):
     PRINT_TIMEOUT: int = 120  # seconds to wait for page to render
     PRINT_OUTPUT_DIR: Optional[str] = "prints"  # S3 subdirectory for print outputs
 
-    # DuckLake settings for user data storage
-    # When enabled, new layers use DuckLake/GeoParquet instead of PostgreSQL
-    DUCKLAKE_ENABLED: bool = False
-    DUCKLAKE_CATALOG_SCHEMA: str = "ducklake"  # PostgreSQL schema for DuckLake catalog
-    # Storage path: defaults to DATA_DIR/ducklake, can override with S3 bucket
-    DUCKLAKE_S3_ENDPOINT: Optional[str] = None  # e.g., "http://minio:9000"
-    DUCKLAKE_S3_ACCESS_KEY: Optional[str] = None
-    DUCKLAKE_S3_SECRET_KEY: Optional[str] = None
-    DUCKLAKE_S3_BUCKET: Optional[str] = (
-        None  # e.g., "s3://goat-ducklake" - if set, uses S3 instead of local
-    )
-
     class Config:
         case_sensitive = True
 
