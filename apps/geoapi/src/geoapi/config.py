@@ -55,6 +55,17 @@ class Settings(BaseSettings):
     )
     S3_BUCKET_NAME: Optional[str] = os.getenv("S3_BUCKET_NAME")
 
+    # Hidden fields - columns to exclude from API responses (tiles and features)
+    # These are internal/structural columns that shouldn't be exposed to clients
+    # Can be overridden via GEOAPI_HIDDEN_FIELDS env var (comma-separated)
+    HIDDEN_FIELDS: set[str] = {
+        "bbox",  # GeoParquet 1.1 bounding box struct
+        "$minx",
+        "$miny",
+        "$maxx",
+        "$maxy",  # Legacy scalar bbox columns
+    }
+
     # MVT Settings
     MAX_FEATURES_PER_TILE: int = 15000
     DEFAULT_TILE_BUFFER: int = 256
@@ -98,4 +109,23 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "GEOAPI_", "case_sensitive": True}
 
 
+def _get_hidden_fields() -> set[str]:
+    """Get hidden fields from env var or default.
+
+    Environment variable format: GEOAPI_HIDDEN_FIELDS=bbox,$minx,$miny,$maxx,$maxy
+    """
+    env_value = os.getenv("GEOAPI_HIDDEN_FIELDS")
+    if env_value:
+        return {f.strip() for f in env_value.split(",") if f.strip()}
+    return {
+        "bbox",  # GeoParquet 1.1 bounding box struct
+        "$minx",
+        "$miny",
+        "$maxx",
+        "$maxy",  # Legacy scalar bbox columns
+    }
+
+
+# Create settings and update HIDDEN_FIELDS from env var if set
 settings = Settings()
+settings.HIDDEN_FIELDS = _get_hidden_fields()

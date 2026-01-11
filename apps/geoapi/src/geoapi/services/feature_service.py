@@ -9,6 +9,7 @@ from typing import Any, Optional
 
 from goatlib.storage import build_filters, build_order_clause
 
+from geoapi.config import settings
 from geoapi.dependencies import LayerInfo
 from geoapi.ducklake import ducklake_manager
 from geoapi.ducklake_pool import execute_with_retry
@@ -43,8 +44,12 @@ def sanitize_string(value: Any) -> Any:
 
 
 def sanitize_properties(properties: dict[str, Any]) -> dict[str, Any]:
-    """Sanitize all string values in properties dict."""
-    return {k: sanitize_string(v) for k, v in properties.items()}
+    """Sanitize all string values in properties dict and remove hidden fields."""
+    return {
+        k: sanitize_string(v)
+        for k, v in properties.items()
+        if k not in settings.HIDDEN_FIELDS
+    }
 
 
 class FeatureService:
