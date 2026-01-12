@@ -1,6 +1,6 @@
 import logging
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -217,6 +217,15 @@ class OpportunityBase(BaseModel):
             widget="layer-selector",
         ),
     )
+    input_layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the opportunity layer",
+        json_schema_extra=ui_field(
+            section="opportunities",
+            field_order=2,
+            hidden=True,
+        ),
+    )
     name: str | None = Field(
         None,
         description=(
@@ -225,7 +234,7 @@ class OpportunityBase(BaseModel):
         ),
         json_schema_extra=ui_field(
             section="opportunities",
-            field_order=2,
+            field_order=3,
             hidden=True,  # Auto-populated from layer filename
         ),
     )
@@ -234,7 +243,7 @@ class OpportunityBase(BaseModel):
         description="Travel time limit in minutes.",
         json_schema_extra=ui_field(
             section="opportunities",
-            field_order=3,
+            field_order=4,
             label_key="max_cost",
             visible_when={"input_path": {"$ne": None}},
         ),

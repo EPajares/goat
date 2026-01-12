@@ -5,7 +5,7 @@
  * Used for array fields with complex object items (e.g., opportunities in heatmap tools).
  */
 import { Box, Button, Divider, IconButton, Stack, Typography, useTheme } from "@mui/material";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { v4 as uuidv4 } from "uuid";
 
@@ -21,6 +21,8 @@ interface RepeatableObjectInputProps {
   input: ProcessedInput;
   value: Record<string, unknown>[] | undefined;
   onChange: (value: Record<string, unknown>[] | undefined) => void;
+  /** Callback to report filters for nested layer inputs */
+  onNestedFiltersChange?: (filters: Record<string, Record<string, unknown> | undefined>[]) => void;
   disabled?: boolean;
   /** Schema definitions ($defs) for resolving $ref */
   schemaDefs?: Record<string, OGCInputSchema>;
@@ -151,12 +153,17 @@ export default function RepeatableObjectInput({
   input,
   value,
   onChange,
+  onNestedFiltersChange,
   disabled,
   schemaDefs,
   formValues: _formValues,
 }: RepeatableObjectInputProps) {
   const { t } = useTranslation("common");
   const theme = useTheme();
+
+  // Track filters for nested layer inputs
+  // Structure: itemFilters[itemIndex][layerFieldName] = filter
+  const [itemFilters, setItemFilters] = useState<Record<number, Record<string, Record<string, unknown> | undefined>>>({});
 
   // Get item schema (resolve $ref if needed)
   // Handle anyOf pattern for nullable arrays: anyOf: [{type: "array", items: {...}}, {type: "null"}]
@@ -270,6 +277,33 @@ export default function RepeatableObjectInput({
     [items, onChange, layerInputNames, itemSchema, schemaDefs]
   );
 
+  // Handle filter change for a nested layer input
+  const handleItemFilterChange = useCallback(
+    (index: number, propName: string, filter: Record<string, unknown> | undefined) => {
+      setItemFilters((prev) => {
+        const newFilters = {
+          ...prev,
+          [index]: {
+            ...(prev[index] || {}),
+            [propName]: filter,
+          },
+        };
+        
+        // Notify parent immediately with updated filters
+        if (onNestedFiltersChange) {
+          const filtersArray: Record<string, Record<string, unknown> | undefined>[] = [];
+          for (let i = 0; i < items.length; i++) {
+            filtersArray.push(newFilters[i] || {});
+          }
+          onNestedFiltersChange(filtersArray);
+        }
+        
+        return newFilters;
+      });
+    },
+    [items.length, onNestedFiltersChange]
+  );
+
   // Get all selected layer IDs across all items for each layer input
   // This prevents selecting the same layer twice across items
   const selectedLayerIdsByInput = useMemo(() => {
@@ -335,6 +369,11 @@ export default function RepeatableObjectInput({
                   input={inputDef}
                   value={itemValues[inputDef.name]}
                   onChange={(newValue) => handleItemChange(index, inputDef.name, newValue)}
+                  onFilterChange={
+                    inputDef.inputType === "layer"
+                      ? (filter) => handleItemFilterChange(index, inputDef.name, filter)
+                      : undefined
+                  }
                   disabled={disabled}
                   formValues={{ ..._formValues, ...itemValues }}
                   schemaDefs={schemaDefs}

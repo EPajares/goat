@@ -28,19 +28,19 @@ type ReleaseNote = {
 };
 
 const releaseNotesEnglish: ReleaseNote = {
-  title: 'GOAT 2.2.0 "Cashmere" is here',
-  date: "December 16, 2025",
+  title: 'GOAT 2.3.0 "Tarn" is here',
+  date: "January 13, 2026",
   thumbnail:
-    "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/693fb15bef07eb7497624d4d_GOAT_new-version_cover-p-1600.webp",
-  url: "https://www.plan4better.de/en/post/goat-2-2-0-cashmere-is-here",
+    "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/6964f6ab66d9b7fec644a6b5_blogpost_cover-p-1600.webp",
+  url: "https://www.plan4better.de/en/post/goat-2-3-0-tarn-is-here",
 };
 
 const releaseNotesGerman: ReleaseNote = {
-  title: 'GOAT 2.2.0 „Cashmere" ist da',
-  date: "16. Dezember 2025",
+  title: 'GOAT 2.3.0 „Tarn" ist da',
+  date: "13. Januar 2026",
   thumbnail:
-    "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/693fb15bef07eb7497624d4d_GOAT_new-version_cover-p-1600.webp",
-  url: "https://www.plan4better.de/de/post/goat-2-2-0-cashmere-ist-da",
+    "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/6964f6ab66d9b7fec644a6b5_blogpost_cover-p-1600.webp",
+  url: "https://www.plan4better.de/de/post/goat-2-3-0-tarn-ist-da",
 };
 
 export default function WhatsNewPopper() {

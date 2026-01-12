@@ -88,7 +88,7 @@ class AggregatePolygonToolParams(
         json_schema_extra=ui_field(
             section="input",
             field_order=1,
-            label_key="select_source_layer",
+            label_key="select_source_polygon_layer",
             widget="layer-selector",
             widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
         ),
@@ -128,9 +128,9 @@ class AggregatePolygonToolParams(
         ),
     )
 
-    column_statistics: FieldStatistic = Field(
+    column_statistics: List[FieldStatistic] = Field(
         ...,
-        description="Statistical operation to perform on the aggregated polygons.",
+        description="Statistical operations to perform on the aggregated polygons.",
         json_schema_extra=ui_field(
             section="statistics",
             field_order=1,
@@ -210,8 +210,9 @@ class AggregatePolygonToolRunner(BaseToolRunner[AggregatePolygonToolParams]):
     ) -> dict[str, Any] | None:
         """Return style for aggregated output with quantile breaks."""
         # Determine the value field based on the statistics operation
-        stat_op = params.column_statistics.operation
-        stat_field = params.column_statistics.field
+        # Use first statistic for styling
+        stat_op = params.column_statistics[0].operation
+        stat_field = params.column_statistics[0].field
 
         if stat_op.value == "count":
             color_field = "count"

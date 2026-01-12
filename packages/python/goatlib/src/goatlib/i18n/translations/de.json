@@ -411,6 +411,14 @@
       "label": "Eingabe-Punkt-Layer",
       "description": "Wählen Sie den zu aggregierenden Layer"
     },
+    "select_source_point_layer": {
+      "label": "Eingabe-Punkt-Layer",
+      "description": "Wählen Sie den zu aggregierenden Punkt-Layer"
+    },
+    "select_source_polygon_layer": {
+      "label": "Eingabe-Polygon-Layer",
+      "description": "Wählen Sie den zu aggregierenden Polygon-Layer"
+    },
     "area_type": {
       "label": "Flächentyp",
       "description": "Art der Fläche für die Aggregation"
@@ -844,6 +852,7 @@
     "trip_count": "Anzahl Abfahrten Haltepunkte",
     "origin_destination_lines": "QZ Linien",
     "origin_destination_points": "QZ Punkte",
-    "join": "Objekte verbinden"
+    "join": "Objekte verbinden",
+    "geocoding": "Geokodierung"
   }
 }

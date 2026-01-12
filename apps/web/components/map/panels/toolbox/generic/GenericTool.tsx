@@ -106,6 +106,10 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
   // e.g., { "input_layer_id": { "op": "=", ... }, "overlay_layer_id": { ... } }
   const [layerFilters, setLayerFilters] = useState<Record<string, Record<string, unknown> | undefined>>({});
 
+  // Nested layer filters for repeatable objects
+  // Structure: { "opportunities": [{ "input_layer_id": {...filter...} }, {...}] }
+  const [nestedLayerFilters, setNestedLayerFilters] = useState<Record<string, Record<string, Record<string, unknown> | undefined>[]>>({});
+
   // Section collapse state
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 
@@ -214,6 +218,14 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     }));
   }, []);
 
+  // Update nested filters for a repeatable object input
+  const handleNestedFiltersChange = useCallback((inputName: string, filters: Record<string, Record<string, unknown> | undefined>[]) => {
+    setNestedLayerFilters((prev) => ({
+      ...prev,
+      [inputName]: filters,
+    }));
+  }, []);
+
   // Toggle section collapse
   const toggleSection = useCallback((sectionId: string) => {
     setCollapsedSections((prev) => ({
@@ -236,6 +248,7 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
       const defaults = getDefaultValues(process);
       setValues(defaults);
       setLayerFilters({});
+      setNestedLayerFilters({});
       // Clear starting points from Redux
       dispatch(setToolboxStartingPoints(undefined));
     }
@@ -339,20 +352,36 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
           }
 
           if (resolvedItemSchema?.properties) {
-            // Find layer field names in the item schema
+            // Find layer field names and their corresponding filter field names
             const layerFieldNames: string[] = [];
+            const layerToFilterMap: Record<string, string> = {};
+            
             for (const [fieldName, fieldSchema] of Object.entries(resolvedItemSchema.properties)) {
               const schema = fieldSchema as Record<string, unknown>;
               const uiMeta = schema["x-ui"] as { widget?: string } | undefined;
               if (uiMeta?.widget === "layer-selector") {
                 layerFieldNames.push(fieldName);
+                
+                // Find corresponding filter field by looking for fields that contain 'filter' in their name
+                // Common patterns: input_layer_filter, input_path_filter, etc.
+                for (const [filterFieldName, filterFieldSchema] of Object.entries(resolvedItemSchema.properties)) {
+                  const filterSchema = filterFieldSchema as Record<string, unknown>;
+                  const filterUiMeta = filterSchema["x-ui"] as { hidden?: boolean } | undefined;
+                  // Filter fields are typically hidden and contain 'filter' in the name
+                  if (filterUiMeta?.hidden && filterFieldName.includes("filter")) {
+                    layerToFilterMap[fieldName] = filterFieldName;
+                    break;
+                  }
+                }
               }
             }
 
-            // Convert layer IDs in each array item
+            // Convert layer IDs in each array item and inject filters
             if (layerFieldNames.length > 0) {
               const items = visibleValues[input.name] as Record<string, unknown>[];
-              visibleValues[input.name] = items.map((item) => {
+              const itemFilters = nestedLayerFilters[input.name] || [];
+              
+              visibleValues[input.name] = items.map((item, itemIndex) => {
                 const convertedItem = { ...item };
                 for (const fieldName of layerFieldNames) {
                   if (convertedItem[fieldName]) {
@@ -360,6 +389,13 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                     if (layerId) {
                       convertedItem[fieldName] = layerId;
                     }
+                  }
+                  
+                  // Inject filter for this layer field using the mapped filter field name
+                  const filterFieldName = layerToFilterMap[fieldName];
+                  const filter = itemFilters[itemIndex]?.[fieldName];
+                  if (filter && filterFieldName) {
+                    convertedItem[filterFieldName] = filter;
                   }
                 }
                 // Remove internal _id field used for React keys
@@ -531,6 +567,11 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                                 ? (filter) => handleFilterChange(input.name, filter)
                                 : undefined
                             }
+                            onNestedFiltersChange={
+                              input.inputType === "repeatable-object"
+                                ? (filters) => handleNestedFiltersChange(input.name, filters)
+                                : undefined
+                            }
                             disabled={isExecuting}
                             formValues={effectiveValues}
                             schemaDefs={process.$defs}
@@ -550,6 +591,11 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
                               onFilterChange={
                                 input.inputType === "layer"
                                   ? (filter) => handleFilterChange(input.name, filter)
+                                  : undefined
+                              }
+                              onNestedFiltersChange={
+                                input.inputType === "repeatable-object"
+                                  ? (filters) => handleNestedFiltersChange(input.name, filters)
                                   : undefined
                               }
                               disabled={isExecuting}

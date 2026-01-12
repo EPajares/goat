@@ -13,8 +13,10 @@ from goatlib.analysis.geoanalysis.aggregate_points import AggregatePointsTool
 from goatlib.analysis.schemas.aggregate import (
     AggregatePointsParams,
     AggregationAreaType,
-    ColumnStatistic,
-    StatisticsOperation,
+)
+from goatlib.analysis.schemas.base import (
+    FieldStatistic,
+    StatisticOperation,
 )
 
 
@@ -35,8 +37,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             output_path=output_path,
@@ -52,17 +54,15 @@ class TestAggregatePointsPolygon:
         # Verify results
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         # Should have 10 polygons (zipcodes)
         assert len(df) == 10
-        # Should have sum column
-        assert "sum" in df.columns
+        # Should have sum_value column
+        assert "sum_value" in df.columns
         # All sum values should be >= 0
-        assert (df["sum"] >= 0).all()
+        assert (df["sum_value"] >= 0).all()
 
     def test_aggregate_points_count(self, tmp_path: Path) -> None:
         """Test aggregating points with COUNT operation."""
@@ -72,8 +72,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             output_path=output_path,
         )
@@ -86,9 +86,7 @@ class TestAggregatePointsPolygon:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         assert len(df) == 10
@@ -104,8 +102,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.mean,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.mean,
                 field="value",
             ),
             output_path=output_path,
@@ -118,13 +116,11 @@ class TestAggregatePointsPolygon:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         assert len(df) == 10
-        assert "mean" in df.columns
+        assert "mean_value" in df.columns
 
     def test_aggregate_points_min_max(self, tmp_path: Path) -> None:
         """Test aggregating points with MIN and MAX operations."""
@@ -136,8 +132,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.min,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.min,
                 field="value",
             ),
             output_path=output_path_min,
@@ -152,15 +148,15 @@ class TestAggregatePointsPolygon:
             f"SELECT * FROM read_parquet('{output_path_min}')"
         ).fetchdf()
 
-        assert "min" in df_min.columns
+        assert "min_value" in df_min.columns
 
         # Test MAX
         params_max = AggregatePointsParams(
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.max,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.max,
                 field="value",
             ),
             output_path=output_path_max,
@@ -174,7 +170,7 @@ class TestAggregatePointsPolygon:
         ).fetchdf()
         con.close()
 
-        assert "max" in df_max.columns
+        assert "max_value" in df_max.columns
 
     def test_aggregate_points_with_group_by(self, tmp_path: Path) -> None:
         """Test aggregating points with GROUP BY on category field."""
@@ -184,8 +180,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             group_by_field=["category"],
@@ -199,15 +195,13 @@ class TestAggregatePointsPolygon:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         assert len(df) == 10
         # Should have total sum and grouped sum columns
-        assert "sum" in df.columns
-        assert "sum_grouped" in df.columns
+        assert "sum_value" in df.columns
+        assert "sum_value_grouped" in df.columns
 
     def test_aggregate_preserves_area_attributes(self, tmp_path: Path) -> None:
         """Test that aggregation preserves area layer attributes."""
@@ -217,8 +211,8 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             output_path=output_path,
         )
@@ -228,9 +222,7 @@ class TestAggregatePointsPolygon:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         # Original zipcode_polygon has: plz, note, zipcode columns
@@ -250,8 +242,8 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             output_path=output_path,
@@ -265,14 +257,12 @@ class TestAggregatePointsH3:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         # Should have H3 index column and sum column
         assert "h3_8" in df.columns
-        assert "sum" in df.columns
+        assert "sum_value" in df.columns
         assert "geom" in df.columns
         # Should have some H3 cells
         assert len(df) > 0
@@ -285,8 +275,8 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=6,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             output_path=output_path,
         )
@@ -298,9 +288,7 @@ class TestAggregatePointsH3:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         assert "h3_6" in df.columns
@@ -316,8 +304,8 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=7,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             group_by_field=["category"],
@@ -331,18 +319,14 @@ class TestAggregatePointsH3:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         assert "h3_7" in df.columns
-        assert "sum" in df.columns
-        assert "sum_grouped" in df.columns
+        assert "sum_value" in df.columns
+        assert "sum_value_grouped" in df.columns
 
-    def test_aggregate_points_h3_different_resolutions(
-        self, tmp_path: Path
-    ) -> None:
+    def test_aggregate_points_h3_different_resolutions(self, tmp_path: Path) -> None:
         """Test H3 aggregation at different resolutions."""
         for resolution in [5, 8, 10]:
             output_path = str(tmp_path / f"aggregate_h3_res{resolution}.parquet")
@@ -351,8 +335,8 @@ class TestAggregatePointsH3:
                 source_path=POINTS_WITH_CATEGORY,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=resolution,
-                column_statistics=ColumnStatistic(
-                    operation=StatisticsOperation.count,
+                column_statistics=FieldStatistic(
+                    operation=StatisticOperation.count,
                 ),
                 output_path=output_path,
             )
@@ -362,9 +346,7 @@ class TestAggregatePointsH3:
 
             con = duckdb.connect()
             con.execute("INSTALL spatial; LOAD spatial;")
-            df = con.execute(
-                f"SELECT * FROM read_parquet('{output_path}')"
-            ).fetchdf()
+            df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
             con.close()
 
             assert f"h3_{resolution}" in df.columns
@@ -397,8 +379,8 @@ class TestAggregatePointsEdgeCases:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=empty_polygon_path,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             output_path=output_path,
         )
@@ -410,9 +392,7 @@ class TestAggregatePointsEdgeCases:
 
         con = duckdb.connect()
         con.execute("INSTALL spatial; LOAD spatial;")
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_path}')"
-        ).fetchdf()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
         # Should have the polygon with count = 0
@@ -436,8 +416,8 @@ class TestAggregatePointsEdgeCases:
             source_path=source_in_tmp,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=6,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             # No output_path specified
         )
@@ -458,8 +438,8 @@ class TestAggregatePointsEdgeCases:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.count,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.count,
             ),
             output_path=output_path,
         )

@@ -931,17 +931,20 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         items: list,
         user_id: str,
         path_field: str = "input_path",
+        filter_field: str = "input_layer_filter",
     ) -> list:
         """Resolve layer IDs to parquet file paths in a list of Pydantic models.
 
         For each item in the list, if the path_field contains a layer UUID,
         export it to a parquet file and update the field with the file path.
         Also fetches and sets the layer name if not already provided.
+        If a filter_field is present, it will be passed to export_layer_to_parquet.
 
         Args:
             items: List of Pydantic model instances (e.g., opportunities)
             user_id: User UUID for accessing layers
             path_field: Name of the field containing the layer ID/path
+            filter_field: Name of the field containing the CQL2-JSON filter (default: "input_layer_filter")
 
         Returns:
             New list with resolved paths and names
@@ -950,9 +953,16 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         for item in items:
             input_value = getattr(item, path_field, None)
             if self.is_layer_id(input_value):
-                # Export the layer to parquet
-                parquet_path = self.export_layer_to_parquet(input_value, user_id)
+                # Get filter if present
+                cql_filter = getattr(item, filter_field, None)
+
+                # Export the layer to parquet with optional filter
+                parquet_path = self.export_layer_to_parquet(
+                    input_value, user_id, cql_filter=cql_filter
+                )
                 logger.info(f"Exported layer {input_value} to {parquet_path}")
+                if cql_filter:
+                    logger.info(f"Applied filter to layer {input_value}")
 
                 # Fetch layer name if item has 'name' field and it's not set
                 item_dict = item.model_dump()

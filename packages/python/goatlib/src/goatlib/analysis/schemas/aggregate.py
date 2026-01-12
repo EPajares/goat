@@ -141,9 +141,9 @@ class AggregatePointsParams(BaseModel):
     )
 
     # ---- Statistics Configuration ----
-    column_statistics: FieldStatistic = Field(
+    column_statistics: List[FieldStatistic] = Field(
         ...,
-        description="Statistical operation to perform on the aggregated points.",
+        description="Statistical operations to perform on the aggregated points.",
         json_schema_extra=ui_field(
             section="statistics",
             field_order=1,
