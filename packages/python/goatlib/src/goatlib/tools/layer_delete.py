@@ -166,11 +166,17 @@ class LayerDeleteRunner(SimpleToolRunner):
             params.layer_id,
         )
 
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         output = LayerDeleteOutput(
             layer_id=params.layer_id,
             name="",
             folder_id="",
             user_id=params.user_id,
+            wm_labels=wm_labels,
         )
 
         try:

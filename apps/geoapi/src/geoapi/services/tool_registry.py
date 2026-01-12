@@ -382,8 +382,10 @@ class ToolRegistry:
                 continue
 
             # Get field schema from Pydantic-generated full schema (includes $ref, x-ui, etc.)
+            # Need to check both field_name and alias (Pydantic uses alias as property key in JSON schema)
+            schema_key = field_info.alias if field_info.alias else field_name
             field_schema = (
-                full_schema.get("properties", {}).get(field_name, {})
+                full_schema.get("properties", {}).get(schema_key, {})
                 if full_schema
                 else {}
             )

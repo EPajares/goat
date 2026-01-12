@@ -44,7 +44,7 @@ from goatlib.analysis.schemas.ui import (
 )
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
-from goatlib.tools.schemas import get_default_layer_name, ToolInputBase
+from goatlib.tools.schemas import ToolInputBase, get_default_layer_name
 
 logger = logging.getLogger(__name__)
 
@@ -845,6 +845,12 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
         # Build main output
         detected_geom_type = table_info.get("geometry_type")
         is_feature = bool(detected_geom_type)
+
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         output = ToolOutputBase(
             layer_id=output_layer_id,
             name=output_name,
@@ -860,6 +866,7 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
             feature_count=table_info.get("feature_count", 0),
             extent=table_info.get("extent"),
             table_name=table_info["table_name"],
+            wm_labels=wm_labels,
         )
 
         result = output.model_dump()

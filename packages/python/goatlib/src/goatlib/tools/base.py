@@ -996,7 +996,8 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
 
         logger.info(
             f"Starting tool: {self.__class__.__name__} "
-            f"(user={params.user_id}, output={output_layer_id})"
+            f"(user={params.user_id}, output={output_layer_id}, "
+            f"triggered_by={getattr(params, 'triggered_by_email', 'N/A')})"
         )
 
         # Initialize db_service early so it's available in process() for resolve_layer_paths
@@ -1044,6 +1045,14 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         # Detect geometry type from the actual parquet/DuckLake table
         detected_geom_type = table_info.get("geometry_type")
         is_feature = bool(detected_geom_type)
+
+        # Build wm_labels for Windmill job tracking
+        # Include email if provided (injected by GeoAPI from auth token)
+        wm_labels: list[str] = []
+        triggered_by_email = getattr(params, "triggered_by_email", None)
+        if triggered_by_email:
+            wm_labels.append(triggered_by_email)
+
         output = ToolOutputBase(
             layer_id=output_layer_id,
             name=output_name,
@@ -1059,6 +1068,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             feature_count=table_info.get("feature_count", 0),
             extent=table_info.get("extent"),
             table_name=table_info["table_name"],
+            wm_labels=wm_labels,
         )
 
         logger.info(f"Tool completed: {output_layer_id} ({output_name})")

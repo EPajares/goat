@@ -24,10 +24,10 @@ from goatlib.analysis.schemas.ui import (
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.base import BaseToolRunner
 from goatlib.tools.schemas import (
-    get_default_layer_name,
     ScenarioSelectorMixin,
     ToolInputBase,
     ToolOutputBase,
+    get_default_layer_name,
 )
 
 logger = logging.getLogger(__name__)
@@ -514,6 +514,11 @@ class OriginDestinationToolRunner(BaseToolRunner[OriginDestinationToolParams]):
         # Close db service
         asyncio.get_event_loop().run_until_complete(self._close_db_service())
 
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         # Build primary output (lines)
         detected_geom_type_lines = table_info_lines.get("geometry_type")
         output_lines = ToolOutputBase(
@@ -529,6 +534,7 @@ class OriginDestinationToolRunner(BaseToolRunner[OriginDestinationToolParams]):
             feature_count=table_info_lines.get("feature_count", 0),
             extent=table_info_lines.get("extent"),
             table_name=table_info_lines["table_name"],
+            wm_labels=wm_labels,
         )
 
         # Build secondary output (points)
@@ -546,6 +552,7 @@ class OriginDestinationToolRunner(BaseToolRunner[OriginDestinationToolParams]):
             feature_count=table_info_points.get("feature_count", 0),
             extent=table_info_points.get("extent"),
             table_name=table_info_points["table_name"],
+            wm_labels=wm_labels,
         )
 
         logger.info(

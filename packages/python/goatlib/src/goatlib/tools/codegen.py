@@ -117,7 +117,13 @@ def generate_windmill_script(
     from pydantic_core import PydanticUndefined
 
     if excluded_fields is None:
-        excluded_fields = {"input_path", "output_path", "overlay_path", "output_crs"}
+        excluded_fields = {
+            "input_path",
+            "output_path",
+            "overlay_path",
+            "output_crs",
+            "triggered_by_email",  # Injected by GeoAPI, not user-facing
+        }
 
     # Get fields from Pydantic model
     fields = params_class.model_fields
@@ -167,15 +173,21 @@ def generate_windmill_script(
     imports_block = f"{imports_str}\n\n" if imports_str else ""
 
     # Python version directive at top - deps pre-installed in worker image
+    # Use **kwargs to capture hidden fields (like _triggered_by_email) that GeoAPI
+    # passes but shouldn't appear in Windmill's UI
     script = f'''# py311
 
 {imports_block}def main(
-    {args_str}
+    {args_str},
+    **kwargs
 ) -> dict:
     """Run tool."""
     from {module_path} import {params_class_name}, main as _main
 
-    params = {params_class_name}(**{{k: v for k, v in locals().items() if v is not None}})
+    # Merge explicit args with kwargs (for hidden fields like _triggered_by_email)
+    all_args = {{k: v for k, v in locals().items() if k != "kwargs" and v is not None}}
+    all_args.update({{k: v for k, v in kwargs.items() if v is not None}})
+    params = {params_class_name}(**all_args)
     return _main(params)
 '''
     return script

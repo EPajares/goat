@@ -22,7 +22,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from geoapi.config import settings
-from geoapi.deps.auth import get_optional_user_id, get_user_id, oauth2_scheme
+from geoapi.deps.auth import (
+    decode_token,
+    get_optional_user_id,
+    get_user_id,
+    oauth2_scheme,
+)
 from geoapi.models.processes import (
     OGC_EXCEPTION_NO_SUCH_JOB,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
@@ -434,6 +439,17 @@ async def execute_process(
         job_inputs["od_matrix_path"] = (
             f"{settings.TRAVELTIME_MATRICES_DIR}/{routing_mode}/"
         )
+
+    # Add user email to job inputs for tracking who triggered the job
+    # This is visible in Windmill's job arguments/input tab
+    if access_token:
+        try:
+            decoded = decode_token(access_token)
+            user_email = decoded.get("email")
+            if user_email:
+                job_inputs["_triggered_by_email"] = user_email
+        except Exception:
+            pass  # Token decode failed, skip email tracking
 
     # Submit job to Windmill
     # Note: Worker tag is configured on the script during sync, not per-job

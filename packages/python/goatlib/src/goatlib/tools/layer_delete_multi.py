@@ -65,6 +65,8 @@ class LayerDeleteMultiOutput(BaseModel):
     failed_count: int = 0
     results: list[LayerDeleteResult] = Field(default_factory=list)
     error: str | None = None
+    # Windmill job labels - returned at runtime for job tracking
+    wm_labels: list[str] = Field(default_factory=list)
 
 
 class LayerDeleteMultiRunner(SimpleToolRunner):
@@ -125,8 +127,14 @@ class LayerDeleteMultiRunner(SimpleToolRunner):
             len(params.layer_ids),
         )
 
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         output = LayerDeleteMultiOutput(
             total=len(params.layer_ids),
+            wm_labels=wm_labels,
         )
 
         try:

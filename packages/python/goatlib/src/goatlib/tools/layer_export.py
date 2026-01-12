@@ -405,12 +405,18 @@ class LayerExportRunner(SimpleToolRunner):
             params.file_type,
         )
 
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         output = LayerExportOutput(
             layer_id=params.layer_id,
             name=params.file_name,
             folder_id="",
             user_id=params.user_id,
             format=params.file_type,
+            wm_labels=wm_labels,
         )
 
         export_dir = None
