@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
 from geoapi.config import settings
-from geoapi.deps.auth import get_user_id, oauth2_scheme
+from geoapi.deps.auth import get_optional_user_id, get_user_id, oauth2_scheme
 from geoapi.models.processes import (
     OGC_EXCEPTION_NO_SUCH_JOB,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
@@ -50,6 +50,35 @@ from geoapi.services.windmill_client import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Processes"])
+
+# Processes that can be executed without authentication (read-only analytics)
+# These are sync processes that only query data and don't modify anything
+PUBLIC_ALLOWED_PROCESSES = frozenset(
+    {
+        "feature-count",
+        "unique-values",
+        "class-breaks",
+        "area-statistics",
+        "extent",
+        "aggregation-stats",
+        "histogram",
+    }
+)
+
+
+def is_public_allowed_process(process_id: str) -> bool:
+    """Check if a process can be executed without authentication.
+
+    Only read-only sync analytics processes are allowed for public access.
+    These processes only query data and don't create jobs or modify state.
+
+    Args:
+        process_id: The process identifier
+
+    Returns:
+        True if the process can be executed publicly, False otherwise
+    """
+    return process_id in PUBLIC_ALLOWED_PROCESSES
 
 
 def _execute_analytics_sync(process_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -343,24 +372,35 @@ async def execute_process(
     request: Request,
     process_id: str,
     execute_request: ExecuteRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID | None = Depends(get_optional_user_id),
     access_token: str | None = Depends(oauth2_scheme),
 ) -> JSONResponse:
     """Execute a process.
 
     For analytics processes (feature-count, class-breaks, unique-values, area-statistics):
       Returns results immediately (HTTP 200).
+      These can be executed without authentication (public access).
 
     For async tool processes (buffer, clip, etc.):
       Creates a job and returns status info with job ID (HTTP 201).
+      These REQUIRE authentication.
       Results can be retrieved via /jobs/{jobId}/results.
     """
     base_url = get_base_url(request)
 
-    # Check if this is an analytics process (sync execution)
-    if analytics_registry.is_analytics_process(process_id):
+    # Check if this is a public-allowed analytics process (sync execution)
+    if is_public_allowed_process(process_id):
+        # Analytics processes are read-only and don't need authentication
         result = _execute_analytics_sync(process_id, execute_request.inputs)
         return JSONResponse(status_code=200, content=result)
+
+    # For all other processes, authentication is required
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required for this process",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # For async processes, verify tool exists
     tool_info = tool_registry.get_tool(process_id)
