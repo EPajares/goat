@@ -333,11 +333,16 @@ class PrintReportRunner(SimpleToolRunner):
                 return pdf_bytes
             else:
                 # Capture the print paper area as PNG
-                paper_element = await page.query_selector("#print-paper")
-                if paper_element:
-                    png_bytes = await paper_element.screenshot(type="png")
+                # Use locator for more reliable element selection
+                paper_locator = page.locator("#print-paper")
+                if await paper_locator.count() > 0:
+                    # Wait for the element to be visible
+                    await paper_locator.wait_for(state="visible", timeout=5000)
+                    png_bytes = await paper_locator.screenshot(type="png")
                 else:
-                    png_bytes = await page.screenshot(type="png", full_page=True)
+                    # Fallback to full page
+                    logger.warning("Print paper element not found, using full page screenshot")
+                    png_bytes = await page.screenshot(type="png", full_page=False)
                 return png_bytes
 
         finally:

@@ -211,10 +211,10 @@ export default function OrganizationOnBoarding() {
                         <TextField
                           fullWidth
                           required
-                          helperText={errors.name ? errors.name?.message : null}
+                          helperText={errors.department ? errors.department?.message : null}
                           label={t("common:organization_department_label")}
                           {...register("department")}
-                          error={errors.name ? true : false}
+                          error={errors.department ? true : false}
                         />
 
                         <RhfSelectField
@@ -232,11 +232,11 @@ export default function OrganizationOnBoarding() {
                           disabled={isBusy}
                           fullWidth
                           required
-                          type="number"
-                          helperText={errors.name ? errors.name?.message : null}
+                          type="tel"
+                          helperText={errors.phone_number ? errors.phone_number?.message : null}
                           label={t("common:organization_contact_phone_label")}
                           {...register("phone_number")}
-                          error={errors.name ? true : false}
+                          error={errors.phone_number ? true : false}
                         />
                         <RhfAutocompleteField
                           disabled={isBusy}
