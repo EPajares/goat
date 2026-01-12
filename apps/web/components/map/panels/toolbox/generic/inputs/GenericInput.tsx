@@ -28,6 +28,8 @@ interface GenericInputProps {
   onChange: (value: unknown) => void;
   /** Callback for layer inputs to report their associated CQL filter */
   onFilterChange?: (filter: Record<string, unknown> | undefined) => void;
+  /** Callback for repeatable object inputs to report nested layer filters */
+  onNestedFiltersChange?: (filters: Record<string, Record<string, unknown> | undefined>[]) => void;
   disabled?: boolean;
   /** All current form values - needed for field inputs to know the selected layer */
   formValues?: Record<string, unknown>;
@@ -42,6 +44,7 @@ export default function GenericInput({
   value,
   onChange,
   onFilterChange,
+  onNestedFiltersChange,
   disabled,
   formValues = {},
   schemaDefs,
@@ -180,6 +183,7 @@ export default function GenericInput({
           input={input}
           value={value as Record<string, unknown>[] | undefined}
           onChange={onChange}
+          onNestedFiltersChange={onNestedFiltersChange}
           disabled={disabled}
           schemaDefs={schemaDefs}
           formValues={formValues}

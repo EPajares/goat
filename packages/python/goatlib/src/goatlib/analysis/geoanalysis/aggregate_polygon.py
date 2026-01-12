@@ -168,8 +168,9 @@ class AggregatePolygonTool(AnalysisTool):
         )
 
         # Get statistics SQL and result column name
-        stats_field = params.column_statistics.field
-        stats_operation = params.column_statistics.operation
+        # Use first statistic from the list
+        stats_field = params.column_statistics[0].field
+        stats_operation = params.column_statistics[0].operation
         # Column name: "count" for count, otherwise "{operation}_{field}"
         if stats_operation.value == "count":
             result_col = "count"
@@ -380,8 +381,9 @@ class AggregatePolygonTool(AnalysisTool):
         h3_resolution = params.h3_resolution
 
         # Get statistics SQL and result column name
-        stats_field = params.column_statistics.field
-        stats_operation = params.column_statistics.operation
+        # Use first statistic from the list
+        stats_field = params.column_statistics[0].field
+        stats_operation = params.column_statistics[0].operation
         stats_sql = self.get_statistics_sql(
             stats_field if stats_field else "",
             stats_operation.value,

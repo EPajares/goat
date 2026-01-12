@@ -16,8 +16,10 @@ from goatlib.analysis.geoanalysis.aggregate_polygon import AggregatePolygonTool
 from goatlib.analysis.schemas.aggregate import (
     AggregatePolygonParams,
     AggregationAreaType,
-    ColumnStatistic,
-    StatisticsOperation,
+)
+from goatlib.analysis.schemas.base import (
+    FieldStatistic,
+    StatisticOperation,
 )
 
 
@@ -46,7 +48,7 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(operation=StatisticsOperation.count),
+            column_statistics=FieldStatistic(operation=StatisticOperation.count),
             weighted_by_intersecting_area=False,
             output_path=output_path,
         )
@@ -82,7 +84,7 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(operation=StatisticsOperation.count),
+            column_statistics=FieldStatistic(operation=StatisticOperation.count),
             weighted_by_intersecting_area=True,
             output_path=output_path,
         )
@@ -114,8 +116,8 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             weighted_by_intersecting_area=True,
@@ -130,7 +132,7 @@ class TestAggregatePolygonToPolygon:
         df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
-        total_weighted_sum = df["sum"].sum()
+        total_weighted_sum = df["sum_value"].sum()
         # Should be close to original total (may be less if some areas outside)
         assert total_weighted_sum > 0
         assert total_weighted_sum <= TOTAL_VALUE * 1.01  # Allow 1% tolerance
@@ -147,8 +149,8 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             weighted_by_intersecting_area=False,
@@ -163,7 +165,7 @@ class TestAggregatePolygonToPolygon:
         df = con.execute(f"SELECT * FROM read_parquet('{output_path}')").fetchdf()
         con.close()
 
-        total_unweighted = df["sum"].sum()
+        total_unweighted = df["sum_value"].sum()
         assert total_unweighted > 0
 
     def test_mean_returns_reasonable_values(self, tmp_path: Path) -> None:
@@ -174,8 +176,8 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.mean,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.mean,
                 field="value",
             ),
             output_path=output_path,
@@ -191,7 +193,7 @@ class TestAggregatePolygonToPolygon:
 
         # Mean should be between min and max of source values
         # Source min ~57, max ~290508
-        valid_means = df[df["mean"] > 0]["mean"]
+        valid_means = df[df["mean_value"] > 0]["mean_value"]
         assert len(valid_means) > 0, "Should have some areas with green areas"
         assert valid_means.min() >= 50  # Should be above source minimum
         assert valid_means.max() <= 300000  # Should be below source maximum
@@ -208,7 +210,7 @@ class TestAggregatePolygonToH3:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=ColumnStatistic(operation=StatisticsOperation.count),
+            column_statistics=FieldStatistic(operation=StatisticOperation.count),
             output_path=output_path,
         )
 
@@ -237,8 +239,8 @@ class TestAggregatePolygonToH3:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=ColumnStatistic(
-                operation=StatisticsOperation.sum,
+            column_statistics=FieldStatistic(
+                operation=StatisticOperation.sum,
                 field="value",
             ),
             output_path=output_path,
@@ -253,7 +255,7 @@ class TestAggregatePolygonToH3:
         con.close()
 
         # Total should match source total (within floating point tolerance)
-        total_sum = df["sum"].sum()
+        total_sum = df["sum_value"].sum()
         assert abs(total_sum - TOTAL_VALUE) < 1.0  # Allow 1 sqm tolerance
 
 
@@ -266,7 +268,7 @@ class TestAggregatePolygonValidation:
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.polygon,
-                column_statistics=ColumnStatistic(operation=StatisticsOperation.count),
+                column_statistics=FieldStatistic(operation=StatisticOperation.count),
             )
 
     def test_h3_requires_resolution(self) -> None:
@@ -275,7 +277,7 @@ class TestAggregatePolygonValidation:
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
-                column_statistics=ColumnStatistic(operation=StatisticsOperation.count),
+                column_statistics=FieldStatistic(operation=StatisticOperation.count),
             )
 
     def test_sum_requires_field(self) -> None:
@@ -285,7 +287,7 @@ class TestAggregatePolygonValidation:
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=8,
-                column_statistics=ColumnStatistic(operation=StatisticsOperation.sum),
+                column_statistics=FieldStatistic(operation=StatisticOperation.sum),
             )
 
     def test_count_rejects_field(self) -> None:
@@ -295,8 +297,8 @@ class TestAggregatePolygonValidation:
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=8,
-                column_statistics=ColumnStatistic(
-                    operation=StatisticsOperation.count,
+                column_statistics=FieldStatistic(
+                    operation=StatisticOperation.count,
                     field="value",
                 ),
             )

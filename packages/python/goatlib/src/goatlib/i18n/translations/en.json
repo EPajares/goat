@@ -411,6 +411,14 @@
       "label": "Input Point Layer",
       "description": "Select the point layer to aggregate"
     },
+    "select_source_point_layer": {
+      "label": "Input Point Layer",
+      "description": "Select the point layer to aggregate"
+    },
+    "select_source_polygon_layer": {
+      "label": "Input Polygon Layer",
+      "description": "Select the polygon layer to aggregate"
+    },
     "area_type": {
       "label": "Area Type",
       "description": "Type of area to aggregate points into"
@@ -848,6 +856,7 @@
     "trip_count": "Trip Count Platform",
     "origin_destination_lines": "OD Lines",
     "origin_destination_points": "OD Points",
-    "join": "Join Features"
+    "join": "Join Features",
+    "geocoding": "Geocoding"
   }
 }

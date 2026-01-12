@@ -24,6 +24,13 @@ type BlogPost = {
 
 const blogPostsEnglish: BlogPost[] = [
   {
+    title: 'GOAT 2.3.0 "Tarn" is here',
+    date: "January 13, 2026",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/6964f6ab66d9b7fec644a6b5_blogpost_cover-p-1600.webp",
+    url: "https://www.plan4better.de/en/post/goat-2-3-0-tarn-is-here",
+  },
+  {
     title: 'GOAT 2.2.0 "Cashmere" is here',
     date: "December 16, 2025",
     thumbnail:
@@ -37,16 +44,16 @@ const blogPostsEnglish: BlogPost[] = [
       "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/68ef733d034dbecbd08cc8f3_dashboard-builder-p-1600.webp",
     url: "https://www.plan4better.de/en/post/goat-2-1-0-ibex-is-here",
   },
-  {
-    title: "GOAT v2 is here!",
-    date: "September 19, 2024",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/66eaa2b28eb3db409d799756_Blogpost_17.09.2024.%20GOAT%20v2%20announcement.png",
-    url: "https://www.plan4better.de/en/post/goat-v2-is-here",
-  },
 ];
 
 const blogPostsGerman: BlogPost[] = [
+  {
+    title: 'GOAT 2.3.0 „Tarn" ist da',
+    date: "13. Januar 2026",
+    thumbnail:
+      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/6964f6ab66d9b7fec644a6b5_blogpost_cover-p-1600.webp",
+    url: "https://www.plan4better.de/de/post/goat-2-3-0-tarn-ist-da",
+  },
   {
     title: 'GOAT 2.2.0 „Cashmere" ist da',
     date: "16. Dezember 2025",
@@ -60,13 +67,6 @@ const blogPostsGerman: BlogPost[] = [
     thumbnail:
       "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/68ef733d034dbecbd08cc8f3_dashboard-builder-p-1600.webp",
     url: "https://www.plan4better.de/de/post/goat-2-1-0-ibex-is-here",
-  },
-  {
-    title: "GOAT v2 ist da!",
-    date: "19. September 2024",
-    thumbnail:
-      "https://cdn.prod.website-files.com/6554ce5f672475c1f40445af/66eaa2b28eb3db409d799756_Blogpost_17.09.2024.%20GOAT%20v2%20announcement.png",
-    url: "https://www.plan4better.de/de/post/goat-v2-is-here",
   },
 ];
 
