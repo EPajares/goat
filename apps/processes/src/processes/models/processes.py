@@ -12,10 +12,16 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+from goatlib.models import ConformanceDeclaration, LandingPage, Link
 from pydantic import BaseModel, Field
 
-# Import shared models from ogc.py to avoid duplication
-from geoapi.models.ogc import Link
+# Re-export shared models
+__all__ = [
+    "ConformanceDeclaration",
+    "LandingPage",
+    "Link",
+]
+
 
 # === Process Enums ===
 
@@ -236,24 +242,4 @@ class JobList(BaseModel):
     """List of jobs."""
 
     jobs: list[StatusInfo]
-    links: list[Link] = Field(default_factory=list)
-
-
-# === Conformance ===
-
-
-class ConformanceDeclaration(BaseModel):
-    """Declaration of conformance classes."""
-
-    conformsTo: list[str] = Field(default_factory=list)
-
-
-# === Landing Page ===
-
-
-class LandingPage(BaseModel):
-    """API landing page."""
-
-    title: str
-    description: str | None = None
     links: list[Link] = Field(default_factory=list)

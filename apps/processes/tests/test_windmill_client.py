@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from geoapi.services.windmill_client import (
+from processes.services.windmill_client import (
     WindmillClient,
     WindmillError,
     WindmillJobNotFound,
@@ -28,7 +28,7 @@ class TestWindmillClientInit:
     def test_get_client_creates_instance(self):
         """Test _get_client creates Windmill instance."""
         client = WindmillClient()
-        with patch("geoapi.services.windmill_client.Windmill") as mock_windmill:
+        with patch("processes.services.windmill_client.Windmill") as mock_windmill:
             mock_instance = MagicMock()
             mock_windmill.return_value = mock_instance
 

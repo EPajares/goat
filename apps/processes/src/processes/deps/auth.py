@@ -1,4 +1,4 @@
-"""Authentication dependencies for GeoAPI.
+"""Authentication dependencies for Processes API.
 
 Provides JWT token validation and user extraction from Keycloak tokens.
 """
@@ -11,7 +11,7 @@ from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from goatlib.auth import JOSEError, KeycloakAuth
 
-from geoapi.config import settings
+from processes.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -144,9 +144,6 @@ async def get_optional_user_id(
     Returns:
         User UUID or None if no valid token
     """
-    # if not settings.AUTH:
-    #     return UUID("00000000-0000-0000-0000-000000000000")
-
     # Try to get token
     if not token:
         auth_header = request.headers.get("Authorization")

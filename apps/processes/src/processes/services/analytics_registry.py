@@ -25,7 +25,7 @@ from goatlib.analysis.statistics import (
 )
 from pydantic import BaseModel, Field
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     InputDescription,
     JobControlOptions,
     Link,
@@ -73,6 +73,7 @@ class ExtentProcessInput(ExtentInput):
 
     collection: str = Field(description="Layer ID (UUID)")
 
+
 class AggregationStatsProcessInput(AggregationStatsInput):
     """Aggregation statistics input with collection (layer ID)."""
 
@@ -93,8 +94,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": FeatureCountProcessInput,
         "output_model": FeatureCountResult,
         "keywords": ["analytics", "statistics", "count"],
-        "tool_key": "feature_count",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "feature_count",
+        "hidden": True,
     },
     "unique-values": {
         "title": "Unique Values",
@@ -102,8 +103,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": UniqueValuesProcessInput,
         "output_model": UniqueValuesResult,
         "keywords": ["analytics", "statistics", "unique", "values"],
-        "tool_key": "unique_values",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "unique_values",
+        "hidden": True,
     },
     "class-breaks": {
         "title": "Class Breaks",
@@ -111,8 +112,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": ClassBreaksProcessInput,
         "output_model": ClassBreaksResult,
         "keywords": ["analytics", "statistics", "classification", "breaks"],
-        "tool_key": "class_breaks",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "class_breaks",
+        "hidden": True,
     },
     "area-statistics": {
         "title": "Area Statistics",
@@ -120,8 +121,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": AreaStatisticsProcessInput,
         "output_model": AreaStatisticsResult,
         "keywords": ["analytics", "statistics", "area", "polygon"],
-        "tool_key": "area_statistics",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "area_statistics",
+        "hidden": True,
     },
     "extent": {
         "title": "Layer Extent",
@@ -129,8 +130,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": ExtentProcessInput,
         "output_model": ExtentResult,
         "keywords": ["analytics", "extent", "bbox", "bounds"],
-        "tool_key": "extent",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "extent",
+        "hidden": True,
     },
     "aggregation-stats": {
         "title": "Aggregation Statistics",
@@ -138,8 +139,8 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": AggregationStatsProcessInput,
         "output_model": AggregationStatsResult,
         "keywords": ["analytics", "statistics", "aggregation", "grouping"],
-        "tool_key": "aggregation_stats",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "aggregation_stats",
+        "hidden": True,
     },
     "histogram": {
         "title": "Histogram",
@@ -147,21 +148,14 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "input_model": HistogramProcessInput,
         "output_model": HistogramResult,
         "keywords": ["analytics", "statistics", "histogram", "distribution"],
-        "tool_key": "histogram",  # Translation key
-        "hidden": True,  # Hide from toolbox UI (used internally)
+        "tool_key": "histogram",
+        "hidden": True,
     },
 }
 
 
 def _pydantic_to_ogc_inputs(model: type[BaseModel]) -> dict[str, InputDescription]:
-    """Convert Pydantic model to OGC input descriptions.
-
-    Args:
-        model: Pydantic model class
-
-    Returns:
-        Dict of field name to InputDescription
-    """
+    """Convert Pydantic model to OGC input descriptions."""
     schema = model.model_json_schema()
     properties = schema.get("properties", {})
     required = set(schema.get("required", []))
@@ -169,16 +163,13 @@ def _pydantic_to_ogc_inputs(model: type[BaseModel]) -> dict[str, InputDescriptio
 
     inputs = {}
     for field_name, field_schema in properties.items():
-        # Resolve $ref if present
         if "$ref" in field_schema:
             ref_name = field_schema["$ref"].split("/")[-1]
             field_schema = defs.get(ref_name, field_schema)
 
-        # Determine if required
         is_required = field_name in required
         has_default = "default" in field_schema
 
-        # Build keywords based on field name
         keywords = []
         if field_name == "collection":
             keywords = ["layer"]
@@ -198,14 +189,7 @@ def _pydantic_to_ogc_inputs(model: type[BaseModel]) -> dict[str, InputDescriptio
 
 
 def _pydantic_to_ogc_output(model: type[BaseModel]) -> dict[str, OutputDescription]:
-    """Convert Pydantic model to OGC output description.
-
-    Args:
-        model: Pydantic model class
-
-    Returns:
-        Dict with single 'result' output
-    """
+    """Convert Pydantic model to OGC output description."""
     schema = model.model_json_schema()
 
     return {
@@ -218,11 +202,7 @@ def _pydantic_to_ogc_output(model: type[BaseModel]) -> dict[str, OutputDescripti
 
 
 class AnalyticsRegistry:
-    """Registry for analytics processes.
-
-    Auto-generates OGC process descriptions from goatlib Pydantic schemas.
-    Supports i18n translations via Accept-Language header.
-    """
+    """Registry for analytics processes."""
 
     def __init__(self) -> None:
         self._definitions = ANALYTICS_DEFINITIONS
@@ -243,15 +223,7 @@ class AnalyticsRegistry:
     def _translate_tool(
         self, defn: dict[str, Any], language: str | None = None
     ) -> tuple[str, str]:
-        """Get translated title and description for a tool.
-
-        Args:
-            defn: Tool definition dict
-            language: Language code (e.g., "de", "en")
-
-        Returns:
-            Tuple of (title, description)
-        """
+        """Get translated title and description for a tool."""
         title = defn["title"]
         description = defn["description"]
 
@@ -278,15 +250,7 @@ class AnalyticsRegistry:
         inputs: dict[str, InputDescription],
         language: str | None = None,
     ) -> dict[str, InputDescription]:
-        """Translate input descriptions.
-
-        Args:
-            inputs: Dict of input descriptions
-            language: Language code
-
-        Returns:
-            Translated input descriptions
-        """
+        """Translate input descriptions."""
         if not language or language == DEFAULT_LANGUAGE:
             return inputs
 
@@ -296,7 +260,6 @@ class AnalyticsRegistry:
 
         translated = {}
         for name, inp in inputs.items():
-            # Translate title and description using field key
             field_key = name.lower().replace("-", "_")
             new_title = translator.get_field_label(field_key) or inp.title
             new_desc = translator.get_field_description(field_key) or inp.description
@@ -304,7 +267,7 @@ class AnalyticsRegistry:
             translated[name] = InputDescription(
                 title=new_title,
                 description=new_desc,
-                schema=inp.schema_,  # Use schema_ attribute (aliased to "schema")
+                schema=inp.schema_,
                 minOccurs=inp.minOccurs,
                 maxOccurs=inp.maxOccurs,
                 keywords=inp.keywords,
@@ -323,16 +286,7 @@ class AnalyticsRegistry:
     def get_process_summary(
         self, process_id: str, base_url: str, language: str | None = None
     ) -> ProcessSummary | None:
-        """Get process summary for an analytics process.
-
-        Args:
-            process_id: Analytics process ID
-            base_url: Base URL for links
-            language: Language code for translations (e.g., "de", "en")
-
-        Returns:
-            ProcessSummary or None if not found
-        """
+        """Get process summary for an analytics process."""
         if process_id not in self._definitions:
             return None
 
@@ -361,16 +315,7 @@ class AnalyticsRegistry:
     def get_process_description(
         self, process_id: str, base_url: str, language: str | None = None
     ) -> ProcessDescription | None:
-        """Get full process description for an analytics process.
-
-        Args:
-            process_id: Analytics process ID
-            base_url: Base URL for links
-            language: Language code for translations (e.g., "de", "en")
-
-        Returns:
-            ProcessDescription or None if not found
-        """
+        """Get full process description for an analytics process."""
         if process_id not in self._definitions:
             return None
 
@@ -411,15 +356,7 @@ class AnalyticsRegistry:
     def get_all_summaries(
         self, base_url: str, language: str | None = None
     ) -> list[ProcessSummary]:
-        """Get summaries for all analytics processes.
-
-        Args:
-            base_url: Base URL for links
-            language: Language code for translations (e.g., "de", "en")
-
-        Returns:
-            List of ProcessSummary
-        """
+        """Get summaries for all analytics processes."""
         summaries = []
         for process_id in self._definitions:
             summary = self.get_process_summary(process_id, base_url, language)

@@ -2,14 +2,14 @@
 
 from goatlib.analysis.statistics import AreaOperation
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     InputDescription,
     JobControlOptions,
     OutputDescription,
     ProcessDescription,
     ProcessSummary,
 )
-from geoapi.services.analytics_registry import (
+from processes.services.analytics_registry import (
     ANALYTICS_DEFINITIONS,
     AnalyticsRegistry,
     AreaStatisticsProcessInput,
@@ -183,7 +183,7 @@ class TestAnalyticsRegistry:
         assert len(summary.links) > 0
 
         # Check self link
-        self_link = next((l for l in summary.links if l.rel == "self"), None)
+        self_link = next((link for link in summary.links if link.rel == "self"), None)
         assert self_link is not None
         assert "feature-count" in self_link.href
 

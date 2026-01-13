@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from geoapi.services.analytics_service import (
+from processes.services.analytics_service import (
     AnalyticsService,
     analytics_service,
 )
@@ -25,13 +25,13 @@ class TestAnalyticsServiceTableName:
         service = AnalyticsService()
 
         with patch(
-            "geoapi.services.analytics_service.normalize_layer_id"
+            "processes.services.analytics_service.normalize_layer_id"
         ) as mock_normalize:
             with patch(
-                "geoapi.services.analytics_service.get_schema_for_layer"
+                "processes.services.analytics_service.get_schema_for_layer"
             ) as mock_schema:
                 with patch(
-                    "geoapi.services.analytics_service._layer_id_to_table_name"
+                    "processes.services.analytics_service._layer_id_to_table_name"
                 ) as mock_table:
                     mock_normalize.return_value = "abc12345678901234567890123456789ab"
                     mock_schema.return_value = "user_xyz123"
@@ -72,7 +72,7 @@ class TestAnalyticsServiceBuildWhereClause:
         """Test with valid CQL2 filter."""
         service = AnalyticsService()
 
-        with patch("geoapi.services.analytics_service.build_filters") as mock_build:
+        with patch("processes.services.analytics_service.build_filters") as mock_build:
             mock_build.return_value = ("name = ?", ["test"])
 
             where, params = service._build_where_clause("name = 'test'")
@@ -84,7 +84,7 @@ class TestAnalyticsServiceBuildWhereClause:
         """Test with invalid filter returns TRUE."""
         service = AnalyticsService()
 
-        with patch("geoapi.services.analytics_service.build_filters") as mock_build:
+        with patch("processes.services.analytics_service.build_filters") as mock_build:
             mock_build.side_effect = Exception("Parse error")
 
             where, params = service._build_where_clause("invalid filter <<<")
@@ -103,10 +103,10 @@ class TestAnalyticsServiceFeatureCount:
         with patch.object(service, "_get_table_name") as mock_table:
             with patch.object(service, "_build_where_clause") as mock_where:
                 with patch(
-                    "geoapi.services.analytics_service.ducklake_manager"
+                    "processes.services.analytics_service.ducklake_manager"
                 ) as mock_dm:
                     with patch(
-                        "geoapi.services.analytics_service.calculate_feature_count"
+                        "processes.services.analytics_service.calculate_feature_count"
                     ) as mock_calc:
                         mock_table.return_value = "lake.schema.table"
                         mock_where.return_value = ("TRUE", [])
@@ -135,10 +135,10 @@ class TestAnalyticsServiceFeatureCount:
         with patch.object(service, "_get_table_name") as mock_table:
             with patch.object(service, "_build_where_clause") as mock_where:
                 with patch(
-                    "geoapi.services.analytics_service.ducklake_manager"
+                    "processes.services.analytics_service.ducklake_manager"
                 ) as mock_dm:
                     with patch(
-                        "geoapi.services.analytics_service.calculate_feature_count"
+                        "processes.services.analytics_service.calculate_feature_count"
                     ) as mock_calc:
                         mock_table.return_value = "lake.schema.table"
                         mock_where.return_value = ("category = ?", ["A"])
@@ -172,10 +172,10 @@ class TestAnalyticsServiceUniqueValues:
         with patch.object(service, "_get_table_name") as mock_table:
             with patch.object(service, "_build_where_clause") as mock_where:
                 with patch(
-                    "geoapi.services.analytics_service.ducklake_manager"
+                    "processes.services.analytics_service.ducklake_manager"
                 ) as mock_dm:
                     with patch(
-                        "geoapi.services.analytics_service.calculate_unique_values"
+                        "processes.services.analytics_service.calculate_unique_values"
                     ) as mock_calc:
                         mock_table.return_value = "lake.schema.table"
                         mock_where.return_value = ("TRUE", [])
@@ -213,10 +213,10 @@ class TestAnalyticsServiceClassBreaks:
         with patch.object(service, "_get_table_name") as mock_table:
             with patch.object(service, "_build_where_clause") as mock_where:
                 with patch(
-                    "geoapi.services.analytics_service.ducklake_manager"
+                    "processes.services.analytics_service.ducklake_manager"
                 ) as mock_dm:
                     with patch(
-                        "geoapi.services.analytics_service.calculate_class_breaks"
+                        "processes.services.analytics_service.calculate_class_breaks"
                     ) as mock_calc:
                         mock_table.return_value = "lake.schema.table"
                         mock_where.return_value = ("TRUE", [])
@@ -255,10 +255,10 @@ class TestAnalyticsServiceAreaStatistics:
         with patch.object(service, "_get_table_name") as mock_table:
             with patch.object(service, "_build_where_clause") as mock_where:
                 with patch(
-                    "geoapi.services.analytics_service.ducklake_manager"
+                    "processes.services.analytics_service.ducklake_manager"
                 ) as mock_dm:
                     with patch(
-                        "geoapi.services.analytics_service.calculate_area_statistics"
+                        "processes.services.analytics_service.calculate_area_statistics"
                     ) as mock_calc:
                         mock_table.return_value = "lake.schema.table"
                         mock_where.return_value = ("TRUE", [])

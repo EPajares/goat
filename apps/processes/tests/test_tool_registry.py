@@ -2,13 +2,13 @@
 
 import pytest
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     InputDescription,
     OutputDescription,
     ProcessDescription,
     ProcessSummary,
 )
-from geoapi.services.tool_registry import (
+from processes.services.tool_registry import (
     ToolInfo,
     ToolRegistry,
     tool_registry,
