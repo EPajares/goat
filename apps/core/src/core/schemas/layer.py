@@ -31,35 +31,12 @@ from core.db.models.layer import (
     LayerType,
     RasterDataType,
     TableLayerExportType,
-    ToolType,
     layer_base_example,
     validate_geographical_code,
     validate_language_code,
 )
 from core.schemas.common import CQLQuery
-from core.schemas.job import Msg
 from core.utils import optional
-
-
-class MaxFileSizeType(int, Enum):
-    """Max file size types in bytes."""
-
-    geojson = 5 * 1024 * 1024 * 1024  # 5GB
-    csv = 5 * 1024 * 1024 * 1024  # 5GB
-    xlsx = 1 * 1024 * 1024 * 1024  # 1GB (Excel has practical limits)
-    gpkg = 5 * 1024 * 1024 * 1024  # 5GB
-    kml = 5 * 1024 * 1024 * 1024  # 5GB
-    zip = 5 * 1024 * 1024 * 1024  # 5GB
-    parquet = 5 * 1024 * 1024 * 1024  # 5GB
-
-
-class SupportedOgrGeomType(Enum):
-    Point = "point"
-    Multi_Point = "point"
-    Line_String = "line"
-    Multi_Line_String = "line"
-    Polygon = "polygon"
-    Multi_Polygon = "polygon"
 
 
 class UserDataGeomType(Enum):
@@ -67,47 +44,6 @@ class UserDataGeomType(Enum):
     line = "line"
     polygon = "polygon"
     no_geometry = "no_geometry"
-
-
-class OgrPostgresType(str, Enum):
-    Integer = "integer"
-    Integer64 = "bigint"
-    Real = "float"
-    String = "text"
-    Date = "text"
-    Time = "text"
-    DateTime = "timestamp"
-
-
-class OgrPostgresSubType(str, Enum):
-    Boolean = "boolean"
-
-
-class OgrDriverType(str, Enum):
-    """OGR driver types."""
-
-    geojson = "GeoJSON"
-    csv = "CSV"  # Using XLSX driver for CSV files as the file is converted to XLSX to keep data types
-    xlsx = "XLSX"
-    gpkg = "GPKG"
-    kml = "KML"
-    shp = "ESRI Shapefile"  # Using SHP driver for ZIP files as the file is converted to SHP to keep data types
-    zip = "ESRI Shapefile"  # Using SHP driver for ZIP files as the file is converted to SHP to keep data types
-
-
-class NumberColumnsPerType(int, Enum):
-    """Number of columns per type."""
-
-    integer = 25
-    bigint = 5
-    float = 25
-    text = 25
-    timestamp = 3
-    arrfloat = 3
-    arrint = 3
-    arrtext = 3
-    jsonb = 10
-    boolean = 10
 
 
 class ComputeBreakOperation(Enum):
@@ -125,17 +61,6 @@ class AreaStatisticsOperation(Enum):
     sum = "sum"
     min = "min"
     max = "max"
-
-
-class UserDataTable(str, Enum):
-    """Created user tables"""
-
-    point = "point"
-    line = "line"
-    polygon = "polygon"
-    no_geometry = "no_geometry"
-    street_network_line = "street_network_line"
-    street_network_point = "street_network_point"
 
 
 class LayerReadBaseAttributes(BaseModel):
@@ -254,25 +179,6 @@ class ExternalServiceAttributesBase(BaseModel):
 ################################################################################
 
 
-class IFileUploadExternalService(ExternalServiceAttributesBase):
-    """Model for external service attributes used to fetch feature data and save it as a file."""
-
-    pass
-
-
-class IFileUploadMetadata(BaseModel):
-    """Response model returned by file upload endpoints containing dataset metadata."""
-
-    data_types: Dict[str, Any] = Field(..., description="Data types of the columns")
-    layer_type: LayerType = Field(..., description="Layer type")
-    file_ending: str = Field(..., description="File ending", max_length=500)
-    file_size: int = Field(..., description="File size")
-    file_path: str = Field(..., description="File path", max_length=500)
-    dataset_id: UUID = Field(..., description="Dataset ID")
-    s3_key: UUID | None = Field(None, description="S3 key")
-    msg: Msg = Field(..., description="Response Message")
-
-
 ################################################################################
 # Feature Layer DTOs
 ################################################################################
@@ -324,59 +230,6 @@ feature_layer_update_base_example = {
 
 
 # Feature Layer Standard
-class ILayerFromDatasetCreate(LayerBase, ExternalServiceAttributesBase):
-    id: UUID = Field(
-        default_factory=uuid4,
-        description="Content ID of the layer",
-        alias="id",
-    )
-    dataset_id: UUID | None = Field(None, description="Dataset ID")
-    s3_key: str | None = Field(
-        None,
-        description="S3 key of the uploaded file",
-        max_length=500,
-    )
-    properties: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="Layer properties.",
-    )
-
-
-class IFeatureLayerToolCreate(BaseModel):
-    id: UUID = Field(
-        default_factory=uuid4, description="Content ID of the layer", alias="id"
-    )
-    name: str = Field(..., description="Layer name", max_length=500)
-    feature_layer_geometry_type: FeatureGeometryType = Field(
-        ..., description="Feature layer geometry type"
-    )
-    attribute_mapping: Dict[str, Any] = Field(
-        ..., description="Attribute mapping of the layer"
-    )
-    tool_type: str = Field(..., description="Tool type")
-    job_id: UUID = Field(..., description="Job ID")
-
-
-class IFeatureStandardCreateAdditionalAttributes(BaseModel):
-    """Model for second internal validation with extended attributes."""
-
-    user_id: UUID = Field(..., description="User ID of the owner")
-    type: LayerType = Field(..., description="Layer type")
-    feature_layer_type: FeatureType = Field(..., description="Feature layer type")
-    feature_layer_geometry_type: FeatureGeometryType = Field(
-        ..., description="Feature layer geometry type"
-    )
-    extent: str = Field(
-        ..., description="Geographical Extent of the layer", max_length=500
-    )
-    attribute_mapping: Dict[str, Any] = Field(
-        ..., description="Attribute mapping of the layer"
-    )
-    properties: Dict[str, Any] = Field(
-        default_factory=dict, description="Layer style properties."
-    )
-
-
 class FeatureStandardRead(
     FeatureReadBaseAttributes, DateTimeBase, ExternalServiceAttributesBase
 ):
@@ -398,17 +251,6 @@ class FeatureToolAttributesBase(BaseModel):
     """Base model for additional attributes feature layer tool."""
 
     tool_type: str | None = Field(None, description="Tool type")
-
-
-feature_layer_tool_attributes_example = {
-    "tool_type": "catchment_area",
-}
-
-
-class IFeatureToolCreate(LayerBase, FeatureToolAttributesBase):
-    """Model to create feature layer tool."""
-
-    pass
 
 
 class FeatureToolRead(
@@ -623,19 +465,6 @@ imagery_layer_update_base_example = {
 ################################################################################
 
 
-class ITableCreateAdditionalAttributes(BaseModel):
-    """Model for second internal validation with extended attributes."""
-
-    user_id: UUID = Field(..., description="User ID of the owner")
-    type: LayerType = Field(..., description="Layer type")
-    attribute_mapping: Dict[str, Any] = Field(
-        ..., description="Attribute mapping of the layer"
-    )
-    properties: Dict[str, Any] = Field(
-        default_factory=dict, description="Layer properties."
-    )
-
-
 class TableRead(
     LayerBase, LayerReadBaseAttributes, DateTimeBase, ExternalServiceAttributesBase
 ):
@@ -749,12 +578,6 @@ class IUniqueValue(BaseModel):
         if isinstance(value, str):
             return value
         return str(value)
-
-
-class IValidateJobId(BaseModel):
-    """Model to import a file object."""
-
-    validate_job_id: UUID = Field(..., description="Upload job ID")
 
 
 class ILayerExport(CQLQuery):

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict
 from uuid import UUID
 
@@ -6,12 +7,21 @@ from sqlalchemy.dialects.postgresql import UUID as UUID_PG
 from sqlmodel import Column, Field, ForeignKey, Relationship, Text, text
 
 from core.core.config import settings
-from core.schemas.job import JobStatusType
 
 from ._base_class import DateTimeBase
 
 if TYPE_CHECKING:
     from .user import User
+
+
+class JobStatusType(str, Enum):
+    """Job status types."""
+
+    accepted = "accepted"
+    running = "running"
+    successful = "successful"
+    failed = "failed"
+    dismissed = "dismissed"
 
 
 class Job(DateTimeBase, table=True):

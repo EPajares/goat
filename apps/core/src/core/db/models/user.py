@@ -15,7 +15,6 @@ from core.core.config import settings
 if TYPE_CHECKING:
     from ._link_model import UserTeamLink
     from .folder import Folder
-    from .job import Job
     from .scenario import Scenario
     from .system_setting import SystemSetting
 
@@ -39,9 +38,6 @@ class User(SQLModel, table=True):
         back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
     system_setting: "SystemSetting" = Relationship(
-        back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
-    )
-    jobs: List["Job"] = Relationship(
         back_populates="user", sa_relationship_kwargs={"cascade": "all, delete-orphan"}
     )
     team_links: List["UserTeamLink"] = Relationship(

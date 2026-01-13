@@ -261,13 +261,30 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
     // Merge defaults with user values and computed layer geometry for validation checks
     const effectiveValues = { ...defaultValues, ...values, ...layerGeometryValues };
 
+    // Helper to check if a value is empty
+    const isEmpty = (value: unknown): boolean => {
+      if (value === undefined || value === null || value === "") return true;
+      if (Array.isArray(value) && value.length === 0) return true;
+      return false;
+    };
+
     // Check required fields across all sections
     for (const section of sections) {
       const visibleInputs = getVisibleInputs(section.inputs, effectiveValues);
       for (const input of visibleInputs) {
-        if (input.required) {
+        // A field is required if:
+        // 1. It's explicitly required (minOccurs > 0), OR
+        // 2. It has visible_when condition and no default value (conditional field that must be filled when shown)
+        // Note: defaultValue is null when Python field has Field(None, ...), undefined when no default at all
+        const hasConditionalVisibility = !!input.uiMeta?.visible_when;
+        const hasNoDefault = input.defaultValue === undefined || input.defaultValue === null;
+        const isConditionallyRequired = hasConditionalVisibility && hasNoDefault;
+
+        const isRequired = input.required || isConditionallyRequired;
+
+        if (isRequired) {
           const value = effectiveValues[input.name];
-          if (value === undefined || value === null || value === "") {
+          if (isEmpty(value)) {
             return false;
           }
         }
