@@ -29,6 +29,7 @@ interface WidgetWrapperProps {
   viewOnly?: boolean;
   onWidgetDelete?: (widgetId: string) => void;
   onWidgetUpdate?: (updatedWidget: BuilderWidgetSchema) => void;
+  panelWidgets?: BuilderWidgetSchema[];
 }
 
 interface DraggableWidgetContainerProps {
@@ -84,6 +85,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
   viewOnly,
   onWidgetDelete,
   onWidgetUpdate,
+  panelWidgets,
 }) => {
   const widgetContent = (
     <Box sx={{ p: 1 }}>
@@ -108,8 +110,12 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
       )}
       {widget.config?.type && elementTypes.options.includes(widget.config?.type as any) && (
         <WidgetElement
+          widget={widget}
           config={widget.config as WidgetElementConfig}
           viewOnly={viewOnly}
+          projectLayers={projectLayers}
+          projectLayerGroups={projectLayerGroups}
+          panelWidgets={panelWidgets}
           onWidgetUpdate={(newConfig) => {
             onWidgetUpdate?.({ ...widget, config: newConfig });
           }}

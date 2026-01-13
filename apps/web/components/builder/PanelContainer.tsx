@@ -6,7 +6,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Box, IconButton, Stack, Typography, useTheme } from "@mui/material";
 import { alpha } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -101,7 +101,32 @@ export const Container: React.FC<ContainerProps> = ({
   const handleMouseEnter = () => setIsHovered(true);
   const handleMouseLeave = () => setIsHovered(false);
   const dispatch = useAppDispatch();
-  const widgetIds = panel.widgets?.map((widget) => widget.id) || [];
+
+  // Get all widget IDs that are assigned to tabs within THIS panel
+  const widgetsAssignedToTabs = useMemo(() => {
+    const assignedIds = new Set<string>();
+    panel.widgets?.forEach((widget) => {
+      if (widget.config?.type === "tabs") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tabsConfig = widget.config as any;
+        tabsConfig.tabs?.forEach((tab: { widgetIds?: string[] }) => {
+          tab.widgetIds?.forEach((id: string) => assignedIds.add(id));
+        });
+      }
+    });
+    return assignedIds;
+  }, [panel.widgets]);
+
+  // Filter widgets: show all widgets EXCEPT those assigned to tabs (unless they are tabs themselves)
+  const visibleWidgets = useMemo(() => {
+    return (
+      panel.widgets?.filter(
+        (widget) => widget.config?.type === "tabs" || !widgetsAssignedToTabs.has(widget.id)
+      ) || []
+    );
+  }, [panel.widgets, widgetsAssignedToTabs]);
+
+  const widgetIds = visibleWidgets.map((widget) => widget.id);
   const sortingStrategy =
     panel.orientation === "horizontal" ? horizontalListSortingStrategy : verticalListSortingStrategy;
 
@@ -290,7 +315,7 @@ export const Container: React.FC<ContainerProps> = ({
               }),
             }}>
             {/* Show empty message if widgets array is empty */}
-            {panel.widgets?.length === 0 ? (
+            {visibleWidgets.length === 0 ? (
               <Stack
                 width="100%"
                 height="100%"
@@ -313,7 +338,7 @@ export const Container: React.FC<ContainerProps> = ({
               </Stack>
             ) : !viewOnly ? (
               <SortableContext items={widgetIds} strategy={sortingStrategy}>
-                {panel.widgets?.map((widget) => (
+                {visibleWidgets.map((widget) => (
                   <Box
                     key={widget.id}
                     sx={{
@@ -348,13 +373,14 @@ export const Container: React.FC<ContainerProps> = ({
                       viewOnly={viewOnly}
                       onWidgetDelete={onWidgetDelete}
                       onWidgetUpdate={onWidgetUpdate}
+                      panelWidgets={panel.widgets}
                     />
                   </Box>
                 ))}
               </SortableContext>
             ) : (
               // Render normally if viewOnly
-              panel.widgets?.map((widget) => (
+              visibleWidgets.map((widget) => (
                 <Box
                   key={widget.id}
                   sx={{
@@ -387,6 +413,7 @@ export const Container: React.FC<ContainerProps> = ({
                     projectLayers={projectLayers}
                     projectLayerGroups={projectLayerGroups}
                     viewOnly={viewOnly}
+                    panelWidgets={panel.widgets}
                   />
                 </Box>
               ))
