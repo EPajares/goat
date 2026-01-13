@@ -59,3 +59,4 @@ WORKDIR /app
 EXPOSE 8000
 
 CMD ["fastapi", "run", "apps/processes/src/processes/main.py"]
+
