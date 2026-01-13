@@ -384,6 +384,17 @@ TOOL_REGISTRY: tuple[ToolDefinition, ...] = (
         toolbox_hidden=True,
     ),
     ToolDefinition(
+        name="layer_update",
+        display_name="Layer Update",
+        description="Update layer data from S3 file or refresh WFS source",
+        module_path="goatlib.tools.layer_update",
+        params_class_name="LayerUpdateParams",
+        windmill_path="f/goat/layer_update",
+        category="data",
+        keywords=("update", "refresh", "layer", "data", "wfs", "s3"),
+        toolbox_hidden=True,
+    ),
+    ToolDefinition(
         name="layer_export",
         display_name="Layer Export",
         description="Export a layer to file formats (GPKG, GeoJSON, CSV, etc.)",

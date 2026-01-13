@@ -13,26 +13,54 @@ Please follow these guidelines when contributing:
 - `.husky/`: Husky hooks for managing Git hooks
 - `.vscode/`: VSCode-specific settings and configurations
 - `apps/`: Contains the main applications for the project
-  - `core/`: The main FastAPI/Python backend application.
-  - `docs/`: Documentation for the project. It's using docusaurus
-  - `geoapi/`: A separate FastAPI/Python API service for geodata services. It's serving OGC data to the frontend.
-  - `routing/`: A separate FastAPI/Python API service for routing services. It's serving OGC data to the frontend.
-  - `storybook/`: A separate React/NextJS/TypeScript application for Storybook, used for UI component development and testing.
-  - `web/`: The main frontend application built with React/NextJS/TypeScript
-- `packages/`: Contains shared libraries and components used across the applications. It can contain both frontend and backend libraries.
-  - `js/`: Contains shared JavaScript/TypeScript libraries and components used across the frontend applications.
-    - `eslint-config-p4b/`: Shared ESLint configuration for the project.
-    - `keycloak-theme/`: A shared Keycloak theme for consistent branding across authentication interfaces.
-    - `prettier-config/`: Shared Prettier configuration for the project.
-    - `tsconfig/`: Shared TypeScript configuration for the project.
-    - `types/`: Shared TypeScript types used across the project.
-    - `ui/`: Shared UI components and libraries used across the frontend applications.
-  - `python`: Contains shared Python libraries and components used across the backend applications.
-    - `goatlib/`: A shared Python library with analytics and utility functions.
-- `scripts/`: Contains various scripts for development, testing, and deployment tasks.
+  - `core/`: The main FastAPI/Python backend application for user management, projects, folders, scenarios, and content metadata. Does NOT handle file uploads, layer data processing, or analytics tools.
+  - `docs/`: Documentation for the project using Docusaurus.
+  - `geoapi/`: FastAPI/Python API service implementing OGC API standards. Handles:
+    - Layer file uploads and imports (via `/upload` endpoints)
+    - Serving geospatial data to the frontend (OGC API Features)
+    - Triggering analytics tools via OGC API Processes (jobs run in Windmill)
+    - DuckLake data management for user layer data
+  - `routing/`: FastAPI/Python API service for routing/navigation services.
+  - `storybook/`: React/NextJS/TypeScript application for UI component development and testing.
+  - `web/`: The main frontend application built with React/NextJS/TypeScript.
+  - `processes/workers/`: Docker configuration for Windmill workers that execute analytics tools.
+- `packages/`: Contains shared libraries and components used across the applications.
+  - `js/`: Shared JavaScript/TypeScript libraries for frontend applications.
+    - `eslint-config-p4b/`: Shared ESLint configuration.
+    - `keycloak-theme/`: Shared Keycloak theme for authentication interfaces.
+    - `prettier-config/`: Shared Prettier configuration.
+    - `tsconfig/`: Shared TypeScript configuration.
+    - `types/`: Shared TypeScript types.
+    - `ui/`: Shared UI components and libraries.
+  - `python/`: Shared Python libraries for backend applications.
+    - `goatlib/`: Core Python library containing:
+      - `tools/`: All analytics tools (buffer, catchment_area, heatmap, etc.) that run as Windmill jobs
+      - `analysis/`: Analysis algorithms and utilities
+      - `io/`: Data I/O utilities (DuckLake, file handling)
+      - `models/`: Shared Pydantic models
+      - `services/`: Shared service classes
+- `scripts/`: Various scripts for development, testing, and deployment tasks.
+
+## Creating New Analytics Tools
+
+All analytics tools must be created first in `packages/python/goatlib/src/goatlib/tools/`. The tool definitions in goatlib are then automatically exposed via the Processes API (`apps/processes`), which provides the OGC API Processes interface. Tools run as background jobs in Windmill.
+
+### Tool Structure
+
+1. **Create the tool class** in `goatlib/tools/your_tool.py`:
+   - Inherit from `BaseToolRunner[YourToolParams]`
+   - Define input parameters as a Pydantic model extending `ToolInputBase`
+   - Implement the `process()` method with your analysis logic
+   - Set `tool_class`, `output_geometry_type`, and `default_output_name`
+
+2. **Register the tool** in `goatlib/tools/registry.py`
+
+3. **Sync to Windmill** using `goatlib/tools/sync_windmill.py`
 
 ## Key Guidelines
 
-1. Follow Go best practices and idiomatic patterns
+1. Follow Python best practices and idiomatic patterns
 2. Maintain existing code structure and organization
 3. Document public APIs and complex logic. Suggest changes to the `apps/docs/` folder when appropriate
+4. Analytics/processing logic belongs in `goatlib`
+5. Layer data is stored in DuckLake (managed by `geoapi`), metadata in PostgreSQL (managed by `core`)
