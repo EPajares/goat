@@ -1,35 +1,22 @@
 # Standard library imports
-import asyncio
-import json
 import logging
-import os
 from datetime import datetime
 from typing import Any, Dict, List
-from uuid import UUID, uuid4
+from uuid import UUID
 
 # Third party imports
-from fastapi import BackgroundTasks, HTTPException, status
+from fastapi import HTTPException
 from fastapi_pagination import Page
 from fastapi_pagination import Params as PaginationParams
 from geoalchemy2.elements import WKTElement
 from pydantic import BaseModel
 from sqlalchemy import and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.datastructures import UploadFile
 
 # Local application imports
 from core.core.config import settings
 from core.core.content import build_shared_with_object, create_query_shared_content
-from core.core.job import (
-    CRUDFailedJob,
-    job_init,
-    run_background_or_immediately,
-)
-from core.core.layer import (
-    CRUDLayerBase,
-    FileUpload,
-    OGRFileHandling,
-)
+from core.core.layer import CRUDLayerBase
 from core.crud.base import CRUDBase
 from core.db.models._link_model import (
     LayerOrganizationLink,
@@ -45,14 +32,10 @@ from core.schemas.error import (
     OperationNotSupportedError,
     UnsupportedLayerTypeError,
 )
-from core.schemas.job import JobStatusType
 from core.schemas.layer import (
     AreaStatisticsOperation,
     ComputeBreakOperation,
     ICatalogLayerGet,
-    IFileUploadExternalService,
-    IFileUploadMetadata,
-    ILayerFromDatasetCreate,
     ILayerGet,
     IMetadataAggregate,
     IMetadataAggregateRead,
@@ -62,10 +45,7 @@ from core.schemas.layer import (
     get_layer_schema,
     layer_update_class,
 )
-from core.utils import (
-    async_delete_dir,
-    build_where,
-)
+from core.utils import build_where
 
 logger = logging.getLogger(__name__)
 
@@ -170,111 +150,6 @@ class CRUDLayer(CRUDLayerBase):
                 Bucket=settings.AWS_S3_ASSETS_BUCKET,
                 Key=layer.thumbnail_url.replace(settings.ASSETS_URL + "/", ""),
             )
-
-    async def upload_file(
-        self,
-        async_session: AsyncSession,
-        user_id: UUID,
-        source: UploadFile | IFileUploadExternalService,
-        layer_type: LayerType,
-    ) -> IFileUploadMetadata:
-        """Fetch data if required, then validate using ogr2ogr."""
-
-        dataset_id = uuid4()
-        # Initialize OGRFileUpload
-        file_upload = FileUpload(
-            async_session=async_session,
-            user_id=user_id,
-            dataset_id=dataset_id,
-            source=source,
-        )
-
-        # Save file
-        timeout = 120
-        try:
-            file_path = await asyncio.wait_for(
-                file_upload.save_file(),
-                timeout,
-            )
-        except asyncio.TimeoutError:
-            # Run failure function and perform cleanup
-            await file_upload.save_file_fail()
-            raise HTTPException(
-                status_code=status.HTTP_408_REQUEST_TIMEOUT,
-                detail=f"File upload timed out after {timeout} seconds.",
-            )
-        except Exception as e:
-            # Run failure function if exists
-            await file_upload.save_file_fail()
-            # Update job status simple to failed
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e),
-            )
-
-        # Initialize OGRFileHandling
-        ogr_file_handling = OGRFileHandling(
-            async_session=async_session,
-            user_id=user_id,
-            file_path=file_path,
-        )
-
-        # Validate file before uploading
-        try:
-            validation_result = await asyncio.wait_for(
-                ogr_file_handling.validate(),
-                timeout,
-            )
-        except asyncio.TimeoutError:
-            raise HTTPException(
-                status_code=status.HTTP_408_REQUEST_TIMEOUT,
-                detail=f"File validation timed out after {timeout} seconds.",
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=str(e),
-            )
-
-        if validation_result.get("status") == "failed":
-            # Run failure function if exists
-            await file_upload.save_file_fail()
-            # Update job status simple to failed
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=validation_result["msg"],
-            )
-
-        # Get file size in bytes
-        if isinstance(source, UploadFile):
-            original_position = source.file.tell()
-            source.file.seek(0, 2)
-            file_size = source.file.tell()
-            source.file.seek(original_position)
-        else:
-            file_size = os.path.getsize(file_path)
-
-        # Define metadata object
-        metadata = IFileUploadMetadata(
-            **validation_result,
-            dataset_id=dataset_id,
-            file_ending=os.path.splitext(
-                source.filename if isinstance(source, UploadFile) else file_path
-            )[-1][1:],
-            file_size=file_size,
-            layer_type=layer_type,
-        )
-
-        # Save metadata into user folder as json
-        metadata_path = os.path.join(
-            os.path.dirname(metadata.file_path), "metadata.json"
-        )
-        with open(metadata_path, "w") as f:
-            # Convert dict to json
-            json.dump(metadata.model_dump_json(), f)
-
-        # Add layer_type and file_size to validation_result
-        return metadata
 
     async def get_feature_layer_size(
         self, async_session: AsyncSession, layer: Layer

@@ -12,7 +12,6 @@ from sqlalchemy.sql import Select
 
 from core.db.models import (
     Folder,
-    Job,
     Layer,
     Project,
     Scenario,
@@ -27,7 +26,7 @@ from core.schemas.system_setting import SystemSettingsCreate, SystemSettingsUpda
 
 ModelType = TypeVar(
     "ModelType",
-    bound=Layer | Project | User | Folder | Job | Scenario | Status | SystemSetting,
+    bound=Layer | Project | User | Folder | Scenario | Status | SystemSetting,
 )
 CreateSchemaType = TypeVar(
     "CreateSchemaType", bound=FolderCreate | SystemSettingsCreate | IScenarioCreate

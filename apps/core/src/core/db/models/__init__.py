@@ -10,7 +10,6 @@ from ._link_model import (
 from .asset import UploadedAsset
 from .data_store import DataStore
 from .folder import Folder
-from .job import Job
 from .layer import Layer
 from .organization import Organization
 from .project import Project

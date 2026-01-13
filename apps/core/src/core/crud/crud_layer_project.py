@@ -9,7 +9,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.core.layer import CRUDLayerBase
-from core.core.statistics import StatisticsBase
 from core.db.models._link_model import LayerProjectLink
 from core.db.models.layer import Layer
 from core.db.models.project import Project
@@ -32,7 +31,7 @@ from core.schemas.project import (
 from .base import CRUDBase
 
 
-class CRUDLayerProject(CRUDLayerBase, StatisticsBase):
+class CRUDLayerProject(CRUDLayerBase):
     async def layer_projects_to_schemas(
         self,
         async_session: AsyncSession,
