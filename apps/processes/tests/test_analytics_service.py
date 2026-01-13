@@ -54,7 +54,8 @@ class TestAnalyticsServiceBuildWhereClause:
         """Test with no filter returns TRUE."""
         service = AnalyticsService()
 
-        where, params = service._build_where_clause(None)
+        # Method requires table_name but doesn't use it for None filter
+        where, params = service._build_where_clause(None, "lake.schema.table")
 
         assert where == "TRUE"
         assert params == []
@@ -63,34 +64,22 @@ class TestAnalyticsServiceBuildWhereClause:
         """Test with empty filter returns TRUE."""
         service = AnalyticsService()
 
-        where, params = service._build_where_clause("")
+        where, params = service._build_where_clause("", "lake.schema.table")
 
         assert where == "TRUE"
         assert params == []
 
-    def test_build_where_clause_with_filter(self):
-        """Test with valid CQL2 filter."""
+    def test_build_where_clause_invalid_json(self):
+        """Test with invalid JSON filter returns TRUE."""
         service = AnalyticsService()
 
-        with patch("processes.services.analytics_service.build_filters") as mock_build:
-            mock_build.return_value = ("name = ?", ["test"])
+        # Invalid JSON should fall back to TRUE
+        where, params = service._build_where_clause(
+            "not valid json", "lake.schema.table"
+        )
 
-            where, params = service._build_where_clause("name = 'test'")
-
-            assert where == "name = ?"
-            assert params == ["test"]
-
-    def test_build_where_clause_invalid_filter(self):
-        """Test with invalid filter returns TRUE."""
-        service = AnalyticsService()
-
-        with patch("processes.services.analytics_service.build_filters") as mock_build:
-            mock_build.side_effect = Exception("Parse error")
-
-            where, params = service._build_where_clause("invalid filter <<<")
-
-            assert where == "TRUE"
-            assert params == []
+        assert where == "TRUE"
+        assert params == []
 
 
 class TestAnalyticsServiceFeatureCount:

@@ -63,7 +63,15 @@ class TestAnalyticsDefinitions:
 
     def test_all_processes_defined(self):
         """Test all expected processes are defined."""
-        expected = ["feature-count", "unique-values", "class-breaks", "area-statistics"]
+        expected = [
+            "feature-count",
+            "unique-values",
+            "class-breaks",
+            "area-statistics",
+            "extent",
+            "aggregation-stats",
+            "histogram",
+        ]
         for process_id in expected:
             assert process_id in ANALYTICS_DEFINITIONS
 
@@ -106,12 +114,15 @@ class TestAnalyticsRegistry:
     def test_get_all_summaries(self):
         """Test getting all process summaries."""
         summaries = analytics_registry.get_all_summaries("http://localhost:8000")
-        assert len(summaries) == 4
+        assert len(summaries) == 7
         process_ids = [s.id for s in summaries]
         assert "feature-count" in process_ids
         assert "unique-values" in process_ids
         assert "class-breaks" in process_ids
         assert "area-statistics" in process_ids
+        assert "extent" in process_ids
+        assert "aggregation-stats" in process_ids
+        assert "histogram" in process_ids
 
     def test_get_process_summary(self):
         """Test getting process summary."""

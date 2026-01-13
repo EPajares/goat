@@ -42,7 +42,8 @@ class Settings(BaseSettings):
 
     # DuckLake settings
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")
-    DUCKLAKE_DATA_DIR: Optional[str] = os.getenv("DUCKLAKE_DATA_DIR")
+    # Must match core/geoapi data path since they share the same catalog
+    DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
     DUCKLAKE_S3_ENDPOINT: Optional[str] = os.getenv("DUCKLAKE_S3_ENDPOINT")
     DUCKLAKE_S3_BUCKET: Optional[str] = os.getenv("DUCKLAKE_S3_BUCKET")
     DUCKLAKE_S3_ACCESS_KEY: Optional[str] = os.getenv("DUCKLAKE_S3_ACCESS_KEY")

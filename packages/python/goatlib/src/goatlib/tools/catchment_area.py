@@ -486,16 +486,22 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
         self: Self,
         layer_id: str,
         user_id: str,
+        cql_filter: dict[str, Any] | None = None,
     ) -> tuple[list[float], list[float]]:
         """Extract lat/lon coordinates from a layer.
 
         Args:
             layer_id: Layer UUID string
             user_id: User UUID string (fallback if layer info unavailable)
+            cql_filter: Optional CQL2-JSON filter to apply to the layer
 
         Returns:
             Tuple of (latitudes, longitudes) lists
         """
+        import json
+
+        from goatlib.storage.query_builder import build_cql_filter
+
         # Look up the layer's actual owner to correctly access shared/catalog layers
         layer_owner_id = self.get_layer_owner_id_sync(layer_id)
         if layer_owner_id is None:
@@ -510,14 +516,34 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
 
         table_name = self.get_layer_table_path(layer_owner_id, layer_id)
 
+        # Build WHERE clause from CQL filter
+        where_clause = "WHERE geometry IS NOT NULL"
+        params: list[Any] = []
+
+        if cql_filter:
+            # Get column names for CQL filter validation
+            columns_result = self._execute_with_retry(
+                "get columns",
+                f"SELECT column_name FROM information_schema.columns WHERE table_catalog = 'lake' AND table_name = 't_{layer_id.replace('-', '')}'",
+            )
+            column_names = [row[0] for row in columns_result.fetchall()]
+
+            filter_dict = {"filter": json.dumps(cql_filter), "lang": "cql2-json"}
+            cql_filters = build_cql_filter(filter_dict, column_names, "geometry")
+            if cql_filters.clauses:
+                where_clause += " AND " + " AND ".join(cql_filters.clauses)
+                params = cql_filters.params
+                logger.info(f"Applied CQL filter to layer {layer_id}")
+
         # Query centroids of all geometries
-        result = self.duckdb_con.execute(f"""
+        query = f"""
             SELECT
-                ST_Y(ST_Centroid(geom)) as lat,
-                ST_X(ST_Centroid(geom)) as lon
+                ST_Y(ST_Centroid(geometry)) as lat,
+                ST_X(ST_Centroid(geometry)) as lon
             FROM {table_name}
-            WHERE geom IS NOT NULL
-        """).fetchall()
+            {where_clause}
+        """
+        result = self.duckdb_con.execute(query, params).fetchall()
 
         if not result:
             raise ValueError(f"No valid geometries found in layer {layer_id}")
@@ -551,10 +577,11 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
             # Direct coordinates from map clicks
             return starting_points.latitude, starting_points.longitude
         elif isinstance(starting_points, StartingPointsLayer):
-            # Extract from layer
+            # Extract from layer with optional filter
             return self._extract_coordinates_from_layer(
                 starting_points.layer_id,
                 user_id,
+                cql_filter=starting_points.layer_filter,
             )
         else:
             raise ValueError(f"Invalid starting_points type: {type(starting_points)}")
@@ -674,8 +701,12 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
             r5_region_mapping_path=r5_region_mapping_path,
         )
 
-        # Run the analysis tool
-        tool = self.tool_class()
+        # Run the analysis tool - pass routing config to avoid using stale global settings
+        tool = self.tool_class(
+            routing_url=routing_url,
+            authorization=authorization,
+            r5_region_mapping_path=r5_region_mapping_path,
+        )
         try:
             results = tool.run(analysis_params)
             result_path, metadata = results[0]

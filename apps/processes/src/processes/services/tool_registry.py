@@ -99,9 +99,9 @@ class ToolRegistry:
         """Get cached translator for a language."""
         if language not in self._translator_cache:
             try:
-                from goatlib.i18n import I18nTranslator
+                from goatlib.i18n import get_translator
 
-                self._translator_cache[language] = I18nTranslator(language)
+                self._translator_cache[language] = get_translator(language)
             except ImportError:
                 logger.warning("goatlib.i18n not available, translations disabled")
                 self._translator_cache[language] = None
@@ -130,230 +130,29 @@ class ToolRegistry:
             return
 
         try:
-            # Import all tool param classes from goatlib.tools
-            from goatlib.tools import (
-                AggregatePointsToolParams,
-                AggregatePolygonsToolParams,
-                BufferToolParams,
-                CatchmentAreaToolParams,
-                ClipToolParams,
-                DissolveToolParams,
-                HeatmapConnectivityToolParams,
-                HeatmapGravityToolParams,
-                IntersectionToolParams,
-                JoinToolParams,
-                NearbyStationsToolParams,
-                OriginDestinationToolParams,
-                PrintReportToolParams,
-                PTNearbyStationsToolParams,
-                SingleIsochroneToolParams,
-                TripCountStationToolParams,
-                UnionToolParams,
-            )
+            # Import tool registry from goatlib - single source of truth
+            from goatlib.tools.registry import TOOL_REGISTRY
 
-            # Define all tools with their metadata
-            tools_config = [
-                # Geoprocessing tools
-                ToolInfo(
-                    name="buffer",
-                    display_name="Buffer",
-                    description=self._get_description(BufferToolParams),
-                    params_class=BufferToolParams,
-                    windmill_path="f/goat/buffer",
-                    category="geoprocessing",
-                    keywords=["buffer", "distance", "polygon"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/buffer",
-                ),
-                ToolInfo(
-                    name="intersect",
-                    display_name="Intersect",
-                    description=self._get_description(IntersectionToolParams),
-                    params_class=IntersectionToolParams,
-                    windmill_path="f/goat/intersect",
-                    category="geoprocessing",
-                    keywords=["intersect", "overlay", "clip"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/intersect",
-                ),
-                ToolInfo(
-                    name="union",
-                    display_name="Union",
-                    description=self._get_description(UnionToolParams),
-                    params_class=UnionToolParams,
-                    windmill_path="f/goat/union",
-                    category="geoprocessing",
-                    keywords=["union", "merge", "combine"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/union",
-                ),
-                ToolInfo(
-                    name="clip",
-                    display_name="Clip",
-                    description=self._get_description(ClipToolParams),
-                    params_class=ClipToolParams,
-                    windmill_path="f/goat/clip",
-                    category="geoprocessing",
-                    keywords=["clip", "cut", "extract"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/clip",
-                ),
-                ToolInfo(
-                    name="dissolve",
-                    display_name="Dissolve",
-                    description=self._get_description(DissolveToolParams),
-                    params_class=DissolveToolParams,
-                    windmill_path="f/goat/dissolve",
-                    category="geoprocessing",
-                    keywords=["dissolve", "aggregate", "merge"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/dissolve",
-                ),
-                ToolInfo(
-                    name="join",
-                    display_name="Join",
-                    description=self._get_description(JoinToolParams),
-                    params_class=JoinToolParams,
-                    windmill_path="f/goat/join",
-                    category="geoprocessing",
-                    keywords=["join", "spatial join", "attribute join"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/join",
-                ),
-                ToolInfo(
-                    name="aggregate_points",
-                    display_name="Aggregate Points",
-                    description=self._get_description(AggregatePointsToolParams),
-                    params_class=AggregatePointsToolParams,
-                    windmill_path="f/goat/aggregate_points",
-                    category="geoprocessing",
-                    keywords=["aggregate", "points", "statistics"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/aggregate_points",
-                ),
-                ToolInfo(
-                    name="aggregate_polygons",
-                    display_name="Aggregate Polygons",
-                    description=self._get_description(AggregatePolygonsToolParams),
-                    params_class=AggregatePolygonsToolParams,
-                    windmill_path="f/goat/aggregate_polygons",
-                    category="geoprocessing",
-                    keywords=["aggregate", "polygons", "statistics"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/geoprocessing/aggregate_polygons",
-                ),
-                # Accessibility tools
-                ToolInfo(
-                    name="catchment_area",
-                    display_name="Catchment Area",
-                    description=self._get_description(CatchmentAreaToolParams),
-                    params_class=CatchmentAreaToolParams,
-                    windmill_path="f/goat/catchment_area",
-                    category="accessibility",
-                    keywords=["catchment", "isochrone", "travel time", "accessibility"],
-                    job_control_options=["async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/accessibility/catchment_area",
-                    worker_tag="isochrones",
-                ),
-                ToolInfo(
-                    name="single_isochrone",
-                    display_name="Single Isochrone",
-                    description=self._get_description(SingleIsochroneToolParams),
-                    params_class=SingleIsochroneToolParams,
-                    windmill_path="f/goat/single_isochrone",
-                    category="accessibility",
-                    keywords=["isochrone", "travel time", "accessibility"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/accessibility/isochrone",
-                    worker_tag="isochrones",
-                ),
-                ToolInfo(
-                    name="heatmap_gravity",
-                    display_name="Heatmap Gravity",
-                    description=self._get_description(HeatmapGravityToolParams),
-                    params_class=HeatmapGravityToolParams,
-                    windmill_path="f/goat/heatmap_gravity",
-                    category="accessibility",
-                    keywords=["heatmap", "gravity", "accessibility", "opportunities"],
-                    job_control_options=["async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/accessibility/heatmap_gravity",
-                    worker_tag="heatmaps",
-                ),
-                ToolInfo(
-                    name="heatmap_connectivity",
-                    display_name="Heatmap Connectivity",
-                    description=self._get_description(HeatmapConnectivityToolParams),
-                    params_class=HeatmapConnectivityToolParams,
-                    windmill_path="f/goat/heatmap_connectivity",
-                    category="accessibility",
-                    keywords=["heatmap", "connectivity", "local accessibility"],
-                    job_control_options=["async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/accessibility/heatmap_connectivity",
-                    worker_tag="heatmaps",
-                ),
-                # Public transport tools
-                ToolInfo(
-                    name="nearby_stations",
-                    display_name="Nearby Stations",
-                    description=self._get_description(NearbyStationsToolParams),
-                    params_class=NearbyStationsToolParams,
-                    windmill_path="f/goat/nearby_stations",
-                    category="public_transport",
-                    keywords=["stations", "nearby", "public transport"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/public_transport/nearby_stations",
-                ),
-                ToolInfo(
-                    name="pt_nearby_stations",
-                    display_name="PT Nearby Stations",
-                    description=self._get_description(PTNearbyStationsToolParams),
-                    params_class=PTNearbyStationsToolParams,
-                    windmill_path="f/goat/pt_nearby_stations",
-                    category="public_transport",
-                    keywords=["stations", "pt", "public transport", "trip"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/public_transport/pt_nearby_stations",
-                ),
-                ToolInfo(
-                    name="trip_count_station",
-                    display_name="Trip Count by Station",
-                    description=self._get_description(TripCountStationToolParams),
-                    params_class=TripCountStationToolParams,
-                    windmill_path="f/goat/trip_count_station",
-                    category="public_transport",
-                    keywords=["trip count", "station", "public transport", "frequency"],
-                    job_control_options=["sync-execute", "async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/public_transport/trip_count_station",
-                ),
-                ToolInfo(
-                    name="origin_destination",
-                    display_name="Origin Destination",
-                    description=self._get_description(OriginDestinationToolParams),
-                    params_class=OriginDestinationToolParams,
-                    windmill_path="f/goat/origin_destination",
-                    category="public_transport",
-                    keywords=["origin", "destination", "od", "matrix"],
-                    job_control_options=["async-execute"],
-                    docs_path="https://docs.goat.dev/toolbox/public_transport/origin_destination",
-                    worker_tag="od",
-                ),
-                # Reporting tools (hidden from toolbox)
-                ToolInfo(
-                    name="print_report",
-                    display_name="Print Report",
-                    description=self._get_description(PrintReportToolParams),
-                    params_class=PrintReportToolParams,
-                    windmill_path="f/goat/print_report",
-                    category="reporting",
-                    keywords=["print", "report", "pdf", "export"],
-                    job_control_options=["async-execute"],
-                    toolbox_hidden=True,
-                    worker_tag="print",
-                ),
-            ]
-
-            for tool in tools_config:
-                self._registry[tool.name] = tool
+            for tool_def in TOOL_REGISTRY:
+                try:
+                    params_class = tool_def.get_params_class()
+                    self._registry[tool_def.name] = ToolInfo(
+                        name=tool_def.name,
+                        display_name=tool_def.display_name,
+                        description=self._get_description(params_class),
+                        params_class=params_class,
+                        windmill_path=tool_def.windmill_path,
+                        category=tool_def.category,
+                        job_control_options=[
+                            "async-execute"
+                        ],  # All tools support async
+                        keywords=list(tool_def.keywords),
+                        toolbox_hidden=tool_def.toolbox_hidden,
+                        docs_path=tool_def.docs_path,
+                        worker_tag=tool_def.worker_tag,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to register tool {tool_def.name}: {e}")
 
             logger.info(f"Initialized {len(self._registry)} tools from goatlib")
 
@@ -400,30 +199,15 @@ class ToolRegistry:
         # Get base schema from Pydantic
         schema = tool.params_class.model_json_schema()
 
-        # Apply translations to x-ui sections and field labels
+        # Apply translations using goatlib.i18n (handles sections, fields, enum_labels)
         translator = self._get_translator(language)
-        if translator and "x-ui-sections" in schema:
-            for section in schema.get("x-ui-sections", []):
-                if "label_key" in section:
-                    translated = translator.get_section_label(section["label_key"])
-                    if translated:
-                        section["label"] = translated
+        if translator:
+            try:
+                from goatlib.i18n import resolve_schema_translations
 
-        # Translate field labels in properties
-        if translator and "properties" in schema:
-            for field_name, field_schema in schema.get("properties", {}).items():
-                if isinstance(field_schema, dict):
-                    x_ui = field_schema.get("x-ui", {})
-                    if "label_key" in x_ui:
-                        translated = translator.get_field_label(x_ui["label_key"])
-                        if translated:
-                            x_ui["label"] = translated
-                    if "description_key" in x_ui:
-                        translated = translator.get_field_description(
-                            x_ui["description_key"]
-                        )
-                        if translated:
-                            x_ui["description"] = translated
+                schema = resolve_schema_translations(schema, language, translator)
+            except ImportError:
+                logger.debug("Translation resolution not available")
 
         return schema
 

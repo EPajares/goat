@@ -77,6 +77,23 @@ jobs:
       platforms: linux/amd64
       image-name: ghcr.io/${{ github.repository }}/geoapi
 
+  release-docker-processes:
+    needs: [file-changes, lint]
+    if: needs.file-changes.outputs.processes == 'true' ||
+      startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/reusable-docker-build.yml
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+    with:
+      dockerhub-enable: false
+      ghcr-enable: true
+      push: ${{ github.event_name != 'pull_request' }}
+      file: ./apps/processes/Dockerfile
+      platforms: linux/amd64
+      image-name: ghcr.io/${{ github.repository }}/processes
+
   release-docker-routing:
     needs: [file-changes, lint]
     if: needs.file-changes.outputs.routing == 'true' || startsWith(github.ref, 'refs/tags/v')

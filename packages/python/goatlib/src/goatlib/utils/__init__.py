@@ -1,21 +1,12 @@
-"""Utility functions for goatlib."""
+"""Utility functions for goatlib.
 
-from goatlib.utils.layer import (
-    InvalidLayerIdError,
-    LayerNotFoundError,
-    clear_schema_cache,
-    format_uuid,
-    get_schema_for_layer,
-    layer_id_to_table_name,
-    normalize_layer_id,
-)
+Note: Layer utilities (normalize_layer_id, get_schema_for_layer, etc.)
+are available via direct import from goatlib.utils.layer to avoid
+importing cachetools at module load time.
+"""
+
+from goatlib.utils.helper import UNIT_TO_METERS
 
 __all__ = [
-    "InvalidLayerIdError",
-    "LayerNotFoundError",
-    "normalize_layer_id",
-    "format_uuid",
-    "layer_id_to_table_name",
-    "get_schema_for_layer",
-    "clear_schema_cache",
+    "UNIT_TO_METERS",
 ]
