@@ -137,8 +137,8 @@ jobs:
           outputs: type=image,name=${{ inputs.image-name }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=gha,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
-          cache-to: type=gha,mode=max,scope=${{ env.SAFE_IMAGE }}-${{ env.PLATFORM_PAIR }}
+          cache-from: type=registry,ref=${{ inputs.image-name }}:buildcache
+          cache-to: type=registry,ref=${{ inputs.image-name }}:buildcache,mode=max
 
       - name: 📤 Export digest
         run: |
