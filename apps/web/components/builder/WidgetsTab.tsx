@@ -64,6 +64,7 @@ const WidgetTab = () => {
           elementTypes.enum.text,
           elementTypes.enum.divider,
           elementTypes.enum.image,
+          elementTypes.enum.tabs,
         ] as WidgetTypes[],
       },
     ],

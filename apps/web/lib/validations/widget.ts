@@ -7,7 +7,7 @@ import { colorRange } from "@/lib/validations/layer";
 export const informationTypes = z.enum(["layers", "bookmarks", "comments"]);
 export const dataTypes = z.enum(["filter", "table", "numbers", "feature_list"]);
 export const chartTypes = z.enum(["histogram_chart", "categories_chart", "pie_chart"]);
-export const elementTypes = z.enum(["text", "divider", "image"]);
+export const elementTypes = z.enum(["text", "divider", "image", "tabs"]);
 export const widgetTypes = z.enum([
   ...informationTypes.options,
   ...dataTypes.options,
@@ -227,6 +227,27 @@ export const imageElementConfigSchema = z.object({
     .default({}),
 });
 
+// Tab schema for individual tabs
+export const tabItemSchema = z.object({
+  id: z.string(),
+  name: z.string().default("Tab"),
+  widgetIds: z.array(z.string()).default([]),
+});
+
+// Tabs container configuration schema
+export const tabsContainerConfigSchema = z.object({
+  type: z.literal("tabs"),
+  setup: z
+    .object({
+      title: z.string().optional().default(""),
+    })
+    .default({}),
+  tabs: z.array(tabItemSchema).default([
+    { id: "tab-1", name: "Tab 1" },
+    { id: "tab-2", name: "Tab 2" },
+  ]),
+});
+
 export const configSchemas = z.union([
   informationLayersConfigSchema,
   numbersDataConfigSchema,
@@ -237,6 +258,7 @@ export const configSchemas = z.union([
   textElementConfigSchema,
   dividerElementConfigSchema,
   imageElementConfigSchema,
+  tabsContainerConfigSchema,
 ]);
 
 export const widgetSchemaMap = {
@@ -249,6 +271,7 @@ export const widgetSchemaMap = {
   text: textElementConfigSchema,
   divider: dividerElementConfigSchema,
   image: imageElementConfigSchema,
+  tabs: tabsContainerConfigSchema,
 };
 
 export type WidgetTypes = z.infer<typeof widgetTypes>;
@@ -260,13 +283,19 @@ export type PieChartSchema = z.infer<typeof pieChartConfigSchema>;
 export type TextElementSchema = z.infer<typeof textElementConfigSchema>;
 export type DividerElementSchema = z.infer<typeof dividerElementConfigSchema>;
 export type ImageElementSchema = z.infer<typeof imageElementConfigSchema>;
+export type TabItemSchema = z.infer<typeof tabItemSchema>;
+export type TabsContainerSchema = z.infer<typeof tabsContainerConfigSchema>;
 export type LayerInformationSchema = z.infer<typeof informationLayersConfigSchema>;
 export type NumbersDataSchema = z.infer<typeof numbersDataConfigSchema>;
 export type FilterDataSchema = z.infer<typeof filterDataConfigSchema>;
 export type FilterLayoutTypes = z.infer<typeof filterLayoutTypes>;
 
 export type WidgetChartConfig = HistogramChartSchema | CategoriesChartSchema | PieChartSchema;
-export type WidgetElementConfig = TextElementSchema | DividerElementSchema | ImageElementSchema;
+export type WidgetElementConfig =
+  | TextElementSchema
+  | DividerElementSchema
+  | ImageElementSchema
+  | TabsContainerSchema;
 export type WidgetInformationConfig = LayerInformationSchema;
 export type WidgetDataConfig = NumbersDataSchema | FilterDataSchema;
 

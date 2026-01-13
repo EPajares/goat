@@ -124,6 +124,18 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
     }
   };
 
+  // Get widgets from the same panel as the selected widget (for tabs widget config)
+  const samePanelWidgets = useMemo(() => {
+    if (!builderConfig?.interface || !selectedBuilderItem || selectedBuilderItem.type !== "widget") {
+      return [];
+    }
+    // Find the panel containing the selected widget
+    const containingPanel = builderConfig.interface.find((panel) =>
+      panel.widgets?.some((w) => w.id === selectedBuilderItem.id)
+    );
+    return containingPanel?.widgets || [];
+  }, [builderConfig, selectedBuilderItem]);
+
   const renderConfiguration = () => {
     if (!selectedBuilderItem) {
       return null;
@@ -136,7 +148,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({ project, onProjectUpdate }) =
           onChange={onPanelChange}
         />
       ),
-      widget: <WidgetConfiguration onChange={onWidgetChange} />,
+      widget: <WidgetConfiguration onChange={onWidgetChange} samePanelWidgets={samePanelWidgets} />,
     };
 
     return configComponents[selectedBuilderItem?.type] || null;
