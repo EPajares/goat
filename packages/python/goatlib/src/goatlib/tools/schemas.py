@@ -6,7 +6,7 @@ ensuring consistency across buffer, clip, join, layer-import, etc.
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from goatlib.analysis.schemas.ui import ui_field
 from goatlib.i18n import get_translator
@@ -31,7 +31,7 @@ class ToolInputBase(BaseModel):
     """Base inputs that ALL tools receive.
 
     Every Windmill tool script should accept these parameters.
-    GeoAPI injects `user_id` automatically from the auth token.
+    GeoAPI injects `user_id` and `triggered_by_email` automatically from the auth token.
 
     folder_id is optional - if not provided, it will be derived from project_id.
     For layer imports outside a project, folder_id must be provided.
@@ -40,10 +40,18 @@ class ToolInputBase(BaseModel):
     with original layer data (new/modified added, deleted removed).
     """
 
+    model_config = ConfigDict(populate_by_name=True)
+
     user_id: str = Field(
         ...,
         description="User UUID (injected by GeoAPI)",
         json_schema_extra=ui_field(section="output", field_order=99, hidden=True),
+    )
+    triggered_by_email: str | None = Field(
+        None,
+        alias="_triggered_by_email",
+        description="User email (injected by GeoAPI for job tracking/Windmill labels)",
+        json_schema_extra=ui_field(section="output", field_order=100, hidden=True),
     )
     folder_id: str | None = Field(
         None,
@@ -173,11 +181,19 @@ class ToolOutputBase(BaseModel):
     """Standard output that all tools return.
 
     This ensures consistent response format for the frontend/job results.
+    Includes wm_labels for Windmill job labeling at runtime.
     """
 
     # Identity
     layer_id: str = Field(..., description="UUID of the created layer")
     name: str = Field(..., description="Layer display name")
+
+    # Windmill job labels - returned at runtime for job tracking
+    # See: https://www.windmill.dev/docs/core_concepts/jobs#labels
+    wm_labels: list[str] = Field(
+        default_factory=list,
+        description="Labels to apply to the Windmill job for filtering/tracking",
+    )
 
     # Location
     folder_id: str = Field(..., description="Folder containing the layer")

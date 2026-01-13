@@ -14,16 +14,21 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 
-from geoapi.config import settings
-from geoapi.deps.auth import get_user_id, oauth2_scheme
-from geoapi.models.processes import (
+from processes.config import settings
+from processes.deps.auth import (
+    decode_token,
+    get_optional_user_id,
+    get_user_id,
+    oauth2_scheme,
+)
+from processes.models.processes import (
     OGC_EXCEPTION_NO_SUCH_JOB,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
     OGC_EXCEPTION_RESULT_NOT_READY,
@@ -38,18 +43,51 @@ from geoapi.models.processes import (
     StatusCode,
     StatusInfo,
 )
-from geoapi.services.analytics_registry import analytics_registry
-from geoapi.services.analytics_service import analytics_service
-from geoapi.services.tool_registry import tool_registry
-from geoapi.services.windmill_client import (
+from processes.services.analytics_registry import analytics_registry
+from processes.services.analytics_service import AnalyticsService
+from processes.services.tool_registry import tool_registry
+from processes.services.windmill_client import (
+    WindmillClient,
     WindmillError,
     WindmillJobNotFound,
-    windmill_client,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Processes"])
+
+# Instantiate services
+analytics_service = AnalyticsService()
+windmill_client = WindmillClient()
+
+# Processes that can be executed without authentication (read-only analytics)
+# These are sync processes that only query data and don't modify anything
+PUBLIC_ALLOWED_PROCESSES = frozenset(
+    {
+        "feature-count",
+        "unique-values",
+        "class-breaks",
+        "area-statistics",
+        "extent",
+        "aggregation-stats",
+        "histogram",
+    }
+)
+
+
+def is_public_allowed_process(process_id: str) -> bool:
+    """Check if a process can be executed without authentication.
+
+    Only read-only sync analytics processes are allowed for public access.
+    These processes only query data and don't create jobs or modify state.
+
+    Args:
+        process_id: The process identifier
+
+    Returns:
+        True if the process can be executed publicly, False otherwise
+    """
+    return process_id in PUBLIC_ALLOWED_PROCESSES
 
 
 def _execute_analytics_sync(process_id: str, inputs: dict[str, Any]) -> dict[str, Any]:
@@ -343,24 +381,35 @@ async def execute_process(
     request: Request,
     process_id: str,
     execute_request: ExecuteRequest,
-    user_id: UUID = Depends(get_user_id),
+    user_id: UUID | None = Depends(get_optional_user_id),
     access_token: str | None = Depends(oauth2_scheme),
 ) -> JSONResponse:
     """Execute a process.
 
     For analytics processes (feature-count, class-breaks, unique-values, area-statistics):
       Returns results immediately (HTTP 200).
+      These can be executed without authentication (public access).
 
     For async tool processes (buffer, clip, etc.):
       Creates a job and returns status info with job ID (HTTP 201).
+      These REQUIRE authentication.
       Results can be retrieved via /jobs/{jobId}/results.
     """
     base_url = get_base_url(request)
 
-    # Check if this is an analytics process (sync execution)
-    if analytics_registry.is_analytics_process(process_id):
+    # Check if this is a public-allowed analytics process (sync execution)
+    if is_public_allowed_process(process_id):
+        # Analytics processes are read-only and don't need authentication
         result = _execute_analytics_sync(process_id, execute_request.inputs)
         return JSONResponse(status_code=200, content=result)
+
+    # For all other processes, authentication is required
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required for this process",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     # For async processes, verify tool exists
     tool_info = tool_registry.get_tool(process_id)
@@ -394,6 +443,17 @@ async def execute_process(
         job_inputs["od_matrix_path"] = (
             f"{settings.TRAVELTIME_MATRICES_DIR}/{routing_mode}/"
         )
+
+    # Add user email to job inputs for tracking who triggered the job
+    # This is visible in Windmill's job arguments/input tab
+    if access_token:
+        try:
+            decoded = decode_token(access_token)
+            user_email = decoded.get("email")
+            if user_email:
+                job_inputs["_triggered_by_email"] = user_email
+        except Exception:
+            pass  # Token decode failed, skip email tracking
 
     # Submit job to Windmill
     # Note: Worker tag is configured on the script during sync, not per-job
@@ -489,11 +549,9 @@ def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusIn
 
     if not job.get("running") and job.get("duration_ms"):
         if started:
-            from datetime import timedelta
-
             finished = started + timedelta(milliseconds=job["duration_ms"])
 
-    status = _windmill_status_to_ogc(job)
+    ogc_status = _windmill_status_to_ogc(job)
 
     # Build links
     links = [
@@ -505,7 +563,7 @@ def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusIn
         ),
     ]
 
-    if status == StatusCode.successful:
+    if ogc_status == StatusCode.successful:
         links.append(
             Link(
                 href=f"{base_url}/jobs/{job_id}/results",
@@ -519,7 +577,7 @@ def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusIn
         processID=process_id if process_id else None,
         type="process",
         jobID=job_id,
-        status=status,
+        status=ogc_status,
         message=job.get("logs", "")[:500] if job.get("logs") else None,
         created=created,
         started=started,
@@ -538,7 +596,7 @@ async def list_jobs(
     request: Request,
     user_id: UUID = Depends(get_user_id),
     process_id: Annotated[str | None, Query(alias="processID")] = None,
-    status: Annotated[str | None, Query()] = None,
+    status_filter: Annotated[str | None, Query(alias="status")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 100,
 ) -> JobList:
     """List all jobs for the authenticated user from the last 3 days.
@@ -551,11 +609,11 @@ async def list_jobs(
         # Map OGC status to Windmill filters
         success_filter: bool | None = None
         running_filter: bool | None = None
-        if status == "successful":
+        if status_filter == "successful":
             success_filter = True
-        elif status == "failed":
+        elif status_filter == "failed":
             success_filter = False
-        elif status == "running":
+        elif status_filter == "running":
             running_filter = True
 
         # Query Windmill directly with efficient filters
@@ -720,20 +778,20 @@ async def get_job_results(
             )
 
         # Check job status
-        status = _windmill_status_to_ogc(job)
+        ogc_status = _windmill_status_to_ogc(job)
 
-        if status == StatusCode.running or status == StatusCode.accepted:
+        if ogc_status == StatusCode.running or ogc_status == StatusCode.accepted:
             raise HTTPException(
                 status_code=404,
                 detail={
                     "type": OGC_EXCEPTION_RESULT_NOT_READY,
                     "title": "Results not ready",
                     "status": 404,
-                    "detail": f"Job '{job_id}' is still {status.value}",
+                    "detail": f"Job '{job_id}' is still {ogc_status.value}",
                 },
             )
 
-        if status == StatusCode.failed:
+        if ogc_status == StatusCode.failed:
             error_msg = job.get("result", {})
             raise HTTPException(
                 status_code=500,
@@ -810,8 +868,8 @@ async def dismiss_job(
             )
 
         # Cancel if still running
-        status = _windmill_status_to_ogc(job)
-        if status in (StatusCode.accepted, StatusCode.running):
+        ogc_status = _windmill_status_to_ogc(job)
+        if ogc_status in (StatusCode.accepted, StatusCode.running):
             try:
                 await windmill_client.cancel_job(job_id, "User requested dismissal")
             except WindmillError:

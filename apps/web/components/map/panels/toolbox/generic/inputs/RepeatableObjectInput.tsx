@@ -163,7 +163,9 @@ export default function RepeatableObjectInput({
 
   // Track filters for nested layer inputs
   // Structure: itemFilters[itemIndex][layerFieldName] = filter
-  const [itemFilters, setItemFilters] = useState<Record<number, Record<string, Record<string, unknown> | undefined>>>({});
+  const [_itemFilters, setItemFilters] = useState<
+    Record<number, Record<string, Record<string, unknown> | undefined>>
+  >({});
 
   // Get item schema (resolve $ref if needed)
   // Handle anyOf pattern for nullable arrays: anyOf: [{type: "array", items: {...}}, {type: "null"}]
@@ -288,7 +290,7 @@ export default function RepeatableObjectInput({
             [propName]: filter,
           },
         };
-        
+
         // Notify parent immediately with updated filters
         if (onNestedFiltersChange) {
           const filtersArray: Record<string, Record<string, unknown> | undefined>[] = [];
@@ -297,7 +299,7 @@ export default function RepeatableObjectInput({
           }
           onNestedFiltersChange(filtersArray);
         }
-        
+
         return newFilters;
       });
     },

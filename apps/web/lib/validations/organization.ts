@@ -16,16 +16,12 @@ const organizationBaseSchema = z.object({
   avatar: z.string(),
 });
 
-const planNameEnum = z.enum([
-  "goat_starter",
-  "goat_professional",
-  "goat_enterprise"
-]);
+const planNameEnum = z.enum(["goat_starter", "goat_professional", "goat_enterprise"]);
 
 export const planNames = {
   STARTER: "goat_starter",
   PRO: "goat_professional",
-  ENTERPRISE: "goat_enterprise"
+  ENTERPRISE: "goat_enterprise",
 } as const;
 
 export enum FeatureName {
@@ -36,19 +32,18 @@ export const featureToPlanMap = {
   [FeatureName.SCENARIO]: [planNames.PRO, planNames.ENTERPRISE],
 };
 
-
 export const organizationRolesEnum = z.enum([
   "organization-owner",
   "organization-admin",
   "organization-editor",
-  "organization-viewer"
+  "organization-viewer",
 ]);
 
 export const organizationRoles = {
   OWNER: "organization-owner",
   ADMIN: "organization-admin",
   EDITOR: "organization-editor",
-  VIEWER: "organization-viewer"
+  VIEWER: "organization-viewer",
 } as const;
 
 const organizationSchema = organizationBaseSchema.extend({
@@ -70,7 +65,7 @@ const organizationSchema = organizationBaseSchema.extend({
   on_trial: z.boolean(),
   region: regionEnum,
   contact_user_id: z.string(),
-  hubspot_id: z.string(),
+  hubspot_id: z.string().optional(),
   suspended: z.boolean(),
 });
 
@@ -92,7 +87,6 @@ export const invitationCreateSchema = z.object({
   role: organizationRolesEnum,
   expires: z.string().optional(),
 });
-
 
 export const organizationUpdateSchema = organizationBaseSchema.partial();
 

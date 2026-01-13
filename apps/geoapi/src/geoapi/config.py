@@ -7,7 +7,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    """Application settings."""
+    """Application settings for GeoAPI.
+
+    GeoAPI serves OGC Features and Tiles from DuckLake storage.
+    Process execution has moved to the dedicated 'processes' service.
+    """
 
     # API Settings
     APP_NAME: str = "GOAT GeoAPI"
@@ -27,23 +31,10 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = int(os.getenv("POSTGRES_OUTER_PORT", "5432"))
     POSTGRES_DB: str = os.getenv("POSTGRES_DB", "goat")
 
-    # Schema settings
-    CUSTOMER_SCHEMA: str = os.getenv("CUSTOMER_SCHEMA", "customer")
-
-    # Windmill settings for job execution
-    WINDMILL_URL: str = os.getenv("WINDMILL_URL", "http://windmill-server:8000")
-    WINDMILL_WORKSPACE: str = os.getenv("WINDMILL_WORKSPACE", "goat")
-    WINDMILL_TOKEN: str = os.getenv("WINDMILL_TOKEN", "")
-
     # DuckLake settings
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")
     # Must match core app's data path since they share the same catalog
     DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
-
-    # Traveltime matrices directory for heatmap tools
-    TRAVELTIME_MATRICES_DIR: str = os.getenv(
-        "TRAVELTIME_MATRICES_DIR", "/app/data/traveltime_matrices"
-    )
 
     # S3/MinIO settings (shared for DuckLake and uploads)
     S3_PROVIDER: str = os.getenv("S3_PROVIDER", "hetzner").lower()
@@ -54,6 +45,17 @@ class Settings(BaseSettings):
         "S3_REGION", "us-east-1"
     )
     S3_BUCKET_NAME: Optional[str] = os.getenv("S3_BUCKET_NAME")
+
+    # Hidden fields - columns to exclude from API responses (tiles and features)
+    # These are internal/structural columns that shouldn't be exposed to clients
+    # Can be overridden via GEOAPI_HIDDEN_FIELDS env var (comma-separated)
+    HIDDEN_FIELDS: set[str] = {
+        "bbox",  # GeoParquet 1.1 bounding box struct
+        "$minx",
+        "$miny",
+        "$maxx",
+        "$maxy",  # Legacy scalar bbox columns
+    }
 
     # MVT Settings
     MAX_FEATURES_PER_TILE: int = 15000
@@ -76,20 +78,6 @@ class Settings(BaseSettings):
     # CORS settings
     CORS_ORIGINS: list[str] = ["*"]
 
-    # Print worker URL (for PrintReport tool to render pages)
-    # Default uses Docker container name; override with PRINT_BASE_URL env var
-    PRINT_BASE_URL: str = os.getenv("PRINT_BASE_URL", "http://goat-web:3000")
-
-    # Routing settings for catchment area tools
-    GOAT_ROUTING_URL: str = os.getenv(
-        "GOAT_ROUTING_URL", "http://goat-routing:8200/api/v2/routing"
-    )
-    GOAT_ROUTING_AUTHORIZATION: Optional[str] = os.getenv("GOAT_ROUTING_AUTHORIZATION")
-    R5_URL: str = os.getenv("R5_URL", "https://r5.routing.plan4better.de")
-    R5_REGION_MAPPING_PATH: str = os.getenv(
-        "R5_REGION_MAPPING_PATH", "/app/data/gtfs/r5_region_mapping.parquet"
-    )
-
     @property
     def POSTGRES_DATABASE_URI(self) -> str:
         """Construct PostgreSQL URI."""
@@ -98,4 +86,23 @@ class Settings(BaseSettings):
     model_config = {"env_prefix": "GEOAPI_", "case_sensitive": True}
 
 
+def _get_hidden_fields() -> set[str]:
+    """Get hidden fields from env var or default.
+
+    Environment variable format: GEOAPI_HIDDEN_FIELDS=bbox,$minx,$miny,$maxx,$maxy
+    """
+    env_value = os.getenv("GEOAPI_HIDDEN_FIELDS")
+    if env_value:
+        return {f.strip() for f in env_value.split(",") if f.strip()}
+    return {
+        "bbox",  # GeoParquet 1.1 bounding box struct
+        "$minx",
+        "$miny",
+        "$maxx",
+        "$maxy",  # Legacy scalar bbox columns
+    }
+
+
+# Create settings and update HIDDEN_FIELDS from env var if set
 settings = Settings()
+settings.HIDDEN_FIELDS = _get_hidden_fields()

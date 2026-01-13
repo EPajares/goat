@@ -167,6 +167,9 @@ class TileService:
             # No properties available
             prop_cols = []
 
+        # Filter out hidden fields (e.g., bbox columns) from client responses
+        prop_cols = [c for c in prop_cols if c not in settings.HIDDEN_FIELDS]
+
         # Filter out columns with types that cannot be used in MVT at all
         prop_cols = [
             c for c in prop_cols if not is_excluded_type(col_types.get(c, "VARCHAR"))
@@ -272,7 +275,7 @@ class TileService:
                     FROM {table}, bounds
                     WHERE {bbox_filter}
                       AND ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    LIMIT {limit}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),
@@ -292,7 +295,7 @@ class TileService:
                     SELECT {select_clause}
                     FROM {table}, bounds
                     WHERE ST_Intersects("{geom_col}", bounds.bbox4326){extra_where_sql}
-                    LIMIT {limit}
+                    QUALIFY ROW_NUMBER() OVER (ORDER BY random()) <= {limit}
                 )
                 SELECT ST_AsMVT(
                     struct_pack({struct_pack_args}),

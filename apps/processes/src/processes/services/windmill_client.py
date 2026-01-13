@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 from wmill import Windmill
 
-from geoapi.config import settings
+from processes.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -406,13 +406,13 @@ class WindmillClient:
             WindmillError: If API call fails
         """
         import asyncio
+        import re
+        from datetime import datetime, timedelta, timezone
 
         client = self._get_client()
         workspace = settings.WINDMILL_WORKSPACE
 
         # Calculate created_after timestamp
-        from datetime import datetime, timedelta, timezone
-
         created_after = datetime.now(timezone.utc) - timedelta(days=created_after_days)
         created_after_iso = created_after.isoformat()
 
@@ -421,8 +421,6 @@ class WindmillClient:
         normalized_process_id = None
         if process_id:
             # Convert PascalCase/camelCase to snake_case for Windmill path matching
-            import re
-
             normalized_process_id = re.sub(r"(?<!^)(?=[A-Z])", "_", process_id).lower()
 
         # Build query params - use indexed filters first

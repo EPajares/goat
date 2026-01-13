@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from geoapi.services.windmill_client import (
+from processes.services.windmill_client import (
     WindmillClient,
     WindmillError,
     WindmillJobNotFound,
@@ -28,7 +28,7 @@ class TestWindmillClientInit:
     def test_get_client_creates_instance(self):
         """Test _get_client creates Windmill instance."""
         client = WindmillClient()
-        with patch("geoapi.services.windmill_client.Windmill") as mock_windmill:
+        with patch("processes.services.windmill_client.Windmill") as mock_windmill:
             mock_instance = MagicMock()
             mock_windmill.return_value = mock_instance
 
@@ -48,7 +48,10 @@ class TestWindmillClientRunScriptAsync:
 
         with patch.object(client, "_get_client") as mock_get_client:
             mock_wm = MagicMock()
-            mock_wm.run_script_by_path_async.return_value = "job-123-456"
+            mock_wm.workspace = "goat"
+            mock_response = MagicMock()
+            mock_response.text = "job-123-456"
+            mock_wm.post.return_value = mock_response
             mock_get_client.return_value = mock_wm
 
             job_id = await client.run_script_async(
@@ -65,7 +68,10 @@ class TestWindmillClientRunScriptAsync:
 
         with patch.object(client, "_get_client") as mock_get_client:
             mock_wm = MagicMock()
-            mock_wm.run_script_by_path_async.return_value = "job-789"
+            mock_wm.workspace = "goat"
+            mock_response = MagicMock()
+            mock_response.text = "job-789"
+            mock_wm.post.return_value = mock_response
             mock_get_client.return_value = mock_wm
 
             job_id = await client.run_script_async(
@@ -83,9 +89,8 @@ class TestWindmillClientRunScriptAsync:
 
         with patch.object(client, "_get_client") as mock_get_client:
             mock_wm = MagicMock()
-            mock_wm.run_script_by_path_async.side_effect = Exception(
-                "Connection failed"
-            )
+            mock_wm.workspace = "goat"
+            mock_wm.post.side_effect = Exception("Connection failed")
             mock_get_client.return_value = mock_wm
 
             with pytest.raises(WindmillError) as exc_info:

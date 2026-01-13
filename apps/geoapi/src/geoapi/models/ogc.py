@@ -1,9 +1,17 @@
-"""Pydantic models for OGC API responses."""
+"""Pydantic models for OGC API Features and Tiles responses."""
 
 from enum import Enum
 from typing import Any, Optional
 
+from goatlib.models import ConformanceDeclaration, LandingPage, Link
 from pydantic import BaseModel, Field
+
+# Re-export shared models for backward compatibility
+__all__ = [
+    "ConformanceDeclaration",
+    "LandingPage",
+    "Link",
+]
 
 
 class GeometryType(str, Enum):
@@ -15,16 +23,6 @@ class GeometryType(str, Enum):
     multipoint = "MultiPoint"
     multiline = "MultiLineString"
     multipolygon = "MultiPolygon"
-
-
-class Link(BaseModel):
-    """OGC API Link."""
-
-    href: str
-    rel: str
-    type: Optional[str] = None
-    title: Optional[str] = None
-    templated: Optional[bool] = None
 
 
 class SpatialExtent(BaseModel):
@@ -159,18 +157,8 @@ class StyleJSON(BaseModel):
     zoom: Optional[float] = None
 
 
-class Conformance(BaseModel):
-    """Conformance classes."""
-
-    conformsTo: list[str]
-
-
-class LandingPage(BaseModel):
-    """Landing page response."""
-
-    title: str
-    description: Optional[str] = None
-    links: list[Link] = Field(default_factory=list)
+# Alias for backward compatibility
+Conformance = ConformanceDeclaration
 
 
 class HealthCheck(BaseModel):

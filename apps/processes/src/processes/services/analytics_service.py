@@ -23,12 +23,12 @@ from goatlib.analysis.statistics import (
 )
 from goatlib.storage import build_cql_filter
 
-from geoapi.dependencies import (
+from processes.dependencies import (
     _layer_id_to_table_name,
     get_schema_for_layer,
     normalize_layer_id,
 )
-from geoapi.ducklake import ducklake_manager
+from processes.ducklake import ducklake_manager
 
 logger = logging.getLogger(__name__)
 

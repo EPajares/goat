@@ -364,6 +364,7 @@ services:
       start_period: 20s
 
   geoapi:
+    profiles: [prod]
     image: ghcr.io/plan4better/goat/geoapi
     build:
       context: .
@@ -379,6 +380,35 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  processes:
+    profiles: [prod]
+    image: ghcr.io/plan4better/goat/processes
+    build:
+      context: .
+      dockerfile: apps/processes/Dockerfile
+    container_name: goat-processes
+    restart: always
+    networks:
+      - goat
+    ports:
+      - 8300:8000
+    environment:
+      <<: *env-core
+      WINDMILL_URL: http://windmill-server:8000
+      WINDMILL_WORKSPACE: goat
+      WINDMILL_TOKEN: ${WINDMILL_TOKEN}
+      DUCKLAKE_DATA_DIR: /app/data/ducklake
+      DUCKLAKE_CATALOG_SCHEMA: ducklake
+      TRAVELTIME_MATRICES_DIR: /app/data/traveltime_matrices
+    volumes:
+      - ./data/ducklake:/app/data/ducklake
+      - ./data/traveltime_matrices:/app/data/traveltime_matrices:ro
+    depends_on:
+      db:
+        condition: service_healthy
+      windmill-server:
+        condition: service_started
 
   web:
     image: ghcr.io/plan4better/goat/web

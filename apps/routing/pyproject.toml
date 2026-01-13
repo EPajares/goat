@@ -26,6 +26,7 @@ dependencies = [
     "polars-lts-cpu>=1.31.0",
     "rich>=13.9.4",
     "pydantic-settings==2.9.1",
+    "h3==4.1.2",
 ]
 
 [build-system]

@@ -2,10 +2,10 @@
 
 import pytest
 from fastapi import HTTPException
+from goatlib.utils.layer import format_uuid
 
 from geoapi.dependencies import (
     LayerInfo,
-    format_uuid,
     normalize_layer_id,
 )
 

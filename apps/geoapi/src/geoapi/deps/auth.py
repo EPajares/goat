@@ -7,32 +7,24 @@ import logging
 from typing import Any
 from uuid import UUID
 
-import requests
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JOSEError, jwt
+from goatlib.auth import JOSEError, KeycloakAuth
 
 from geoapi.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Keycloak public key for JWT verification
-_auth_key: str | None = None
+# Initialize Keycloak auth using goatlib
+_keycloak_auth = KeycloakAuth(
+    keycloak_url=settings.KEYCLOAK_SERVER_URL,
+    realm=settings.REALM_NAME,
+    verify_signature=settings.AUTH,
+)
 
-try:
-    ISSUER_URL = f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.REALM_NAME}"
-    _auth_server_public_key = (
-        requests.get(ISSUER_URL, timeout=10).json().get("public_key")
-    )
-    _auth_key = (
-        "-----BEGIN PUBLIC KEY-----\n"
-        + _auth_server_public_key
-        + "\n-----END PUBLIC KEY-----"
-    )
-    logger.info("Successfully loaded Keycloak public key")
-except Exception as e:
-    logger.warning(f"Error getting public key from Keycloak: {e}")
-    ISSUER_URL = ""
+# Legacy alias for backward compatibility
+_auth_key = _keycloak_auth.public_key
+ISSUER_URL = _keycloak_auth.issuer_url
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="token",
@@ -52,15 +44,7 @@ def decode_token(token: str) -> dict[str, Any]:
     Raises:
         JOSEError: If token is invalid
     """
-    return jwt.decode(
-        token,
-        key=_auth_key,
-        options={
-            "verify_signature": settings.AUTH,
-            "verify_aud": False,
-            "verify_iss": ISSUER_URL if settings.AUTH else False,
-        },
-    )
+    return _keycloak_auth.decode_token(token)
 
 
 async def get_user_token(
@@ -160,8 +144,8 @@ async def get_optional_user_id(
     Returns:
         User UUID or None if no valid token
     """
-    if not settings.AUTH:
-        return UUID("00000000-0000-0000-0000-000000000000")
+    # if not settings.AUTH:
+    #     return UUID("00000000-0000-0000-0000-000000000000")
 
     # Try to get token
     if not token:

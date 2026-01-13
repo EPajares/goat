@@ -50,6 +50,30 @@
       }
     },
     {
+      "name": "Processes Debug",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fastapi",
+      "args": [
+          "dev",
+          "src/processes/main.py",
+          "--reload",
+          "--port",
+          "8300"
+      ],
+      "consoleName": "Processes Debug Console",
+      "cwd": "${workspaceFolder}/apps/processes",
+      "justMyCode": false,
+      "jinja": true,
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "uv-sync",
+      "presentation": {
+        "hidden": false,
+        "group": "backend",
+        "order": 3
+      }
+    },
+    {
       "name": "Accounts Debug",
       "type": "debugpy",
       "request": "launch",
@@ -169,6 +193,7 @@
       "name": "Launch App",
       "configurations": [
         "GeoAPI Debug",
+        "Processes Debug",
         "Core Debug",
         "Web Debug"
       ],

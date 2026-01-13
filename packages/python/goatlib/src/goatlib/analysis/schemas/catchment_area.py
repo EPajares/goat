@@ -8,7 +8,7 @@ different transport modes (active mobility, car, public transport).
 import logging
 from datetime import time
 from enum import StrEnum
-from typing import Literal, Self
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -397,6 +397,10 @@ class StartingPointsLayer(BaseModel):
     layer_id: str = Field(
         ...,
         description="Layer ID containing starting point(s)",
+    )
+    layer_filter: dict[str, Any] | None = Field(
+        None,
+        description="CQL2-JSON filter to apply to the starting points layer",
     )
 
 

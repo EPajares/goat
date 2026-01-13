@@ -2,14 +2,14 @@
 
 from goatlib.analysis.statistics import AreaOperation
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     InputDescription,
     JobControlOptions,
     OutputDescription,
     ProcessDescription,
     ProcessSummary,
 )
-from geoapi.services.analytics_registry import (
+from processes.services.analytics_registry import (
     ANALYTICS_DEFINITIONS,
     AnalyticsRegistry,
     AreaStatisticsProcessInput,
@@ -63,7 +63,15 @@ class TestAnalyticsDefinitions:
 
     def test_all_processes_defined(self):
         """Test all expected processes are defined."""
-        expected = ["feature-count", "unique-values", "class-breaks", "area-statistics"]
+        expected = [
+            "feature-count",
+            "unique-values",
+            "class-breaks",
+            "area-statistics",
+            "extent",
+            "aggregation-stats",
+            "histogram",
+        ]
         for process_id in expected:
             assert process_id in ANALYTICS_DEFINITIONS
 
@@ -106,12 +114,15 @@ class TestAnalyticsRegistry:
     def test_get_all_summaries(self):
         """Test getting all process summaries."""
         summaries = analytics_registry.get_all_summaries("http://localhost:8000")
-        assert len(summaries) == 4
+        assert len(summaries) == 7
         process_ids = [s.id for s in summaries]
         assert "feature-count" in process_ids
         assert "unique-values" in process_ids
         assert "class-breaks" in process_ids
         assert "area-statistics" in process_ids
+        assert "extent" in process_ids
+        assert "aggregation-stats" in process_ids
+        assert "histogram" in process_ids
 
     def test_get_process_summary(self):
         """Test getting process summary."""
@@ -183,7 +194,7 @@ class TestAnalyticsRegistry:
         assert len(summary.links) > 0
 
         # Check self link
-        self_link = next((l for l in summary.links if l.rel == "self"), None)
+        self_link = next((link for link in summary.links if link.rel == "self"), None)
         assert self_link is not None
         assert "feature-count" in self_link.href
 

@@ -112,7 +112,7 @@ class StreetNetworkUtil:
                     {region_geofence}
                 )
                 SELECT g.h3_short FROM region r,
-                LATERAL basic.fill_polygon_h3_3(ST_Buffer(r.geom::geography, 80000)::geometry) g;
+                LATERAL basic.fill_polygon_h3_3(r.geom) g;
             """
             result = (
                 await self.db_connection.execute(text(sql_fetch_h3_3_cells))

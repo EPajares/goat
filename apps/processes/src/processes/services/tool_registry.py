@@ -9,7 +9,7 @@ Includes support for:
 - i18n translation resolution based on Accept-Language header
 
 Usage:
-    from geoapi.services.tool_registry import tool_registry
+    from processes.services.tool_registry import tool_registry
 
     # Get tool by name
     tool_info = tool_registry.get_tool("buffer")
@@ -27,7 +27,7 @@ from typing import Any, Self
 
 from pydantic import BaseModel
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     InputDescription,
     JobControlOptions,
     Link,
@@ -105,61 +105,73 @@ class ToolRegistry:
             except ImportError:
                 logger.warning("goatlib.i18n not available, translations disabled")
                 self._translator_cache[language] = None
+            except Exception:
+                logger.exception(f"Failed to initialize translator for {language}")
+                self._translator_cache[language] = None
+
         return self._translator_cache[language]
 
-    def _get_description(self: Self, cls: type) -> str:
-        """Extract first paragraph from class docstring."""
-        if cls.__doc__:
-            lines = cls.__doc__.strip().split("\n")
-            first_para = []
-            for line in lines:
-                line = line.strip()
-                if not line and first_para:
-                    break
-                if line:
-                    first_para.append(line)
-            return " ".join(first_para)
-        return f"{cls.__name__} tool"
+    def _get_description(
+        self: Self,
+        params_class: type[BaseModel],
+    ) -> str:
+        """Extract tool description from Pydantic class docstring or fallback."""
+        if params_class.__doc__:
+            # Take first line of docstring
+            return params_class.__doc__.strip().split("\n")[0]
+        return f"Run {params_class.__name__} analysis"
 
     def _init_tools(self: Self) -> None:
-        """Initialize tools from goatlib.tools.registry."""
+        """Initialize all goatlib tools from their *ToolParams classes.
+
+        Uses lazy initialization - only called when registry is first accessed.
+        """
         if self._initialized:
             return
 
         try:
+            # Import tool registry from goatlib - single source of truth
             from goatlib.tools.registry import TOOL_REGISTRY
 
             for tool_def in TOOL_REGISTRY:
-                params_class = tool_def.get_params_class()
-                self._registry[tool_def.name] = ToolInfo(
-                    name=tool_def.name,
-                    display_name=tool_def.display_name,
-                    description=self._get_description(params_class),
-                    params_class=params_class,
-                    windmill_path=tool_def.windmill_path,
-                    category=tool_def.category,
-                    keywords=list(tool_def.keywords),
-                    toolbox_hidden=tool_def.toolbox_hidden,
-                    docs_path=tool_def.docs_path,
-                    worker_tag=tool_def.worker_tag,
-                )
+                try:
+                    params_class = tool_def.get_params_class()
+                    self._registry[tool_def.name] = ToolInfo(
+                        name=tool_def.name,
+                        display_name=tool_def.display_name,
+                        description=self._get_description(params_class),
+                        params_class=params_class,
+                        windmill_path=tool_def.windmill_path,
+                        category=tool_def.category,
+                        job_control_options=[
+                            "async-execute"
+                        ],  # All tools support async
+                        keywords=list(tool_def.keywords),
+                        toolbox_hidden=tool_def.toolbox_hidden,
+                        docs_path=tool_def.docs_path,
+                        worker_tag=tool_def.worker_tag,
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to register tool {tool_def.name}: {e}")
 
-            self._initialized = True
-            logger.info(f"Tool registry initialized with {len(self._registry)} tools")
+            logger.info(f"Initialized {len(self._registry)} tools from goatlib")
 
         except ImportError as e:
-            logger.error(f"Could not initialize tool registry: {e}")
-            self._initialized = True
+            logger.warning(f"goatlib not available, tools disabled: {e}")
+        except Exception:
+            logger.exception("Failed to initialize tools")
+
+        self._initialized = True
 
     def get_tool(self: Self, name: str) -> ToolInfo | None:
         """Get tool info by name."""
         self._init_tools()
-        return self._registry.get(name.lower())
+        return self._registry.get(name)
 
     def get_all_tools(self: Self) -> dict[str, ToolInfo]:
         """Get all registered tools."""
         self._init_tools()
-        return self._registry.copy()
+        return self._registry
 
     def get_tool_names(self: Self) -> list[str]:
         """Get list of all tool names."""
@@ -170,29 +182,24 @@ class ToolRegistry:
         self: Self,
         tool_name: str,
         language: str = DEFAULT_LANGUAGE,
-    ) -> dict[str, Any] | None:
-        """Get full JSON schema with UI metadata and translations.
+    ) -> dict | None:
+        """Get full JSON schema for a tool with translations applied.
 
-        This returns the complete Pydantic JSON schema including:
-        - x-ui-sections from model_config
-        - x-ui field metadata from json_schema_extra
-        - Resolved translations for labels/descriptions
+        Returns the Pydantic-generated JSON schema with x-ui metadata,
+        and translates labels/descriptions based on language.
 
         Args:
-            tool_name: Tool name (e.g., "buffer")
-            language: ISO 639-1 language code (e.g., "en", "de")
-
-        Returns:
-            JSON schema dict with UI metadata and translations, or None if tool not found
+            tool_name: Tool name
+            language: ISO 639-1 language code
         """
         tool = self.get_tool(tool_name)
         if not tool:
             return None
 
-        # Get the full Pydantic JSON schema (includes x-ui metadata)
+        # Get base schema from Pydantic
         schema = tool.params_class.model_json_schema()
 
-        # Apply translations if available
+        # Apply translations using goatlib.i18n (handles sections, fields, enum_labels)
         translator = self._get_translator(language)
         if translator:
             try:
@@ -205,86 +212,108 @@ class ToolRegistry:
         return schema
 
     def _json_schema_for_field(
-        self: Self, field_name: str, field_info: Any
+        self: Self,
+        field_name: str,
+        field_info: Any,
     ) -> dict[str, Any]:
-        """Convert Pydantic field to JSON Schema."""
-        from typing import Union, get_args, get_origin
+        """Generate JSON schema for a single Pydantic field.
 
-        from pydantic_core import PydanticUndefined
+        Fallback when field not in full schema (shouldn't happen normally).
+        """
+        return self._type_to_json_schema(field_info.annotation, field_name)
 
-        annotation = field_info.annotation
-        origin = get_origin(annotation)
+    def _type_to_json_schema(
+        self: Self,
+        python_type: Any,
+        field_name: str | None = None,
+    ) -> dict[str, Any]:
+        """Convert Python type to JSON schema type.
 
-        # Handle Optional types (Union with None)
-        if origin is Union:
-            args = get_args(annotation)
-            non_none = [a for a in args if a is not type(None)]
-            if len(non_none) == 1:
-                # It's Optional[X], recurse on X
-                inner_schema = self._type_to_json_schema(non_none[0])
-            else:
-                # Multiple types - use anyOf
-                inner_schema = {
-                    "anyOf": [self._type_to_json_schema(a) for a in non_none]
-                }
-        else:
-            inner_schema = self._type_to_json_schema(annotation)
-
-        # Add default value if present
-        if (
-            field_info.default is not None
-            and field_info.default is not PydanticUndefined
-        ):
-            inner_schema["default"] = field_info.default
-
-        return inner_schema
-
-    def _type_to_json_schema(self: Self, python_type: Any) -> dict[str, Any]:
-        """Convert Python type to JSON Schema."""
+        Handles common types including Optional, List, Literal, UUID, etc.
+        """
+        import types
+        from enum import Enum
         from typing import Literal, get_args, get_origin
+        from uuid import UUID
 
         origin = get_origin(python_type)
+        args = get_args(python_type)
 
+        # Handle Optional (Union with None)
+        if origin is types.UnionType or origin is type(None):
+            # Filter out None to get the actual type
+            non_none_args = [a for a in args if a is not type(None)]
+            if len(non_none_args) == 1:
+                return self._type_to_json_schema(non_none_args[0], field_name)
+            # Multiple types - return anyOf
+            return {"anyOf": [self._type_to_json_schema(t) for t in non_none_args]}
+
+        # Handle Literal
+        if origin is Literal:
+            return {"enum": list(args)}
+
+        # Handle List/list
+        if origin in (list, tuple):
+            if args:
+                return {
+                    "type": "array",
+                    "items": self._type_to_json_schema(args[0]),
+                }
+            return {"type": "array"}
+
+        # Handle dict
+        if origin is dict:
+            return {"type": "object"}
+
+        # Handle primitives
         if python_type is str:
             return {"type": "string"}
-        elif python_type is int:
+        if python_type is int:
             return {"type": "integer"}
-        elif python_type is float:
+        if python_type is float:
             return {"type": "number"}
-        elif python_type is bool:
+        if python_type is bool:
             return {"type": "boolean"}
-        elif origin is list:
-            args = get_args(python_type)
-            if args:
-                return {"type": "array", "items": self._type_to_json_schema(args[0])}
-            return {"type": "array"}
-        elif origin is Literal:
-            args = get_args(python_type)
-            return {"type": "string", "enum": list(args)}
-        elif hasattr(python_type, "__members__"):  # Enum
-            return {"type": "string", "enum": list(python_type.__members__.keys())}
-        else:
-            return {"type": "string"}
+        if python_type is UUID:
+            return {"type": "string", "format": "uuid"}
 
-    def _extract_geometry_metadata(self: Self, x_ui: dict[str, Any]) -> list[Metadata]:
-        """Extract geometry constraints from x-ui widget_options as metadata.
+        # Handle Enum
+        if isinstance(python_type, type) and issubclass(python_type, Enum):
+            return {"enum": [e.value for e in python_type]}
 
-        Args:
-            x_ui: The x-ui field metadata dict
+        # Handle Pydantic models (nested)
+        if hasattr(python_type, "model_json_schema"):
+            return {"$ref": f"#/$defs/{python_type.__name__}"}
 
-        Returns:
-            List of Metadata objects (empty if no geometry constraints)
+        # Fallback
+        return {"type": "string"}
+
+    def _extract_geometry_metadata(
+        self: Self,
+        x_ui: dict[str, Any],
+    ) -> list[Metadata]:
+        """Extract geometry constraint metadata from x-ui widget options.
+
+        Converts widget_options geometry constraints to OGC metadata format.
         """
-        metadata: list[Metadata] = []
+        metadata = []
         widget_options = x_ui.get("widget_options", {})
-        geometry_types = widget_options.get("geometry_types")
 
-        if geometry_types and isinstance(geometry_types, list):
+        if "geometry_types" in widget_options:
             metadata.append(
                 Metadata(
-                    title="Accepted Geometry Types",
+                    title="geometry_types",
                     role="constraint",
-                    value=geometry_types,
+                    value=",".join(widget_options["geometry_types"]),
+                )
+            )
+
+        if "multi_select" in widget_options:
+            metadata.append(
+                Metadata(
+                    title="multi_select",
+                    role="constraint",
+                    value=str(widget_options["multi_select"]).lower(),
                 )
             )
 
@@ -382,8 +411,10 @@ class ToolRegistry:
                 continue
 
             # Get field schema from Pydantic-generated full schema (includes $ref, x-ui, etc.)
+            # Need to check both field_name and alias (Pydantic uses alias as property key in JSON schema)
+            schema_key = field_info.alias if field_info.alias else field_name
             field_schema = (
-                full_schema.get("properties", {}).get(field_name, {})
+                full_schema.get("properties", {}).get(schema_key, {})
                 if full_schema
                 else {}
             )

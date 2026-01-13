@@ -168,6 +168,38 @@ class LayerExportRunner(SimpleToolRunner):
         ).fetchall()
         return [row[0] for row in result]
 
+    def _get_exportable_columns(self: Self, table_name: str) -> list[str]:
+        """Get column names that can be exported to OGR formats.
+
+        Excludes STRUCT and other complex types not supported by GDAL/OGR.
+
+        Args:
+            table_name: Full qualified table name (lake.schema.table)
+
+        Returns:
+            List of column names safe for OGR export
+        """
+        # Get columns with their types
+        result = self.duckdb_con.execute(
+            f"SELECT column_name, data_type FROM information_schema.columns "
+            f"WHERE table_schema || '.' || table_name = '{table_name.replace('lake.', '')}'"
+        ).fetchall()
+
+        # Filter out STRUCT, MAP, and other complex types not supported by OGR
+        unsupported_prefixes = ("STRUCT", "MAP", "UNION")
+        exportable = []
+        for col_name, col_type in result:
+            if not col_type.upper().startswith(unsupported_prefixes):
+                exportable.append(col_name)
+            else:
+                logger.debug(
+                    "Excluding column '%s' with unsupported type '%s' from export",
+                    col_name,
+                    col_type,
+                )
+
+        return exportable
+
     def _convert_cql2_to_sql(
         self: Self, query: str | dict[str, Any] | None, table_name: str
     ) -> str | None:
@@ -214,29 +246,53 @@ class LayerExportRunner(SimpleToolRunner):
             user_id: User UUID (fallback if layer owner lookup fails)
             output_path: Path for output file
             output_format: GDAL driver name (GPKG, GeoJSON, etc.)
-            crs: Target CRS for reprojection
+            crs: Target CRS for reprojection (e.g., "EPSG:4326")
             query: WHERE clause filter (string or CQL2 dict)
         """
         table_name = self._get_table_name(layer_id, user_id)
+
+        # Get columns that can be exported to OGR formats
+        # (excludes STRUCT, MAP, and other unsupported types)
+        exportable_columns = self._get_exportable_columns(table_name)
+
+        # Build column selection, applying CRS transformation to geometry if needed
+        # DuckDB ST_Transform requires both source and target CRS
+        # Data is stored in EPSG:4326
+        source_crs = "EPSG:4326"
+        column_exprs = []
+        for col in exportable_columns:
+            if col == "geometry" and crs:
+                # Transform geometry from source CRS to target CRS
+                column_exprs.append(
+                    f"ST_Transform(\"geometry\", '{source_crs}', '{crs}') AS \"geometry\""
+                )
+            else:
+                column_exprs.append(f'"{col}"')
+        columns_sql = ", ".join(column_exprs)
 
         # Convert CQL2 filter to SQL if needed
         sql_query = self._convert_cql2_to_sql(query, table_name)
         where_clause = f"WHERE {sql_query}" if sql_query else ""
 
         logger.info(
-            "Exporting layer: table=%s, format=%s, output=%s",
+            "Exporting layer: table=%s, format=%s, output=%s, crs=%s",
             table_name,
             output_format,
             output_path,
+            crs,
         )
+
+        # Build GDAL COPY options
+        # SRS sets the spatial reference metadata in the output file
+        srs_option = f", SRS '{crs}'" if crs else ""
 
         # Use DuckDB's COPY TO with GDAL writer
         self.duckdb_con.execute(f"""
             COPY (
-                SELECT * FROM {table_name}
+                SELECT {columns_sql} FROM {table_name}
                 {where_clause}
             ) TO '{output_path}'
-            WITH (FORMAT GDAL, DRIVER '{output_format}')
+            WITH (FORMAT GDAL, DRIVER '{output_format}'{srs_option})
         """)
 
         logger.info("Export complete: %s", output_path)
@@ -349,12 +405,18 @@ class LayerExportRunner(SimpleToolRunner):
             params.file_type,
         )
 
+        # Build wm_labels for Windmill job tracking
+        wm_labels: list[str] = []
+        if params.triggered_by_email:
+            wm_labels.append(params.triggered_by_email)
+
         output = LayerExportOutput(
             layer_id=params.layer_id,
             name=params.file_name,
             folder_id="",
             user_id=params.user_id,
             format=params.file_type,
+            wm_labels=wm_labels,
         )
 
         export_dir = None

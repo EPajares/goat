@@ -1,26 +1,23 @@
 from typing import Any, Dict
 
-import requests
 from core.core.config import settings
 from core.endpoints.deps import get_db
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JOSEError, jwt
+from goatlib.auth import JOSEError, KeycloakAuth
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-auth_key = None
-try:
-    ISSUER_URL = f"{settings.KEYCLOAK_SERVER_URL}/realms/{settings.REALM_NAME}"
+# Initialize Keycloak auth using goatlib
+_keycloak_auth = KeycloakAuth(
+    keycloak_url=settings.KEYCLOAK_SERVER_URL or "",
+    realm=settings.REALM_NAME,
+    verify_signature=settings.AUTH,
+)
 
-    _auth_server_public_key = requests.get(ISSUER_URL).json().get("public_key")
-    auth_key = (
-        "-----BEGIN PUBLIC KEY-----\n"
-        + _auth_server_public_key
-        + "\n-----END PUBLIC KEY-----"
-    )  # noqa: E501
-except Exception:
-    print("Error getting public key from Keycloak")
+# Legacy alias for backward compatibility
+auth_key = _keycloak_auth.public_key
+ISSUER_URL = _keycloak_auth.issuer_url
 
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V2_STR}/auth/access-token",
@@ -31,17 +28,7 @@ def decode_token(token: str) -> Dict[str, Any]:
     """
     Decodes a JWT token.
     """
-    user_token: Dict[str, Any] = jwt.decode(
-        token,
-        key=auth_key,
-        options={
-            "verify_signature": settings.AUTH,
-            "verify_aud": False,
-            "verify_iss": ISSUER_URL,
-        },
-    )
-
-    return user_token
+    return _keycloak_auth.decode_token(token)
 
 
 async def auth(token: str = Depends(oauth2_scheme)) -> str:

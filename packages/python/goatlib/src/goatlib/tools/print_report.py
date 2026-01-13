@@ -148,6 +148,8 @@ class PrintReportOutput(BaseModel):
     file_name: str = Field(..., description="Name of the generated file")
     format: str = Field(..., description="Output format (pdf or png)")
     page_count: int = Field(default=1, description="Number of pages/images generated")
+    # Windmill job labels - returned at runtime for job tracking
+    wm_labels: list[str] = Field(default_factory=list)
 
 
 class PrintReportRunner(SimpleToolRunner):
@@ -333,11 +335,16 @@ class PrintReportRunner(SimpleToolRunner):
                 return pdf_bytes
             else:
                 # Capture the print paper area as PNG
-                paper_element = await page.query_selector("#print-paper")
-                if paper_element:
-                    png_bytes = await paper_element.screenshot(type="png")
+                # Use locator for more reliable element selection
+                paper_locator = page.locator("#print-paper")
+                if await paper_locator.count() > 0:
+                    # Wait for the element to be visible
+                    await paper_locator.wait_for(state="visible", timeout=5000)
+                    png_bytes = await paper_locator.screenshot(type="png")
                 else:
-                    png_bytes = await page.screenshot(type="png", full_page=True)
+                    # Fallback to full page
+                    logger.warning("Print paper element not found, using full page screenshot")
+                    png_bytes = await page.screenshot(type="png", full_page=False)
                 return png_bytes
 
         finally:
@@ -460,11 +467,17 @@ class PrintReportRunner(SimpleToolRunner):
                 s3_key, expires_in=86400
             )  # 24 hours
 
+            # Build wm_labels for Windmill job tracking
+            wm_labels: list[str] = []
+            if params.triggered_by_email:
+                wm_labels.append(params.triggered_by_email)
+
             return PrintReportOutput(
                 download_url=download_url,
                 file_name=file_name,
                 format=params.format,
                 page_count=len(rendered_pages),
+                wm_labels=wm_labels,
             )
 
         finally:

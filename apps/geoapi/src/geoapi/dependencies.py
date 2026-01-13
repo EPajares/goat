@@ -1,19 +1,25 @@
 """FastAPI dependencies for GeoAPI."""
 
 import logging
-import re
 from typing import Annotated, Optional
 
-from cachetools import TTLCache
 from fastapi import Depends, HTTPException, Path, Query
+from goatlib.utils.layer import (
+    InvalidLayerIdError,
+    LayerNotFoundError,
+    layer_id_to_table_name,
+)
+from goatlib.utils.layer import (
+    get_schema_for_layer as _goatlib_get_schema_for_layer,
+)
+from goatlib.utils.layer import (
+    normalize_layer_id as _goatlib_normalize_layer_id,
+)
 from pydantic import BaseModel
 
 from geoapi.ducklake import ducklake_manager
 
 logger = logging.getLogger(__name__)
-
-# Cache layer_id -> schema_name mapping (1 hour TTL, max 10K entries)
-_schema_cache: TTLCache[str, str] = TTLCache(maxsize=10000, ttl=3600)
 
 
 class LayerInfo(BaseModel):
@@ -29,13 +35,6 @@ class LayerInfo(BaseModel):
         return f"lake.{self.schema_name}.{self.table_name}"
 
 
-def format_uuid(uuid_str: str) -> str:
-    """Format a 32-char hex string as UUID."""
-    if len(uuid_str) == 32:
-        return f"{uuid_str[:8]}-{uuid_str[8:12]}-{uuid_str[12:16]}-{uuid_str[16:20]}-{uuid_str[20:]}"
-    return uuid_str
-
-
 def normalize_layer_id(layer_id: str) -> str:
     """Normalize layer ID to standard UUID format with hyphens.
 
@@ -45,24 +44,21 @@ def normalize_layer_id(layer_id: str) -> str:
 
     Returns:
         Standard UUID format (lowercase, with hyphens)
-    """
-    # Remove hyphens first to validate
-    clean = layer_id.replace("-", "").lower()
 
-    # Validate it's a valid hex string of correct length
-    if len(clean) != 32 or not re.match(r"^[a-f0-9]+$", clean):
+    Raises:
+        HTTPException: If layer ID is invalid
+    """
+    try:
+        return _goatlib_normalize_layer_id(layer_id)
+    except InvalidLayerIdError as e:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid collection ID: {layer_id}. Expected UUID format.",
+            detail=f"Invalid collection ID: {e.layer_id}. Expected UUID format.",
         )
 
-    # Return standard UUID format with hyphens
-    return f"{clean[:8]}-{clean[8:12]}-{clean[12:16]}-{clean[16:20]}-{clean[20:]}"
 
-
-def _layer_id_to_table_name(layer_id: str) -> str:
-    """Convert layer ID (with hyphens) to DuckLake table name (no hyphens)."""
-    return f"t_{layer_id.replace('-', '')}"
+# Alias for backward compatibility
+_layer_id_to_table_name = layer_id_to_table_name
 
 
 def get_schema_for_layer(layer_id: str) -> str:
@@ -79,54 +75,13 @@ def get_schema_for_layer(layer_id: str) -> str:
     Raises:
         HTTPException: If layer not found
     """
-    # Check cache first
-    if layer_id in _schema_cache:
-        return _schema_cache[layer_id]
-
-    # Query DuckDB catalog for the 'lake' attached database
-    # Use retry logic to handle stale connections (SSL EOF, closed query errors)
-    table_name = _layer_id_to_table_name(layer_id)
-    query = (
-        "SELECT table_schema FROM information_schema.tables "
-        "WHERE table_catalog = 'lake' AND table_name = ?"
-    )
-
-    def is_connection_error(error: Exception) -> bool:
-        """Check if error is a recoverable connection error."""
-        error_msg = str(error).lower()
-        return any(
-            s in error_msg
-            for s in ["ssl", "eof", "connection", "closed", "unsuccessful"]
-        )
-
-    max_retries = 1
-    last_error = None
-    for attempt in range(max_retries + 1):
-        try:
-            with ducklake_manager.connection() as con:
-                result = con.execute(query, [table_name]).fetchone()
-            break
-        except Exception as e:
-            last_error = e
-            if attempt < max_retries and is_connection_error(e):
-                logger.warning("DuckLake connection error, reconnecting: %s", e)
-                ducklake_manager.reconnect()
-            else:
-                raise
-    else:
-        raise last_error
-
-    if not result:
+    try:
+        return _goatlib_get_schema_for_layer(layer_id, ducklake_manager)
+    except LayerNotFoundError:
         raise HTTPException(
             status_code=404,
             detail=f"Collection not found: {layer_id}",
         )
-
-    schema_name = result[0]
-    _schema_cache[layer_id] = schema_name
-    logger.debug("Cached schema for layer %s: %s", layer_id, schema_name)
-
-    return schema_name
 
 
 def get_layer_info(

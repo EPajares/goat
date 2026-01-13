@@ -203,14 +203,18 @@ async def get_queryables(
     base_url = str(request.base_url).rstrip("/")
     collection_id = layer_info.layer_id
 
-    # Build properties from column info
+    # Build properties from column info, excluding hidden fields
     properties = {}
     for col in metadata.columns:
-        if col["name"] == "geom":
+        col_name = col["name"]
+        # Skip hidden fields (e.g., bbox columns)
+        if col_name in settings.HIDDEN_FIELDS:
+            continue
+        if col_name == "geom":
             properties["geom"] = {"$ref": "https://geojson.org/schema/Geometry.json"}
         else:
-            properties[col["name"]] = {
-                "name": col["name"],
+            properties[col_name] = {
+                "name": col_name,
                 "type": col["json_type"],
             }
 

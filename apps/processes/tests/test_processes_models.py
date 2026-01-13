@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from geoapi.models.processes import (
+from processes.models.processes import (
     OGC_EXCEPTION_INVALID_PARAMETER,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
     ConformanceDeclaration,

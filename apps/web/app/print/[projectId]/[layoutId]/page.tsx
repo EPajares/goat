@@ -176,12 +176,9 @@ export default function PrintPage() {
   return (
     <Box
       sx={{
-        width: "100vw",
-        minHeight: "100vh",
+        width: paperDimensions.widthPx,
+        height: paperDimensions.heightPx,
         backgroundColor: "#fff",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
         padding: 0,
         margin: 0,
         // Hide scrollbars for print
@@ -199,10 +196,6 @@ export default function PrintPage() {
           backgroundColor: "#ffffff",
           position: "relative",
           boxSizing: "border-box",
-          // For screen preview, add shadow
-          "@media screen": {
-            boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-          },
           // For print, no shadow
           "@media print": {
             boxShadow: "none",

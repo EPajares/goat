@@ -16,7 +16,8 @@ import { setIsMapGetInfoActive, setMapCursor, setToolboxStartingPoints } from "@
 import type { SelectorItem } from "@/types/map/common";
 import type { ProcessedInput } from "@/types/map/ogc-processes";
 
-import { useLayerByGeomType } from "@/hooks/map/ToolsHooks";
+import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
+import { useLayerByGeomType, useLayerDatasetId } from "@/hooks/map/ToolsHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import Selector from "@/components/map/panels/common/Selector";
@@ -34,6 +35,7 @@ interface StartingPointsMapValue {
 
 interface StartingPointsLayerValue {
   layer_id: string;
+  layer_filter?: Record<string, unknown>;
 }
 
 type StartingPointsValue = StartingPointsMapValue | StartingPointsLayerValue | undefined;
@@ -63,6 +65,15 @@ export default function StartingPointsInput({ input, value, onChange, disabled }
   // Track previous starting points count to detect new additions
   const prevPointsCountRef = useRef<number>(0);
 
+  // Track last emitted layer UUID to prevent infinite loops
+  const lastEmittedUuidRef = useRef<string | undefined>(undefined);
+
+  // Track selected layer DB ID for UUID lookup
+  const [selectedLayerDbId, setSelectedLayerDbId] = useState<number | undefined>(undefined);
+
+  // Get UUID (layer_id) from DB ID using hook
+  const selectedLayerUuid = useLayerDatasetId(selectedLayerDbId, projectId as string);
+
   // Starting point method options
   const startingPointMethods: SelectorItem[] = useMemo(
     () => [
@@ -91,13 +102,39 @@ export default function StartingPointsInput({ input, value, onChange, disabled }
   // Get point layers for layer selector
   const { filteredLayers } = useLayerByGeomType(["feature"], ["point"], projectId as string);
 
-  // Currently selected layer
+  // Get all project layers to access their filters
+  const { layers: projectLayers } = useFilteredProjectLayers(projectId as string);
+
+  // Currently selected layer (for display in dropdown)
   const selectedLayer = useMemo(() => {
-    if (isLayerValue(value)) {
-      return filteredLayers.find((layer) => layer.value === value.layer_id);
+    if (selectedLayerDbId !== undefined) {
+      return filteredLayers.find((layer) => layer.value === selectedLayerDbId);
     }
     return undefined;
-  }, [value, filteredLayers]);
+  }, [selectedLayerDbId, filteredLayers]);
+
+  // Get the CQL filter for the selected layer (from project layer query)
+  const selectedLayerFilter = useMemo(() => {
+    if (selectedLayerDbId === undefined || !projectLayers) return undefined;
+    const projectLayer = projectLayers.find((layer) => layer.id === selectedLayerDbId);
+    return projectLayer?.query?.cql as Record<string, unknown> | undefined;
+  }, [selectedLayerDbId, projectLayers]);
+
+  // Update onChange when UUID is resolved (only if changed)
+  useEffect(() => {
+    if (method.value === "browser_layer" && selectedLayerDbId !== undefined && selectedLayerUuid) {
+      // Only emit if UUID actually changed to prevent infinite loops
+      if (lastEmittedUuidRef.current !== selectedLayerUuid) {
+        lastEmittedUuidRef.current = selectedLayerUuid;
+        const layerValue: StartingPointsLayerValue = {
+          layer_id: selectedLayerUuid,
+          // Include the layer's active CQL filter if present
+          layer_filter: selectedLayerFilter,
+        };
+        onChange(layerValue);
+      }
+    }
+  }, [selectedLayerUuid, selectedLayerDbId, method.value, onChange, selectedLayerFilter]);
 
   // Sync Redux starting points with component value (for map method)
   // Only update when points actually change to avoid loops
@@ -145,9 +182,11 @@ export default function StartingPointsInput({ input, value, onChange, disabled }
       const newMethod = item as SelectorItem;
       setMethod(newMethod);
 
-      // Clear starting points when switching methods
+      // Clear starting points and layer selection when switching methods
       dispatch(setToolboxStartingPoints(undefined));
       prevPointsCountRef.current = 0;
+      setSelectedLayerDbId(undefined);
+      lastEmittedUuidRef.current = undefined;
       onChange(undefined);
     },
     [dispatch, onChange]
@@ -157,14 +196,13 @@ export default function StartingPointsInput({ input, value, onChange, disabled }
   const handleLayerChange = useCallback(
     (item: SelectorItem | SelectorItem[] | undefined) => {
       if (!item || Array.isArray(item)) {
+        setSelectedLayerDbId(undefined);
+        lastEmittedUuidRef.current = undefined;
         onChange(undefined);
         return;
       }
-
-      const layerValue: StartingPointsLayerValue = {
-        layer_id: item.value as string,
-      };
-      onChange(layerValue);
+      // Set DB ID - the useEffect will call onChange with the resolved UUID
+      setSelectedLayerDbId(item.value as number);
     },
     [onChange]
   );
