@@ -322,6 +322,10 @@ export const useStatisticValues = (hasExpression: boolean = false) => {
         label: t("sum"),
       },
       {
+        value: statisticOperationEnum.Enum.mean,
+        label: t("mean"),
+      },
+      {
         value: statisticOperationEnum.Enum.min,
         label: t("min"),
       },
