@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Must match core app's data path since they share the same catalog
     DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
 
+    # Tiles storage (separate from source data for cache semantics)
+    TILES_DATA_DIR: str = os.getenv("TILES_DATA_DIR", "/app/data/tiles")
+
     # S3/MinIO settings (shared for DuckLake and uploads)
     S3_PROVIDER: str = os.getenv("S3_PROVIDER", "hetzner").lower()
     S3_ENDPOINT_URL: Optional[str] = os.getenv("S3_ENDPOINT_URL")
@@ -65,6 +68,9 @@ class Settings(BaseSettings):
     # Connection pool size for concurrent tile requests
     # Lower values reduce idle connections that can go stale
     DUCKLAKE_POOL_SIZE: int = int(os.getenv("GEOAPI_DUCKLAKE_POOL_SIZE", "4"))
+
+    # DuckDB memory limit (e.g., "3GB", "512MB")
+    DUCKDB_MEMORY_LIMIT: str = os.getenv("GEOAPI_DUCKDB_MEMORY_LIMIT", "3GB")
 
     # Timeout Settings (in seconds)
     REQUEST_TIMEOUT: int = int(os.getenv("GEOAPI_REQUEST_TIMEOUT", "30"))

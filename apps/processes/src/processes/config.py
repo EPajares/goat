@@ -44,10 +44,15 @@ class Settings(BaseSettings):
     DUCKLAKE_CATALOG_SCHEMA: str = os.getenv("DUCKLAKE_CATALOG_SCHEMA", "ducklake")
     # Must match core/geoapi data path since they share the same catalog
     DUCKLAKE_DATA_DIR: str = os.getenv("DUCKLAKE_DATA_DIR", "/app/data/ducklake")
+    # Tiles storage (separate from source data for cache semantics)
+    TILES_DATA_DIR: str = os.getenv("TILES_DATA_DIR", "/app/data/tiles")
     DUCKLAKE_S3_ENDPOINT: Optional[str] = os.getenv("DUCKLAKE_S3_ENDPOINT")
     DUCKLAKE_S3_BUCKET: Optional[str] = os.getenv("DUCKLAKE_S3_BUCKET")
     DUCKLAKE_S3_ACCESS_KEY: Optional[str] = os.getenv("DUCKLAKE_S3_ACCESS_KEY")
     DUCKLAKE_S3_SECRET_KEY: Optional[str] = os.getenv("DUCKLAKE_S3_SECRET_KEY")
+
+    # DuckDB memory limit (e.g., "1.5GB", "512MB")
+    DUCKDB_MEMORY_LIMIT: str = os.getenv("PROCESSES_DUCKDB_MEMORY_LIMIT", "1.2GB")
 
     # Traveltime matrices directory for heatmap tools
     TRAVELTIME_MATRICES_DIR: str = os.getenv(
