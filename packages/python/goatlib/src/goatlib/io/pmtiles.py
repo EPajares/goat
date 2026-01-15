@@ -169,20 +169,20 @@ class PMTilesGenerator:
 
         try:
             with tempfile.NamedTemporaryFile(
-                suffix=".geojson", delete=True, prefix="pmtiles_"
-            ) as tmp_geojson:
-                # Step 1: Export to GeoJSON (preserves attribute types)
-                self._export_to_geojson(
+                suffix=".fgb", delete=True, prefix="pmtiles_"
+            ) as tmp_fgb:
+                # Step 1: Export to FlatGeobuf (faster than GeoJSON)
+                self._export_to_flatgeobuf(
                     duckdb_con=duckdb_con,
                     table_name=table_name,
-                    output_path=tmp_geojson.name,
+                    output_path=tmp_fgb.name,
                     geometry_column=geometry_column,
                     exclude_columns=exclude_columns,
                 )
 
                 # Step 2: Generate PMTiles with tippecanoe
                 self._run_tippecanoe(
-                    input_path=tmp_geojson.name,
+                    input_path=tmp_fgb.name,
                     output_path=str(pmtiles_path),
                     geometry_type=geometry_type,
                 )
@@ -237,7 +237,9 @@ class PMTilesGenerator:
             """).fetchone()
             if result:
                 geom_type = result[0]
-                logger.info(f"Detected geometry type: {geom_type} (column: {actual_geom_col})")
+                logger.info(
+                    f"Detected geometry type: {geom_type} (column: {actual_geom_col})"
+                )
                 return geom_type
         except Exception as e:
             logger.warning(f"Could not detect geometry type: {e}")
@@ -345,6 +347,88 @@ class PMTilesGenerator:
                 pmtiles_path.unlink()
             return None
 
+    def _export_to_flatgeobuf(
+        self: Self,
+        duckdb_con: duckdb.DuckDBPyConnection,
+        table_name: str,
+        output_path: str,
+        geometry_column: str = "geometry",
+        exclude_columns: list[str] | None = None,
+    ) -> None:
+        """Export a DuckLake table to FlatGeobuf format.
+
+        FlatGeobuf is faster to write and read than GeoJSON.
+        Note: tippecanoe may convert integer attributes to strings with FGB.
+
+        Args:
+            duckdb_con: DuckDB connection
+            table_name: Full table path
+            output_path: Output FlatGeobuf file path
+            geometry_column: Name of geometry column
+            exclude_columns: Columns to exclude (e.g., bbox struct)
+        """
+        exclude_columns = exclude_columns or []
+
+        # Types that are not supported by FlatGeobuf/tippecanoe
+        unsupported_type_prefixes = ("struct", "map", "list", "union")
+
+        # Get actual columns and their types from the table
+        columns_to_exclude: set[str] = set(exclude_columns)
+        has_id_column = False
+        try:
+            result = duckdb_con.execute(
+                f"SELECT column_name, column_type FROM (DESCRIBE {table_name})"
+            ).fetchall()
+
+            for col_name, col_type in result:
+                # Check if table has an 'id' column
+                if col_name.lower() == "id":
+                    has_id_column = True
+
+                col_type_lower = col_type.lower()
+                # Exclude complex types that FlatGeobuf/tippecanoe can't handle
+                if col_type_lower.startswith(unsupported_type_prefixes):
+                    columns_to_exclude.add(col_name)
+                    logger.debug(
+                        f"Excluding column '{col_name}' with unsupported type: {col_type}"
+                    )
+                # Also exclude array types (e.g., VARCHAR[], INTEGER[])
+                elif col_type_lower.endswith("[]"):
+                    columns_to_exclude.add(col_name)
+                    logger.debug(f"Excluding array column '{col_name}': {col_type}")
+
+            actual_columns = {row[0] for row in result}
+            # Only keep exclusions for columns that actually exist
+            columns_to_exclude = columns_to_exclude & actual_columns
+
+        except Exception as e:
+            logger.warning(f"Could not get column list for {table_name}: {e}")
+            columns_to_exclude = set()
+
+        # Build exclusion clause for columns that exist
+        exclude_clause = ""
+        if columns_to_exclude:
+            exclude_clause = f"EXCLUDE({', '.join(sorted(columns_to_exclude))})"
+            logger.debug(
+                f"Excluding columns from FlatGeobuf export: {columns_to_exclude}"
+            )
+
+        # If no 'id' column exists, generate one from rowid for feature highlighting
+        id_select = ""
+        if not has_id_column:
+            id_select = "rowid AS id, "
+            logger.debug("Adding synthetic 'id' column from rowid for highlighting")
+
+        sql = f"""
+            COPY (
+                SELECT {id_select}* {exclude_clause}
+                FROM {table_name}
+            ) TO '{output_path}' WITH (FORMAT GDAL, DRIVER 'FlatGeobuf')
+        """
+
+        logger.debug(f"Exporting to FlatGeobuf: {sql}")
+        duckdb_con.execute(sql)
+
     def _export_to_geojson(
         self: Self,
         duckdb_con: duckdb.DuckDBPyConnection,
@@ -398,9 +482,7 @@ class PMTilesGenerator:
                 # Also exclude array types (e.g., VARCHAR[], INTEGER[])
                 elif col_type_lower.endswith("[]"):
                     columns_to_exclude.add(col_name)
-                    logger.debug(
-                        f"Excluding array column '{col_name}': {col_type}"
-                    )
+                    logger.debug(f"Excluding array column '{col_name}': {col_type}")
 
             actual_columns = {row[0] for row in result}
             # Only keep exclusions for columns that actually exist
@@ -456,8 +538,10 @@ class PMTilesGenerator:
         min_zoom = self.config.min_zoom if self.config.min_zoom is not None else 0
         max_zoom = self.config.max_zoom if self.config.max_zoom is not None else 14
 
-        # Check if this is a point layer
-        is_point_layer = geometry_type and "POINT" in geometry_type.upper()
+        # Detect geometry type category
+        geom_upper = geometry_type.upper() if geometry_type else ""
+        is_point_layer = "POINT" in geom_upper
+        is_line_layer = "LINE" in geom_upper or "LINESTRING" in geom_upper
 
         cmd = [
             "tippecanoe",
@@ -476,27 +560,54 @@ class PMTilesGenerator:
 
         if is_point_layer:
             # Point-specific settings:
+            # - Higher limits for dense/attribute-heavy POI datasets
             # - Use -r1 to guarantee at least 1 feature per tile at all zooms
-            # - Use drop-fraction for more even distribution at low zooms
-            # - Cluster nearby points at low zoom levels
-            cmd.extend([
-                "-r1",  # Retain at least 1 feature per tile at every zoom
-                "--drop-fraction-as-needed",  # Even distribution instead of densest-first
-                "--extend-zooms-if-still-dropping",
-            ])
-            logger.info("Using point-optimized tippecanoe settings (-r1, clustering)")
+            # - Coalesce smallest for even distribution at low zooms
+            cmd.extend(
+                [
+                    "-r1",  # Retain at least 1 feature per tile at every zoom
+                    "--coalesce-smallest-as-needed",  # Even distribution instead of densest-first
+                    "--extend-zooms-if-still-dropping",
+                ]
+            )
+            logger.info("Using point-optimized tippecanoe settings (-r1, high limits)")
+        elif is_line_layer:
+            # LineString settings (e.g., roads):
+            # - Higher limits for denser output (like Felt)
+            # - Allow line simplification at low zooms (default behavior)
+            # - Only drop smallest lines when absolutely needed
+            cmd.extend(
+                [
+                    "-M",
+                    "2000000",  # 2MB tile size limit (default 500KB)
+                    "-O",
+                    "300000",  # 300K features per tile (default 200K)
+                    "--drop-smallest-as-needed",  # Drop tiny road segments only if needed
+                    "--extend-zooms-if-still-dropping",
+                ]
+            )
+            logger.info(
+                "Using line-optimized tippecanoe settings (high density, simplify)"
+            )
         else:
-            # Polygon/Line settings:
+            # Polygon settings:
+            # - Higher limits for dense polygon datasets (buildings, parcels)
             # - Preserve geometry detail
-            # - Drop densest areas first (less visible impact)
-            cmd.extend([
-                "--no-line-simplification",
-                "--no-tiny-polygon-reduction",
-                "--coalesce-densest-as-needed",
-                "--drop-densest-as-needed",
-                "--extend-zooms-if-still-dropping",
-            ])
-            logger.debug("Using polygon/line-optimized tippecanoe settings")
+            # - Avoid tiny polygon reduction (keeps small buildings visible)
+            # - Drop/coalesce densest areas first
+            cmd.extend(
+                [
+                    "-M",
+                    "2000000",  # 2MB tile size limit (default 500KB)
+                    "-O",
+                    "300000",  # 300K features per tile (default 200K)
+                    "--no-tiny-polygon-reduction",
+                    "--coalesce-densest-as-needed",
+                    "--drop-densest-as-needed",
+                    "--extend-zooms-if-still-dropping",
+                ]
+            )
+            logger.debug("Using polygon-optimized tippecanoe settings")
 
         logger.debug(f"Running tippecanoe: {' '.join(cmd)}")
 
