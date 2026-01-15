@@ -1,6 +1,5 @@
 """Tiles router for OGC Tiles API endpoints."""
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
@@ -68,9 +67,8 @@ async def get_tile(
     geometry_column = metadata.geometry_column or "geometry"
 
     try:
-        # Run synchronous DuckDB tile generation in thread pool to avoid blocking event loop
-        tile_data = await asyncio.to_thread(
-            tile_service.get_tile,
+        # Get tile - the service handles threading internally for sync operations
+        result = await tile_service.get_tile(
             layer_info=layer_info,
             z=z,
             x=x,
@@ -89,15 +87,21 @@ async def get_tile(
             detail=f"Tile query timeout for z={z}, x={x}, y={y}. Try a higher zoom level or smaller area.",
         )
 
-    if not tile_data:
+    if not result:
         return Response(status_code=204)
+
+    tile_data, is_gzip, source = result
+    headers = {
+        "Cache-Control": "public, max-age=3600",
+        "X-Tile-Source": source,
+    }
+    if is_gzip:
+        headers["Content-Encoding"] = "gzip"
 
     return Response(
         content=tile_data,
         media_type="application/vnd.mapbox-vector-tile",
-        headers={
-            "Cache-Control": "public, max-age=3600",
-        },
+        headers=headers,
     )
 
 

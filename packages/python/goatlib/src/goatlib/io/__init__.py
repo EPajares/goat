@@ -19,6 +19,7 @@ from goatlib.io.parquet import (
     write_optimized_geoparquet,
     write_optimized_parquet,
 )
+from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
 
 __all__ = [
     "IOConverter",
@@ -26,6 +27,9 @@ __all__ = [
     "write_optimized_parquet",
     "write_optimized_geoparquet",  # alias for backward compatibility
     "verify_geoparquet_optimization",
+    # PMTiles generation
+    "PMTilesConfig",
+    "PMTilesGenerator",
     # Config constants
     "PARQUET_COMPRESSION",
     "PARQUET_ROW_GROUP_SIZE",

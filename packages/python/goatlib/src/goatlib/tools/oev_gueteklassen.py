@@ -319,7 +319,17 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
             )
             logger.info(f"DuckLake polygon table created: {table_info['table_name']}")
 
-            # Step 2b: Ingest stations layer to DuckLake (if available)
+            # Step 2b: Generate PMTiles for polygon layer
+            if table_info.get("geometry_type"):
+                pmtiles_path = self._generate_pmtiles(
+                    user_id=params.user_id,
+                    layer_id=output_layer_id,
+                    table_name=table_info["table_name"],
+                )
+                if pmtiles_path:
+                    table_info["pmtiles_path"] = str(pmtiles_path)
+
+            # Step 2c: Ingest stations layer to DuckLake (if available)
             stations_table_info = None
             if self._stations_parquet and self._stations_parquet.exists():
                 stations_table_info = self._ingest_to_ducklake(
@@ -330,6 +340,16 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
                 logger.info(
                     f"DuckLake stations table created: {stations_table_info['table_name']}"
                 )
+
+                # Generate PMTiles for stations layer
+                if stations_table_info.get("geometry_type"):
+                    st_pmtiles_path = self._generate_pmtiles(
+                        user_id=params.user_id,
+                        layer_id=stations_layer_id,
+                        table_name=stations_table_info["table_name"],
+                    )
+                    if st_pmtiles_path:
+                        stations_table_info["pmtiles_path"] = str(st_pmtiles_path)
 
             # Refresh database pool
             asyncio.get_event_loop().run_until_complete(self._close_db_service())

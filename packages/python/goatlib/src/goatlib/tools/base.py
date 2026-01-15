@@ -51,6 +51,7 @@ from goatlib.io.config import (
     PARQUET_ROW_GROUP_SIZE,
     PARQUET_VERSION,
 )
+from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.db import ToolDatabaseService
 from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
@@ -76,6 +77,9 @@ class ToolSettings:
     ducklake_catalog_schema: str
     ducklake_data_dir: str
 
+    # Tiles storage (separate from source data - cache/derived data)
+    tiles_data_dir: str = "/app/data/tiles"
+
     # OD matrix / travel time matrices
     od_matrix_base_path: str = "/app/data/traveltime_matrices"
 
@@ -100,6 +104,11 @@ class ToolSettings:
     # Geocoding settings
     geocoding_url: str | None = None
     geocoding_authorization: str | None = None
+
+    # PMTiles generation settings
+    pmtiles_enabled: bool = True  # Enable PMTiles generation for spatial layers
+    pmtiles_min_zoom: int = 0
+    pmtiles_max_zoom: int = 15  # Maximum zoom level for PMTiles generation
 
     def get_s3_client(self: Self) -> Any:
         """Create boto3 S3 client with provider-specific config.
@@ -232,6 +241,7 @@ class ToolSettings:
             ducklake_data_dir=cls._get_secret(
                 "DUCKLAKE_DATA_DIR", "/app/data/ducklake"
             ),
+            tiles_data_dir=cls._get_secret("TILES_DATA_DIR", "/app/data/tiles"),
             od_matrix_base_path=cls._get_secret(
                 "OD_MATRIX_BASE_PATH", "/app/data/traveltime_matrices"
             ),
@@ -257,6 +267,11 @@ class ToolSettings:
             geocoding_url=cls._get_secret("GEOCODING_URL", "") or None,
             geocoding_authorization=cls._get_secret("GEOCODING_AUTHORIZATION", "")
             or None,
+            # PMTiles generation settings
+            pmtiles_enabled=cls._get_secret("PMTILES_ENABLED", "true").lower()
+            in ("true", "1", "yes"),
+            pmtiles_min_zoom=int(cls._get_secret("PMTILES_MIN_ZOOM", "0")),
+            pmtiles_max_zoom=int(cls._get_secret("PMTILES_MAX_ZOOM", "15")),
         )
 
 
@@ -1033,6 +1048,16 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             )
             logger.info(f"DuckLake table created: {table_info['table_name']}")
 
+            # Step 2b: Generate PMTiles for spatial layers (non-blocking optimization)
+            if table_info.get("geometry_type"):
+                pmtiles_path = self._generate_pmtiles(
+                    user_id=params.user_id,
+                    layer_id=output_layer_id,
+                    table_name=table_info["table_name"],
+                )
+                if pmtiles_path:
+                    table_info["pmtiles_path"] = str(pmtiles_path)
+
             # Refresh database pool - connections may have gone stale during long analysis
             asyncio.get_event_loop().run_until_complete(self._close_db_service())
 
@@ -1247,6 +1272,67 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             "extent": extent,
             "extent_wkt": extent_wkt,
         }
+
+    def _generate_pmtiles(
+        self: Self,
+        user_id: str,
+        layer_id: str,
+        table_name: str,
+    ) -> Path | None:
+        """Generate PMTiles for a layer after DuckLake ingestion.
+
+        Creates a static PMTiles file for efficient tile serving without
+        dynamic generation overhead. The PMTiles file is stored alongside
+        the source GeoParquet data in the user's tiles directory.
+
+        Args:
+            user_id: User UUID string
+            layer_id: Layer UUID string
+            table_name: Full DuckLake table path (e.g., "lake.user_xxx.t_yyy")
+
+        Returns:
+            Path to generated PMTiles file, or None if generation was skipped/failed
+        """
+        if self.settings is None:
+            raise RuntimeError("Settings not initialized")
+
+        # Skip if PMTiles generation is disabled
+        if not self.settings.pmtiles_enabled:
+            logger.debug("PMTiles generation is disabled")
+            return None
+
+        try:
+            # Create PMTiles config from settings
+            config = PMTilesConfig(
+                enabled=True,
+                min_zoom=self.settings.pmtiles_min_zoom,
+                max_zoom=self.settings.pmtiles_max_zoom,
+            )
+
+            generator = PMTilesGenerator(
+                tiles_data_dir=self.settings.tiles_data_dir,
+                config=config,
+            )
+
+            pmtiles_path = generator.generate_from_table(
+                duckdb_con=self.duckdb_con,
+                table_name=table_name,
+                user_id=user_id,
+                layer_id=layer_id,
+            )
+
+            if pmtiles_path:
+                logger.info(
+                    f"PMTiles generated: {pmtiles_path} "
+                    f"({pmtiles_path.stat().st_size / 1024 / 1024:.1f} MB)"
+                )
+
+            return pmtiles_path
+
+        except Exception as e:
+            # Log error but don't fail the tool - PMTiles are optional optimization
+            logger.warning(f"PMTiles generation failed (non-fatal): {e}")
+            return None
 
     async def _init_db_service(self: Self) -> None:
         """Initialize database service and connection pool.

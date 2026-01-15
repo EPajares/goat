@@ -7,8 +7,7 @@ ARG PNPM_VERSION="9.5.0"
 WORKDIR /app
 
 # Update debian
-RUN apt-get update
-RUN apt-get upgrade -y
+RUN apt-get update && apt-get upgrade -y
 
 # Install general required dependencies
 RUN apt-get install --no-install-recommends -y \
@@ -20,28 +19,22 @@ RUN apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
     ccache \
-    pkg-config
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # GDAL
-RUN apt-get install -y gdal-bin libgdal-dev
+RUN apt-get update && apt-get install -y --no-install-recommends gdal-bin libgdal-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# QGIS
-RUN wget -O /etc/apt/keyrings/qgis-archive-keyring.gpg https://download.qgis.org/downloads/qgis-archive-keyring.gpg
-RUN apt-get install -y qgis python3-qgis
-
-# PYMGL
-ENV DISPLAY=:0 \
-    XDG_RUNTIME_DIR=/tmp \
-    LIBGL_ALWAYS_SOFTWARE=1 \
-    DEBIAN_FRONTEND=noninteractive \
-    PYTHONMALLOC=malloc \
-    BUILD_TEMP_DIR=/tmp/build
-
-RUN mkdir -p /etc/pki/tls/certs && \
-    ln -s /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
-
-RUN apt-get -y install xvfb
-
+# Tippecanoe for PMTiles generation
+ARG TIPPECANOE_VERSION=2.79.0
+RUN apt-get update && apt-get install -y --no-install-recommends libsqlite3-dev zlib1g-dev \
+    && curl -fsSL https://github.com/felt/tippecanoe/archive/refs/tags/${TIPPECANOE_VERSION}.tar.gz -o /tmp/tippecanoe.tar.gz \
+    && tar -xzf /tmp/tippecanoe.tar.gz -C /tmp \
+    && cd /tmp/tippecanoe-${TIPPECANOE_VERSION} \
+    && make -j$(nproc) \
+    && make install \
+    && rm -rf /tmp/tippecanoe* /var/lib/apt/lists/*
 
 # UV
 ENV PATH="/app/.venv/bin:$PATH" \
@@ -66,14 +59,11 @@ RUN curl --silent -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/insta
 RUN curl -sSL https://raw.githubusercontent.com/celery/celery/master/extra/generic-init.d/celeryd > /etc/init.d/celeryd && \
     chmod +x /etc/init.d/celeryd
 
-# PNPM
-ENV PNPM_VERSION=$PNPM_VERSION
-RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
-
 # PLAYWRIGHT - Install Chromium browser for PDF generation
 RUN pip install playwright && playwright install chromium --with-deps
 
-# Start Xvfb (virtual display) in the background for pymgl and keep the container running
-CMD bash -c "Xvfb ${DISPLAY} -screen 0 '1024x768x24' -ac +extension GLX +render -noreset -nolisten tcp & while true; do sleep 1000; done"
+# PNPM
+ENV PNPM_VERSION=$PNPM_VERSION
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
 
 

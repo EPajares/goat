@@ -114,7 +114,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdal-dev \
     libgeos-dev \
     libproj-dev \
+    # Build dependencies for tippecanoe
+    build-essential \
+    libsqlite3-dev \
+    zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install tippecanoe for PMTiles generation
+ARG TIPPECANOE_VERSION=2.79.0
+RUN curl -fsSL https://github.com/felt/tippecanoe/archive/refs/tags/${TIPPECANOE_VERSION}.tar.gz -o /tmp/tippecanoe.tar.gz \
+    && tar -xzf /tmp/tippecanoe.tar.gz -C /tmp \
+    && cd /tmp/tippecanoe-${TIPPECANOE_VERSION} \
+    && make -j$(nproc) \
+    && make install \
+    && rm -rf /tmp/tippecanoe*
 
 ENV WORKER_TAGS=tools
 
