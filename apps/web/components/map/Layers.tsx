@@ -121,7 +121,7 @@ const Layers = (props: LayersProps) => {
             (() => {
               if (layer.type === "feature") {
                 return (
-                  <Source key={layer.id} type="vector" tiles={[getFeatureTileUrl(layer)]} maxzoom={15}>
+                  <Source key={layer.id} type="vector" tiles={[getFeatureTileUrl(layer)]} maxzoom={14}>
                     {!layer.properties?.["custom_marker"] && (
                       <MapLayer
                         key={getLayerKey(layer)}

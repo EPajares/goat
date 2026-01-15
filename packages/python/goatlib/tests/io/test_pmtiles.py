@@ -16,7 +16,7 @@ def test_config_default_values() -> None:
     config = PMTilesConfig()
     assert config.enabled is True
     assert config.min_zoom == 0
-    assert config.max_zoom == 15  # Fixed zoom level
+    assert config.max_zoom == 14  # Fixed zoom level
     assert config.layer_name == "default"
 
 
@@ -124,9 +124,9 @@ def test_generate_disabled() -> None:
 
 
 def test_tippecanoe_command_default_zoom() -> None:
-    """Test tippecanoe command uses -z15 by default for polygons."""
+    """Test tippecanoe command uses -z14 by default for polygons."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        config = PMTilesConfig()  # Uses default max_zoom=15
+        config = PMTilesConfig()  # Uses default max_zoom=14
         generator = PMTilesGenerator(tiles_data_dir=tmpdir, config=config)
 
         with patch("subprocess.run") as mock_run:
@@ -135,7 +135,7 @@ def test_tippecanoe_command_default_zoom() -> None:
             generator._run_tippecanoe("/input.fgb", "/output.pmtiles", geometry_type="POLYGON")
 
             cmd = mock_run.call_args[0][0]
-            assert "-z15" in cmd  # Default max zoom 15
+            assert "-z14" in cmd  # Default max zoom 14
             assert "-Z0" in cmd  # Default min zoom 0
             assert "--extend-zooms-if-still-dropping" in cmd
             assert "--drop-densest-as-needed" in cmd  # Polygon-specific

@@ -41,13 +41,13 @@ class PMTilesConfig:
     Attributes:
         enabled: Whether PMTiles generation is enabled
         min_zoom: Minimum zoom level (default: 0)
-        max_zoom: Maximum zoom level (default: 15)
+        max_zoom: Maximum zoom level (default: 14)
         layer_name: Name for the MVT layer (default: "default")
     """
 
     enabled: bool = True
     min_zoom: int = 0
-    max_zoom: int = 15
+    max_zoom: int = 14
     layer_name: str = "default"
 
 
@@ -454,7 +454,7 @@ class PMTilesGenerator:
         """
         # Use defaults if config values are None (safety check)
         min_zoom = self.config.min_zoom if self.config.min_zoom is not None else 0
-        max_zoom = self.config.max_zoom if self.config.max_zoom is not None else 15
+        max_zoom = self.config.max_zoom if self.config.max_zoom is not None else 14
 
         # Check if this is a point layer
         is_point_layer = geometry_type and "POINT" in geometry_type.upper()

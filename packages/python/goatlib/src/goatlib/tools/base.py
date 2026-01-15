@@ -108,7 +108,7 @@ class ToolSettings:
     # PMTiles generation settings
     pmtiles_enabled: bool = True  # Enable PMTiles generation for spatial layers
     pmtiles_min_zoom: int = 0
-    pmtiles_max_zoom: int = 15  # Maximum zoom level for PMTiles generation
+    pmtiles_max_zoom: int = 14  # Maximum zoom level for PMTiles generation
 
     def get_s3_client(self: Self) -> Any:
         """Create boto3 S3 client with provider-specific config.
@@ -271,7 +271,7 @@ class ToolSettings:
             pmtiles_enabled=cls._get_secret("PMTILES_ENABLED", "true").lower()
             in ("true", "1", "yes"),
             pmtiles_min_zoom=int(cls._get_secret("PMTILES_MIN_ZOOM", "0")),
-            pmtiles_max_zoom=int(cls._get_secret("PMTILES_MAX_ZOOM", "15")),
+            pmtiles_max_zoom=int(cls._get_secret("PMTILES_MAX_ZOOM", "14")),
         )
 
 
