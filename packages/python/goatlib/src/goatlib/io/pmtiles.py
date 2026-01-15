@@ -169,20 +169,21 @@ class PMTilesGenerator:
 
         try:
             with tempfile.NamedTemporaryFile(
-                suffix=".fgb", delete=True, prefix="pmtiles_"
-            ) as tmp_fgb:
-                # Step 1: Export to FlatGeobuf (faster than GeoJSON)
-                self._export_to_flatgeobuf(
+                suffix=".geojson", delete=True, prefix="pmtiles_"
+            ) as tmp_geojson:
+                # Step 1: Export to GeoJSON (preserves attribute types)
+                # Note: FlatGeobuf is faster but tippecanoe converts integers to strings
+                self._export_to_geojson(
                     duckdb_con=duckdb_con,
                     table_name=table_name,
-                    output_path=tmp_fgb.name,
+                    output_path=tmp_geojson.name,
                     geometry_column=geometry_column,
                     exclude_columns=exclude_columns,
                 )
 
                 # Step 2: Generate PMTiles with tippecanoe
                 self._run_tippecanoe(
-                    input_path=tmp_fgb.name,
+                    input_path=tmp_geojson.name,
                     output_path=str(pmtiles_path),
                     geometry_type=geometry_type,
                 )
