@@ -49,6 +49,10 @@ class PMTilesSyncParams(BaseModel):
         default=False,
         description="Regenerate even if PMTiles exist and are in sync",
     )
+    missing_only: bool = Field(
+        default=False,
+        description="Only generate missing PMTiles, skip stale ones",
+    )
     dry_run: bool = Field(
         default=False,
         description="Show what would be done without making changes",
@@ -244,9 +248,9 @@ class PMTilesSyncTask:
 
         limit_clause = f"LIMIT {limit}" if limit else ""
         order_clause = (
-            "ORDER BY COALESCE(sizes.total_size, 0) ASC"
+            "ORDER BY COALESCE(stats.total_size, 0) ASC"
             if order_by_size
-            else "ORDER BY t.begin_snapshot DESC"
+            else "ORDER BY data_snapshot DESC"
         )
 
         if not self.settings:
@@ -256,6 +260,11 @@ class PMTilesSyncTask:
 
         # Query PostgreSQL catalog tables via DuckDB's postgres_query()
         # These are DuckLake metadata tables stored in PostgreSQL
+        #
+        # Key insight: We track per-table data modification by looking at
+        # MAX(begin_snapshot) from ducklake_data_file for each table.
+        # This tells us when the table's data was last modified, not when
+        # the global catalog was last changed.
         query = f"""
             WITH current_snapshot AS (
                 SELECT MAX(snapshot_id) as snapshot_id
@@ -280,8 +289,12 @@ class PMTilesSyncTask:
                     'SELECT table_id, file_size_bytes, begin_snapshot, end_snapshot
                      FROM {catalog}.ducklake_data_file')
             ),
-            table_sizes AS (
-                SELECT df.table_id, SUM(df.file_size_bytes) as total_size
+            table_stats AS (
+                -- Get both size and latest data modification snapshot per table
+                SELECT 
+                    df.table_id, 
+                    SUM(df.file_size_bytes) as total_size,
+                    MAX(df.begin_snapshot) as last_data_snapshot
                 FROM ducklake_data_file df, current_snapshot cs
                 WHERE df.end_snapshot IS NULL
                 AND cs.snapshot_id >= df.begin_snapshot
@@ -291,13 +304,12 @@ class PMTilesSyncTask:
                 s.schema_name,
                 t.table_name,
                 c.column_name AS geometry_column,
-                t.begin_snapshot,
-                COALESCE(sizes.total_size, 0) as total_size,
-                cs.snapshot_id as current_snapshot
+                COALESCE(stats.last_data_snapshot, t.begin_snapshot) as data_snapshot,
+                COALESCE(stats.total_size, 0) as total_size
             FROM ducklake_table t
             JOIN ducklake_schema s ON t.schema_id = s.schema_id
             JOIN ducklake_column c ON t.table_id = c.table_id
-            LEFT JOIN table_sizes sizes ON t.table_id = sizes.table_id
+            LEFT JOIN table_stats stats ON t.table_id = stats.table_id
             CROSS JOIN current_snapshot cs
             WHERE c.column_type ILIKE 'geometry'
             AND t.end_snapshot IS NULL
@@ -321,17 +333,13 @@ class PMTilesSyncTask:
             logger.info("No geometry layers found")
             return []
 
-        current_snapshot = rows[0][5]  # Get from first row
-        logger.info(f"Current DuckLake snapshot: {current_snapshot}")
-
         layers = []
         for (
             schema_name,
             table_name,
             geometry_column,
-            begin_snapshot,
+            data_snapshot,
             total_size,
-            _snapshot,
         ) in rows:
             user_id_nodash = schema_name.replace("user_", "")
             layer_id_nodash = table_name.replace("t_", "")
@@ -353,7 +361,7 @@ class PMTilesSyncTask:
                     user_id=user_id_uuid,
                     layer_id=layer_id_uuid,
                     geometry_column=geometry_column,
-                    snapshot_id=current_snapshot,
+                    snapshot_id=data_snapshot,  # Per-table data modification snapshot
                     size_bytes=total_size,
                 )
             )
@@ -464,10 +472,37 @@ class PMTilesSyncTask:
             missing = []
             stale = []
             in_sync = []
+            corrupted = []
 
             for layer in layers:
                 pmtiles_path = generator.get_pmtiles_path(layer.user_id, layer.layer_id)
+
+                # Clean up any leftover temp files from interrupted generations
+                # Check both naming patterns:
+                # - New: .tmp_filename.pmtiles (prefix, preserves extension for tippecanoe)
+                # - Old: filename.pmtiles.tmp (suffix, legacy)
+                temp_paths = [
+                    pmtiles_path.parent / f".tmp_{pmtiles_path.name}",  # new pattern
+                    pmtiles_path.with_suffix(".pmtiles.tmp"),  # old pattern
+                ]
+                for temp_path in temp_paths:
+                    if temp_path.exists():
+                        logger.debug(f"Cleaning up interrupted generation: {temp_path}")
+                        try:
+                            temp_path.unlink()
+                        except OSError:
+                            pass
+
                 if not pmtiles_path.exists():
+                    missing.append(layer)
+                elif not generator.is_pmtiles_valid(pmtiles_path):
+                    # Corrupted file - delete it and treat as missing
+                    logger.warning(f"Corrupted PMTiles file, deleting: {pmtiles_path}")
+                    try:
+                        pmtiles_path.unlink()
+                    except OSError as e:
+                        logger.error(f"Failed to delete corrupted file: {e}")
+                    corrupted.append(layer)
                     missing.append(layer)
                 elif not generator.is_pmtiles_in_sync(pmtiles_path, layer.snapshot_id):
                     stale.append(layer)
@@ -478,13 +513,23 @@ class PMTilesSyncTask:
             stats.missing = len(missing)
             stats.stale = len(stale)
 
-            logger.info(
+            status_msg = (
                 f"Status: {stats.in_sync} in sync, {stats.missing} missing, "
                 f"{stats.stale} stale"
             )
+            if corrupted:
+                status_msg += f" ({len(corrupted)} corrupted files deleted)"
+            logger.info(status_msg)
 
             # Determine what to process
-            to_process = missing + stale if not params.force else layers
+            if params.force:
+                to_process = layers
+            elif params.missing_only:
+                to_process = missing
+                if stale:
+                    logger.info(f"Skipping {len(stale)} stale layers (--missing-only)")
+            else:
+                to_process = missing + stale
 
             if not to_process:
                 logger.info("All PMTiles are up to date!")
@@ -586,6 +631,9 @@ if __name__ == "__main__":
         "--force", action="store_true", help="Regenerate even if in sync"
     )
     parser.add_argument(
+        "--missing-only", action="store_true", help="Only generate missing, skip stale"
+    )
+    parser.add_argument(
         "--small-first", action="store_true", help="Process smaller layers first"
     )
 
@@ -595,6 +643,7 @@ if __name__ == "__main__":
         user_id=args.user_id,
         limit=args.limit,
         force=args.force,
+        missing_only=args.missing_only,
         dry_run=args.dry_run,
         small_first=args.small_first,
     )

@@ -34,6 +34,8 @@ from pathlib import Path
 from typing import Self
 
 import duckdb
+from pmtiles.reader import MmapSource
+from pmtiles.reader import Reader as PMTilesReader
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +142,35 @@ class PMTilesGenerator:
         """
         return self.get_pmtiles_path(user_id, layer_id).exists()
 
+    def is_pmtiles_valid(self: Self, pmtiles_path: Path | str) -> bool:
+        """Check if a PMTiles file is valid and readable.
+
+        Args:
+            pmtiles_path: Path to PMTiles file
+
+        Returns:
+            True if the file is a valid PMTiles file
+        """
+        try:
+            with open(pmtiles_path, "rb") as f:
+                reader = PMTilesReader(MmapSource(f))
+                # Try to read header - this will fail if file is corrupted
+                reader.header()
+            return True
+        except Exception as e:
+            # Log the actual error for debugging
+            logger.debug(f"PMTiles validation failed for {pmtiles_path}: {e}")
+            # Also check magic bytes for more info
+            try:
+                with open(pmtiles_path, "rb") as f:
+                    magic = f.read(7)
+                    logger.warning(
+                        f"Invalid PMTiles {pmtiles_path}: magic={magic!r}, error={e}"
+                    )
+            except Exception:
+                pass
+            return False
+
     def get_pmtiles_snapshot_id(self: Self, pmtiles_path: Path | str) -> int | None:
         """Read the DuckLake snapshot_id from PMTiles metadata.
 
@@ -153,10 +184,8 @@ class PMTilesGenerator:
             Snapshot ID if found, None otherwise
         """
         try:
-            from pmtiles.reader import MmapSource, Reader
-
             with open(pmtiles_path, "rb") as f:
-                reader = Reader(MmapSource(f))
+                reader = PMTilesReader(MmapSource(f))
                 metadata = reader.metadata()
                 description = metadata.get("description", "")
 
@@ -253,6 +282,13 @@ class PMTilesGenerator:
             duckdb_con, table_name, geometry_column
         )
 
+        # Use a temp file for the PMTiles output, then atomically rename
+        # This prevents corrupted files if the process is interrupted
+        # NOTE: tippecanoe uses file extension to determine output format!
+        # .pmtiles -> PMTiles, anything else -> MBTiles (SQLite)
+        # So we use a .tmp_ prefix instead of .tmp suffix
+        temp_pmtiles_path = pmtiles_path.parent / f".tmp_{pmtiles_path.name}"
+
         try:
             with tempfile.NamedTemporaryFile(
                 suffix=".geojson", delete=True, prefix="pmtiles_"
@@ -267,15 +303,19 @@ class PMTilesGenerator:
                     exclude_columns=exclude_columns,
                 )
 
-                # Step 2: Generate PMTiles with tippecanoe
+                # Step 2: Generate PMTiles with tippecanoe to temp file
                 # snapshot_id is embedded in PMTiles metadata via --description flag
                 self._run_tippecanoe(
                     input_path=tmp_geojson.name,
-                    output_path=str(pmtiles_path),
+                    output_path=str(temp_pmtiles_path),
                     geometry_type=geometry_type,
                     snapshot_id=snapshot_id,
                     show_progress=show_progress,
                 )
+
+            # Step 3: Atomically rename temp file to final path
+            # This ensures we never have a half-written final file
+            temp_pmtiles_path.rename(pmtiles_path)
 
             logger.info(
                 f"PMTiles generated successfully: {pmtiles_path} "
@@ -285,9 +325,9 @@ class PMTilesGenerator:
 
         except Exception as e:
             logger.error(f"PMTiles generation failed: {e}")
-            # Clean up partial file if it exists
-            if pmtiles_path.exists():
-                pmtiles_path.unlink()
+            # Clean up temp file if it exists
+            if temp_pmtiles_path.exists():
+                temp_pmtiles_path.unlink()
             return None
 
     def _detect_geometry_type(
