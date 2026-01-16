@@ -309,13 +309,32 @@ class TileService:
                 return None
             return tile_data, False, "geoparquet"  # Dynamic tiles are not gzip compressed
 
-        # Unfiltered request - use PMTiles only
+        # Unfiltered request - try PMTiles first, fallback to GeoParquet
         if not self._pmtiles_exists(layer_info):
-            logger.warning(
-                "No PMTiles for %s, tile not available",
+            logger.info(
+                "No PMTiles for %s, falling back to dynamic tiles",
                 layer_info.table_name,
             )
-            return None
+            # Fallback to dynamic GeoParquet generation
+            loop = asyncio.get_event_loop()
+            tile_data = await loop.run_in_executor(
+                _dynamic_tile_executor,
+                lambda: self._generate_dynamic_tile(
+                    layer_info=layer_info,
+                    z=z,
+                    x=x,
+                    y=y,
+                    properties=properties,
+                    cql_filter=None,
+                    bbox=None,
+                    limit=limit,
+                    columns=columns,
+                    geometry_column=geometry_column,
+                ),
+            )
+            if tile_data is None:
+                return None
+            return tile_data, False, "geoparquet"
 
         result = await self._get_tile_from_pmtiles(layer_info, z, x, y)
         if result is not None:
