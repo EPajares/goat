@@ -98,6 +98,28 @@ class LayerDeleteRunner(SimpleToolRunner):
             logger.warning("Error deleting DuckLake table %s: %s", full_table, e)
             return False
 
+    def _delete_pmtiles(self: Self, layer_id: str, owner_id: str) -> bool:
+        """Delete PMTiles file for a layer.
+
+        Args:
+            layer_id: Layer UUID
+            owner_id: Layer owner's UUID
+
+        Returns:
+            True if PMTiles was deleted, False if it didn't exist
+        """
+        try:
+            from goatlib.io.pmtiles import PMTilesGenerator
+
+            generator = PMTilesGenerator(tiles_data_dir=self.settings.tiles_data_dir)
+            deleted = generator.delete_pmtiles(owner_id, layer_id)
+            if deleted:
+                logger.info("Deleted PMTiles for layer: %s", layer_id)
+            return deleted
+        except Exception as e:
+            logger.warning("Error deleting PMTiles for layer %s: %s", layer_id, e)
+            return False
+
     async def _verify_ownership_and_delete(
         self: Self, layer_id: str, user_id: str
     ) -> tuple[bool, str | None]:
@@ -190,6 +212,12 @@ class LayerDeleteRunner(SimpleToolRunner):
             # Step 2: Delete DuckLake table (only if metadata was deleted)
             if output.metadata_deleted and owner_id:
                 output.ducklake_deleted = self._delete_ducklake_table(
+                    layer_id=params.layer_id,
+                    owner_id=owner_id,
+                )
+
+                # Step 3: Delete PMTiles if they exist
+                self._delete_pmtiles(
                     layer_id=params.layer_id,
                     owner_id=owner_id,
                 )

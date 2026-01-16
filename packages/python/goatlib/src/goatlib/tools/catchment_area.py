@@ -818,7 +818,17 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
             )
             logger.info(f"DuckLake polygon table created: {table_info['table_name']}")
 
-            # Step 2b: Ingest starting points layer to DuckLake (if available)
+            # Step 2b: Generate PMTiles for polygon layer
+            if table_info.get("geometry_type"):
+                pmtiles_path = self._generate_pmtiles(
+                    user_id=params.user_id,
+                    layer_id=output_layer_id,
+                    table_name=table_info["table_name"],
+                )
+                if pmtiles_path:
+                    table_info["pmtiles_path"] = str(pmtiles_path)
+
+            # Step 2c: Ingest starting points layer to DuckLake (if available)
             starting_points_table_info = None
             if self._starting_points_parquet and self._starting_points_parquet.exists():
                 starting_points_table_info = self._ingest_to_ducklake(
@@ -830,6 +840,16 @@ class CatchmentAreaToolRunner(BaseToolRunner[CatchmentAreaWindmillParams]):
                     f"DuckLake starting points table created: "
                     f"{starting_points_table_info['table_name']}"
                 )
+
+                # Generate PMTiles for starting points layer
+                if starting_points_table_info.get("geometry_type"):
+                    sp_pmtiles_path = self._generate_pmtiles(
+                        user_id=params.user_id,
+                        layer_id=starting_points_layer_id,
+                        table_name=starting_points_table_info["table_name"],
+                    )
+                    if sp_pmtiles_path:
+                        starting_points_table_info["pmtiles_path"] = str(sp_pmtiles_path)
 
             # Refresh database pool
             asyncio.get_event_loop().run_until_complete(self._close_db_service())

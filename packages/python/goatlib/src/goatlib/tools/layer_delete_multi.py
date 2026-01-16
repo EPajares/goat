@@ -109,6 +109,28 @@ class LayerDeleteMultiRunner(SimpleToolRunner):
             logger.warning("Error deleting DuckLake table %s: %s", full_table, e)
             return False
 
+    def _delete_pmtiles(self: Self, layer_id: str, owner_id: str) -> bool:
+        """Delete PMTiles file for a layer.
+
+        Args:
+            layer_id: Layer UUID
+            owner_id: Layer owner's UUID
+
+        Returns:
+            True if PMTiles was deleted, False if it didn't exist
+        """
+        try:
+            from goatlib.io.pmtiles import PMTilesGenerator
+
+            generator = PMTilesGenerator(tiles_data_dir=self.settings.tiles_data_dir)
+            deleted = generator.delete_pmtiles(owner_id, layer_id)
+            if deleted:
+                logger.info("Deleted PMTiles for layer: %s", layer_id)
+            return deleted
+        except Exception as e:
+            logger.warning("Error deleting PMTiles for layer %s: %s", layer_id, e)
+            return False
+
     def run(self: Self, params: LayerDeleteMultiParams) -> dict:
         """Run the multi-layer deletion.
 
@@ -152,6 +174,13 @@ class LayerDeleteMultiRunner(SimpleToolRunner):
                         layer_id=layer_id,
                         owner_id=params.user_id,
                     )
+
+                    # Also delete PMTiles if they exist
+                    self._delete_pmtiles(
+                        layer_id=layer_id,
+                        owner_id=params.user_id,
+                    )
+
                     result.deleted = deleted
                     if deleted:
                         output.deleted_count += 1

@@ -129,6 +129,8 @@ class DuckLakeSettings(Protocol):
     DUCKLAKE_S3_BUCKET: str | None
     DUCKLAKE_S3_ACCESS_KEY: str | None
     DUCKLAKE_S3_SECRET_KEY: str | None
+    # Optional: DuckDB memory limit (e.g., "3GB", "1.5GB")
+    # If not provided, DuckDB uses its default (typically 80% of system RAM)
 
 
 class BaseDuckLakeManager:
@@ -147,6 +149,7 @@ class BaseDuckLakeManager:
         self._s3_secret_key: str | None = None
         self._extensions_installed: bool = False
         self._read_only: bool = read_only
+        self._memory_limit: str | None = None
 
     def init(self: "BaseDuckLakeManager", settings: DuckLakeSettings) -> None:
         """Initialize DuckLake connection."""
@@ -155,6 +158,7 @@ class BaseDuckLakeManager:
         self._s3_endpoint = getattr(settings, "DUCKLAKE_S3_ENDPOINT", None)
         self._s3_access_key = getattr(settings, "DUCKLAKE_S3_ACCESS_KEY", None)
         self._s3_secret_key = getattr(settings, "DUCKLAKE_S3_SECRET_KEY", None)
+        self._memory_limit = getattr(settings, "DUCKDB_MEMORY_LIMIT", None)
 
         s3_bucket = getattr(settings, "DUCKLAKE_S3_BUCKET", None)
         if s3_bucket:
@@ -201,6 +205,8 @@ class BaseDuckLakeManager:
     def _create_connection(self: "BaseDuckLakeManager") -> None:
         """Create and configure the DuckDB connection."""
         con = duckdb.connect()
+        if self._memory_limit:
+            con.execute(f"SET memory_limit='{self._memory_limit}'")
         self._install_extensions(con)
         self._load_extensions(con)
         self._setup_s3(con)
@@ -431,6 +437,7 @@ class DuckLakePool:
         self._s3_access_key: str | None = None
         self._s3_secret_key: str | None = None
         self._extensions_installed: bool = False
+        self._memory_limit: str | None = None
 
     def init(self, settings: DuckLakeSettings) -> None:
         """Initialize the connection pool from settings."""
@@ -443,6 +450,7 @@ class DuckLakePool:
             self._s3_endpoint = getattr(settings, "DUCKLAKE_S3_ENDPOINT", None)
             self._s3_access_key = getattr(settings, "DUCKLAKE_S3_ACCESS_KEY", None)
             self._s3_secret_key = getattr(settings, "DUCKLAKE_S3_SECRET_KEY", None)
+            self._memory_limit = getattr(settings, "DUCKDB_MEMORY_LIMIT", None)
 
             s3_bucket = getattr(settings, "DUCKLAKE_S3_BUCKET", None)
             if s3_bucket:
@@ -517,6 +525,10 @@ class DuckLakePool:
     def _create_connection(self) -> duckdb.DuckDBPyConnection:
         """Create a new DuckDB connection with DuckLake attached (read-only)."""
         con = duckdb.connect()
+
+        # Apply memory limit if configured
+        if self._memory_limit:
+            con.execute(f"SET memory_limit='{self._memory_limit}'")
 
         # Install and load extensions
         for ext in self.REQUIRED_EXTENSIONS:

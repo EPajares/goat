@@ -45,6 +45,9 @@ class GeoAPIDuckLakePool(DuckLakePool):
                 )
                 self.DUCKLAKE_DATA_DIR = getattr(settings, "DUCKLAKE_DATA_DIR", None)
                 self.DATA_DIR = getattr(settings, "DATA_DIR", "/tmp")
+                self.DUCKDB_MEMORY_LIMIT = getattr(
+                    settings, "DUCKDB_MEMORY_LIMIT", "3GB"
+                )
 
         # Get pool size from settings
         pool_size = getattr(settings, "DUCKLAKE_POOL_SIZE", 2)

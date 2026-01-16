@@ -17,6 +17,7 @@ dependencies = [
     "wmill>=1.0.0",
     "python-jose[cryptography]>=3.3.0",
     "requests>=2.25.0",
+    "pmtiles>=3.5.0",
 ]
 
 [build-system]
