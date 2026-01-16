@@ -307,7 +307,11 @@ class TileService:
             )
             if tile_data is None:
                 return None
-            return tile_data, False, "geoparquet"  # Dynamic tiles are not gzip compressed
+            return (
+                tile_data,
+                False,
+                "geoparquet",
+            )  # Dynamic tiles are not gzip compressed
 
         # Unfiltered request - try PMTiles first, fallback to GeoParquet
         if not self._pmtiles_exists(layer_info):
