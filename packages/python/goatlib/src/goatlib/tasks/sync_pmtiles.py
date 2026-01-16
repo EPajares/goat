@@ -1,0 +1,603 @@
+"""PMTiles synchronization task for Windmill.
+
+This task synchronizes PMTiles files with DuckLake geometry layers.
+It can be run as a scheduled Windmill job or triggered manually.
+
+Architecture:
+- All queries via DuckDB with postgres_scanner (no separate psycopg dependency)
+- Data queries: DuckLake via BaseDuckLakeManager (proper catalog access)
+
+Usage as Windmill script:
+    # Called by Windmill with PMTilesSyncParams
+
+Usage as library:
+    from goatlib.tasks import PMTilesSyncTask
+
+    task = PMTilesSyncTask()
+    task.init_from_env()
+    results = task.run(PMTilesSyncParams(limit=100, dry_run=True))
+"""
+
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Self
+
+from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    import duckdb
+
+from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
+from goatlib.storage import BaseDuckLakeManager
+from goatlib.tools.base import ToolSettings
+
+logger = logging.getLogger(__name__)
+
+
+class PMTilesSyncParams(BaseModel):
+    """Parameters for PMTiles sync task."""
+
+    user_id: str | None = Field(
+        default=None,
+        description="Process only layers for this user (UUID with dashes)",
+    )
+    limit: int | None = Field(
+        default=None,
+        description="Maximum number of layers to process",
+    )
+    force: bool = Field(
+        default=False,
+        description="Regenerate even if PMTiles exist and are in sync",
+    )
+    dry_run: bool = Field(
+        default=False,
+        description="Show what would be done without making changes",
+    )
+    small_first: bool = Field(
+        default=False,
+        description="Process smaller layers first",
+    )
+    show_progress: bool = Field(
+        default=True,
+        description="Show tippecanoe progress during tile generation",
+    )
+
+
+__all__ = ["PMTilesSyncParams", "PMTilesSyncTask", "main"]
+
+
+@dataclass
+class LayerInfo:
+    """Information about a DuckLake layer with geometry."""
+
+    schema_name: str
+    table_name: str
+    user_id: str
+    layer_id: str
+    geometry_column: str
+    snapshot_id: int
+    size_bytes: int = 0
+
+    @property
+    def full_table_name(self: Self) -> str:
+        """Get the full DuckLake table name (lake.schema.table)."""
+        return f"lake.{self.schema_name}.{self.table_name}"
+
+
+@dataclass
+class SyncResult:
+    """Result of processing a single layer."""
+
+    layer_id: str
+    status: str  # "generated", "in_sync", "skipped", "error", "failed"
+    message: str = ""
+
+
+@dataclass
+class SyncStats:
+    """Statistics from a sync run."""
+
+    total_layers: int = 0
+    in_sync: int = 0
+    missing: int = 0
+    stale: int = 0
+    generated: int = 0
+    errors: int = 0
+    skipped: int = 0
+    failed: int = 0
+
+    def to_dict(self: Self) -> dict:
+        """Convert to dictionary for Windmill output."""
+        return {
+            "total_layers": self.total_layers,
+            "in_sync": self.in_sync,
+            "missing": self.missing,
+            "stale": self.stale,
+            "generated": self.generated,
+            "errors": self.errors,
+            "skipped": self.skipped,
+            "failed": self.failed,
+        }
+
+
+class PMTilesSyncTask:
+    """Synchronize PMTiles for all DuckLake geometry layers.
+
+    This task ensures all geometry layers in DuckLake have corresponding
+    PMTiles files for efficient tile serving. It tracks DuckLake snapshots
+    to only regenerate tiles when source data changes.
+
+    Example (Windmill):
+        def main(params: PMTilesSyncParams) -> dict:
+            task = PMTilesSyncTask()
+            task.init_from_env()
+            return task.run(params)
+
+    Example (Library):
+        task = PMTilesSyncTask()
+        task.init_from_env()
+        stats = task.run(PMTilesSyncParams(dry_run=True))
+        print(f"Would process {stats.missing + stats.stale} layers")
+    """
+
+    def __init__(self: Self) -> None:
+        """Initialize the PMTiles sync task."""
+        self.settings: ToolSettings | None = None
+        self._manager: BaseDuckLakeManager | None = None
+        self._generator: PMTilesGenerator | None = None
+
+    @staticmethod
+    def _configure_logging_for_windmill() -> None:
+        """Configure Python logging to output to stdout for Windmill."""
+        import sys
+
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
+
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(
+            logging.Formatter("%(name)s - %(levelname)s - %(message)s")
+        )
+        root_logger.addHandler(handler)
+
+    def init_from_env(self: Self) -> None:
+        """Initialize settings from environment variables and Windmill secrets."""
+        self._configure_logging_for_windmill()
+        self.settings = ToolSettings.from_env()
+
+    def _get_manager(self: Self) -> BaseDuckLakeManager:
+        """Get or create DuckLake manager."""
+        if self._manager is None:
+            if not self.settings:
+                raise RuntimeError("Call init_from_env() before running task")
+            self._manager = BaseDuckLakeManager(read_only=True)
+            self._manager.init_from_params(
+                postgres_uri=self.settings.ducklake_postgres_uri,
+                storage_path=self.settings.ducklake_data_dir,
+                catalog_schema=self.settings.ducklake_catalog_schema,
+            )
+        return self._manager
+
+    def _get_generator(self: Self) -> PMTilesGenerator:
+        """Get or create PMTiles generator."""
+        if self._generator is None:
+            if not self.settings:
+                raise RuntimeError("Call init_from_env() before running task")
+            config = PMTilesConfig(enabled=True)
+            self._generator = PMTilesGenerator(self.settings.tiles_data_dir, config)
+        return self._generator
+        return self._generator
+
+    def close(self: Self) -> None:
+        """Close connections and cleanup resources."""
+        if self._manager is not None:
+            self._manager.close()
+            self._manager = None
+
+    def _attach_postgres(self: Self, con: "duckdb.DuckDBPyConnection") -> None:
+        """Attach PostgreSQL as 'pg' for querying catalog tables."""
+        if not self.settings:
+            raise RuntimeError("Call init_from_env() before running task")
+
+        # Build libpq connection string from URI
+        from urllib.parse import unquote, urlparse
+
+        parsed = urlparse(self.settings.ducklake_postgres_uri)
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 5432
+        user = unquote(parsed.username or "")
+        password = unquote(parsed.password or "")
+        dbname = parsed.path.lstrip("/") if parsed.path else ""
+
+        libpq_str = (
+            f"host={host} port={port} dbname={dbname} user={user} password={password}"
+        )
+        con.execute(f"ATTACH '{libpq_str}' AS pg (TYPE postgres, READ_ONLY)")
+
+    def get_geometry_layers(
+        self: Self,
+        user_id: str | None = None,
+        limit: int | None = None,
+        order_by_size: bool = False,
+    ) -> list[LayerInfo]:
+        """Get all DuckLake tables with geometry columns.
+
+        Queries PostgreSQL metadata tables directly for efficiency when listing
+        thousands of tables.
+
+        Args:
+            user_id: Filter to specific user (UUID format with dashes)
+            limit: Maximum number of layers to return
+            order_by_size: If True, order by size ascending (smallest first)
+
+        Returns:
+            List of LayerInfo for each geometry layer
+        """
+        user_filter = ""
+        if user_id:
+            user_schema = f"user_{user_id.replace('-', '')}"
+            user_filter = f"AND s.schema_name = '{user_schema}'"
+
+        limit_clause = f"LIMIT {limit}" if limit else ""
+        order_clause = (
+            "ORDER BY COALESCE(sizes.total_size, 0) ASC"
+            if order_by_size
+            else "ORDER BY t.begin_snapshot DESC"
+        )
+
+        if not self.settings:
+            raise RuntimeError("Call init_from_env() before running task")
+
+        catalog = self.settings.ducklake_catalog_schema
+
+        # Query PostgreSQL catalog tables via DuckDB's postgres_query()
+        # These are DuckLake metadata tables stored in PostgreSQL
+        query = f"""
+            WITH current_snapshot AS (
+                SELECT MAX(snapshot_id) as snapshot_id
+                FROM postgres_query('pg', 'SELECT snapshot_id FROM {catalog}.ducklake_snapshot')
+            ),
+            ducklake_table AS (
+                SELECT * FROM postgres_query('pg',
+                    'SELECT table_id, schema_id, table_name, begin_snapshot, end_snapshot
+                     FROM {catalog}.ducklake_table')
+            ),
+            ducklake_schema AS (
+                SELECT * FROM postgres_query('pg',
+                    'SELECT schema_id, schema_name FROM {catalog}.ducklake_schema')
+            ),
+            ducklake_column AS (
+                SELECT * FROM postgres_query('pg',
+                    'SELECT table_id, column_name, column_type, begin_snapshot, end_snapshot
+                     FROM {catalog}.ducklake_column')
+            ),
+            ducklake_data_file AS (
+                SELECT * FROM postgres_query('pg',
+                    'SELECT table_id, file_size_bytes, begin_snapshot, end_snapshot
+                     FROM {catalog}.ducklake_data_file')
+            ),
+            table_sizes AS (
+                SELECT df.table_id, SUM(df.file_size_bytes) as total_size
+                FROM ducklake_data_file df, current_snapshot cs
+                WHERE df.end_snapshot IS NULL
+                AND cs.snapshot_id >= df.begin_snapshot
+                GROUP BY df.table_id
+            )
+            SELECT
+                s.schema_name,
+                t.table_name,
+                c.column_name AS geometry_column,
+                t.begin_snapshot,
+                COALESCE(sizes.total_size, 0) as total_size,
+                cs.snapshot_id as current_snapshot
+            FROM ducklake_table t
+            JOIN ducklake_schema s ON t.schema_id = s.schema_id
+            JOIN ducklake_column c ON t.table_id = c.table_id
+            LEFT JOIN table_sizes sizes ON t.table_id = sizes.table_id
+            CROSS JOIN current_snapshot cs
+            WHERE c.column_type ILIKE 'geometry'
+            AND t.end_snapshot IS NULL
+            AND c.end_snapshot IS NULL
+            AND s.schema_name LIKE 'user_%'
+            AND cs.snapshot_id >= t.begin_snapshot
+            AND cs.snapshot_id >= c.begin_snapshot
+            {user_filter}
+            {order_clause}
+            {limit_clause}
+        """
+
+        # Use DuckDB with postgres_query to query catalog tables
+        manager = self._get_manager()
+        with manager.connection() as con:
+            # Attach PostgreSQL for catalog queries
+            self._attach_postgres(con)
+            rows = con.execute(query).fetchall()
+
+        if not rows:
+            logger.info("No geometry layers found")
+            return []
+
+        current_snapshot = rows[0][5]  # Get from first row
+        logger.info(f"Current DuckLake snapshot: {current_snapshot}")
+
+        layers = []
+        for (
+            schema_name,
+            table_name,
+            geometry_column,
+            begin_snapshot,
+            total_size,
+            _snapshot,
+        ) in rows:
+            user_id_nodash = schema_name.replace("user_", "")
+            layer_id_nodash = table_name.replace("t_", "")
+
+            # Convert to UUID format (8-4-4-4-12)
+            user_id_uuid = (
+                f"{user_id_nodash[:8]}-{user_id_nodash[8:12]}-"
+                f"{user_id_nodash[12:16]}-{user_id_nodash[16:20]}-{user_id_nodash[20:]}"
+            )
+            layer_id_uuid = (
+                f"{layer_id_nodash[:8]}-{layer_id_nodash[8:12]}-"
+                f"{layer_id_nodash[12:16]}-{layer_id_nodash[16:20]}-{layer_id_nodash[20:]}"
+            )
+
+            layers.append(
+                LayerInfo(
+                    schema_name=schema_name,
+                    table_name=table_name,
+                    user_id=user_id_uuid,
+                    layer_id=layer_id_uuid,
+                    geometry_column=geometry_column,
+                    snapshot_id=current_snapshot,
+                    size_bytes=total_size,
+                )
+            )
+
+        return layers
+
+    def _process_layer(
+        self: Self,
+        layer: LayerInfo,
+        force: bool = False,
+        dry_run: bool = False,
+        show_progress: bool = True,
+    ) -> SyncResult:
+        """Process a single layer - generate PMTiles if needed."""
+        generator = self._get_generator()
+
+        try:
+            pmtiles_path = generator.get_pmtiles_path(layer.user_id, layer.layer_id)
+
+            # Check if regeneration is needed
+            if pmtiles_path.exists() and not force:
+                if generator.is_pmtiles_in_sync(pmtiles_path, layer.snapshot_id):
+                    return SyncResult(
+                        layer_id=layer.layer_id,
+                        status="in_sync",
+                        message=f"In sync (snapshot={layer.snapshot_id})",
+                    )
+                else:
+                    stored = generator.get_pmtiles_snapshot_id(pmtiles_path)
+                    stale_msg = f"Stale: stored={stored}, current={layer.snapshot_id}"
+            else:
+                stale_msg = ""
+
+            if dry_run:
+                status = "would_regenerate" if pmtiles_path.exists() else "would_create"
+                return SyncResult(
+                    layer_id=layer.layer_id,
+                    status=status,
+                    message=stale_msg or "Would create new PMTiles",
+                )
+
+            # Generate PMTiles from DuckLake table
+            manager = self._get_manager()
+            with manager.connection() as con:
+                output = generator.generate_from_table(
+                    duckdb_con=con,
+                    table_name=layer.full_table_name,
+                    user_id=layer.user_id,
+                    layer_id=layer.layer_id,
+                    geometry_column=layer.geometry_column,
+                    snapshot_id=layer.snapshot_id,
+                    show_progress=show_progress,
+                )
+
+            if output:
+                size_mb = output.stat().st_size / 1024 / 1024
+                return SyncResult(
+                    layer_id=layer.layer_id,
+                    status="generated",
+                    message=f"Generated {size_mb:.1f} MB",
+                )
+            else:
+                return SyncResult(
+                    layer_id=layer.layer_id,
+                    status="failed",
+                    message="Generation returned None",
+                )
+
+        except Exception as e:
+            return SyncResult(
+                layer_id=layer.layer_id,
+                status="error",
+                message=str(e),
+            )
+
+    def run(
+        self: Self,
+        params: PMTilesSyncParams,
+    ) -> dict:
+        """Run the PMTiles synchronization task.
+
+        Args:
+            params: Task parameters
+
+        Returns:
+            Dict with sync statistics for Windmill output
+        """
+        stats = SyncStats()
+
+        try:
+            # Query metadata from PostgreSQL
+            logger.info("Querying geometry layers from PostgreSQL...")
+            layers = self.get_geometry_layers(
+                user_id=params.user_id,
+                limit=params.limit,
+                order_by_size=params.small_first,
+            )
+
+            stats.total_layers = len(layers)
+            logger.info(f"Found {len(layers)} geometry layers")
+
+            if not layers:
+                logger.info("No layers to process")
+                return stats.to_dict()
+
+            # Categorize layers
+            generator = self._get_generator()
+            missing = []
+            stale = []
+            in_sync = []
+
+            for layer in layers:
+                pmtiles_path = generator.get_pmtiles_path(layer.user_id, layer.layer_id)
+                if not pmtiles_path.exists():
+                    missing.append(layer)
+                elif not generator.is_pmtiles_in_sync(pmtiles_path, layer.snapshot_id):
+                    stale.append(layer)
+                else:
+                    in_sync.append(layer)
+
+            stats.in_sync = len(in_sync)
+            stats.missing = len(missing)
+            stats.stale = len(stale)
+
+            logger.info(
+                f"Status: {stats.in_sync} in sync, {stats.missing} missing, "
+                f"{stats.stale} stale"
+            )
+
+            # Determine what to process
+            to_process = missing + stale if not params.force else layers
+
+            if not to_process:
+                logger.info("All PMTiles are up to date!")
+                return stats.to_dict()
+
+            logger.info(f"Processing {len(to_process)} layers...")
+
+            # Process layers
+            for i, layer in enumerate(to_process, 1):
+                size_str = (
+                    f"{layer.size_bytes / 1024 / 1024:.1f}MB"
+                    if layer.size_bytes >= 1024 * 1024
+                    else f"{layer.size_bytes / 1024:.1f}KB"
+                    if layer.size_bytes > 0
+                    else "?"
+                )
+                logger.info(
+                    f"Processing {i}/{len(to_process)}: {layer.layer_id} ({size_str})"
+                )
+
+                result = self._process_layer(
+                    layer,
+                    force=params.force,
+                    dry_run=params.dry_run,
+                    show_progress=params.show_progress,
+                )
+
+                if result.status == "generated":
+                    stats.generated += 1
+                elif result.status == "error":
+                    stats.errors += 1
+                elif result.status == "failed":
+                    stats.failed += 1
+                elif result.status in ("skipped", "would_create", "would_regenerate"):
+                    stats.skipped += 1
+
+                logger.info(f"  [{result.status}] {result.message}")
+
+            # Summary
+            logger.info("\n--- Summary ---")
+            logger.info(f"  Total layers: {stats.total_layers}")
+            logger.info(f"  In sync: {stats.in_sync}")
+            if stats.generated > 0:
+                logger.info(f"  Generated: {stats.generated}")
+            if stats.errors > 0:
+                logger.info(f"  Errors: {stats.errors}")
+            if stats.failed > 0:
+                logger.info(f"  Failed: {stats.failed}")
+            if stats.skipped > 0:
+                logger.info(f"  Skipped: {stats.skipped}")
+
+            return stats.to_dict()
+
+        finally:
+            self.close()
+
+
+def main(params: PMTilesSyncParams) -> dict:
+    """Windmill entry point for PMTiles sync task.
+
+    This function is called by Windmill with parameters from the job.
+    Environment variables and Windmill secrets provide connection settings.
+
+    Args:
+        params: Parameters matching PMTilesSyncParams schema
+
+    Returns:
+        Dict with sync statistics
+    """
+    task = PMTilesSyncTask()
+    task.init_from_env()
+
+    try:
+        return task.run(params)
+    finally:
+        task.close()
+
+
+# CLI entry point for local testing
+if __name__ == "__main__":
+    import argparse
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s",
+    )
+
+    parser = argparse.ArgumentParser(
+        description="Sync PMTiles for DuckLake geometry layers"
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show what would be done"
+    )
+    parser.add_argument("--limit", type=int, help="Process at most N tables")
+    parser.add_argument(
+        "--user-id", type=str, help="Process only tables for a specific user"
+    )
+    parser.add_argument(
+        "--force", action="store_true", help="Regenerate even if in sync"
+    )
+    parser.add_argument(
+        "--small-first", action="store_true", help="Process smaller layers first"
+    )
+
+    args = parser.parse_args()
+
+    params = PMTilesSyncParams(
+        user_id=args.user_id,
+        limit=args.limit,
+        force=args.force,
+        dry_run=args.dry_run,
+        small_first=args.small_first,
+    )
+
+    result = main(params)
+    print(f"\nResult: {result}")

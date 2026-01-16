@@ -1,13 +1,14 @@
-"""PMTiles generation from GeoParquet/DuckLake tables.
+"""PMTiles generation from DuckLake tables.
 
 This module provides utilities for generating PMTiles (static vector tiles)
-from GeoParquet files or DuckLake tables. PMTiles enable fast tile serving
-without dynamic generation overhead.
+from DuckLake tables. PMTiles enable fast tile serving without dynamic
+generation overhead.
 
 The generation pipeline:
-    1. Export geometry data to FlatGeobuf (intermediate format)
+    1. Export geometry data to GeoJSON (intermediate format)
     2. Use tippecanoe to generate PMTiles with optimal settings
     3. Store PMTiles in a separate tiles directory (cache/derived data)
+    4. Embed DuckLake snapshot_id in PMTiles metadata for sync tracking
 
 Usage:
     from goatlib.io.pmtiles import PMTilesGenerator
@@ -18,16 +19,19 @@ Usage:
         table_name="lake.user_xxx.t_yyy",
         user_id="xxx",
         layer_id="yyy",
+        snapshot_id=1234,  # DuckLake snapshot for sync tracking
     )
 """
 
+import json
 import logging
 import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 import duckdb
 
@@ -52,7 +56,7 @@ class PMTilesConfig:
 
 
 class PMTilesGenerator:
-    """Generate PMTiles from GeoParquet/DuckLake tables.
+    """Generate PMTiles from DuckLake tables.
 
     PMTiles are stored separately from source data (cache/derived data):
         /app/data/tiles/
@@ -79,6 +83,17 @@ class PMTilesGenerator:
         """
         self.tiles_data_dir = Path(tiles_data_dir)
         self.config = config or PMTilesConfig()
+
+        # Ensure base tiles directory exists
+        try:
+            self.tiles_data_dir.mkdir(parents=True, exist_ok=True)
+        except FileExistsError:
+            # Path exists but may be a symlink to a directory - that's OK
+            if not self.tiles_data_dir.is_dir():
+                raise RuntimeError(
+                    f"tiles_data_dir exists but is not a directory: {self.tiles_data_dir}"
+                )
+
         self._check_dependencies()
 
     def _check_dependencies(self: Self) -> bool:
@@ -125,6 +140,72 @@ class PMTilesGenerator:
         """
         return self.get_pmtiles_path(user_id, layer_id).exists()
 
+    def get_pmtiles_snapshot_id(self: Self, pmtiles_path: Path | str) -> int | None:
+        """Read the DuckLake snapshot_id from PMTiles metadata.
+
+        The snapshot_id is stored in the 'description' field of PMTiles metadata
+        as a JSON object: {"snapshot_id": 1234, "generated_at": "..."}
+
+        Args:
+            pmtiles_path: Path to PMTiles file
+
+        Returns:
+            Snapshot ID if found, None otherwise
+        """
+        try:
+            from pmtiles.reader import MmapSource, Reader
+
+            with open(pmtiles_path, "rb") as f:
+                reader = Reader(MmapSource(f))
+                metadata = reader.metadata()
+                description = metadata.get("description", "")
+
+                # Try to parse description as JSON (our format)
+                if description.startswith("{"):
+                    try:
+                        desc_data = json.loads(description)
+                        return desc_data.get("snapshot_id")
+                    except json.JSONDecodeError:
+                        pass
+            return None
+        except Exception as e:
+            logger.debug(f"Could not read snapshot_id from {pmtiles_path}: {e}")
+            return None
+
+    def is_pmtiles_in_sync(
+        self: Self, pmtiles_path: Path | str, current_snapshot_id: int
+    ) -> bool:
+        """Check if PMTiles is in sync with the DuckLake table.
+
+        Checks both embedded PMTiles metadata and sidecar files for
+        backwards compatibility.
+
+        Args:
+            pmtiles_path: Path to PMTiles file
+            current_snapshot_id: Current DuckLake snapshot ID for the table
+
+        Returns:
+            True if PMTiles was generated from the current snapshot
+        """
+        # First check embedded metadata
+        stored_snapshot = self.get_pmtiles_snapshot_id(pmtiles_path)
+        if stored_snapshot is not None:
+            return stored_snapshot == current_snapshot_id
+
+        # Fall back to sidecar file for backwards compatibility
+        try:
+            meta_path = Path(pmtiles_path).with_suffix(".pmtiles.meta.json")
+            if meta_path.exists():
+                with open(meta_path) as f:
+                    meta = json.load(f)
+                    stored_snapshot = meta.get("snapshot_id")
+                    return stored_snapshot == current_snapshot_id
+        except Exception:
+            pass
+
+        # No snapshot info found - not in sync
+        return False
+
     def generate_from_table(
         self: Self,
         duckdb_con: duckdb.DuckDBPyConnection,
@@ -133,10 +214,12 @@ class PMTilesGenerator:
         layer_id: str,
         geometry_column: str = "geometry",
         exclude_columns: list[str] | None = None,
+        snapshot_id: int | None = None,
+        show_progress: bool = True,
     ) -> Path | None:
         """Generate PMTiles from a DuckLake table.
 
-        Exports the table to FlatGeobuf (intermediate), then uses tippecanoe
+        Exports the table to GeoJSON (intermediate), then uses tippecanoe
         to generate PMTiles with optimal settings.
 
         Args:
@@ -146,6 +229,9 @@ class PMTilesGenerator:
             layer_id: Layer UUID
             geometry_column: Name of the geometry column
             exclude_columns: Columns to exclude from tiles (e.g., ["bbox"])
+            snapshot_id: DuckLake snapshot ID for sync tracking. If provided,
+                will be embedded in PMTiles metadata.
+            show_progress: If True, stream tippecanoe progress to stdout
 
         Returns:
             Path to generated PMTiles file, or None if generation failed
@@ -182,10 +268,13 @@ class PMTilesGenerator:
                 )
 
                 # Step 2: Generate PMTiles with tippecanoe
+                # snapshot_id is embedded in PMTiles metadata via --description flag
                 self._run_tippecanoe(
                     input_path=tmp_geojson.name,
                     output_path=str(pmtiles_path),
                     geometry_type=geometry_type,
+                    snapshot_id=snapshot_id,
+                    show_progress=show_progress,
                 )
 
             logger.info(
@@ -218,217 +307,23 @@ class PMTilesGenerator:
             Geometry type string (e.g., "POINT", "POLYGON") or None
         """
         try:
-            # First, find the actual geometry column name
-            cols = duckdb_con.execute(f"DESCRIBE {table_name}").fetchall()
-            actual_geom_col = None
-            for col_name, col_type, *_ in cols:
-                if "GEOMETRY" in col_type.upper():
-                    actual_geom_col = col_name
-                    break
-
-            if not actual_geom_col:
-                logger.warning(f"No geometry column found in {table_name}")
-                return None
-
+            # Query the geometry type directly from data
+            # (avoids DESCRIBE which can fail with some DuckLake configurations)
             result = duckdb_con.execute(f"""
-                SELECT DISTINCT ST_GeometryType("{actual_geom_col}")
+                SELECT DISTINCT ST_GeometryType("{geometry_column}")
                 FROM {table_name}
-                WHERE "{actual_geom_col}" IS NOT NULL
+                WHERE "{geometry_column}" IS NOT NULL
                 LIMIT 1
             """).fetchone()
             if result:
                 geom_type = result[0]
                 logger.info(
-                    f"Detected geometry type: {geom_type} (column: {actual_geom_col})"
+                    f"Detected geometry type: {geom_type} (column: {geometry_column})"
                 )
                 return geom_type
         except Exception as e:
             logger.warning(f"Could not detect geometry type: {e}")
-            logger.warning(f"Could not detect geometry type: {e}")
         return None
-
-    def generate_from_parquet(
-        self: Self,
-        duckdb_con: duckdb.DuckDBPyConnection,
-        parquet_path: str | Path,
-        user_id: str,
-        layer_id: str,
-        geometry_column: str = "geometry",
-        exclude_columns: list[str] | None = None,
-    ) -> Path | None:
-        """Generate PMTiles from a GeoParquet file.
-
-        Args:
-            duckdb_con: DuckDB connection (for reading parquet)
-            parquet_path: Path to the GeoParquet file
-            user_id: User UUID
-            layer_id: Layer UUID
-            geometry_column: Name of the geometry column
-            exclude_columns: Columns to exclude from tiles
-
-        Returns:
-            Path to generated PMTiles file, or None if generation failed
-        """
-        if not self.config.enabled:
-            logger.debug("PMTiles generation is disabled")
-            return None
-
-        exclude_columns = exclude_columns or ["bbox"]
-        pmtiles_path = self.get_pmtiles_path(user_id, layer_id)
-
-        # Ensure tiles directory exists
-        pmtiles_path.parent.mkdir(parents=True, exist_ok=True)
-
-        logger.info(f"Generating PMTiles from {parquet_path} -> {pmtiles_path}")
-
-        # Detect geometry type for optimized tippecanoe settings
-        geometry_type = None
-        try:
-            result = duckdb_con.execute(f"""
-                SELECT DISTINCT ST_GeometryType("{geometry_column}")
-                FROM read_parquet('{parquet_path}')
-                WHERE "{geometry_column}" IS NOT NULL
-                LIMIT 1
-            """).fetchone()
-            if result:
-                geometry_type = result[0]
-                logger.debug(f"Detected geometry type from parquet: {geometry_type}")
-        except Exception as e:
-            logger.warning(f"Could not detect geometry type from parquet: {e}")
-
-        try:
-            with tempfile.NamedTemporaryFile(
-                suffix=".geojson", delete=True, prefix="pmtiles_"
-            ) as tmp_geojson:
-                # Build exclusion clause
-                exclude_clause = ""
-                if exclude_columns:
-                    exclude_clause = f"EXCLUDE({', '.join(exclude_columns)})"
-
-                # Check if parquet has an 'id' column
-                has_id_column = False
-                try:
-                    cols = duckdb_con.execute(f"""
-                        SELECT column_name FROM (DESCRIBE SELECT * FROM read_parquet('{parquet_path}'))
-                    """).fetchall()
-                    has_id_column = any(col[0].lower() == "id" for col in cols)
-                except Exception as e:
-                    logger.warning(f"Could not check columns in parquet: {e}")
-
-                # If no 'id' column, generate one using row_number for highlighting
-                id_select = ""
-                if not has_id_column:
-                    id_select = "row_number() OVER () AS id, "
-                    logger.debug("Adding synthetic 'id' column for highlighting")
-
-                # Export to GeoJSON via DuckDB (preserves attribute types)
-                duckdb_con.execute(f"""
-                    COPY (
-                        SELECT {id_select}* {exclude_clause}
-                        FROM read_parquet('{parquet_path}')
-                    ) TO '{tmp_geojson.name}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')
-                """)
-
-                # Generate PMTiles
-                self._run_tippecanoe(
-                    input_path=tmp_geojson.name,
-                    output_path=str(pmtiles_path),
-                    geometry_type=geometry_type,
-                )
-
-            logger.info(
-                f"PMTiles generated successfully: {pmtiles_path} "
-                f"({pmtiles_path.stat().st_size / 1024 / 1024:.1f} MB)"
-            )
-            return pmtiles_path
-
-        except Exception as e:
-            logger.error(f"PMTiles generation failed: {e}")
-            if pmtiles_path.exists():
-                pmtiles_path.unlink()
-            return None
-
-    def _export_to_flatgeobuf(
-        self: Self,
-        duckdb_con: duckdb.DuckDBPyConnection,
-        table_name: str,
-        output_path: str,
-        geometry_column: str = "geometry",
-        exclude_columns: list[str] | None = None,
-    ) -> None:
-        """Export a DuckLake table to FlatGeobuf format.
-
-        FlatGeobuf is faster to write and read than GeoJSON.
-        Note: tippecanoe may convert integer attributes to strings with FGB.
-
-        Args:
-            duckdb_con: DuckDB connection
-            table_name: Full table path
-            output_path: Output FlatGeobuf file path
-            geometry_column: Name of geometry column
-            exclude_columns: Columns to exclude (e.g., bbox struct)
-        """
-        exclude_columns = exclude_columns or []
-
-        # Types that are not supported by FlatGeobuf/tippecanoe
-        unsupported_type_prefixes = ("struct", "map", "list", "union")
-
-        # Get actual columns and their types from the table
-        columns_to_exclude: set[str] = set(exclude_columns)
-        has_id_column = False
-        try:
-            result = duckdb_con.execute(
-                f"SELECT column_name, column_type FROM (DESCRIBE {table_name})"
-            ).fetchall()
-
-            for col_name, col_type in result:
-                # Check if table has an 'id' column
-                if col_name.lower() == "id":
-                    has_id_column = True
-
-                col_type_lower = col_type.lower()
-                # Exclude complex types that FlatGeobuf/tippecanoe can't handle
-                if col_type_lower.startswith(unsupported_type_prefixes):
-                    columns_to_exclude.add(col_name)
-                    logger.debug(
-                        f"Excluding column '{col_name}' with unsupported type: {col_type}"
-                    )
-                # Also exclude array types (e.g., VARCHAR[], INTEGER[])
-                elif col_type_lower.endswith("[]"):
-                    columns_to_exclude.add(col_name)
-                    logger.debug(f"Excluding array column '{col_name}': {col_type}")
-
-            actual_columns = {row[0] for row in result}
-            # Only keep exclusions for columns that actually exist
-            columns_to_exclude = columns_to_exclude & actual_columns
-
-        except Exception as e:
-            logger.warning(f"Could not get column list for {table_name}: {e}")
-            columns_to_exclude = set()
-
-        # Build exclusion clause for columns that exist
-        exclude_clause = ""
-        if columns_to_exclude:
-            exclude_clause = f"EXCLUDE({', '.join(sorted(columns_to_exclude))})"
-            logger.debug(
-                f"Excluding columns from FlatGeobuf export: {columns_to_exclude}"
-            )
-
-        # If no 'id' column exists, generate one from rowid for feature highlighting
-        id_select = ""
-        if not has_id_column:
-            id_select = "rowid AS id, "
-            logger.debug("Adding synthetic 'id' column from rowid for highlighting")
-
-        sql = f"""
-            COPY (
-                SELECT {id_select}* {exclude_clause}
-                FROM {table_name}
-            ) TO '{output_path}' WITH (FORMAT GDAL, DRIVER 'FlatGeobuf')
-        """
-
-        logger.debug(f"Exporting to FlatGeobuf: {sql}")
-        duckdb_con.execute(sql)
 
     def _export_to_geojson(
         self: Self,
@@ -464,16 +359,21 @@ class PMTilesGenerator:
         columns_to_exclude: set[str] = set(exclude_columns)
         has_id_column = False
         try:
+            # Use SELECT LIMIT 0 to get column info without fetching data
+            # This works better with DuckLake than DESCRIBE
             result = duckdb_con.execute(
-                f"SELECT column_name, column_type FROM (DESCRIBE {table_name})"
-            ).fetchall()
+                f"SELECT * FROM {table_name} LIMIT 0"
+            ).description
 
-            for col_name, col_type in result:
+            for col_info in result:
+                col_name = col_info[0]
+                col_type = col_info[1] if len(col_info) > 1 else ""
+
                 # Check if table has an 'id' column
                 if col_name.lower() == "id":
                     has_id_column = True
 
-                col_type_lower = col_type.lower()
+                col_type_lower = str(col_type).lower()
                 # Exclude complex types that GeoJSON/tippecanoe can't handle
                 if col_type_lower.startswith(unsupported_type_prefixes):
                     columns_to_exclude.add(col_name)
@@ -485,7 +385,7 @@ class PMTilesGenerator:
                     columns_to_exclude.add(col_name)
                     logger.debug(f"Excluding array column '{col_name}': {col_type}")
 
-            actual_columns = {row[0] for row in result}
+            actual_columns = {col_info[0] for col_info in result}
             # Only keep exclusions for columns that actually exist
             columns_to_exclude = columns_to_exclude & actual_columns
 
@@ -520,6 +420,8 @@ class PMTilesGenerator:
         input_path: str,
         output_path: str,
         geometry_type: str | None = None,
+        snapshot_id: int | None = None,
+        show_progress: bool = True,
     ) -> None:
         """Run tippecanoe to generate PMTiles.
 
@@ -531,6 +433,8 @@ class PMTilesGenerator:
             input_path: Input FlatGeobuf file path
             output_path: Output PMTiles file path
             geometry_type: Geometry type (e.g., "POINT", "POLYGON")
+            snapshot_id: DuckLake snapshot ID to embed in PMTiles metadata
+            show_progress: If True, stream tippecanoe progress to stdout
 
         Raises:
             subprocess.CalledProcessError: If tippecanoe fails
@@ -558,6 +462,14 @@ class PMTilesGenerator:
             # Note: Don't use --use-attribute-for-id as it removes id from properties
             # The frontend filter uses ["in", "id", ...] which needs properties.id
         ]
+
+        # Embed snapshot_id in PMTiles metadata via description field
+        if snapshot_id is not None:
+            description_data = {
+                "snapshot_id": snapshot_id,
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+            }
+            cmd.extend(["--description", json.dumps(description_data)])
 
         if is_point_layer:
             # Point-specific settings:
@@ -612,30 +524,32 @@ class PMTilesGenerator:
 
         logger.debug(f"Running tippecanoe: {' '.join(cmd)}")
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-        )
-
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() if result.stderr else "No error message"
-            logger.error(
-                f"tippecanoe failed (exit {result.returncode}): {error_msg}\n"
-                f"Command: {' '.join(cmd)}"
-            )
-            raise subprocess.CalledProcessError(
-                result.returncode, cmd, result.stdout, result.stderr
-            )
-
-        if result.stderr:
-            # tippecanoe outputs progress to stderr, log it as debug
-            for line in result.stderr.strip().split("\n"):
-                if line.strip():
-                    logger.debug(f"tippecanoe: {line}")
+        if show_progress:
+            # Let tippecanoe write progress directly to terminal
+            result = subprocess.run(cmd, capture_output=False)
+            if result.returncode != 0:
+                raise subprocess.CalledProcessError(result.returncode, cmd)
+        else:
+            # Capture output silently
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                error_msg = (
+                    result.stderr.strip() if result.stderr else "No error message"
+                )
+                logger.error(
+                    f"tippecanoe failed (exit {result.returncode}): {error_msg}\n"
+                    f"Command: {' '.join(cmd)}"
+                )
+                raise subprocess.CalledProcessError(
+                    result.returncode, cmd, result.stdout, result.stderr
+                )
+            if result.stderr:
+                for line in result.stderr.strip().split("\n"):
+                    if line.strip():
+                        logger.debug(f"tippecanoe: {line}")
 
     def delete_pmtiles(self: Self, user_id: str, layer_id: str) -> bool:
-        """Delete PMTiles file for a layer.
+        """Delete PMTiles file and its metadata for a layer.
 
         Args:
             user_id: User UUID
@@ -645,40 +559,17 @@ class PMTilesGenerator:
             True if file was deleted, False if it didn't exist
         """
         pmtiles_path = self.get_pmtiles_path(user_id, layer_id)
+        deleted = False
+
         if pmtiles_path.exists():
             pmtiles_path.unlink()
             logger.info(f"Deleted PMTiles: {pmtiles_path}")
-            return True
-        return False
+            deleted = True
 
+        # Also delete metadata sidecar file
+        meta_path = pmtiles_path.with_suffix(".pmtiles.meta.json")
+        if meta_path.exists():
+            meta_path.unlink()
+            logger.debug(f"Deleted PMTiles metadata: {meta_path}")
 
-def get_table_geometry_info(
-    duckdb_con: duckdb.DuckDBPyConnection, table_name: str
-) -> dict[str, Any] | None:
-    """Get geometry column info from a DuckLake table.
-
-    Args:
-        duckdb_con: DuckDB connection
-        table_name: Full table path
-
-    Returns:
-        Dict with geometry_column and geometry_type, or None if no geometry
-    """
-    cols = duckdb_con.execute(f"DESCRIBE {table_name}").fetchall()
-
-    for col_name, col_type, *_ in cols:
-        if "GEOMETRY" in col_type.upper():
-            # Get geometry type
-            type_result = duckdb_con.execute(f"""
-                SELECT DISTINCT ST_GeometryType({col_name})
-                FROM {table_name}
-                WHERE {col_name} IS NOT NULL
-                LIMIT 1
-            """).fetchone()
-
-            return {
-                "geometry_column": col_name,
-                "geometry_type": type_result[0] if type_result else None,
-            }
-
-    return None
+        return deleted
