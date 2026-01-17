@@ -1096,6 +1096,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                     user_id=params.user_id,
                     layer_id=output_layer_id,
                     table_name=table_info["table_name"],
+                    geometry_column=table_info.get("geometry_column", "geometry"),
                 )
                 if pmtiles_path:
                     table_info["pmtiles_path"] = str(pmtiles_path)
@@ -1311,6 +1312,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             "columns": columns,
             "feature_count": feature_count,
             "geometry_type": geometry_type,
+            "geometry_column": geom_col,
             "extent": extent,
             "extent_wkt": extent_wkt,
         }
@@ -1363,6 +1365,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         user_id: str,
         layer_id: str,
         table_name: str,
+        geometry_column: str = "geometry",
     ) -> Path | None:
         """Generate PMTiles for a layer after DuckLake ingestion.
 
@@ -1377,6 +1380,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             user_id: User UUID string
             layer_id: Layer UUID string
             table_name: Full DuckLake table path (e.g., "lake.user_xxx.t_yyy")
+            geometry_column: Name of the geometry column (default: "geometry")
 
         Returns:
             Path to generated PMTiles file, or None if generation was skipped/failed
@@ -1417,6 +1421,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                 table_name=table_name,
                 user_id=user_id,
                 layer_id=layer_id,
+                geometry_column=geometry_column,
                 snapshot_id=snapshot_id,
             )
 
