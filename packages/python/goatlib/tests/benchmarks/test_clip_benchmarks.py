@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 from typing import Tuple
 
-from goatlib.analysis.schemas.vector import ClipParams
+from goatlib.analysis.schemas.geoprocessing import ClipParams
 from goatlib.analysis.geoprocessing.clip import ClipTool
 
 

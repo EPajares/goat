@@ -4,7 +4,7 @@ from pathlib import Path
 
 import duckdb
 
-from goatlib.analysis.schemas.vector import ClipParams
+from goatlib.analysis.schemas.geoprocessing import ClipParams
 from goatlib.analysis.geoprocessing.clip import ClipTool
 
 
@@ -115,7 +115,7 @@ def test_clip_points() -> None:
     row_count = con.execute(
         f"SELECT COUNT(*) FROM read_parquet('{result_path}')"
     ).fetchone()[0]
-    
+
     # Check that we have fewer or equal points (only those within boundary)
     original_count = con.execute(
         f"SELECT COUNT(*) FROM read_parquet('{points}')"
@@ -123,7 +123,9 @@ def test_clip_points() -> None:
     assert row_count <= original_count, "Result should have equal or fewer points"
     assert row_count > 0, "Result should have at least one point"
 
-    print(f"✓ ClipTool point test passed. Result has {row_count} features (from {original_count} original).")
+    print(
+        f"✓ ClipTool point test passed. Result has {row_count} features (from {original_count} original)."
+    )
     print(f"✓ Output saved to: {output_path}")
 
 

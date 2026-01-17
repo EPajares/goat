@@ -4,7 +4,7 @@ from pathlib import Path
 
 import duckdb
 
-from goatlib.analysis.schemas.vector import CentroidParams
+from goatlib.analysis.schemas.geoprocessing import CentroidParams
 from goatlib.analysis.geoprocessing.centroid import CentroidTool
 
 
@@ -56,9 +56,9 @@ def test_centroid_polygons() -> None:
         LIMIT 1
     """).fetchone()[0]
 
-    assert "POINT" in geom_type.upper(), (
-        f"Geometry type should be POINT, got {geom_type}"
-    )
+    assert (
+        "POINT" in geom_type.upper()
+    ), f"Geometry type should be POINT, got {geom_type}"
 
     print(f"✓ CentroidTool polygon test passed. Result has {row_count} features.")
     print(f"✓ Output saved to: {output_path}")
@@ -112,9 +112,9 @@ def test_centroid_multipoints() -> None:
         LIMIT 1
     """).fetchone()[0]
 
-    assert "POINT" in geom_type.upper(), (
-        f"Geometry type should be POINT, got {geom_type}"
-    )
+    assert (
+        "POINT" in geom_type.upper()
+    ), f"Geometry type should be POINT, got {geom_type}"
 
     # Verify centroid coordinates for the first feature (0 0, 10 10) -> (5 5)
     coords1 = con.execute(f"""

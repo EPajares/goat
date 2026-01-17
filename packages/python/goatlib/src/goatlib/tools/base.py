@@ -61,6 +61,24 @@ logger = logging.getLogger(__name__)
 TParams = TypeVar("TParams", bound=ToolInputBase)
 
 
+def _get_or_create_event_loop() -> asyncio.AbstractEventLoop:
+    """Get the current event loop or create a new one if none exists.
+
+    This is needed when running tools in thread pools or other contexts
+    where there may not be a running event loop.
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_closed():
+            raise RuntimeError("Event loop is closed")
+        return loop
+    except RuntimeError:
+        # No event loop in current thread, create a new one
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop
+
+
 @dataclass
 class ToolSettings:
     """Settings for tool execution, loaded from environment."""
@@ -501,7 +519,7 @@ class SimpleToolRunner:
             Owner's user_id as string, or None if not found
         """
         try:
-            return asyncio.get_event_loop().run_until_complete(
+            return _get_or_create_event_loop().run_until_complete(
                 self.get_layer_owner_id(layer_id)
             )
         except Exception as e:
@@ -764,7 +782,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         # If scenario_id is provided, merge scenario features
         if scenario_id and project_id and self.db_service:
             # Get attribute mapping for this layer
-            layer_info = asyncio.get_event_loop().run_until_complete(
+            layer_info = _get_or_create_event_loop().run_until_complete(
                 self.db_service.get_layer_info(layer_id)
             )
             attribute_mapping = (
@@ -772,7 +790,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             )
 
             # Get scenario features from PostgreSQL
-            scenario_features = asyncio.get_event_loop().run_until_complete(
+            scenario_features = _get_or_create_event_loop().run_until_complete(
                 self.db_service.get_scenario_features(
                     scenario_id=scenario_id,
                     layer_id=layer_id,
@@ -982,7 +1000,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                 # Fetch layer name if item has 'name' field and it's not set
                 item_dict = item.model_dump()
                 if "name" in item_dict and not item_dict.get("name"):
-                    layer_info = asyncio.get_event_loop().run_until_complete(
+                    layer_info = _get_or_create_event_loop().run_until_complete(
                         self.db_service.get_layer_info(input_value)
                     )
                     if layer_info and layer_info.get("name"):
@@ -1025,8 +1043,12 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             f"triggered_by={getattr(params, 'triggered_by_email', 'N/A')})"
         )
 
+        # Create a single event loop for all async operations in this run
+        # This ensures consistent event loop context for asyncpg connections
+        loop = _get_or_create_event_loop()
+
         # Initialize db_service early so it's available in process() for resolve_layer_paths
-        asyncio.get_event_loop().run_until_complete(self._init_db_service())
+        loop.run_until_complete(self._init_db_service())
 
         with tempfile.TemporaryDirectory(
             prefix=f"{self.__class__.__name__.lower()}_"
@@ -1059,10 +1081,10 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                     table_info["pmtiles_path"] = str(pmtiles_path)
 
             # Refresh database pool - connections may have gone stale during long analysis
-            asyncio.get_event_loop().run_until_complete(self._close_db_service())
+            loop.run_until_complete(self._close_db_service())
 
             # Step 3 & 4: Create layer + optional project link
-            result_info = asyncio.get_event_loop().run_until_complete(
+            result_info = loop.run_until_complete(
                 self._create_db_records(
                     output_layer_id=output_layer_id,
                     params=params,
@@ -1073,7 +1095,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             )
 
         # Close the database pool
-        asyncio.get_event_loop().run_until_complete(self._close_db_service())
+        loop.run_until_complete(self._close_db_service())
 
         # Step 5: Build and return output
         # Note: folder_id is resolved inside _create_db_records if not provided

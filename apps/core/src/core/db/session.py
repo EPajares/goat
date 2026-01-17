@@ -1,6 +1,7 @@
 import contextlib
 from typing import AsyncIterator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -78,6 +79,8 @@ class DatabaseSessionManager:
         await connection.run_sync(SQLModel.metadata.create_all)
 
     async def drop_all(self, connection: AsyncConnection) -> None:
+        # Use CASCADE to drop types and other dependent objects
+        await connection.execute(text("DROP TYPE IF EXISTS assettype CASCADE"))
         await connection.run_sync(SQLModel.metadata.drop_all)
 
 

@@ -61,6 +61,18 @@ class DifferenceToolParams(
     overlay_path: str | None = None  # type: ignore[assignment]
     output_path: str | None = None
 
+    # Override overlay_layer_id to restrict to polygon geometry types only
+    overlay_layer_id: str = Field(
+        ...,
+        description="Overlay layer UUID (must be polygon geometry)",
+        json_schema_extra=ui_field(
+            section="overlay",
+            field_order=1,
+            widget="layer-selector",
+            widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
+        ),
+    )
+
     # Override result_layer_name with tool-specific defaults
     result_layer_name: str | None = Field(
         default=get_default_layer_name("difference", "en"),

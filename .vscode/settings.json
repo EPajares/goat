@@ -45,19 +45,18 @@
   "python.testing.unittestEnabled": false,
   "python.testing.pytestArgs": [
     "--import-mode=importlib",
-    "-p", "no:cacheprovider",
+    "-p",
+    "no:cacheprovider",
     "packages/python/goatlib/tests",
     "apps/geoapi/tests",
     "apps/processes/tests",
     "apps/core/tests",
   ],
   "python.testing.cwd": "${workspaceFolder}",
-  
   // Vitest testing for web app
   "vitest.enable": true,
   "vitest.commandLine": "pnpm --filter @p4b/web test",
   "testExplorer.useNativeTesting": true,
-  
   "mypy-type-checker.ignorePatterns": [
     ".direnv/*",
     "docs/*",
@@ -70,7 +69,6 @@
   "mypy-type-checker.reportingScope": "workspace",
   "mypy-type-checker.preferDaemon": false,
   "python-envs.pythonProjects": [],
-  
   // Disable automatic venv activation in terminals (breaks frontend dev server)
   "python.terminal.activateEnvironment": false
 }

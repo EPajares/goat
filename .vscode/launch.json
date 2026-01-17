@@ -169,6 +169,7 @@
       "justMyCode": true,
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "uv-sync",
+      "console": "integratedTerminal",
       "presentation": {
         "hidden": false,
         "group": "tools",
