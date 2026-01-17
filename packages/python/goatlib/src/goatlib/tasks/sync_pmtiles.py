@@ -58,8 +58,8 @@ class PMTilesSyncParams(BaseModel):
         description="Show what would be done without making changes",
     )
     small_first: bool = Field(
-        default=False,
-        description="Process smaller layers first",
+        default=True,
+        description="Process smaller layers first (default: True)",
     )
     show_progress: bool = Field(
         default=True,
@@ -291,8 +291,8 @@ class PMTilesSyncTask:
             ),
             table_stats AS (
                 -- Get both size and latest data modification snapshot per table
-                SELECT 
-                    df.table_id, 
+                SELECT
+                    df.table_id,
                     SUM(df.file_size_bytes) as total_size,
                     MAX(df.begin_snapshot) as last_data_snapshot
                 FROM ducklake_data_file df, current_snapshot cs
@@ -478,14 +478,16 @@ class PMTilesSyncTask:
                 pmtiles_path = generator.get_pmtiles_path(layer.user_id, layer.layer_id)
 
                 # Clean up any leftover temp files from interrupted generations
-                # Check both naming patterns:
-                # - New: .tmp_filename.pmtiles (prefix, preserves extension for tippecanoe)
-                # - Old: filename.pmtiles.tmp (suffix, legacy)
-                temp_paths = [
-                    pmtiles_path.parent / f".tmp_{pmtiles_path.name}",  # new pattern
-                    pmtiles_path.with_suffix(".pmtiles.tmp"),  # old pattern
+                # These patterns are from previous implementations:
+                # - .tmp_filename.pmtiles (old prefix pattern)
+                # - filename.pmtiles.tmp (old suffix pattern)
+                # - filename.pmtiles.tmp (tippecanoe's own temp file)
+                temp_patterns = [
+                    pmtiles_path.parent / f".tmp_{pmtiles_path.name}",
+                    pmtiles_path.with_suffix(".pmtiles.tmp"),
+                    pmtiles_path.parent / f"{pmtiles_path.name}.tmp",
                 ]
-                for temp_path in temp_paths:
+                for temp_path in temp_patterns:
                     if temp_path.exists():
                         logger.debug(f"Cleaning up interrupted generation: {temp_path}")
                         try:

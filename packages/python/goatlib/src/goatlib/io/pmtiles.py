@@ -47,13 +47,13 @@ class PMTilesConfig:
     Attributes:
         enabled: Whether PMTiles generation is enabled
         min_zoom: Minimum zoom level (default: 0)
-        max_zoom: Maximum zoom level (default: 14)
+        max_zoom: Maximum zoom level (default: 13)
         layer_name: Name for the MVT layer (default: "default")
     """
 
     enabled: bool = True
     min_zoom: int = 0
-    max_zoom: int = 14
+    max_zoom: int = 13
     layer_name: str = "default"
 
 
@@ -481,7 +481,6 @@ class PMTilesGenerator:
         """
         # Use defaults if config values are None (safety check)
         min_zoom = self.config.min_zoom if self.config.min_zoom is not None else 0
-        max_zoom = self.config.max_zoom if self.config.max_zoom is not None else 14
 
         # Detect geometry type category
         geom_upper = geometry_type.upper() if geometry_type else ""
@@ -497,7 +496,8 @@ class PMTilesGenerator:
             "-l",
             self.config.layer_name,
             f"-Z{min_zoom}",
-            f"-z{max_zoom}",
+            "-zg",  # Auto-detect maxzoom based on feature density/detail
+            "--smallest-maximum-zoom-guess=13",  # Floor: never go below z13
             "--full-detail=16",
             # Note: Don't use --use-attribute-for-id as it removes id from properties
             # The frontend filter uses ["in", "id", ...] which needs properties.id
@@ -537,6 +537,8 @@ class PMTilesGenerator:
                     "300000",  # 300K features per tile (default 200K)
                     "--drop-smallest-as-needed",  # Drop tiny road segments only if needed
                     "--extend-zooms-if-still-dropping",
+                    "--simplify-only-low-zooms",
+                    "--no-simplification-of-shared-nodes",
                 ]
             )
             logger.info(
@@ -558,6 +560,8 @@ class PMTilesGenerator:
                     "--coalesce-densest-as-needed",
                     "--drop-densest-as-needed",
                     "--extend-zooms-if-still-dropping",
+                    "--simplify-only-low-zooms",
+                    "--no-simplification-of-shared-nodes",
                 ]
             )
             logger.debug("Using polygon-optimized tippecanoe settings")

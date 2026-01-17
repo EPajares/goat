@@ -54,11 +54,31 @@ TASK_REGISTRY: tuple[TaskDefinition, ...] = (
     TaskDefinition(
         name="sync_pmtiles",
         display_name="Sync PMTiles",
-        description="Synchronize PMTiles for all DuckLake geometry layers",
+        description="Synchronize PMTiles for all DuckLake geometry layers (sequential)",
         module_path="goatlib.tasks.sync_pmtiles",
         params_class_name="PMTilesSyncParams",
         windmill_path="f/goat/tasks/sync_pmtiles",
         schedule=None,  # Run manually
+        worker_tag="tools",
+    ),
+    TaskDefinition(
+        name="queue_pmtiles_sync",
+        display_name="Queue PMTiles Sync",
+        description="Queue PMTiles sync jobs for parallel processing by workers",
+        module_path="goatlib.tasks.queue_pmtiles_sync",
+        params_class_name="QueuePMTilesSyncParams",
+        windmill_path="f/goat/tasks/queue_pmtiles_sync",
+        schedule=None,  # Run manually
+        worker_tag="tools",
+    ),
+    TaskDefinition(
+        name="sync_single_pmtile",
+        display_name="Sync Single PMTile",
+        description="Generate PMTiles for a single layer (called by queue_pmtiles_sync)",
+        module_path="goatlib.tasks.sync_single_pmtile",
+        params_class_name="SinglePMTileParams",
+        windmill_path="f/goat/tasks/sync_single_pmtile",
+        schedule=None,  # Called by queue task
         worker_tag="tools",
     ),
 )
