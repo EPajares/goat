@@ -44,16 +44,22 @@ logger = logging.getLogger(__name__)
 class PMTilesConfig:
     """Configuration for PMTiles generation.
 
+    Uses variable-depth tile pyramids (--generate-variable-depth-tile-pyramid)
+    which only generates tiles where needed, dramatically reducing generation
+    time and file size for simple features.
+
     Attributes:
         enabled: Whether PMTiles generation is enabled
         min_zoom: Minimum zoom level (default: 0)
-        max_zoom: Maximum zoom level (default: 13)
+        max_zoom: Maximum zoom level for tile generation (default: 14).
+            Note: With variable-depth, most tiles will stop earlier if
+            sufficient detail is already present.
         layer_name: Name for the MVT layer (default: "default")
     """
 
     enabled: bool = True
     min_zoom: int = 0
-    max_zoom: int = 13
+    max_zoom: int = 14
     layer_name: str = "default"
 
 
@@ -481,6 +487,7 @@ class PMTilesGenerator:
         """
         # Use defaults if config values are None (safety check)
         min_zoom = self.config.min_zoom if self.config.min_zoom is not None else 0
+        max_zoom = self.config.max_zoom if self.config.max_zoom is not None else 14
 
         # Detect geometry type category
         geom_upper = geometry_type.upper() if geometry_type else ""
@@ -496,8 +503,8 @@ class PMTilesGenerator:
             "-l",
             self.config.layer_name,
             f"-Z{min_zoom}",
-            "-zg",  # Auto-detect maxzoom based on feature density/detail
-            "--smallest-maximum-zoom-guess=13",  # Floor: never go below z13
+            f"-z{max_zoom}",
+            "--generate-variable-depth-tile-pyramid",  # Only generate tiles where needed
             "--full-detail=16",
             # Note: Don't use --use-attribute-for-id as it removes id from properties
             # The frontend filter uses ["in", "id", ...] which needs properties.id
@@ -518,8 +525,9 @@ class PMTilesGenerator:
             # - Coalesce smallest for even distribution at low zooms
             cmd.extend(
                 [
-                    "-r1",  # Retain at least 1 feature per tile at every zoom
-                    "--coalesce-smallest-as-needed",  # Even distribution instead of densest-first
+                    "-r1",
+                    "--cluster-distance=5",
+                    "--hilbert",
                     "--extend-zooms-if-still-dropping",
                 ]
             )
