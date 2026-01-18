@@ -7,11 +7,18 @@ This service generates Mapbox Vector Tiles (MVT) using a hybrid approach:
 The service automatically routes requests to the appropriate source:
 - If PMTiles exist AND no CQL filter is applied → serve from PMTiles
 - Otherwise → generate dynamically from DuckLake
+
+Variable-depth tile pyramid support:
+PMTiles generated with --generate-variable-depth-tile-pyramid may not have
+tiles at all zoom levels. When a tile is missing, we find the nearest parent
+tile and use tippecanoe-overzoom to generate the requested tile on-the-fly.
 """
 
 import asyncio
+import gzip
 import logging
 import math
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Optional
@@ -180,8 +187,9 @@ class TileService:
     ) -> Optional[tuple[bytes, bool]]:
         """Get tile data from PMTiles file using pmtiles library.
 
-        Supports overzooming: if requested zoom > max_zoom, serves the
-        corresponding parent tile at max_zoom.
+        Supports variable-depth tile pyramids: if the requested tile doesn't
+        exist, finds the nearest parent tile and uses tippecanoe-overzoom to
+        generate the requested tile on-the-fly.
 
         Runs in a thread pool since file I/O is blocking.
 
@@ -196,15 +204,22 @@ class TileService:
         """
         pmtiles_path = self._get_pmtiles_path(layer_info)
 
-        def _read_tile() -> Optional[tuple[bytes, bool]]:
-            """Synchronous tile read function."""
+        def _read_tile() -> (
+            Optional[tuple[bytes, bool]] | tuple[str, bytes, int, int, int, bool]
+        ):
+            """Synchronous tile read function.
+
+            Returns either:
+            - (tile_data, is_gzip) for direct tile
+            - ("overzoom", parent_tile, parent_z, parent_x, parent_y, is_gzip) for overzoom
+            - None on error
+            """
             try:
                 with open(pmtiles_path, "rb") as f:
                     reader = PMTilesReader(MmapSource(f))
                     header = reader.header()
 
                     min_zoom = header.get("min_zoom", 0)
-                    max_zoom = header.get("max_zoom", 22)
 
                     # Check if below min zoom
                     if z < min_zoom:
@@ -216,44 +231,171 @@ class TileService:
                         )
                         return b"", False  # Empty tile
 
-                    # Overzoom support: if z > max_zoom, get the parent tile at max_zoom
-                    actual_z, actual_x, actual_y = z, x, y
-                    if z > max_zoom:
-                        # Calculate parent tile coordinates at max_zoom
-                        zoom_diff = z - max_zoom
-                        actual_z = max_zoom
-                        actual_x = x >> zoom_diff  # x // (2 ** zoom_diff)
-                        actual_y = y >> zoom_diff  # y // (2 ** zoom_diff)
-                        logger.debug(
-                            "Overzooming: %d/%d/%d -> %d/%d/%d",
-                            z,
-                            x,
-                            y,
-                            actual_z,
-                            actual_x,
-                            actual_y,
-                        )
-
-                    # Get tile data - returns None if tile doesn't exist (sparse tile)
-                    tile_data = reader.get(actual_z, actual_x, actual_y)
-
                     # Check if tiles are gzip compressed
                     tile_compression = header.get("tile_compression")
                     is_gzip = tile_compression and tile_compression.value == 2  # GZIP
 
-                    # If tile is None but within zoom range, return empty tile
-                    # (don't fall back to GeoParquet for sparse areas)
-                    if tile_data is None:
-                        return b"", False  # Empty MVT tile
+                    # Try to get tile at requested zoom
+                    tile_data = reader.get(z, x, y)
 
-                    return tile_data, is_gzip
+                    if tile_data is not None:
+                        return tile_data, is_gzip
+
+                    # Tile doesn't exist - find parent tile for variable-depth pyramids
+                    # Walk up the tree to find the nearest parent with data
+                    parent_z, parent_x, parent_y = z, x, y
+                    parent_tile = None
+
+                    while parent_z >= min_zoom:
+                        parent_tile = reader.get(parent_z, parent_x, parent_y)
+                        if parent_tile is not None:
+                            break
+                        # Move to parent tile
+                        parent_z -= 1
+                        parent_x >>= 1
+                        parent_y >>= 1
+
+                    if parent_tile is None:
+                        # No parent found - return empty tile
+                        return b"", False
+
+                    # If parent is at same zoom, just return it
+                    if parent_z == z:
+                        return parent_tile, is_gzip
+
+                    logger.debug(
+                        "Variable-depth overzoom: %d/%d/%d -> parent %d/%d/%d",
+                        z,
+                        x,
+                        y,
+                        parent_z,
+                        parent_x,
+                        parent_y,
+                    )
+
+                    # Signal that overzoom is needed (will be done async outside executor)
+                    return (
+                        "overzoom",
+                        parent_tile,
+                        parent_z,
+                        parent_x,
+                        parent_y,
+                        is_gzip,
+                    )
+
             except Exception as e:
                 logger.warning("PMTiles read error for %s: %s", pmtiles_path, e)
                 return None
 
-        # Run blocking I/O in thread pool
+        # Run blocking file I/O in thread pool
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(_pmtiles_executor, _read_tile)
+        result = await loop.run_in_executor(_pmtiles_executor, _read_tile)
+
+        if result is None:
+            return None
+
+        # Check if overzoom is needed
+        if isinstance(result, tuple) and len(result) == 6 and result[0] == "overzoom":
+            _, parent_tile, parent_z, parent_x, parent_y, is_gzip = result
+
+            # Run async overzoom (non-blocking)
+            overzoomed = await self._overzoom_tile(
+                parent_tile, parent_z, parent_x, parent_y, z, x, y, is_gzip
+            )
+
+            if overzoomed:
+                # tippecanoe-overzoom outputs gzip-compressed tiles
+                return overzoomed, True
+
+            return b"", False
+
+        # Direct tile result
+        return result
+
+    async def _overzoom_tile(
+        self,
+        parent_tile: bytes,
+        parent_z: int,
+        parent_x: int,
+        parent_y: int,
+        target_z: int,
+        target_x: int,
+        target_y: int,
+        is_gzip: bool,
+    ) -> Optional[bytes]:
+        """Use tippecanoe-overzoom to generate a tile from its parent.
+
+        This is an async method that doesn't block the event loop.
+
+        Args:
+            parent_tile: The parent tile data (MVT, possibly gzipped)
+            parent_z, parent_x, parent_y: Parent tile coordinates
+            target_z, target_x, target_y: Target tile coordinates
+            is_gzip: Whether parent tile is gzip compressed
+
+        Returns:
+            Overzoomed tile data (gzip compressed) or None on error
+        """
+        try:
+            # tippecanoe-overzoom expects uncompressed input
+            if is_gzip:
+                input_data = gzip.decompress(parent_tile)
+            else:
+                input_data = parent_tile
+
+            with (
+                tempfile.NamedTemporaryFile(suffix=".mvt", delete=True) as in_file,
+                tempfile.NamedTemporaryFile(suffix=".mvt.gz", delete=True) as out_file,
+            ):
+                in_file.write(input_data)
+                in_file.flush()
+
+                # Run tippecanoe-overzoom asynchronously (non-blocking)
+                # Format: tippecanoe-overzoom -o out.mvt.gz in.mvt parent_z/x/y target_z/x/y
+                process = await asyncio.create_subprocess_exec(
+                    "tippecanoe-overzoom",
+                    "-o",
+                    out_file.name,
+                    "-b",
+                    "5",  # buffer size
+                    "-d",
+                    "12",  # detail
+                    in_file.name,
+                    f"{parent_z}/{parent_x}/{parent_y}",
+                    f"{target_z}/{target_x}/{target_y}",
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+
+                try:
+                    _, stderr = await asyncio.wait_for(
+                        process.communicate(), timeout=10.0
+                    )
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
+                    logger.warning(
+                        "tippecanoe-overzoom timeout for %d/%d/%d",
+                        target_z,
+                        target_x,
+                        target_y,
+                    )
+                    return None
+
+                if process.returncode != 0:
+                    logger.warning(
+                        "tippecanoe-overzoom failed: %s",
+                        stderr.decode() if stderr else "unknown error",
+                    )
+                    return None
+
+                # Read the output tile
+                out_file.seek(0)
+                return out_file.read()
+
+        except Exception as e:
+            logger.warning("Overzoom error: %s", e)
+            return None
 
     async def get_tile(
         self,
@@ -307,15 +449,38 @@ class TileService:
             )
             if tile_data is None:
                 return None
-            return tile_data, False, "geoparquet"  # Dynamic tiles are not gzip compressed
+            return (
+                tile_data,
+                False,
+                "geoparquet",
+            )  # Dynamic tiles are not gzip compressed
 
-        # Unfiltered request - use PMTiles only
+        # Unfiltered request - try PMTiles first, fallback to GeoParquet
         if not self._pmtiles_exists(layer_info):
-            logger.warning(
-                "No PMTiles for %s, tile not available",
+            logger.info(
+                "No PMTiles for %s, falling back to dynamic tiles",
                 layer_info.table_name,
             )
-            return None
+            # Fallback to dynamic GeoParquet generation
+            loop = asyncio.get_event_loop()
+            tile_data = await loop.run_in_executor(
+                _dynamic_tile_executor,
+                lambda: self._generate_dynamic_tile(
+                    layer_info=layer_info,
+                    z=z,
+                    x=x,
+                    y=y,
+                    properties=properties,
+                    cql_filter=None,
+                    bbox=None,
+                    limit=limit,
+                    columns=columns,
+                    geometry_column=geometry_column,
+                ),
+            )
+            if tile_data is None:
+                return None
+            return tile_data, False, "geoparquet"
 
         result = await self._get_tile_from_pmtiles(layer_info, z, x, y)
         if result is not None:

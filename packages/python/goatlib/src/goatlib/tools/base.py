@@ -330,6 +330,36 @@ class SimpleToolRunner:
         )
         root_logger.addHandler(handler)
 
+    @staticmethod
+    def _libpq_to_postgres_uri(libpq_str: str) -> str:
+        """Convert libpq connection string to postgresql:// URI.
+
+        Args:
+            libpq_str: libpq format string like "host=db port=5432 dbname=goat user=rds password=xxx"
+
+        Returns:
+            postgresql:// URI like "postgresql://rds:xxx@db:5432/goat"
+        """
+        # Parse libpq key=value pairs
+        params: dict[str, str] = {}
+        for part in libpq_str.split():
+            if "=" in part:
+                key, value = part.split("=", 1)
+                params[key] = value
+
+        host = params.get("host", "localhost")
+        port = params.get("port", "5432")
+        dbname = params.get("dbname", "")
+        user = params.get("user", "")
+        password = params.get("password", "")
+
+        if password:
+            return f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
+        elif user:
+            return f"postgresql://{user}@{host}:{port}/{dbname}"
+        else:
+            return f"postgresql://{host}:{port}/{dbname}"
+
     def init_from_env(self: Self) -> None:
         """Initialize settings from environment variables."""
         self._configure_logging_for_windmill()
@@ -366,6 +396,18 @@ class SimpleToolRunner:
                 OVERRIDE_DATA_PATH true
             )
         """)
+
+        # Also attach postgres directly for querying DuckLake metadata
+        # This allows us to read snapshot_id from ducklake_table for PMTiles sync
+        try:
+            # Convert libpq connection string to postgres:// URI
+            pg_uri = self._libpq_to_postgres_uri(self.settings.ducklake_postgres_uri)
+            con.execute(f"""
+                ATTACH '{pg_uri}' AS pg (TYPE postgres, SCHEMA {self.settings.ducklake_catalog_schema})
+            """)
+        except Exception as e:
+            # Non-fatal - PMTiles sync tracking will just not have snapshot_id
+            logger.debug(f"Could not attach postgres for metadata queries: {e}")
 
         # Configure DuckLake parquet options for optimal spatial performance:
         # - ZSTD compression: better compression ratio than Snappy
@@ -1076,6 +1118,7 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                     user_id=params.user_id,
                     layer_id=output_layer_id,
                     table_name=table_info["table_name"],
+                    geometry_column=table_info.get("geometry_column", "geometry"),
                 )
                 if pmtiles_path:
                     table_info["pmtiles_path"] = str(pmtiles_path)
@@ -1291,15 +1334,60 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             "columns": columns,
             "feature_count": feature_count,
             "geometry_type": geometry_type,
+            "geometry_column": geom_col,
             "extent": extent,
             "extent_wkt": extent_wkt,
         }
+
+    def _get_ducklake_snapshot_id(
+        self: Self,
+        schema_name: str,
+        table_name: str,
+    ) -> int | None:
+        """Get the DuckLake snapshot_id for a table.
+
+        Queries the DuckLake metadata catalog in PostgreSQL to get the
+        begin_snapshot for a table. This snapshot_id is used to track
+        whether PMTiles files are in sync with the source data.
+
+        Args:
+            schema_name: DuckLake schema name (e.g., "user_xxx")
+            table_name: Table name without schema (e.g., "t_yyy")
+
+        Returns:
+            Snapshot ID if found, None otherwise
+        """
+        if self.settings is None:
+            return None
+
+        try:
+            # Query the DuckLake metadata catalog directly via PostgreSQL
+            # We need to attach postgres to access the metadata schema
+            result = self.duckdb_con.execute(f"""
+                SELECT t.begin_snapshot
+                FROM pg.{self.settings.ducklake_catalog_schema}.ducklake_table t
+                JOIN pg.{self.settings.ducklake_catalog_schema}.ducklake_schema s
+                    ON t.schema_id = s.schema_id
+                WHERE s.schema_name = '{schema_name}'
+                AND t.table_name = '{table_name}'
+                AND t.end_snapshot IS NULL
+            """).fetchone()
+
+            if result:
+                return result[0]
+        except Exception as e:
+            logger.debug(
+                f"Could not get snapshot_id for {schema_name}.{table_name}: {e}"
+            )
+
+        return None
 
     def _generate_pmtiles(
         self: Self,
         user_id: str,
         layer_id: str,
         table_name: str,
+        geometry_column: str = "geometry",
     ) -> Path | None:
         """Generate PMTiles for a layer after DuckLake ingestion.
 
@@ -1307,10 +1395,14 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
         dynamic generation overhead. The PMTiles file is stored alongside
         the source GeoParquet data in the user's tiles directory.
 
+        The DuckLake snapshot_id is embedded in the PMTiles metadata to
+        track whether the tiles are in sync with the source data.
+
         Args:
             user_id: User UUID string
             layer_id: Layer UUID string
             table_name: Full DuckLake table path (e.g., "lake.user_xxx.t_yyy")
+            geometry_column: Name of the geometry column (default: "geometry")
 
         Returns:
             Path to generated PMTiles file, or None if generation was skipped/failed
@@ -1336,18 +1428,33 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
                 config=config,
             )
 
+            # Get snapshot_id for sync tracking
+            # table_name is like "lake.user_xxx.t_yyy"
+            parts = table_name.split(".")
+            if len(parts) >= 3:
+                schema_name = parts[1]  # user_xxx
+                tbl_name = parts[2]  # t_yyy
+                snapshot_id = self._get_ducklake_snapshot_id(schema_name, tbl_name)
+            else:
+                snapshot_id = None
+
             pmtiles_path = generator.generate_from_table(
                 duckdb_con=self.duckdb_con,
                 table_name=table_name,
                 user_id=user_id,
                 layer_id=layer_id,
+                geometry_column=geometry_column,
+                snapshot_id=snapshot_id,
             )
 
             if pmtiles_path:
                 logger.info(
                     f"PMTiles generated: {pmtiles_path} "
                     f"({pmtiles_path.stat().st_size / 1024 / 1024:.1f} MB)"
+                    + (f" [snapshot={snapshot_id}]" if snapshot_id else "")
                 )
+
+            return pmtiles_path
 
             return pmtiles_path
 

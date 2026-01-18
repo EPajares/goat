@@ -7,7 +7,7 @@
 #   docker build --target worker-tools -t windmill-worker-tools .
 #   docker build --target worker-print -t windmill-worker-print .
 
-ARG WINDMILL_IMAGE_TAG='1.601.1'
+ARG WINDMILL_IMAGE_TAG='1.607.0'
 ARG PYTHON_VERSION=3.11
 
 # =============================================================================

@@ -325,6 +325,7 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
                     user_id=params.user_id,
                     layer_id=output_layer_id,
                     table_name=table_info["table_name"],
+                    geometry_column=table_info.get("geometry_column", "geometry"),
                 )
                 if pmtiles_path:
                     table_info["pmtiles_path"] = str(pmtiles_path)
@@ -347,6 +348,9 @@ class OevGueteklassenToolRunner(BaseToolRunner[OevGueteklassenToolParams]):
                         user_id=params.user_id,
                         layer_id=stations_layer_id,
                         table_name=stations_table_info["table_name"],
+                        geometry_column=stations_table_info.get(
+                            "geometry_column", "geometry"
+                        ),
                     )
                     if st_pmtiles_path:
                         stations_table_info["pmtiles_path"] = str(st_pmtiles_path)

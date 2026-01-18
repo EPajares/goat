@@ -22,7 +22,25 @@ RUN apt-get upgrade -y
 # Install general required dependencies
 RUN apt-get install --no-install-recommends -y tzdata
 
-# ===== STAGE 2: Python environment ====
+# ==== STAGE 2: Build tippecanoe ====
+FROM linux-base AS tippecanoe-builder
+
+ARG TIPPECANOE_VERSION=2.79.0
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    libsqlite3-dev \
+    zlib1g-dev \
+    && curl -fsSL https://github.com/felt/tippecanoe/archive/refs/tags/${TIPPECANOE_VERSION}.tar.gz -o /tmp/tippecanoe.tar.gz \
+    && tar -xzf /tmp/tippecanoe.tar.gz -C /tmp \
+    && cd /tmp/tippecanoe-${TIPPECANOE_VERSION} \
+    && make -j$(nproc) \
+    && make install \
+    && rm -rf /tmp/tippecanoe*
+
+# ===== STAGE 3: Python environment ====
 FROM linux-base AS python-base
 # Install debian dependencies including GDAL for building Python bindings
 RUN apt-get update && apt-get install --no-install-recommends -y build-essential gettext libgdal-dev
@@ -38,11 +56,15 @@ WORKDIR /app
 
 RUN uv sync --all-extras --frozen --no-dev --no-editable --package=geoapi
 
-# ==== STAGE 3: Webapp environment ====
+# ==== STAGE 4: Webapp environment ====
 FROM linux-base AS webapp
 
 # Install GDAL runtime library needed by Python bindings
-RUN apt-get update && apt-get install --no-install-recommends -y libgdal32 && rm -rf /var/lib/apt/lists/*
+# Install zlib runtime needed by tippecanoe
+RUN apt-get update && apt-get install --no-install-recommends -y libgdal32 zlib1g && rm -rf /var/lib/apt/lists/*
+
+# Copy tippecanoe binaries (tippecanoe-overzoom for variable-depth tile pyramids)
+COPY --from=tippecanoe-builder /usr/local/bin/tippecanoe-overzoom /usr/local/bin/
 
 RUN useradd -m appuser
 
