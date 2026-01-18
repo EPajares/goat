@@ -4,7 +4,7 @@ from pathlib import Path
 
 import duckdb
 
-from goatlib.analysis.schemas.vector import IntersectionParams
+from goatlib.analysis.schemas.geoprocessing import IntersectionParams
 from goatlib.analysis.geoprocessing.intersection import IntersectionTool
 
 
@@ -19,9 +19,7 @@ def test_intersection_polygons() -> None:
 
     # Test basic intersection
     params = IntersectionParams(
-        input_path=polygons, 
-        overlay_path=boundary, 
-        output_path=output_path
+        input_path=polygons, overlay_path=boundary, output_path=output_path
     )
 
     tool = IntersectionTool()
@@ -50,10 +48,12 @@ def test_intersection_polygons() -> None:
     ).fetchall()
     column_names = [col[0] for col in columns]
     assert "geometry" in column_names, "Result should have geometry column"
-    
+
     # Check that we have attributes from both input and overlay
     # Overlay fields should have the prefix
-    assert any("intersection_" in col for col in column_names), "Should have overlay attributes with intersection_ prefix"
+    assert any(
+        "intersection_" in col for col in column_names
+    ), "Should have overlay attributes with intersection_ prefix"
 
     print(f"✓ IntersectionTool polygon test passed. Result has {row_count} features.")
     print(f"✓ Output saved to: {output_path}")
@@ -70,9 +70,7 @@ def test_intersection_lines() -> None:
     output_path = str(result_dir / "unit_intersection_lines_and_polygons.parquet")
 
     params = IntersectionParams(
-        input_path=lines, 
-        overlay_path=polygons, 
-        output_path=output_path
+        input_path=lines, overlay_path=polygons, output_path=output_path
     )
 
     tool = IntersectionTool()
@@ -91,13 +89,15 @@ def test_intersection_lines() -> None:
         f"SELECT COUNT(*) FROM read_parquet('{result_path}')"
     ).fetchone()[0]
     assert row_count > 0, "Result should have at least one line feature"
-    
+
     # Check we have overlay attributes
     columns = con.execute(
         f"DESCRIBE SELECT * FROM read_parquet('{result_path}')"
     ).fetchall()
     column_names = [col[0] for col in columns]
-    assert any("intersection_" in col for col in column_names), "Should have overlay attributes"
+    assert any(
+        "intersection_" in col for col in column_names
+    ), "Should have overlay attributes"
 
     print(f"✓ IntersectionTool line test passed. Result has {row_count} features.")
     print(f"✓ Output saved to: {output_path}")
@@ -113,9 +113,7 @@ def test_intersection_points() -> None:
     output_path = str(result_dir / "unit_intersection_points_and_polygons.parquet")
 
     params = IntersectionParams(
-        input_path=points, 
-        overlay_path=polygons, 
-        output_path=output_path
+        input_path=points, overlay_path=polygons, output_path=output_path
     )
 
     tool = IntersectionTool()
@@ -133,22 +131,26 @@ def test_intersection_points() -> None:
     row_count = con.execute(
         f"SELECT COUNT(*) FROM read_parquet('{result_path}')"
     ).fetchone()[0]
-    
+
     # Check that we have points that intersect with polygons
     original_count = con.execute(
         f"SELECT COUNT(*) FROM read_parquet('{points}')"
     ).fetchone()[0]
     assert row_count <= original_count, "Result should have equal or fewer points"
     assert row_count > 0, "Result should have at least one point"
-    
+
     # Check we have both input and overlay attributes
     columns = con.execute(
         f"DESCRIBE SELECT * FROM read_parquet('{result_path}')"
     ).fetchall()
     column_names = [col[0] for col in columns]
-    assert any("intersection_" in col for col in column_names), "Should have overlay attributes"
+    assert any(
+        "intersection_" in col for col in column_names
+    ), "Should have overlay attributes"
 
-    print(f"✓ IntersectionTool point test passed. Result has {row_count} features (from {original_count} original).")
+    print(
+        f"✓ IntersectionTool point test passed. Result has {row_count} features (from {original_count} original)."
+    )
     print(f"✓ Output saved to: {output_path}")
 
 

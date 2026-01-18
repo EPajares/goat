@@ -27,6 +27,7 @@ def set_test_mode():
     settings.ACCOUNTS_SCHEMA = "test_accounts1"
     settings.MAX_FOLDER_COUNT = 15
     settings.TEST_MODE = True
+    settings.AUTH = False
 
 
 set_test_mode()
@@ -34,7 +35,11 @@ set_test_mode()
 
 @pytest_asyncio.fixture
 async def client():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(
+        app=app,
+        base_url="http://test",
+        headers={"Authorization": settings.SAMPLE_AUTHORIZATION},
+    ) as ac:
         yield ac
 
 
