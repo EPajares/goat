@@ -1,7 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
-import { OpenInNew as OpenInNewIcon } from "@mui/icons-material";
+import { CancelOutlined as CancelOutlinedIcon, OpenInNew as OpenInNewIcon } from "@mui/icons-material";
 import {
   Box,
   Card,
@@ -15,12 +15,13 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "react-toastify";
 
 import { Icon } from "@p4b/ui/components/Icon";
 
-import { useJobs } from "@/lib/api/processes";
+import { dismissJob, useJobs } from "@/lib/api/processes";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
 import type { ReportElement, ReportElementType, ReportLayout } from "@/lib/validations/reportLayout";
 
@@ -162,6 +163,7 @@ interface HistoryTabContentProps {
 
 const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layoutId }) => {
   const { t } = useTranslation("common");
+  const [cancellingJobs, setCancellingJobs] = useState<Set<string>>(new Set());
 
   // Fetch all print jobs for this project (don't filter by read status to get history)
   // Note: We fetch all jobs for the project and filter client-side by layout_id
@@ -205,6 +207,27 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
     window.open(downloadUrl, "_blank");
   };
 
+  // Handle cancel job
+  const handleCancelJob = useCallback(
+    async (jobId: string) => {
+      setCancellingJobs((prev) => new Set(prev).add(jobId));
+      try {
+        await dismissJob(jobId);
+        mutate();
+      } catch (error) {
+        console.error("Failed to cancel job:", error);
+        toast.error(t("error_cancelling_job") || "Failed to cancel job");
+      } finally {
+        setCancellingJobs((prev) => {
+          const next = new Set(prev);
+          next.delete(jobId);
+          return next;
+        });
+      }
+    },
+    [mutate, t]
+  );
+
   if (isLoading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: 200 }}>
@@ -237,18 +260,40 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
               | undefined;
             // Show open button for finished jobs that have a download_url
             const canOpen = job.status === "successful" && result?.download_url;
+            // Show cancel button for running/accepted jobs
+            const canCancel = job.status === "running" || job.status === "accepted";
+            const isCancelling = cancellingJobs.has(job.jobID);
 
-            // Create open button to pass as custom action
-            const openButton = canOpen ? (
-              <Tooltip title={t("view")}>
-                <IconButton
-                  size="small"
-                  onClick={() => handleOpenPdf(result.download_url!)}
-                  sx={{ fontSize: "1.2rem", color: "success.main" }}>
-                  <OpenInNewIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            ) : undefined;
+            // Create action button based on job status
+            let actionButton: React.ReactNode = undefined;
+            if (canCancel) {
+              actionButton = (
+                <Tooltip title={t("cancel")}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleCancelJob(job.jobID)}
+                    disabled={isCancelling}
+                    sx={{ fontSize: "1.2rem", color: "error.main" }}>
+                    {isCancelling ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <CancelOutlinedIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              );
+            } else if (canOpen) {
+              actionButton = (
+                <Tooltip title={t("view")}>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleOpenPdf(result.download_url!)}
+                    sx={{ fontSize: "1.2rem", color: "success.main" }}>
+                    <OpenInNewIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              );
+            }
 
             return (
               <Box key={job.jobID} sx={{ overflow: "hidden" }}>
@@ -259,7 +304,7 @@ const HistoryTabContent: React.FC<HistoryTabContentProps> = ({ projectId, layout
                   name={job.jobID}
                   date={job.updated || job.created || ""}
                   errorMessage={job.status === "failed" ? job.message : undefined}
-                  actionButton={openButton}
+                  actionButton={actionButton}
                 />
                 {index < printJobs.length - 1 && <Divider />}
               </Box>

@@ -517,10 +517,11 @@ def _windmill_status_to_ogc(job: dict[str, Any]) -> StatusCode:
         return StatusCode.running
     elif job.get("success") is True:
         return StatusCode.successful
+    elif job.get("canceled"):
+        # Check canceled BEFORE failed, as canceled jobs may also have success=false
+        return StatusCode.dismissed
     elif job.get("success") is False:
         return StatusCode.failed
-    elif job.get("canceled"):
-        return StatusCode.dismissed
     else:
         return StatusCode.accepted
 
@@ -528,7 +529,14 @@ def _windmill_status_to_ogc(job: dict[str, Any]) -> StatusCode:
 def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusInfo:
     """Convert Windmill job to OGC StatusInfo."""
     job_id = job.get("id", "")
-    process_id = job.get("script_path", "").replace("f/goat/", "")
+    # Extract process ID from Windmill script path
+    # Script paths are: f/goat/tools/buffer, f/goat/layer_import, etc.
+    # We need to extract just the tool/process name for translation keys
+    script_path = job.get("script_path", "")
+    if script_path.startswith("f/goat/tools/"):
+        process_id = script_path.replace("f/goat/tools/", "")
+    else:
+        process_id = script_path.replace("f/goat/", "")
 
     # Parse timestamps
     created = None
@@ -885,7 +893,12 @@ async def dismiss_job(
             except Exception:
                 pass
 
-        process_id = job.get("script_path", "").replace("f/goat/", "")
+        # Extract process ID from Windmill script path
+        script_path = job.get("script_path", "")
+        if script_path.startswith("f/goat/tools/"):
+            process_id = script_path.replace("f/goat/tools/", "")
+        else:
+            process_id = script_path.replace("f/goat/", "")
 
         # Build response
         return StatusInfo(

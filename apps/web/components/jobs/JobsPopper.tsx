@@ -1,13 +1,25 @@
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import DownloadIcon from "@mui/icons-material/Download";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import { Badge, Box, Divider, IconButton, Paper, Stack, Tooltip, Typography, styled } from "@mui/material";
+import {
+  Badge,
+  Box,
+  CircularProgress,
+  Divider,
+  IconButton,
+  Paper,
+  Stack,
+  Tooltip,
+  Typography,
+  styled,
+} from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { type Job, useJobs } from "@/lib/api/processes";
+import { type Job, dismissJob, useJobs } from "@/lib/api/processes";
 
 import { ArrowPopper as JobStatusMenu } from "@/components/ArrowPoper";
 import JobProgressItem from "@/components/jobs/JobProgressItem";
@@ -44,7 +56,8 @@ const StyledBadge = styled(Badge)(({ theme }) => ({
 export default function JobsPopper() {
   const { t } = useTranslation("common");
   const [open, setOpen] = useState(false);
-  const { jobs } = useJobs({ read: false });
+  const { jobs, mutate } = useJobs({ read: false });
+  const [cancellingJobs, setCancellingJobs] = useState<Set<string>>(new Set());
 
   // Track which export jobs have been auto-downloaded to avoid duplicate downloads
   const downloadedJobsRef = useRef<Set<string>>(new Set());
@@ -204,8 +217,58 @@ export default function JobsPopper() {
     );
   };
 
-  // Get action button based on job type
+  // Handle cancel job
+  const handleCancelJob = useCallback(
+    async (jobId: string) => {
+      setCancellingJobs((prev) => new Set(prev).add(jobId));
+      try {
+        await dismissJob(jobId);
+        mutate();
+      } catch (error) {
+        console.error("Failed to cancel job:", error);
+        toast.error(t("error_cancelling_job") || "Failed to cancel job");
+      } finally {
+        setCancellingJobs((prev) => {
+          const next = new Set(prev);
+          next.delete(jobId);
+          return next;
+        });
+      }
+    },
+    [mutate, t]
+  );
+
+  // Helper to render cancel button for running/accepted jobs
+  const renderCancelButton = (job: Job) => {
+    const canCancel = job.status === "running" || job.status === "accepted";
+    if (!canCancel) return undefined;
+
+    const isCancelling = cancellingJobs.has(job.jobID);
+
+    return (
+      <Tooltip title={t("cancel")}>
+        <IconButton
+          size="small"
+          onClick={() => handleCancelJob(job.jobID)}
+          disabled={isCancelling}
+          sx={{ fontSize: "1.2rem", color: "error.main" }}>
+          {isCancelling ? (
+            <CircularProgress size={16} color="inherit" />
+          ) : (
+            <CancelOutlinedIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
+  // Get action button based on job type and status
   const getActionButton = (job: Job) => {
+    // For running/accepted jobs, show cancel button
+    if (job.status === "running" || job.status === "accepted") {
+      return renderCancelButton(job);
+    }
+    // For completed jobs, show type-specific buttons
     if (job.processID === "layer_export") {
       return renderExportDownloadButton(job);
     }
