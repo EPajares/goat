@@ -186,11 +186,11 @@ export function getEffectiveSchema(schema: OGCInputSchema): OGCInputSchema {
  */
 export function extractGeometryConstraints(input: OGCInputDescription): string[] | undefined {
   const constraintMeta = input.metadata.find(
-    (m) => m.role === "constraint" && m.title === "Accepted Geometry Types"
+    (m) => m.role === "constraint" && m.title === "geometry_types"
   );
 
-  if (constraintMeta && Array.isArray(constraintMeta.value)) {
-    return constraintMeta.value as string[];
+  if (constraintMeta && typeof constraintMeta.value === "string") {
+    return constraintMeta.value.split(",").map((s) => s.trim());
   }
 
   return undefined;

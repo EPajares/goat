@@ -53,6 +53,7 @@ FORMAT_MAP = {
     "shp": "ESRI Shapefile",
     "shapefile": "ESRI Shapefile",
     "csv": "CSV",
+    "xlsx": "XLSX",  # Handled specially, not via GDAL
     "parquet": "Parquet",
 }
 
@@ -79,7 +80,7 @@ class LayerExportParams(ToolInputBase):
     )
     file_type: str = Field(
         ...,
-        description="Output file format (gpkg, geojson, csv, kml, shp, parquet)",
+        description="Output file format (gpkg, geojson, csv, xlsx, kml, shp, parquet)",
         json_schema_extra=ui_field(
             section="output",
             field_order=1,
@@ -89,6 +90,7 @@ class LayerExportParams(ToolInputBase):
                     {"value": "gpkg", "label": "GeoPackage"},
                     {"value": "geojson", "label": "GeoJSON"},
                     {"value": "csv", "label": "CSV"},
+                    {"value": "xlsx", "label": "Excel"},
                     {"value": "kml", "label": "KML"},
                     {"value": "shp", "label": "Shapefile"},
                     {"value": "parquet", "label": "Parquet"},
@@ -230,6 +232,22 @@ class LayerExportRunner(SimpleToolRunner):
             logger.warning("Failed to convert CQL2 filter to SQL: %s", e)
             return None
 
+    def _has_geometry_column(self: Self, table_name: str) -> bool:
+        """Check if table has a geometry column.
+
+        Args:
+            table_name: Full qualified table name (lake.schema.table)
+
+        Returns:
+            True if table has a geometry column
+        """
+        result = self.duckdb_con.execute(
+            f"SELECT column_name FROM information_schema.columns "
+            f"WHERE table_schema || '.' || table_name = '{table_name.replace('lake.', '')}' "
+            f"AND column_name = 'geometry'"
+        ).fetchone()
+        return result is not None
+
     def _export_to_file(
         self: Self,
         layer_id: str,
@@ -255,13 +273,16 @@ class LayerExportRunner(SimpleToolRunner):
         # (excludes STRUCT, MAP, and other unsupported types)
         exportable_columns = self._get_exportable_columns(table_name)
 
+        # Check if table has geometry
+        has_geometry = self._has_geometry_column(table_name)
+
         # Build column selection, applying CRS transformation to geometry if needed
         # DuckDB ST_Transform requires both source and target CRS
         # Data is stored in EPSG:4326
         source_crs = "EPSG:4326"
         column_exprs = []
         for col in exportable_columns:
-            if col == "geometry" and crs:
+            if col == "geometry" and crs and has_geometry:
                 # Transform geometry from source CRS to target CRS
                 column_exprs.append(
                     f"ST_Transform(\"geometry\", '{source_crs}', '{crs}') AS \"geometry\""
@@ -275,25 +296,105 @@ class LayerExportRunner(SimpleToolRunner):
         where_clause = f"WHERE {sql_query}" if sql_query else ""
 
         logger.info(
-            "Exporting layer: table=%s, format=%s, output=%s, crs=%s",
+            "Exporting layer: table=%s, format=%s, output=%s, crs=%s, has_geometry=%s",
             table_name,
             output_format,
             output_path,
             crs,
+            has_geometry,
         )
 
-        # Build GDAL COPY options
-        # SRS sets the spatial reference metadata in the output file
-        srs_option = f", SRS '{crs}'" if crs else ""
+        # For CSV/XLSX/Parquet formats, use DuckDB's native export
+        # GDAL drivers don't handle non-spatial data or these formats well
+        if output_format == "CSV":
+            # For CSV, convert geometry to WKT string for readability
+            csv_column_exprs = []
+            for col in exportable_columns:
+                if col == "geometry" and has_geometry:
+                    if crs:
+                        # Transform and convert to WKT
+                        csv_column_exprs.append(
+                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}')) AS \"geometry\""
+                        )
+                    else:
+                        csv_column_exprs.append('ST_AsText("geometry") AS "geometry"')
+                else:
+                    csv_column_exprs.append(f'"{col}"')
+            csv_columns_sql = ", ".join(csv_column_exprs)
 
-        # Use DuckDB's COPY TO with GDAL writer
-        self.duckdb_con.execute(f"""
-            COPY (
-                SELECT {columns_sql} FROM {table_name}
-                {where_clause}
-            ) TO '{output_path}'
-            WITH (FORMAT GDAL, DRIVER '{output_format}'{srs_option})
-        """)
+            # Use native DuckDB CSV export
+            self.duckdb_con.execute(f"""
+                COPY (
+                    SELECT {csv_columns_sql} FROM {table_name}
+                    {where_clause}
+                ) TO '{output_path}'
+                WITH (FORMAT CSV, HEADER TRUE)
+            """)
+        elif output_format == "XLSX":
+            # For XLSX, convert geometry to WKT string since GDAL XLSX driver
+            # doesn't support geometry columns directly
+            xlsx_column_exprs = []
+            for col in exportable_columns:
+                if col == "geometry" and has_geometry:
+                    if crs:
+                        # Transform and convert to WKT
+                        xlsx_column_exprs.append(
+                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}')) AS \"geometry\""
+                        )
+                    else:
+                        xlsx_column_exprs.append('ST_AsText("geometry") AS "geometry"')
+                else:
+                    xlsx_column_exprs.append(f'"{col}"')
+            xlsx_columns_sql = ", ".join(xlsx_column_exprs)
+
+            # Use DuckDB's COPY TO with GDAL XLSX driver
+            # The spatial extension provides XLSX export via GDAL
+            self.duckdb_con.execute(f"""
+                COPY (
+                    SELECT {xlsx_columns_sql} FROM {table_name}
+                    {where_clause}
+                ) TO '{output_path}'
+                WITH (FORMAT GDAL, DRIVER 'XLSX')
+            """)
+        elif output_format == "Parquet":
+            # Use native DuckDB Parquet export
+            self.duckdb_con.execute(f"""
+                COPY (
+                    SELECT {columns_sql} FROM {table_name}
+                    {where_clause}
+                ) TO '{output_path}'
+                WITH (FORMAT PARQUET)
+            """)
+        elif not has_geometry:
+            # For non-spatial tables with spatial formats requested,
+            # fall back to CSV export since GDAL requires geometry
+            logger.warning(
+                "Table has no geometry column, falling back to CSV export "
+                "instead of %s",
+                output_format,
+            )
+            # Change output path extension to .csv
+            csv_output_path = output_path.rsplit(".", 1)[0] + ".csv"
+            self.duckdb_con.execute(f"""
+                COPY (
+                    SELECT {columns_sql} FROM {table_name}
+                    {where_clause}
+                ) TO '{csv_output_path}'
+                WITH (FORMAT CSV, HEADER TRUE)
+            """)
+        else:
+            # Build GDAL COPY options for spatial formats
+            # SRS sets the spatial reference metadata in the output file
+            srs_option = f", SRS '{crs}'" if crs else ""
+
+            # Use DuckDB's COPY TO with GDAL writer
+            self.duckdb_con.execute(f"""
+                COPY (
+                    SELECT {columns_sql} FROM {table_name}
+                    {where_clause}
+                ) TO '{output_path}'
+                WITH (FORMAT GDAL, DRIVER '{output_format}'{srs_option})
+            """)
 
         logger.info("Export complete: %s", output_path)
 

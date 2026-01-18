@@ -1,6 +1,5 @@
 # Analysis schemas
 
-# Keep vector as alias for backwards compatibility
 from . import (
     data_management,
     geocoding,
@@ -10,7 +9,6 @@ from . import (
     statistics,
     trip_count,
     ui,
-    vector,
 )
 from .base import ALL_GEOMETRY_TYPES, POLYGON_TYPES, GeometryType
 from .catchment_area import (

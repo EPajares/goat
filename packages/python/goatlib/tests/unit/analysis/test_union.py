@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-from goatlib.analysis.schemas.vector import UnionParams
+from goatlib.analysis.schemas.geoprocessing import UnionParams
 from goatlib.analysis.geoprocessing.union import UnionTool
 
 # Test data paths
