@@ -84,7 +84,6 @@ def wgs84_to_utm32n(lon: float, lat: float) -> tuple[float, float]:
 
     lat_rad = math.radians(lat)
     lon_rad = math.radians(lon)
-    lon0_rad = math.radians(lon0)
 
     # Simplified UTM calculation (not accurate for testing exact values)
     # Just for order of magnitude validation
