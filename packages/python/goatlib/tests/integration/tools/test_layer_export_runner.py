@@ -83,7 +83,6 @@ def wgs84_to_utm32n(lon: float, lat: float) -> tuple[float, float]:
     a = 6378137.0  # WGS84 semi-major axis
 
     lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
 
     # Simplified UTM calculation (not accurate for testing exact values)
     # Just for order of magnitude validation
