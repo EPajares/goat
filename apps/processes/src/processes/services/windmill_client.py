@@ -419,16 +419,17 @@ class WindmillClient:
         # Normalize process_id to Windmill script path format
         # e.g., "PrintReport" -> "print_report", "buffer" -> "buffer"
         normalized_process_id = None
+        script_path_filter = script_path_start
         if process_id:
             # Convert PascalCase/camelCase to snake_case for Windmill path matching
             normalized_process_id = re.sub(r"(?<!^)(?=[A-Z])", "_", process_id).lower()
+            # All tools are now under f/goat/tools/ prefix
+            script_path_filter = f"f/goat/tools/{normalized_process_id}"
 
         # Build query params - use indexed filters first
         params: dict[str, Any] = {
             "per_page": min(limit, 100),  # Windmill max is 100
-            "script_path_start": script_path_start
-            if not normalized_process_id
-            else f"f/goat/{normalized_process_id}",
+            "script_path_start": script_path_filter,
             "created_after": created_after_iso,
             "has_null_parent": "true",  # Only root jobs, not flow steps
             "job_kinds": "script",  # Only script jobs
