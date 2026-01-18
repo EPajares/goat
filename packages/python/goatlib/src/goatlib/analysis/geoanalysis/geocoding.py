@@ -25,7 +25,7 @@ from goatlib.models.io import DatasetMetadata
 logger = logging.getLogger(__name__)
 
 # Maximum number of features allowed for geocoding
-MAX_FEATURES = 1000
+MAX_FEATURES = 10000
 
 
 class GeocodingTool(AnalysisTool):

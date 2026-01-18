@@ -31,6 +31,7 @@ import {
   updateReportLayout,
   useReportLayouts,
 } from "@/lib/api/reportLayouts";
+import { useProjectInitialViewState } from "@/lib/api/projects";
 import { PAGE_SIZES, type PageSize } from "@/lib/print/units";
 import type { Project, ProjectLayer } from "@/lib/validations/project";
 import type { PageConfig, ReportLayout, ReportLayoutConfig } from "@/lib/validations/reportLayout";
@@ -83,6 +84,9 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
 
   // Fetch report layouts from API
   const { reportLayouts, isLoading, mutate } = useReportLayouts(project?.id);
+
+  // Fetch project's initial view state for template maps
+  const { initialView } = useProjectInitialViewState(project?.id ?? "");
 
   // Selected report ID (local, synced with parent)
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
@@ -801,6 +805,7 @@ const ReportsConfigPanel: React.FC<ReportsConfigPanelProps> = ({
         open={templatePickerOpen}
         onClose={() => setTemplatePickerOpen(false)}
         onSelectTemplate={handleSelectTemplate}
+        initialViewState={initialView}
       />
     </PanelContainer>
   );

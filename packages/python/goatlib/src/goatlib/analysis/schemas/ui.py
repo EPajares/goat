@@ -182,6 +182,7 @@ class UIFieldConfig:
     description_key: str | None = None
     hidden: bool = False
     advanced: bool = False
+    optional: bool = False  # Explicitly mark as optional (overrides conditional required)
     visible_when: dict[str, Any] | None = None
     hidden_when: dict[str, Any] | None = None
     mutually_exclusive_group: str | None = None
@@ -214,6 +215,8 @@ class UIFieldConfig:
             result["hidden"] = True
         if self.advanced:
             result["advanced"] = True
+        if self.optional:
+            result["optional"] = True
         if self.visible_when:
             result["visible_when"] = self.visible_when
         if self.hidden_when:
@@ -248,6 +251,7 @@ def ui_field(
     description_key: str | None = None,
     hidden: bool = False,
     advanced: bool = False,
+    optional: bool = False,
     visible_when: dict[str, Any] | None = None,
     hidden_when: dict[str, Any] | None = None,
     mutually_exclusive_group: str | None = None,
@@ -271,6 +275,7 @@ def ui_field(
         label_key: i18n key for field label (default: field name)
         description_key: i18n key for field description
         hidden: If True, field is never shown in UI (for internal fields)
+        optional: If True, field is explicitly optional even with visible_when condition
         visible_when: Condition to show field, MongoDB-like syntax:
             {"routing_mode": "public_transport"} - equals
             {"max_cost": {"$gte": 30}} - greater than or equal
@@ -353,6 +358,7 @@ def ui_field(
         description_key=description_key,
         hidden=hidden,
         advanced=advanced,
+        optional=optional,
         visible_when=visible_when,
         hidden_when=hidden_when,
         mutually_exclusive_group=mutually_exclusive_group,

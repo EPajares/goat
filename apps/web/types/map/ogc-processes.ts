@@ -83,6 +83,7 @@ export interface UIFieldMeta {
   description?: string;
   hidden?: boolean;
   advanced?: boolean;
+  optional?: boolean;
   visible_when?: Record<string, unknown>;
   hidden_when?: Record<string, unknown>;
   mutually_exclusive_group?: string;

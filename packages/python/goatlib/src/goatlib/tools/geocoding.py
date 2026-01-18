@@ -182,6 +182,7 @@ class GeocodingToolParams(ScenarioSelectorMixin, ToolInputBase, LayerInputMixin)
             widget_options={"source_layer": "input_layer_id", "types": ["string"]},
             visible_when={"input_mode": "structured"},
             advanced=True,
+            optional=True,
         ),
     )
 
@@ -195,6 +196,7 @@ class GeocodingToolParams(ScenarioSelectorMixin, ToolInputBase, LayerInputMixin)
             widget="field-selector",
             widget_options={"source_layer": "input_layer_id", "types": ["string"]},
             visible_when={"input_mode": "structured"},
+            optional=True,
         ),
     )
 

@@ -105,6 +105,7 @@ class FeatureLayerExportType(str, Enum):
     csv = "csv"
     xlsx = "xlsx"
     kml = "kml"
+    parquet = "parquet"
 
 
 class TableLayerExportType(str, Enum):

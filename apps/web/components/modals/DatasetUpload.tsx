@@ -215,7 +215,7 @@ const DatasetUploadModal: React.FC<DatasetUploadDialogProps> = ({ open, onClose,
             />
             <Typography variant="caption">
               {t("supported")} <b>GeoPackage</b>, <b>GeoJSON</b>, <b>Shapefile (.zip)</b>, <b>KML</b>,{" "}
-              <b>CSV</b>, <b>XLSX</b>
+              <b>CSV</b>, <b>XLSX</b>, <b>Parquet</b>
             </Typography>
           </>
         )}

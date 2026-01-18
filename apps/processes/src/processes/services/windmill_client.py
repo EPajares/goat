@@ -455,13 +455,16 @@ class WindmillClient:
             # Windmill's /jobs/list returns limited fields
             # Fetch full details for jobs that need args/results
             if include_results:
-                # Jobs that need full details (args for filtering, results for download)
+                # Jobs that need full details:
+                # - layer_export, print_report: need args for filtering and results for download
+                # - failed jobs: need result to extract error name/message
                 jobs_needing_details = [
                     j
                     for j in jobs
                     if j.get("script_path", "").endswith(
                         ("layer_export", "print_report")
                     )
+                    or j.get("success") is False  # Failed jobs need error details
                 ]
                 if jobs_needing_details:
 
@@ -471,7 +474,8 @@ class WindmillClient:
                             full_job = await self.get_job_with_result(job["id"])
                             # Merge full job details into the list item
                             job["args"] = full_job.get("args")
-                            if full_job.get("success") is True:
+                            # Include result for successful jobs (downloads) and failed jobs (errors)
+                            if full_job.get("success") is True or full_job.get("success") is False:
                                 job["result"] = full_job.get("result")
                         except Exception as e:
                             logger.warning(
@@ -497,6 +501,7 @@ class WindmillClient:
 
         Returns:
             Job dict with 'result' field populated if job completed
+            (includes error info for failed jobs)
 
         Raises:
             WindmillJobNotFound: If job doesn't exist
@@ -505,8 +510,9 @@ class WindmillClient:
         # Get job status first
         job = await self.get_job_status(job_id)
 
-        # If job completed successfully, fetch the result
-        if job.get("success") is True:
+        # Fetch result for completed jobs (both successful and failed)
+        # Failed jobs have result with error structure: {"error": {"name": ..., "message": ...}}
+        if job.get("success") is not None and not job.get("running"):
             try:
                 job["result"] = await self.get_job_result(job_id)
             except Exception as e:

@@ -110,7 +110,7 @@ class TestToolInputSchemas:
             },
             distances=[100.0, 200.0, 500.0],
             units="meters",
-            dissolve=True,
+            polygon_union=True,
             output_name="Cities Buffer 100-500m",
         )
 
@@ -121,7 +121,7 @@ class TestToolInputSchemas:
         assert params.input_layer_filter["op"] == "and"
         assert len(params.input_layer_filter["args"]) == 2
         assert params.distances == [100.0, 200.0, 500.0]
-        assert params.dissolve is True
+        assert params.polygon_union is True
 
 
 class TestScenarioFeaturesMerge:

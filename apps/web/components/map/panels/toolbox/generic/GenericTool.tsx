@@ -275,10 +275,12 @@ export default function GenericTool({ processId, onBack, onClose }: GenericToolP
         // A field is required if:
         // 1. It's explicitly required (minOccurs > 0), OR
         // 2. It has visible_when condition and no default value (conditional field that must be filled when shown)
+        //    UNLESS it's explicitly marked as optional in x-ui metadata
         // Note: defaultValue is null when Python field has Field(None, ...), undefined when no default at all
+        const isExplicitlyOptional = input.uiMeta?.optional === true;
         const hasConditionalVisibility = !!input.uiMeta?.visible_when;
         const hasNoDefault = input.defaultValue === undefined || input.defaultValue === null;
-        const isConditionallyRequired = hasConditionalVisibility && hasNoDefault;
+        const isConditionallyRequired = hasConditionalVisibility && hasNoDefault && !isExplicitlyOptional;
 
         const isRequired = input.required || isConditionallyRequired;
 

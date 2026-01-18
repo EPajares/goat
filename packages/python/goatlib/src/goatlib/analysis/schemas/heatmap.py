@@ -125,6 +125,14 @@ ROUTING_MODE_ICONS: dict[str, str] = {
     "car": "car",
 }
 
+# Routing mode labels for i18n (maps enum values to translation keys)
+ROUTING_MODE_LABELS: dict[str, str] = {
+    "walking": "routing_modes.walk",
+    "bicycle": "routing_modes.bicycle",
+    "pedelec": "routing_modes.pedelec",
+    "car": "routing_modes.car",
+}
+
 
 class ImpedanceFunction(StrEnum):
     gaussian = "gaussian"
@@ -151,6 +159,7 @@ class HeatmapCommon(BaseModel):
             section="routing",
             field_order=1,
             enum_icons=ROUTING_MODE_ICONS,
+            enum_labels=ROUTING_MODE_LABELS,
         ),
     )
     od_matrix_path: str = Field(

@@ -63,7 +63,7 @@ const DatasetDownloadModal: React.FC<DownloadDatasetDialogProps> = ({
   const [isBusy, setIsBusy] = useState(false);
 
   const [dataCrs, setDataCrs] = useState<string | null>(
-    isSpatialLayer ? featureDataExchangeCRS.Enum["3857"] : null
+    isSpatialLayer ? featureDataExchangeCRS.Enum["4326"] : null
   );
 
   const handleDownload = async () => {

@@ -22,6 +22,16 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import type { ReportLayoutConfig } from "@/lib/validations/reportLayout";
+import type { ProjectViewState } from "@/lib/validations/project";
+
+// Default viewState (Munich) - used as fallback when project viewState is not available
+const DEFAULT_VIEW_STATE = {
+  latitude: 48.13,
+  longitude: 11.57,
+  zoom: 10,
+  bearing: 0,
+  pitch: 0,
+};
 
 export type ReportTemplateType =
   | "single_map_portrait"
@@ -44,6 +54,15 @@ export interface ReportTemplate {
 // Type for translation function
 type TranslationFn = (key: string) => string;
 
+// Type for viewState parameter in template config functions
+type ViewStateParam = {
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  bearing: number;
+  pitch: number;
+};
+
 // Default config for blank template
 const getBlankConfig = (): ReportLayoutConfig => ({
   page: {
@@ -64,7 +83,7 @@ const getBlankConfig = (): ReportLayoutConfig => ({
 
 // Single map template - portrait orientation (A4)
 // A4: 210x297mm, with 10mm margins = usable area 190x277mm (from x:10 to x:200, y:10 to y:287)
-const getSingleMapPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
+const getSingleMapPortraitConfig = (t: TranslationFn, viewState: ViewStateParam): ReportLayoutConfig => ({
   page: {
     size: "A4",
     orientation: "portrait",
@@ -96,7 +115,7 @@ const getSingleMapPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
       type: "map",
       position: { x: 10, y: 28, width: 190, height: 210, z_index: 1 },
       config: {
-        viewState: { latitude: 48.13, longitude: 11.57, zoom: 10, bearing: 0, pitch: 0 },
+        viewState,
       },
       style: {
         padding: 0,
@@ -140,7 +159,7 @@ const getSingleMapPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
 
 // Single map template - landscape orientation (A4)
 // A4 landscape: 297x210mm, with 10mm margins = usable area 277x190mm (from x:10 to x:287, y:10 to y:200)
-const getSingleMapLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
+const getSingleMapLandscapeConfig = (t: TranslationFn, viewState: ViewStateParam): ReportLayoutConfig => ({
   page: {
     size: "A4",
     orientation: "landscape",
@@ -172,7 +191,7 @@ const getSingleMapLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
       type: "map",
       position: { x: 10, y: 28, width: 220, height: 162, z_index: 1 },
       config: {
-        viewState: { latitude: 48.13, longitude: 11.57, zoom: 10, bearing: 0, pitch: 0 },
+        viewState,
       },
       style: {
         padding: 0,
@@ -216,7 +235,7 @@ const getSingleMapLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
 
 // Poster template - portrait orientation (A3)
 // A3 portrait: 297x420mm, with 10mm margins = usable area 277x400mm (from x:10 to x:287, y:10 to y:410)
-const getPosterPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
+const getPosterPortraitConfig = (t: TranslationFn, viewState: ViewStateParam): ReportLayoutConfig => ({
   page: {
     size: "A3",
     orientation: "portrait",
@@ -269,7 +288,7 @@ const getPosterPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
       type: "map",
       position: { x: 10, y: 63, width: 277, height: 337, z_index: 1 },
       config: {
-        viewState: { latitude: 48.13, longitude: 11.57, zoom: 10, bearing: 0, pitch: 0 },
+        viewState,
       },
       style: {
         padding: 0,
@@ -303,7 +322,7 @@ const getPosterPortraitConfig = (t: TranslationFn): ReportLayoutConfig => ({
 
 // Poster template - landscape orientation (A3)
 // A3 landscape: 420x297mm, with 10mm margins = usable area 400x277mm (from x:10 to x:410, y:10 to y:287)
-const getPosterLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
+const getPosterLandscapeConfig = (t: TranslationFn, viewState: ViewStateParam): ReportLayoutConfig => ({
   page: {
     size: "A3",
     orientation: "landscape",
@@ -367,7 +386,7 @@ const getPosterLandscapeConfig = (t: TranslationFn): ReportLayoutConfig => ({
       type: "map",
       position: { x: 105, y: 10, width: 305, height: 267, z_index: 1 },
       config: {
-        viewState: { latitude: 48.13, longitude: 11.57, zoom: 10, bearing: 0, pitch: 0 },
+        viewState,
       },
       style: {
         padding: 0,
@@ -410,12 +429,14 @@ interface ReportTemplatePickerModalProps {
   open: boolean;
   onClose: () => void;
   onSelectTemplate: (template: ReportTemplate) => void;
+  initialViewState?: ProjectViewState;
 }
 
 const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
   open,
   onClose,
   onSelectTemplate,
+  initialViewState,
 }) => {
   const { t, i18n } = useTranslation("common");
   const theme = useTheme();
@@ -427,6 +448,18 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
   });
 
   // Memoize categories with i18n.language dependency to ensure translations are updated
+  // Build viewState from project's initial_view_state or fall back to default
+  const viewState: ViewStateParam = useMemo(
+    () => ({
+      latitude: initialViewState?.latitude ?? DEFAULT_VIEW_STATE.latitude,
+      longitude: initialViewState?.longitude ?? DEFAULT_VIEW_STATE.longitude,
+      zoom: initialViewState?.zoom ?? DEFAULT_VIEW_STATE.zoom,
+      bearing: initialViewState?.bearing ?? DEFAULT_VIEW_STATE.bearing,
+      pitch: initialViewState?.pitch ?? DEFAULT_VIEW_STATE.pitch,
+    }),
+    [initialViewState]
+  );
+
   const categories: TemplateCategory[] = useMemo(
     () => [
       {
@@ -440,7 +473,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
             name: `${t("single_map")} - ${t("portrait")}`,
             displayName: t("portrait"),
             description: t("portrait_layout"),
-            config: getSingleMapPortraitConfig(t),
+            config: getSingleMapPortraitConfig(t, viewState),
           },
           {
             id: "single_map_landscape",
@@ -448,7 +481,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
             name: `${t("single_map")} - ${t("landscape")}`,
             displayName: t("landscape"),
             description: t("landscape_layout"),
-            config: getSingleMapLandscapeConfig(t),
+            config: getSingleMapLandscapeConfig(t, viewState),
           },
         ],
       },
@@ -463,7 +496,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
             name: `${t("poster")} - ${t("portrait")}`,
             displayName: t("portrait"),
             description: t("portrait_layout"),
-            config: getPosterPortraitConfig(t),
+            config: getPosterPortraitConfig(t, viewState),
           },
           {
             id: "poster_landscape",
@@ -471,7 +504,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
             name: `${t("poster")} - ${t("landscape")}`,
             displayName: t("landscape"),
             description: t("landscape_layout"),
-            config: getPosterLandscapeConfig(t),
+            config: getPosterLandscapeConfig(t, viewState),
           },
         ],
       },
@@ -492,7 +525,7 @@ const ReportTemplatePickerModal: React.FC<ReportTemplatePickerModalProps> = ({
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, i18n.language]
+    [t, i18n.language, viewState]
   );
 
   const allTemplates = categories.flatMap((cat) => cat.templates);

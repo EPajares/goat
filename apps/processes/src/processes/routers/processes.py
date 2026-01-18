@@ -581,12 +581,29 @@ def _windmill_job_to_status_info(job: dict[str, Any], base_url: str) -> StatusIn
             )
         )
 
+    # Extract error message for failed jobs
+    # Windmill returns: {"error": {"name": "ErrorName", "message": "Error message", "stack": "..."}}
+    message = None
+    if ogc_status == StatusCode.failed:
+        result = job.get("result")
+        if isinstance(result, dict) and "error" in result:
+            error_info = result["error"]
+            if isinstance(error_info, dict):
+                error_name = error_info.get("name", "Error")
+                error_message = error_info.get("message", "")
+                message = (
+                    f"{error_name}: {error_message}" if error_message else error_name
+                )
+        # Fallback to generic message if no structured error (avoid exposing raw logs)
+        if not message:
+            message = "Unknown error"
+
     return StatusInfo(
         processID=process_id if process_id else None,
         type="process",
         jobID=job_id,
         status=ogc_status,
-        message=job.get("logs", "")[:500] if job.get("logs") else None,
+        message=message,
         created=created,
         started=started,
         finished=finished,

@@ -511,6 +511,7 @@
   "geoprocessing": "Geoverarbeitung",
   "get_a_quote": "Holen Sie sich ein Angebot",
   "gpkg": "GeoPackage",
+  "parquet": "Parquet",
   "graph_description_placeholder": "Diagrammbeschreibung",
   "grid_based": "Rasterbasiert (systematische Abdeckung)",
   "grid_coverage_hint": "Zeichnen Sie einen Begrenzungsrahmen auf der Karte, um den Rasterabdeckungsbereich zu definieren",

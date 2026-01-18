@@ -512,6 +512,7 @@
   "geoprocessing": "Geoprocessing",
   "get_a_quote": "Get a quote",
   "gpkg": "GeoPackage",
+  "parquet": "Parquet",
   "grid_based": "Grid-based (systematic coverage)",
   "grid_coverage_hint": "Draw a bounding box on the map to define the grid coverage area",
   "grid_view": "Grid view",

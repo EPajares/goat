@@ -279,13 +279,17 @@ class LayerExportRunner(SimpleToolRunner):
         # Build column selection, applying CRS transformation to geometry if needed
         # DuckDB ST_Transform requires both source and target CRS
         # Data is stored in EPSG:4326
+        # IMPORTANT: Use always_xy := true to ensure consistent coordinate ordering
+        # Without this, EPSG:4326 (which has lat/lon axis order per standard) would
+        # be interpreted incorrectly, causing coordinate swapping issues
         source_crs = "EPSG:4326"
         column_exprs = []
         for col in exportable_columns:
             if col == "geometry" and crs and has_geometry:
                 # Transform geometry from source CRS to target CRS
+                # always_xy ensures lon/lat (x/y) ordering regardless of CRS definition
                 column_exprs.append(
-                    f"ST_Transform(\"geometry\", '{source_crs}', '{crs}') AS \"geometry\""
+                    f"ST_Transform(\"geometry\", '{source_crs}', '{crs}', always_xy := true) AS \"geometry\""
                 )
             else:
                 column_exprs.append(f'"{col}"')
@@ -313,8 +317,9 @@ class LayerExportRunner(SimpleToolRunner):
                 if col == "geometry" and has_geometry:
                     if crs:
                         # Transform and convert to WKT
+                        # always_xy ensures lon/lat (x/y) ordering
                         csv_column_exprs.append(
-                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}')) AS \"geometry\""
+                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}', always_xy := true)) AS \"geometry\""
                         )
                     else:
                         csv_column_exprs.append('ST_AsText("geometry") AS "geometry"')
@@ -338,8 +343,9 @@ class LayerExportRunner(SimpleToolRunner):
                 if col == "geometry" and has_geometry:
                     if crs:
                         # Transform and convert to WKT
+                        # always_xy ensures lon/lat (x/y) ordering
                         xlsx_column_exprs.append(
-                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}')) AS \"geometry\""
+                            f"ST_AsText(ST_Transform(\"geometry\", '{source_crs}', '{crs}', always_xy := true)) AS \"geometry\""
                         )
                     else:
                         xlsx_column_exprs.append('ST_AsText("geometry") AS "geometry"')
