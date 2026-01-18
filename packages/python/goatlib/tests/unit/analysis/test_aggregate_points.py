@@ -37,10 +37,12 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             output_path=output_path,
         )
 
@@ -72,9 +74,11 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             output_path=output_path,
         )
 
@@ -102,10 +106,12 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.mean,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.mean,
+                    field="value",
+                )
+            ],
             output_path=output_path,
         )
 
@@ -132,10 +138,12 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.min,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.min,
+                    field="value",
+                )
+            ],
             output_path=output_path_min,
         )
 
@@ -155,10 +163,12 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.max,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.max,
+                    field="value",
+                )
+            ],
             output_path=output_path_max,
         )
 
@@ -180,10 +190,12 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             group_by_field=["category"],
             output_path=output_path,
         )
@@ -211,9 +223,11 @@ class TestAggregatePointsPolygon:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             output_path=output_path,
         )
 
@@ -242,10 +256,12 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             output_path=output_path,
         )
 
@@ -275,9 +291,11 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=6,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             output_path=output_path,
         )
 
@@ -304,10 +322,12 @@ class TestAggregatePointsH3:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=7,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             group_by_field=["category"],
             output_path=output_path,
         )
@@ -335,9 +355,11 @@ class TestAggregatePointsH3:
                 source_path=POINTS_WITH_CATEGORY,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=resolution,
-                column_statistics=FieldStatistic(
-                    operation=StatisticOperation.count,
-                ),
+                column_statistics=[
+                    FieldStatistic(
+                        operation=StatisticOperation.count,
+                    )
+                ],
                 output_path=output_path,
             )
 
@@ -379,9 +401,11 @@ class TestAggregatePointsEdgeCases:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=empty_polygon_path,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             output_path=output_path,
         )
 
@@ -416,9 +440,11 @@ class TestAggregatePointsEdgeCases:
             source_path=source_in_tmp,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=6,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             # No output_path specified
         )
 
@@ -438,9 +464,11 @@ class TestAggregatePointsEdgeCases:
             source_path=POINTS_WITH_CATEGORY,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.count,
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.count,
+                )
+            ],
             output_path=output_path,
         )
 

@@ -27,6 +27,7 @@ pytestmark = pytest.mark.integration
 # Test Fixtures
 # ============================================================================
 
+
 @pytest.fixture
 def import_runner(tool_settings: ToolSettings) -> LayerImportRunner:
     """Create LayerImportRunner instance."""
@@ -96,6 +97,7 @@ def upload_test_file_to_s3(
 # S3 Import Tests
 # ============================================================================
 
+
 class TestLayerImportFromS3:
     """Test import from S3 storage."""
 
@@ -104,6 +106,7 @@ class TestLayerImportFromS3:
         import_runner: LayerImportRunner,
         upload_test_file_to_s3,
         cleanup_output_layer,
+        ducklake_connection: duckdb.DuckDBPyConnection,
         vector_data_dir: Path,
         test_user: dict[str, Any],
         test_folder: dict[str, Any],
@@ -131,11 +134,9 @@ class TestLayerImportFromS3:
             user_schema = f"user_{test_user['id'].replace('-', '')}"
             table_name = f"t_{layer_id.replace('-', '')}"
 
-            con = duckdb.connect(import_runner.settings.ducklake_connection_string)
-            count = con.execute(f"""
+            count = ducklake_connection.execute(f"""
                 SELECT COUNT(*) FROM lake.{user_schema}.{table_name}
             """).fetchone()[0]
-            con.close()
 
             assert count > 0, "DuckLake table should have features"
 
@@ -213,6 +214,7 @@ class TestLayerImportFromS3:
 # ============================================================================
 # PostgreSQL Metadata Tests
 # ============================================================================
+
 
 class TestLayerImportMetadata:
     """Test PostgreSQL metadata creation during import."""
@@ -319,6 +321,7 @@ class TestLayerImportMetadata:
 # Error Handling Tests
 # ============================================================================
 
+
 class TestLayerImportErrors:
     """Test error handling during import."""
 
@@ -336,10 +339,11 @@ class TestLayerImportErrors:
             wfs_url=None,
         )
 
-        result = import_runner.run(params)
-
-        # Should return an error
-        assert result.get("error") is not None or result.get("layer_id") is None
+        # Should raise ValueError when no source is provided
+        with pytest.raises(
+            ValueError, match="Either s3_key or wfs_url must be provided"
+        ):
+            import_runner.run(params)
 
     def test_handles_nonexistent_s3_key(
         self,
@@ -348,21 +352,23 @@ class TestLayerImportErrors:
         test_folder: dict[str, Any],
     ):
         """Test handling of non-existent S3 object."""
+        from botocore.exceptions import ClientError
+
         params = LayerImportParams(
             user_id=test_user["id"],
             folder_id=test_folder["id"],
             s3_key=f"nonexistent/{uuid.uuid4()}/file.parquet",
         )
 
-        result = import_runner.run(params)
-
-        # Should return an error
-        assert result.get("error") is not None or result.get("layer_id") is None
+        # Should raise ClientError (404) when S3 key doesn't exist
+        with pytest.raises(ClientError):
+            import_runner.run(params)
 
 
 # ============================================================================
 # Feature Layer Type Tests
 # ============================================================================
+
 
 class TestLayerImportFeatureType:
     """Test that imports create 'standard' feature layers."""
