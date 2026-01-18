@@ -19,7 +19,17 @@ from goatlib.io.parquet import (
     write_optimized_geoparquet,
     write_optimized_parquet,
 )
-from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
+
+
+# Lazy import for PMTiles to avoid requiring pmtiles package in all environments
+# (e.g., print worker doesn't need pmtiles)
+def __getattr__(name: str):
+    if name in ("PMTilesConfig", "PMTilesGenerator"):
+        from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
+
+        return PMTilesConfig if name == "PMTilesConfig" else PMTilesGenerator
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __all__ = [
     "IOConverter",
@@ -27,7 +37,7 @@ __all__ = [
     "write_optimized_parquet",
     "write_optimized_geoparquet",  # alias for backward compatibility
     "verify_geoparquet_optimization",
-    # PMTiles generation
+    # PMTiles generation (lazy loaded)
     "PMTilesConfig",
     "PMTilesGenerator",
     # Config constants

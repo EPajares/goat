@@ -51,7 +51,6 @@ from goatlib.io.config import (
     PARQUET_ROW_GROUP_SIZE,
     PARQUET_VERSION,
 )
-from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
 from goatlib.models.io import DatasetMetadata
 from goatlib.tools.db import ToolDatabaseService
 from goatlib.tools.schemas import ToolInputBase, ToolOutputBase
@@ -1416,6 +1415,9 @@ class BaseToolRunner(SimpleToolRunner, ABC, Generic[TParams]):
             return None
 
         try:
+            # Lazy import to avoid requiring pmtiles in all environments
+            from goatlib.io.pmtiles import PMTilesConfig, PMTilesGenerator
+
             # Create PMTiles config from settings
             config = PMTilesConfig(
                 enabled=True,
