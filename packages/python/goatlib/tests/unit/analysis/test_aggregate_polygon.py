@@ -48,7 +48,7 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(operation=StatisticOperation.count),
+            column_statistics=[FieldStatistic(operation=StatisticOperation.count)],
             weighted_by_intersecting_area=False,
             output_path=output_path,
         )
@@ -84,7 +84,7 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(operation=StatisticOperation.count),
+            column_statistics=[FieldStatistic(operation=StatisticOperation.count)],
             weighted_by_intersecting_area=True,
             output_path=output_path,
         )
@@ -116,10 +116,12 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             weighted_by_intersecting_area=True,
             output_path=output_path,
         )
@@ -149,10 +151,12 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             weighted_by_intersecting_area=False,
             output_path=output_path,
         )
@@ -176,10 +180,12 @@ class TestAggregatePolygonToPolygon:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.polygon,
             area_layer_path=ZIPCODE_POLYGON,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.mean,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.mean,
+                    field="value",
+                )
+            ],
             output_path=output_path,
         )
 
@@ -210,7 +216,7 @@ class TestAggregatePolygonToH3:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=FieldStatistic(operation=StatisticOperation.count),
+            column_statistics=[FieldStatistic(operation=StatisticOperation.count)],
             output_path=output_path,
         )
 
@@ -239,10 +245,12 @@ class TestAggregatePolygonToH3:
             source_path=GREEN_AREAS,
             area_type=AggregationAreaType.h3_grid,
             h3_resolution=8,
-            column_statistics=FieldStatistic(
-                operation=StatisticOperation.sum,
-                field="value",
-            ),
+            column_statistics=[
+                FieldStatistic(
+                    operation=StatisticOperation.sum,
+                    field="value",
+                )
+            ],
             output_path=output_path,
         )
 
@@ -264,41 +272,49 @@ class TestAggregatePolygonValidation:
 
     def test_polygon_requires_area_layer(self) -> None:
         """Test polygon area_type requires area_layer_path."""
-        with pytest.raises(ValueError, match="area_layer_path is required"):
+        with pytest.raises(
+            ValueError, match="area_layer_path.*required|required.*area_layer_path"
+        ):
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.polygon,
-                column_statistics=FieldStatistic(operation=StatisticOperation.count),
+                column_statistics=[FieldStatistic(operation=StatisticOperation.count)],
             )
 
     def test_h3_requires_resolution(self) -> None:
         """Test h3_grid area_type requires h3_resolution."""
-        with pytest.raises(ValueError, match="h3_resolution is required"):
+        with pytest.raises(
+            ValueError, match="h3_resolution.*required|required.*h3_resolution"
+        ):
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
-                column_statistics=FieldStatistic(operation=StatisticOperation.count),
+                column_statistics=[FieldStatistic(operation=StatisticOperation.count)],
             )
 
     def test_sum_requires_field(self) -> None:
         """Test SUM operation requires a field."""
-        with pytest.raises(ValueError, match="Field is required"):
+        with pytest.raises(ValueError, match="Field is required|field.*required"):
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=8,
-                column_statistics=FieldStatistic(operation=StatisticOperation.sum),
+                column_statistics=[FieldStatistic(operation=StatisticOperation.sum)],
             )
 
     def test_count_rejects_field(self) -> None:
         """Test COUNT operation rejects field parameter."""
-        with pytest.raises(ValueError, match="Field should not be provided"):
+        with pytest.raises(
+            ValueError, match="Field should not be provided|field.*not.*provided"
+        ):
             AggregatePolygonParams(
                 source_path=GREEN_AREAS,
                 area_type=AggregationAreaType.h3_grid,
                 h3_resolution=8,
-                column_statistics=FieldStatistic(
-                    operation=StatisticOperation.count,
-                    field="value",
-                ),
+                column_statistics=[
+                    FieldStatistic(
+                        operation=StatisticOperation.count,
+                        field="value",
+                    )
+                ],
             )
