@@ -537,13 +537,15 @@ const PublicProjectLayout = ({
               {builderConfig?.settings.measure && <MeasureResultsPanel {...measureTool} />}
               {/* Layer Settings Panel */}
               {activeRightComponent && (
-                <FloatingPanel width={400} minHeight="auto" maxHeight="50vh">
-                  <ViewContainer
-                    title={activeRightComponent.title}
-                    disablePadding={true}
-                    close={handleClose}
-                    body={activeRightComponent.content}
-                  />
+                <FloatingPanel width={400} minHeight="auto" maxHeight="50vh" fillHeight>
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                    <ViewContainer
+                      title={activeRightComponent.title}
+                      disablePadding={true}
+                      close={handleClose}
+                      body={activeRightComponent.content}
+                    />
+                  </Box>
                 </FloatingPanel>
               )}
             </Box>
