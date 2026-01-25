@@ -14,6 +14,7 @@ const PropertiesPanel = ({ activeLayer }: { activeLayer: ProjectLayer }) => {
   return (
     <>
       <Stack spacing={4} sx={{ p: 2 }}>
+        <DatasetSummary dataset={activeLayer} hideEmpty={true} hideMainSection={true} />
         {activeLayer.updated_at && (
           <Stack>
             <Typography variant="body2" fontWeight="bold">
@@ -28,13 +29,6 @@ const PropertiesPanel = ({ activeLayer }: { activeLayer: ProjectLayer }) => {
             </Typography>
           </Stack>
         )}
-        <Stack>
-          <Typography variant="body2" fontWeight="bold">
-            {t("source")}
-          </Typography>
-          <Divider />
-          <DatasetSummary dataset={activeLayer} hideEmpty={true} />
-        </Stack>
       </Stack>
     </>
   );

@@ -69,6 +69,24 @@ const DatasetSummary: React.FC<DatasetSummaryProps> = ({
       type: "markdown",
     },
     {
+      field: "data_category",
+      heading: t("metadata.headings.data_category"),
+      noMetadataAvailable: t("metadata.no_metadata_available.data_category"),
+      type: "text",
+    },
+    {
+      field: "geographical_code",
+      heading: t("metadata.headings.geographical_code"),
+      noMetadataAvailable: t("metadata.no_metadata_available.geographical_code"),
+      type: "text",
+    },
+    {
+      field: "language_code",
+      heading: t("metadata.headings.language_code"),
+      noMetadataAvailable: t("metadata.no_metadata_available.language_code"),
+      type: "text",
+    },
+    {
       field: "data_reference_year",
       heading: t("metadata.headings.data_reference_year"),
       noMetadataAvailable: t("metadata.no_metadata_available.data_reference_year"),
@@ -96,6 +114,12 @@ const DatasetSummary: React.FC<DatasetSummaryProps> = ({
       field: "completeness",
       heading: t("metadata.headings.completeness"),
       noMetadataAvailable: t("metadata.no_metadata_available.completeness"),
+      type: "text",
+    },
+    {
+      field: "license",
+      heading: t("metadata.headings.license"),
+      noMetadataAvailable: t("metadata.no_metadata_available.license"),
       type: "text",
     },
     {
