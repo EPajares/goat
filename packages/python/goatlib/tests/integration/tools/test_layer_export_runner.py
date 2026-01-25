@@ -80,11 +80,8 @@ def wgs84_to_utm32n(lon: float, lat: float) -> tuple[float, float]:
     # This is a very rough approximation
     lon0 = 9.0  # Central meridian
     k0 = 0.9996  # Scale factor
-    a = 6378137.0  # WGS84 semi-major axis
 
     lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
-    lon0_rad = math.radians(lon0)
 
     # Simplified UTM calculation (not accurate for testing exact values)
     # Just for order of magnitude validation
