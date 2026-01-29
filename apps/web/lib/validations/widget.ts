@@ -107,6 +107,17 @@ export const filterDataConfigSchema = dataConfigSchema.extend({
       column_name: z.string().optional(),
       placeholder: z.string().optional(),
       multiple: z.boolean().optional().default(false),
+      // Chips/Checkbox-specific settings
+      min_visible_options: z.number().min(1).max(20).optional().default(5),
+      wrap: z.boolean().optional().default(true),
+      default_value: z.array(z.string()).optional(),
+      custom_order: z.array(z.string()).optional(), // Custom chip order (values in desired order)
+      // Range-specific settings
+      show_histogram: z.boolean().optional().default(true),
+      steps: z.number().min(1).max(100).optional().default(50),
+      show_slider: z.boolean().optional().default(true),
+      // Color settings
+      color: z.string().optional().default("#0e58ff"),
     })
     .default({}),
   options: dataConfigOptionsBaseSchema

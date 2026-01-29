@@ -3,8 +3,8 @@ import { Box, Typography } from "@mui/material";
 import type { ProjectLayer } from "@/lib/validations/project";
 import { type WidgetDataConfig, dataTypes } from "@/lib/validations/widget";
 
-import { FilterDataWidget } from "@/components/builder/widgets/data/Filter";
 import { NumbersDataWidget } from "@/components/builder/widgets/data/Numbers";
+import { FilterDataWidget } from "@/components/builder/widgets/data/WidgetFilter";
 
 interface WidgetDataProps {
   id: string;

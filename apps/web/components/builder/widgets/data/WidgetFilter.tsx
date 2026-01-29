@@ -12,10 +12,10 @@ import { type FilterDataSchema, filterLayoutTypes } from "@/lib/validations/widg
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
-import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import CheckboxFilter from "@/components/builder/widgets/data/CheckboxFilter";
 import ChipsFilter from "@/components/builder/widgets/data/ChipsFilter";
 import RangeFilter from "@/components/builder/widgets/data/RangeFilter";
+import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import SelectorLayerValue from "@/components/map/panels/common/SelectorLayerValue";
 
 // Deep compare helper
@@ -252,9 +252,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           <ChipsFilter
             layerId={layer.layer_id}
             fieldName={rawConfig?.setup.column_name}
-            selectedValues={
-              Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []
-            }
+            selectedValues={Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []}
             onSelectedValuesChange={(values: string[]) => {
               setSelectedValues(values);
             }}
@@ -272,9 +270,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           <CheckboxFilter
             layerId={layer.layer_id}
             fieldName={rawConfig?.setup.column_name}
-            selectedValues={
-              Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []
-            }
+            selectedValues={Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []}
             onSelectedValuesChange={(values: string[]) => {
               setSelectedValues(values);
             }}
