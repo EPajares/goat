@@ -99,6 +99,13 @@ export const numbersDataConfigSchema = dataConfigSchema.extend({
 });
 
 export const filterLayoutTypes = z.enum(["checkbox", "cards", "chips", "select", "range"]);
+
+// Target layer schema for multi-layer attribute filtering
+export const filterTargetLayerSchema = z.object({
+  layer_project_id: z.number(),
+  column_name: z.string(),
+});
+
 export const filterDataConfigSchema = dataConfigSchema.extend({
   type: z.literal("filter"),
   setup: chartConfigSetupBaseSchema
@@ -123,8 +130,9 @@ export const filterDataConfigSchema = dataConfigSchema.extend({
   options: dataConfigOptionsBaseSchema
     .extend({
       description: z.string().optional(),
-      cross_filter: z.boolean().optional().default(false),
       zoom_to_selection: z.boolean().optional().default(true),
+      // Multi-layer attribute filtering
+      target_layers: z.array(filterTargetLayerSchema).optional(),
     })
     .default({}),
 });

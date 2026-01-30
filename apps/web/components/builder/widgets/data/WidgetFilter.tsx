@@ -12,10 +12,10 @@ import { type FilterDataSchema, filterLayoutTypes } from "@/lib/validations/widg
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
+import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import CheckboxFilter from "@/components/builder/widgets/data/CheckboxFilter";
 import ChipsFilter from "@/components/builder/widgets/data/ChipsFilter";
 import RangeFilter from "@/components/builder/widgets/data/RangeFilter";
-import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import SelectorLayerValue from "@/components/map/panels/common/SelectorLayerValue";
 
 // Deep compare helper
@@ -78,16 +78,14 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
     }
   }, [existingFilter, rawConfig?.setup?.multiple]);
 
-  // Fetch geometry data for zoom functionality (any geometry type) or cross filter (polygon only)
+  // Fetch geometry data for zoom functionality
   const geometryDataQueryParams = useMemo(() => {
     const values = Array.isArray(selectedValues) ? selectedValues : [selectedValues];
     if (
       !selectedValues?.length ||
       !rawConfig?.setup?.column_name ||
       !layer ||
-      // Need geometry data if either: zoom_to_selection OR (cross_filter AND polygon)
-      (!rawConfig?.options?.zoom_to_selection &&
-        !(rawConfig?.options?.cross_filter && layer.feature_layer_geometry_type === "polygon"))
+      !rawConfig?.options?.zoom_to_selection
     )
       return undefined;
 
@@ -105,6 +103,58 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
   }, [selectedValues, rawConfig, layer]);
 
   const { data: geometryData } = useDatasetCollectionItems(layer?.layer_id || "", geometryDataQueryParams);
+
+  /**
+   * Build additional targets for multi-layer filtering
+   */
+  const buildAdditionalTargets = (filterValues: string[]) => {
+    const targetLayers = rawConfig?.options?.target_layers;
+    if (!targetLayers?.length || !filterValues.length) return undefined;
+
+    return targetLayers
+      .map((target) => {
+        const targetLayer = projectLayers.find((l) => l.id === target.layer_project_id);
+        if (!targetLayer) return null;
+
+        return {
+          layer_id: targetLayer.id,
+          filter: {
+            op: "or",
+            args: filterValues.map((value) => ({
+              op: "=",
+              args: [{ property: target.column_name }, value],
+            })),
+          },
+        };
+      })
+      .filter(Boolean) as { layer_id: number; filter: object }[];
+  };
+
+  /**
+   * Build additional targets for range filter
+   */
+  const buildAdditionalTargetsRange = (min: number, max: number) => {
+    const targetLayers = rawConfig?.options?.target_layers;
+    if (!targetLayers?.length) return undefined;
+
+    return targetLayers
+      .map((target) => {
+        const targetLayer = projectLayers.find((l) => l.id === target.layer_project_id);
+        if (!targetLayer) return null;
+
+        return {
+          layer_id: targetLayer.id,
+          filter: {
+            op: "and",
+            args: [
+              { op: ">=", args: [{ property: target.column_name }, min] },
+              { op: "<=", args: [{ property: target.column_name }, max] },
+            ],
+          },
+        };
+      })
+      .filter(Boolean) as { layer_id: number; filter: object }[];
+  };
 
   /**
    * Keep store in sync with selected values (for select, chips, checkbox)
@@ -136,26 +186,14 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           args: [{ property: rawConfig.setup.column_name }, value],
         })),
       },
+      additional_targets: buildAdditionalTargets(normalizedValues),
     };
+
     // Zoom to selection if enabled and we have geometry data
     if (geometryData?.features?.length && rawConfig?.options?.zoom_to_selection && map) {
       zoomToFeatureCollection(map, geometryData as GeoJSON.FeatureCollection, {
         duration: 200,
       });
-    }
-
-    if (
-      geometryData?.features?.length &&
-      rawConfig?.options?.cross_filter &&
-      layer.feature_layer_geometry_type === "polygon"
-    ) {
-      newFilter.spatial_cross_filter = {
-        op: "or",
-        args: geometryData.features.map((feature) => ({
-          op: "s_intersects",
-          args: [{ property: "geom" }, { ...feature.geometry }],
-        })),
-      };
     }
 
     // Compare and update store only if different
@@ -174,10 +212,11 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
     isRangeLayout,
     layer,
     map,
-    rawConfig?.options?.cross_filter,
+    rawConfig?.options?.target_layers,
     rawConfig?.options?.zoom_to_selection,
     rawConfig.setup.column_name,
     selectedValues,
+    projectLayers,
   ]);
 
   /**
@@ -211,6 +250,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           },
         ],
       },
+      additional_targets: buildAdditionalTargetsRange(min, max),
     };
 
     // Compare and update store only if different
@@ -221,7 +261,17 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
         dispatch(addTemporaryFilter(newFilter));
       }
     }
-  }, [dispatch, existingFilter, id, isRangeLayout, layer, rawConfig?.setup?.column_name, selectedRange]);
+  }, [
+    dispatch,
+    existingFilter,
+    id,
+    isRangeLayout,
+    layer,
+    rawConfig?.setup?.column_name,
+    rawConfig?.options?.target_layers,
+    selectedRange,
+    projectLayers,
+  ]);
 
   return (
     <Box sx={{ mb: 2 }}>
@@ -252,7 +302,9 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           <ChipsFilter
             layerId={layer.layer_id}
             fieldName={rawConfig?.setup.column_name}
-            selectedValues={Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []}
+            selectedValues={
+              Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []
+            }
             onSelectedValuesChange={(values: string[]) => {
               setSelectedValues(values);
             }}
@@ -270,7 +322,9 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
           <CheckboxFilter
             layerId={layer.layer_id}
             fieldName={rawConfig?.setup.column_name}
-            selectedValues={Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []}
+            selectedValues={
+              Array.isArray(selectedValues) ? selectedValues : selectedValues ? [selectedValues] : []
+            }
             onSelectedValuesChange={(values: string[]) => {
               setSelectedValues(values);
             }}

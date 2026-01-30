@@ -69,14 +69,19 @@ const Layers = (props: LayersProps) => {
     }
 
     if (mapMode !== "data" && temporaryFilters.length > 0) {
-      const nonCrossFilters = temporaryFilters
+      // Primary layer filters (filter.layer_id matches this layer)
+      const primaryFilters = temporaryFilters
         .filter((filter) => filter.layer_id === layer.id)
         .map((filter) => filter.filter);
-      const spatialCrossFilters = temporaryFilters
-        .filter((filter) => filter.layer_id !== layer.id && filter.spatial_cross_filter)
-        .map((filter) => filter.spatial_cross_filter);
-      // 3- Merge all filters
-      const allFilters = [...nonCrossFilters, ...spatialCrossFilters];
+
+      // Additional target filters (from multi-layer attribute filtering)
+      const additionalTargetFilters = temporaryFilters
+        .flatMap((f) => f.additional_targets || [])
+        .filter((t) => t.layer_id === layer.id)
+        .map((t) => t.filter);
+
+      // Merge all filters
+      const allFilters = [...primaryFilters, ...additionalTargetFilters];
       if (allFilters.length === 0) return extendedFilter;
       const extendedWithTemporaryFilters = {
         op: "and",

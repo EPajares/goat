@@ -16,7 +16,7 @@ interface UseLayerFiltersParams {
 
 /**
  * Returns a combined CQL filter from temporary filters in the store,
- * merging per-layer and spatial cross-filters for the specified layer.
+ * merging per-layer filters and additional target filters for the specified layer.
  */
 function useTemporaryFilters({ layerId }: UseLayerFiltersParams) {
   const { temporaryFilters } = useAppSelector((state) => state.map);
@@ -24,13 +24,16 @@ function useTemporaryFilters({ layerId }: UseLayerFiltersParams) {
   return useMemo(() => {
     if (!layerId) return undefined;
 
-    const nonCross = temporaryFilters.filter((f) => f.layer_id === layerId).map((f) => f.filter);
+    // Primary filters for this layer
+    const primaryFilters = temporaryFilters.filter((f) => f.layer_id === layerId).map((f) => f.filter);
 
-    const spatialCross = temporaryFilters
-      .filter((f) => f.layer_id !== layerId && f.spatial_cross_filter)
-      .map((f) => f.spatial_cross_filter as any);
+    // Additional target filters from multi-layer attribute filtering
+    const additionalTargetFilters = temporaryFilters
+      .flatMap((f) => f.additional_targets || [])
+      .filter((t) => t.layer_id === layerId)
+      .map((t) => t.filter);
 
-    const filters = [...nonCross, ...spatialCross];
+    const filters = [...primaryFilters, ...additionalTargetFilters];
     if (!filters.length) return undefined;
 
     return { op: "and", args: filters };

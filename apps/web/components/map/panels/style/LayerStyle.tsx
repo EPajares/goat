@@ -5,6 +5,7 @@ import { useMap } from "react-map-gl/maplibre";
 
 import { getLayerClassBreaks, getLayerUniqueValues } from "@/lib/api/layers";
 import { updateProjectLayer } from "@/lib/api/projects";
+import { COLOR_RANGES } from "@/lib/constants/color";
 import {
   type ColorMap,
   type FeatureLayerProperties,
@@ -135,10 +136,13 @@ const LayerStylePanel = ({ projectId }: { projectId: string }) => {
       const oldFieldName = layerProperties[`${updateType}_field`]?.name;
       const newFieldName = newStyle[`${updateType}_field`]?.name;
       if (updateType === "marker" && oldFieldName !== newFieldName) {
+        // For markers, use existing mapping length or default to reasonable limit
+        const existingMapping = newStyle[`${updateType}_mapping`];
+        const limit = existingMapping?.length || 10;
         const uniqueValues = await getLayerUniqueValues(
           activeLayer.layer_id,
           newStyle[`${updateType}_field`]?.name as string,
-          6
+          limit
         );
         const markerMap = [] as MarkerMap;
         const emptyMarker = {
@@ -159,18 +163,47 @@ const LayerStylePanel = ({ projectId }: { projectId: string }) => {
           !newStyle[`${updateType}_range`]?.color_map ||
           oldFieldName !== newFieldName
         ) {
-          const colors = newStyle[`${updateType}_range`]?.colors;
+          const currentRange = newStyle[`${updateType}_range`];
+          // Request more unique values than colors to get the actual count
+          // Then limit to the smaller of: unique values found OR available colors
           const uniqueValues = await getLayerUniqueValues(
             activeLayer.layer_id,
             newStyle[`${updateType}_field`]?.name as string,
-            colors?.length
+            100 // Request up to 100 to get actual unique count
           );
 
+          // Use the actual unique values count, capped by a reasonable max
+          const actualCount = Math.min(uniqueValues.items.length, 12);
+
+          // Try to find a palette with the exact number of colors needed
+          // First, look for a palette with the same name/category but correct step count
+          let matchingPalette = COLOR_RANGES.find(
+            (range) =>
+              range.colors.length === actualCount &&
+              (range.category === currentRange?.category || range.type === currentRange?.type)
+          );
+
+          // If no matching palette found, find any palette with the correct number of colors
+          if (!matchingPalette) {
+            matchingPalette = COLOR_RANGES.find((range) => range.colors.length === actualCount);
+          }
+
+          // Use the matching palette colors, or fall back to slicing current colors
+          const colors = matchingPalette?.colors || currentRange?.colors?.slice(0, actualCount) || [];
+
           const colorMap = [] as ColorMap;
-          uniqueValues.items.forEach((item: LayerUniqueValues, index: number) => {
+          uniqueValues.items.slice(0, actualCount).forEach((item: LayerUniqueValues, index: number) => {
             colorMap.push([[item.value], colors[index]]);
           });
           newStyle[`${updateType}_range`].color_map = colorMap;
+          // Update the colors array to match the selected palette
+          newStyle[`${updateType}_range`].colors = colors;
+          // Update palette metadata if we found a matching one
+          if (matchingPalette) {
+            newStyle[`${updateType}_range`].name = matchingPalette.name;
+            newStyle[`${updateType}_range`].category = matchingPalette.category;
+            newStyle[`${updateType}_range`].type = matchingPalette.type;
+          }
         }
       }
       updateLayerStyle(newStyle);

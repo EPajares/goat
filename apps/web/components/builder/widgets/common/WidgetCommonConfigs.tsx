@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
+import { useProjectLayers } from "@/lib/api/projects";
 import { formatNumber } from "@/lib/utils/format-number";
 import { hasNestedSchemaPath } from "@/lib/utils/zod";
 import type { FormatNumberTypes, WidgetConfigSchema } from "@/lib/validations/widget";
@@ -17,7 +18,7 @@ import type { SelectorItem } from "@/types/map/common";
 import useLayerFields from "@/hooks/map/CommonHooks";
 import { useLayerByGeomType, useLayerDatasetId } from "@/hooks/map/ToolsHooks";
 
-import { WidgetFilterLayout } from "@/components/builder/widgets/data/DataConfig";
+import { TargetLayersConfig, WidgetFilterLayout } from "@/components/builder/widgets/data/DataConfig";
 import LayerFieldSelector from "@/components/map/common/LayerFieldSelector";
 import { StatisticSelector } from "@/components/map/common/StatisticSelector";
 import SectionHeader from "@/components/map/panels/common/SectionHeader";
@@ -345,10 +346,11 @@ export const WidgetSetup = ({ config, onChange }: WidgetConfigProps) => {
 
 export const WidgetOptions = ({ active = true, sectionLabel, config, onChange }: WidgetConfigProps) => {
   const { t } = useTranslation("common");
+  const { projectId } = useParams();
   const schema = widgetSchemaMap[config.type];
 
-  const hasCrossFilterDef = useMemo(() => {
-    return hasNestedSchemaPath(schema, "options.cross_filter");
+  const hasTargetLayersDef = useMemo(() => {
+    return hasNestedSchemaPath(schema, "options.target_layers");
   }, [schema]);
 
   const hasFilterViewPortDef = useMemo(() => {
@@ -367,6 +369,9 @@ export const WidgetOptions = ({ active = true, sectionLabel, config, onChange }:
     return hasNestedSchemaPath(schema, "options.has_padding");
   }, [schema]);
 
+  // Get project layers for target layer selection
+  const { layers: projectLayers } = useProjectLayers(projectId as string);
+
   const handleOptionChange = useCallback(
     (key: string, value: any) => {
       const updatedOptions = {
@@ -383,13 +388,13 @@ export const WidgetOptions = ({ active = true, sectionLabel, config, onChange }:
 
   const hasOption = useMemo(() => {
     return (
-      hasCrossFilterDef ||
+      hasTargetLayersDef ||
       hasFilterViewPortDef ||
       hasZoomToSelectionDef ||
       hasNumberFormatDef ||
       hasPaddingDef
     );
-  }, [hasCrossFilterDef, hasFilterViewPortDef, hasZoomToSelectionDef, hasNumberFormatDef, hasPaddingDef]);
+  }, [hasTargetLayersDef, hasFilterViewPortDef, hasZoomToSelectionDef, hasNumberFormatDef, hasPaddingDef]);
 
   return (
     <>
@@ -405,35 +410,19 @@ export const WidgetOptions = ({ active = true, sectionLabel, config, onChange }:
           <SectionOptions
             active={active}
             baseOptions={
-              <Stack>
-                {hasCrossFilterDef && (
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        size="small"
-                        color="primary"
-                        // Access config.options safely, using 'as any' for now to match context.
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        checked={!!(config as any)?.options?.cross_filter}
-                        onChange={(e) => {
-                          handleOptionChange("cross_filter", e.target.checked);
-                        }}
-                      />
-                    }
-                    label={
-                      <Stack direction="row" alignItems="center" spacing={2}>
-                        <Typography variant="body2">{t("cross_filter")}</Typography>
-                        <Tooltip title={t("cross_filter_tooltip")} placement="top" arrow>
-                          <HelpOutlineIcon
-                            style={{
-                              fontSize: "12px",
-                            }}
-                          />
-                        </Tooltip>
-                      </Stack>
-                    }
-                  />
-                )}
+              <Stack spacing={2}>
+                {hasTargetLayersDef &&
+                  (config.setup as any)?.layer_project_id &&
+                  (config.setup as any)?.column_name && (
+                    <TargetLayersConfig
+                      layerProjectId={(config.setup as any)?.layer_project_id}
+                      targetLayers={(config as any)?.options?.target_layers}
+                      projectLayers={projectLayers || []}
+                      onTargetLayersChange={(targets) => {
+                        handleOptionChange("target_layers", targets?.length ? targets : undefined);
+                      }}
+                    />
+                  )}
 
                 {hasFilterViewPortDef && (
                   <FormControlLabel

@@ -43,11 +43,17 @@ export type Measurement = {
   };
 };
 
+export type TemporaryFilterTarget = {
+  layer_id: number;
+  filter: object;
+};
+
 export type TemporaryFilter = {
   id: string; // unique identifier
-  layer_id: number; // layer id
+  layer_id: number; // primary layer id
   filter: object;
-  spatial_cross_filter?: object | undefined;
+  // Additional layers to apply the same filter values to (with different column names)
+  additional_targets?: TemporaryFilterTarget[];
 };
 
 export type MapMode = "data" | "builder" | "reports" | "workflows" | "public";

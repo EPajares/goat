@@ -162,9 +162,8 @@ const CustomColorScale = (props: CustomColorScaleProps) => {
   const theme = useTheme();
   const { colorSet, activeLayerField, activeLayerId } = props;
   const { t } = useTranslation("common");
-  const [valueMaps, setValueMaps] = React.useState<ColorMapItem[]>(getValueMaps());
 
-  function getValueMaps() {
+  const getValueMaps = React.useCallback(() => {
     const valueMaps =
       colorSet.selectedColor.color_map?.map((colorMap: ColorMap) => {
         return {
@@ -183,7 +182,14 @@ const CustomColorScale = (props: CustomColorScaleProps) => {
       };
     });
     return sortedColorMaps;
-  }
+  }, [colorSet.selectedColor.color_map]);
+
+  const [valueMaps, setValueMaps] = React.useState<ColorMapItem[]>(getValueMaps());
+
+  // Sync valueMaps when color_map changes from props
+  React.useEffect(() => {
+    setValueMaps(getValueMaps());
+  }, [getValueMaps]);
 
   const classBreakOptions = React.useMemo(() => {
     return activeLayerField?.type === "number" ? classBreaks.options : [classBreaks.Enum.ordinal];

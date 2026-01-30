@@ -36,6 +36,8 @@ const RangeFilter = ({
   // Local state for input fields (to allow typing without immediate updates)
   const [localMin, setLocalMin] = useState<string>("");
   const [localMax, setLocalMax] = useState<string>("");
+  // Local state for slider (to allow dragging without immediate API calls)
+  const [localSliderValue, setLocalSliderValue] = useState<[number, number] | null>(null);
 
   // Build query params for histogram
   const queryParams = useMemo<HistogramStatsQueryParams | undefined>(() => {
@@ -96,9 +98,15 @@ const RangeFilter = ({
     return null;
   }, [selectedRange, dataRange]);
 
-  // Handle slider change
+  // Handle slider change (visual only, during drag)
   const handleSliderChange = (_event: Event, newValue: number | number[]) => {
+    setLocalSliderValue(newValue as [number, number]);
+  };
+
+  // Handle slider change committed (when user releases slider)
+  const handleSliderChangeCommitted = (_event: React.SyntheticEvent | Event, newValue: number | number[]) => {
     const [min, max] = newValue as [number, number];
+    setLocalSliderValue(null); // Clear local state
     if (dataRange && min === dataRange.min && max === dataRange.max) {
       // If range matches full data range, clear filter
       onSelectedRangeChange(null);
@@ -132,10 +140,11 @@ const RangeFilter = ({
     }
   };
 
-  // Check if a bar is within the selected range
+  // Check if a bar is within the selected range (use local slider value during drag for visual feedback)
   const isBarInRange = (bar: { rangeStart: number; rangeEnd: number }) => {
-    if (!effectiveRange) return true;
-    const [min, max] = effectiveRange;
+    const rangeToCheck = localSliderValue || effectiveRange;
+    if (!rangeToCheck) return true;
+    const [min, max] = rangeToCheck;
     // Bar is in range if it overlaps with the selected range
     return bar.rangeEnd >= min && bar.rangeStart <= max;
   };
@@ -187,8 +196,9 @@ const RangeFilter = ({
       {showSlider && (
         <Box sx={{ px: 1, mb: 2 }}>
           <Slider
-            value={effectiveRange || [dataRange.min, dataRange.max]}
+            value={localSliderValue || effectiveRange || [dataRange.min, dataRange.max]}
             onChange={handleSliderChange}
+            onChangeCommitted={handleSliderChangeCommitted}
             min={dataRange.min}
             max={dataRange.max}
             step={(dataRange.max - dataRange.min) / 100}
