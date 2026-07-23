@@ -83,14 +83,38 @@ export function useFeatureEditor(mapRef: React.RefObject<MapRef | null> | null) 
     const markerSize = props.marker_size ?? 100;
     // Resolve icon-image — may be a data-driven expression or a simple string
     const iconImage = getMapboxStyleMarker(editingProjectLayer as ProjectLayer);
+    const iconImageName =
+      typeof iconImage === "string" ? iconImage : `${editingProjectLayer.id}-${props.marker?.name}`;
+    const iconSize = markerSize / 200;
+
+    // The draw styles render the selection as a ring AROUND the icon. Its
+    // radius must come from the icon's real rendered size — icon images have
+    // arbitrary intrinsic dimensions, so a fixed formula based on _iconSize
+    // alone leaves the ring hidden behind larger icons.
+    let iconRadius: number | undefined;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const img = (mapRef?.current?.getMap() as any)?.getImage?.(iconImageName);
+      const width = img?.data?.width;
+      if (typeof width === "number" && width > 0) {
+        const pixelRatio = img.pixelRatio ?? 1;
+        const height = img.data.height ?? width;
+        const cssSize = Math.max(width, height) / pixelRatio;
+        iconRadius = Math.round((cssSize * iconSize) / 2 + 4);
+      }
+    } catch {
+      /* image not registered (yet) — styles fall back to the size formula */
+    }
+
     return {
-      _iconImage: typeof iconImage === "string" ? iconImage : `${editingProjectLayer.id}-${props.marker?.name}`,
-      _iconSize: markerSize / 200,
+      _iconImage: iconImageName,
+      _iconSize: iconSize,
       _iconAnchor: props.marker_anchor || "center",
       _iconOpacity: props.filled ? (props.opacity ?? 1) : 1,
       _iconColor: "#000000",
+      ...(iconRadius !== undefined ? { _iconRadius: iconRadius } : {}),
     };
-  }, [editingProjectLayer]);
+  }, [editingProjectLayer, mapRef]);
 
   // Timestamp of last feature create — used to ignore the map click that follows a draw.create
   const lastCreateTimeRef = useRef(0);

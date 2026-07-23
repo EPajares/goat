@@ -460,37 +460,26 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
 
   const editorActiveFeatureId = useAppSelector((state) => state.featureEditor.activeFeatureId);
 
-  const highlightRowOnMap = useCallback(
-    (rowId: string) => {
-      const feature = collectionData?.features.find((f, i) => `${f.id}-${page}-${i}` === rowId);
-      if (!feature) return;
-      // The feature currently loaded into the edit tools already has the
-      // draw selection styling — a second (pulsing) highlight on top of it
-      // is just noise, so clear it instead.
-      if (isEditing && editorActiveFeatureId && String(feature.id) === editorActiveFeatureId) {
-        dispatch(setHighlightedFeature(undefined));
-        return;
-      }
-      // Determine the MapLibre layer type from the geometry type
-      const geomType = projectLayer.feature_layer_geometry_type;
-      const isCustomMarker = !!projectLayer.properties?.["custom_marker"];
-      const layerType = geomType === "polygon" ? "fill" : geomType === "line" ? "line" : isCustomMarker ? "symbol" : "circle";
-      dispatch(setHighlightedFeature({
-        id: feature.id != null ? Number(feature.id) : undefined,
-        properties: feature.properties || {},
-        layer: { id: projectLayer.id.toString(), type: layerType },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any));
-    },
-    [collectionData, page, projectLayer, dispatch, isEditing, editorActiveFeatureId]
-  );
-
   const selectRow = (rowId: string) => {
     setSelectedRowId(rowId);
     dispatch(setPopupInfo(undefined));
-    // Highlight the feature on the map — in edit mode too, so the user can
-    // always locate the selected row spatially.
-    highlightRowOnMap(rowId);
+
+    // Highlight feature on the map (only outside edit mode)
+    if (!isEditing) {
+      const feature = collectionData?.features.find((f, i) => `${f.id}-${page}-${i}` === rowId);
+      if (feature) {
+        // Determine the MapLibre layer type from the geometry type
+        const geomType = projectLayer.feature_layer_geometry_type;
+        const isCustomMarker = !!projectLayer.properties?.["custom_marker"];
+        const layerType = geomType === "polygon" ? "fill" : geomType === "line" ? "line" : isCustomMarker ? "symbol" : "circle";
+        dispatch(setHighlightedFeature({
+          id: feature.id != null ? Number(feature.id) : undefined,
+          properties: feature.properties || {},
+          layer: { id: projectLayer.id.toString(), type: layerType },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any));
+      }
+    }
   };
 
   // Edit-tool → table sync: picking a feature on the map with the edit tools
@@ -501,10 +490,8 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
     if (!isEditing || !editorActiveFeatureId || !collectionData?.features) return;
     const idx = collectionData.features.findIndex((f) => String(f.id) === editorActiveFeatureId);
     if (idx < 0) return;
-    const rowId = `${collectionData.features[idx].id}-${page}-${idx}`;
-    setSelectedRowId(rowId);
-    highlightRowOnMap(rowId);
-  }, [editorActiveFeatureId, isEditing, collectionData, page, highlightRowOnMap]);
+    setSelectedRowId(`${collectionData.features[idx].id}-${page}-${idx}`);
+  }, [editorActiveFeatureId, isEditing, collectionData, page]);
 
   const handleRowDoubleClick = (rowId: string) => {
     if (!map) return;
@@ -535,8 +522,9 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
       setDirtyCells(new Map());
       setEditingCell(null);
       setSelectedCell(null);
+      dispatch(setHighlightedFeature(undefined));
     }
-  }, [isEditing, pendingCount]);
+  }, [isEditing, pendingCount, dispatch]);
 
   const handleCellClick = (rowId: string, column: string, value: unknown) => {
     if (!isEditing) return; // Cells are only editable in edit mode
