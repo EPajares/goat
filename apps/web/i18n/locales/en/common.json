@@ -2307,6 +2307,8 @@
   "field_name_copy_suffix": "copy",
   "field_name_required": "Field name is required",
   "formula": "Formula",
+  "freeze_column": "Freeze column",
+  "unfreeze_column": "Unfreeze column",
   "formula_required": "Formula is required",
   "no_formula_yet": "No formula yet",
   "edit_formula": "Edit formula",

@@ -30,7 +30,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 // Redux
 import { useUserProfile } from "@/lib/api/users";
 import { MAX_EDITABLE_LAYER_SIZE } from "@/lib/constants";
-import { startEditing } from "@/lib/store/featureEditor/slice";
+import useStartEditingGuard from "@/hooks/map/useStartEditingGuard";
 import { emitInteractionEvent } from "@/lib/store/interaction/slice";
 import { setSelectedLayers } from "@/lib/store/layer/slice";
 import { setActiveRightPanel, setDataPanelLayerId, setIsDataPanelOpen } from "@/lib/store/map/slice";
@@ -55,6 +55,7 @@ import MoreMenu from "@/components/common/PopperMenu";
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
 // Modals
 import CatalogExplorerModal from "@/components/modals/CatalogExplorer";
+import ConfirmModal from "@/components/modals/Confirm";
 import ContentDialogWrapper from "@/components/modals/ContentDialogWrapper";
 import DatasetExplorerModal from "@/components/modals/DatasetExplorer";
 import DatasetExternalModal from "@/components/modals/DatasetExternal";
@@ -414,6 +415,8 @@ export const ProjectLayerTree = ({
   const { userProfile } = useUserProfile();
   // Only subscribe to currentZoom when dimming is enabled and in view mode
   const currentZoom = useAppSelector((state) => (dimOutOfZoom && viewMode === "view" ? state.map.currentZoom : undefined));
+  const editingLayerId = useAppSelector((state) => state.featureEditor.activeLayerId);
+  const startEditingGuard = useStartEditingGuard();
 
   const [items, setItems] = useState<ProjectTreeItem[]>([]);
   const itemsRef = useRef<ProjectTreeItem[]>([]);
@@ -607,8 +610,11 @@ export const ProjectLayerTree = ({
 
     dispatch(setSelectedLayers(realIds));
 
-    // Always sync data panel layer — if the panel is closed, this is a no-op
-    if (realIds.length === 1) {
+    // Sync data panel layer — if the panel is closed, this is a no-op.
+    // While a feature-edit session is active the panel stays pinned to the
+    // editing layer: plain tree selection must not hijack (or end) the
+    // session — only explicitly opening another layer's table does.
+    if (realIds.length === 1 && !editingLayerId) {
       dispatch(setDataPanelLayerId(realIds[0]));
     }
 
@@ -858,10 +864,11 @@ export const ProjectLayerTree = ({
                   } else if (menuItem.id === MapLayerActions.DUPLICATE) {
                     handleDuplicate(target);
                   } else if (menuItem.id === MapLayerActions.EDIT_FEATURES) {
-                    dispatch(startEditing({
+                    startEditingGuard.requestStartEditing({
                       layerId: target.layer_id,
                       geometryType: target.feature_layer_geometry_type ?? null,
-                    }));
+                      projectLayerId: target.id,
+                    });
                   } else if (menuItem.id === ContentActions.TABLE) {
                     if (mapMode === "data") {
                       dispatch(setDataPanelLayerId(target.id));
@@ -1320,6 +1327,15 @@ export const ProjectLayerTree = ({
           content={groupInfo[String(groupInfoDialog.id)]}
         />
       )}
+      <ConfirmModal
+        open={startEditingGuard.confirmOpen}
+        title={t("stop_editing")}
+        body={t("discard_edits_confirmation")}
+        closeText={t("cancel")}
+        confirmText={t("stop_editing")}
+        onClose={startEditingGuard.cancel}
+        onConfirm={startEditingGuard.confirm}
+      />
     </Box>
   );
 };
