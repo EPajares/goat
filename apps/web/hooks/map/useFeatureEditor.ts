@@ -694,16 +694,17 @@ export function useFeatureEditor(mapRef: React.RefObject<MapRef | null> | null) 
       drawControl?.deleteAll();
       dispatch(clearPendingFeatures());
       toast.success(t("features_saved"));
-      // Refresh tiles by optimistically updating updated_at
-      if (projectLayers) {
-        const now = new Date().toISOString();
+      // Refresh tiles by optimistically updating updated_at — the tile URL's
+      // v= cache-buster derives from it, so bumping it makes MapLibre refetch.
+      const bumpLayerUpdatedAt = () =>
         mutateProjectLayers(
-          projectLayers.map((l) =>
-            l.layer_id === activeLayerId ? { ...l, updated_at: now } : l
-          ),
+          (current) =>
+            current?.map((l) =>
+              l.layer_id === activeLayerId ? { ...l, updated_at: new Date().toISOString() } : l
+            ),
           { revalidate: false },
         );
-      }
+      bumpLayerUpdatedAt();
       // Revalidate any SWR cache entry for this layer's collection items
       // (data table feature pages, queryables) so newly written values
       // — including recomputed columns like area/perimeter — show up.
@@ -723,9 +724,14 @@ export function useFeatureEditor(mapRef: React.RefObject<MapRef | null> | null) 
       revalidateCollection();
       // The read pool serves a pinned DuckLake snapshot whose post-write
       // refresh runs on a background thread (~1s) — the immediate revalidate
-      // can race it and fetch the pre-write snapshot, so revalidate once
-      // more after the pin has had time to advance.
-      setTimeout(revalidateCollection, 2500);
+      // and tile refetch can race it and get the pre-write snapshot, so do
+      // both once more after the pin has had time to advance. Without the
+      // second updated_at bump the stale tiles would stick: MapLibre only
+      // refetches when the tile URL changes.
+      setTimeout(() => {
+        revalidateCollection();
+        bumpLayerUpdatedAt();
+      }, 2500);
     } catch (error) {
       console.error("Failed to save features:", error);
       toast.error(t("error_saving_features"));
