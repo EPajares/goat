@@ -491,6 +491,13 @@ export const layerMetadataSchema = contentMetadataSchema.extend({
   in_catalog: z.boolean().optional().default(false),
 });
 
+export const tableConfigSchema = z.object({
+  // Columns pinned to the left of the data table, in pin order
+  frozen_columns: z.array(z.string()).optional(),
+  // Column widths in px — required for stable sticky offsets across reloads
+  column_widths: z.record(z.string(), z.number()).optional(),
+});
+
 export const otherPropertiesSchmea = z.object({
   url: z.string().optional(),
   layers: z.array(z.string()).optional(),
@@ -501,6 +508,8 @@ export const otherPropertiesSchmea = z.object({
   version: z.string().optional(),
   dpi: z.number().optional(),
   tile_size: z.number().optional(),
+  // Per-project-layer data table preferences
+  table_config: tableConfigSchema.optional(),
 });
 
 // Raster styling schemas

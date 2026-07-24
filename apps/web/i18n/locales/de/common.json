@@ -706,6 +706,8 @@
   "field_name_invalid": "Muss mit Buchstabe oder Unterstrich beginnen, dann nur alphanumerische Zeichen und Unterstriche",
   "field_name_required": "Feldname ist erforderlich",
   "formula": "Formel",
+  "freeze_column": "Spalte fixieren",
+  "unfreeze_column": "Fixierung aufheben",
   "formula_required": "Formel ist erforderlich",
   "no_formula_yet": "Noch keine Formel",
   "edit_formula": "Formel bearbeiten",

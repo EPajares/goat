@@ -1,11 +1,14 @@
 import { Box, useTheme } from "@mui/material";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
-import { setDataPanelHeight, setIsDataPanelOpen } from "@/lib/store/map/slice";
+import { stopEditing } from "@/lib/store/featureEditor/slice";
+import { setDataPanelHeight, setDataPanelLayerId, setIsDataPanelOpen } from "@/lib/store/map/slice";
 import type { ProjectLayer } from "@/lib/validations/project";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
+import ConfirmModal from "@/components/modals/Confirm";
 import DatasetDownloadModal from "@/components/modals/DatasetDownload";
 import EditableDataTable from "@/components/map/panels/EditableDataTable";
 
@@ -40,6 +43,46 @@ const DataPanel: React.FC<DataPanelProps> = ({ projectLayers, isEditor = true })
   const activeProjectLayer = dataPanelLayerId
     ? projectLayers.find((l) => l.id === dataPanelLayerId)
     : undefined;
+
+  // An edit session is bound to ONE layer. If the panel switches to a
+  // different layer, the floating edit toolbar and the table would silently
+  // target different layers — end the session instead (with a confirmation
+  // when unsaved edits would be discarded).
+  const { t } = useTranslation("common");
+  const editingLayerId = useAppSelector((state) => state.featureEditor.activeLayerId);
+  const hasPendingEdits = useAppSelector(
+    (state) => Object.keys(state.featureEditor.pendingFeatures).length > 0
+  );
+  const [layerSwitchConfirmOpen, setLayerSwitchConfirmOpen] = useState(false);
+  useEffect(() => {
+    if (!editingLayerId || !activeProjectLayer) return;
+    if (activeProjectLayer.layer_id === editingLayerId) {
+      setLayerSwitchConfirmOpen(false);
+      return;
+    }
+    if (hasPendingEdits) {
+      setLayerSwitchConfirmOpen(true);
+    } else {
+      dispatch(stopEditing());
+    }
+  }, [activeProjectLayer, editingLayerId, hasPendingEdits, dispatch]);
+
+  const handleLayerSwitchConfirm = useCallback(() => {
+    dispatch(stopEditing());
+    setLayerSwitchConfirmOpen(false);
+  }, [dispatch]);
+
+  const handleLayerSwitchCancel = useCallback(() => {
+    // Return the panel to the layer being edited; if that layer is no longer
+    // in the project, the session has nothing to return to — end it.
+    const editingProjectLayer = projectLayers.find((l) => l.layer_id === editingLayerId);
+    if (editingProjectLayer) {
+      dispatch(setDataPanelLayerId(editingProjectLayer.id));
+    } else {
+      dispatch(stopEditing());
+    }
+    setLayerSwitchConfirmOpen(false);
+  }, [projectLayers, editingLayerId, dispatch]);
 
   // Single source of truth: set the CSS variable on :root.
   // Both the panel itself and sibling layout components read from this variable.
@@ -207,6 +250,15 @@ const DataPanel: React.FC<DataPanelProps> = ({ projectLayers, isEditor = true })
           open={isDownloadOpen}
           onClose={() => setIsDownloadOpen(false)}
           dataset={activeProjectLayer}
+        />
+        <ConfirmModal
+          open={layerSwitchConfirmOpen}
+          title={t("stop_editing")}
+          body={t("discard_edits_confirmation")}
+          closeText={t("cancel")}
+          confirmText={t("stop_editing")}
+          onClose={handleLayerSwitchCancel}
+          onConfirm={handleLayerSwitchConfirm}
         />
       </Box>
     </Box>
