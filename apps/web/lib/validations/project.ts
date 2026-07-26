@@ -167,6 +167,25 @@ export const builderConfigSchema = z.object({
           max_zoom: z.number().min(0).max(24).nullable().default(null),
         })
         .default({}),
+      // Unified search (places + layer features). Layers list is the
+      // public-dashboard search scope; the editor searches visible layers
+      // automatically and ignores this.
+      search: z
+        .object({
+          places: z.boolean().default(true),
+          /** Optional custom input placeholder; falls back to the default copy. */
+          placeholder: z.string().max(100).optional(),
+          layers: z
+            .array(
+              z.object({
+                layer_project_id: z.number(),
+                columns: z.array(z.string()).min(1).max(3),
+                label_column: z.string().optional(),
+              })
+            )
+            .default([]),
+        })
+        .default({}),
     })
     .default({}),
   interface: z.preprocess(
@@ -448,6 +467,7 @@ export type ProjectPublic = z.infer<typeof projectPublicSchema>;
 export type BuilderConfigSchema = z.infer<typeof builderConfigSchema>;
 export type BuilderPanelSchema = z.infer<typeof builderPanelSchema>;
 export type BuilderWidgetSchema = z.infer<typeof builderWidgetSchema>;
+export type SearchSettings = z.infer<typeof builderConfigSchema>["settings"]["search"];
 export type AggregationStatsQueryParams = z.infer<typeof aggregationStatsQueryParams>;
 export type AggregationStatsResponse = z.infer<typeof aggregationStatsResponseSchema>;
 export type HistogramStatsQueryParams = z.infer<typeof histogramStatsQueryParams>;

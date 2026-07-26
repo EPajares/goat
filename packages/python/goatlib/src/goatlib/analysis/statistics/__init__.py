@@ -28,6 +28,9 @@ from goatlib.analysis.schemas.statistics import (
     HistogramBreakMethod,
     HistogramInput,
     HistogramResult,
+    LayerSearchGroup,
+    LayerSearchItem,
+    LayerSearchResult,
     SortOrder,
     StatisticsOperation,
     UniqueValue,
@@ -40,6 +43,7 @@ from goatlib.analysis.statistics.class_breaks import calculate_class_breaks
 from goatlib.analysis.statistics.extent import calculate_extent
 from goatlib.analysis.statistics.feature_count import calculate_feature_count
 from goatlib.analysis.statistics.histogram import calculate_histogram
+from goatlib.analysis.statistics.layer_search import search_layer_features
 from goatlib.analysis.statistics.unique_values import calculate_unique_values
 
 __all__ = [
@@ -51,6 +55,7 @@ __all__ = [
     "calculate_extent",
     "calculate_aggregation_stats",
     "calculate_histogram",
+    "search_layer_features",
     # Schemas - Enums
     "ClassBreakMethod",
     "SortOrder",
@@ -76,4 +81,7 @@ __all__ = [
     "AggregationStatsResult",
     "HistogramBin",
     "HistogramResult",
+    "LayerSearchItem",
+    "LayerSearchGroup",
+    "LayerSearchResult",
 ]

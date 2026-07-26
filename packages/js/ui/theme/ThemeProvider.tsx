@@ -35,31 +35,39 @@ interface Props {
   children: ReactNode;
 }
 
+/**
+ * Builds the full app theme for the given settings. Exported so callers that
+ * need a theme in a specific mode (e.g. public dashboards, which must not
+ * inherit the viewer's own light/dark preference) get the identical palette,
+ * component overrides and typography this provider applies.
+ */
+export const createAppTheme = (settings: Settings) => {
+  // ** Merged ThemeOptions of Core and User
+  const coreThemeConfig = themeOptions(settings);
+  // ** Pass ThemeOptions to CreateTheme Function to create partial theme without component overrides
+  let theme = createTheme(coreThemeConfig);
+  // ** Continue theme creation and pass merged component overrides to CreateTheme function
+  theme = createTheme(
+    theme,
+    {
+      components: { ...overrides(theme) },
+      typography: { ...typography(theme) },
+    },
+    settings.locale === "de" ? deDE : enUS,
+  );
+
+  // ** Set responsive font sizes to true
+  if (themeConfig.responsiveFontSizes) {
+    theme = responsiveFontSizes(theme);
+  }
+  return theme;
+};
+
 const ThemeProvider = (props: Props) => {
   // ** Props
   const { settings, children } = props;
 
-  const theme = useMemo(() => {
-    // ** Merged ThemeOptions of Core and User
-    const coreThemeConfig = themeOptions(settings);
-    // ** Pass ThemeOptions to CreateTheme Function to create partial theme without component overrides
-    let theme = createTheme(coreThemeConfig);
-    // ** Continue theme creation and pass merged component overrides to CreateTheme function
-    theme = createTheme(
-      theme,
-      {
-        components: { ...overrides(theme) },
-        typography: { ...typography(theme) },
-      },
-      settings.locale === "de" ? deDE : enUS,
-    );
-
-    // ** Set responsive font sizes to true
-    if (themeConfig.responsiveFontSizes) {
-      theme = responsiveFontSizes(theme);
-    }
-    return theme;
-  }, [settings]);
+  const theme = useMemo(() => createAppTheme(settings), [settings]);
 
   return (
     <MuiThemeProvider theme={theme}>

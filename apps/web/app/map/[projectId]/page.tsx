@@ -3,7 +3,7 @@
 import type { DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Box, Stack, debounce, useTheme } from "@mui/material";
+import { Box, GlobalStyles, Stack, debounce, useTheme } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -105,7 +105,9 @@ export default function MapPage({ params: { projectId } }) {
   const primaryColor = project?.builder_config?.settings?.primary_color;
   const iconColor = project?.builder_config?.settings?.icon_color;
   const fontColor = project?.builder_config?.settings?.font_color;
-  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor);
+  // "light" mirrors the published dashboard: the preview must show what
+  // visitors see, not the author's own editor light/dark preference.
+  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor, "light");
 
   // Order layers using tree-aware DFS traversal so the map rendering order
   // matches the visual tree order (layers inside a group inherit the group's position).
@@ -539,6 +541,7 @@ export default function MapPage({ params: { projectId } }) {
                           position: "relative",
                         }}>
                         <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+                          <ThemeProvider theme={mapMode === "builder" ? brandedTheme : theme}>
                           <MapViewer
                             containerSx={{ zIndex: 0 }}
                             layers={projectLayers}
@@ -560,6 +563,7 @@ export default function MapPage({ params: { projectId } }) {
                             onLoad={handleMapLoaded}
                             isEditor={isProjectEditor}
                           />
+                          </ThemeProvider>
                           <DataPanel projectLayers={allProjectLayersIncludingTables} isEditor={isProjectEditor} />
                         </Box>
                         {mapMode === "builder" && (
@@ -571,7 +575,19 @@ export default function MapPage({ params: { projectId } }) {
                               pointerEvents: "none",
                             }}>
                             <ThemeProvider theme={brandedTheme}>
-                              <Box sx={{ color: "text.primary", height: "100%", width: "100%" }}>
+                              <GlobalStyles
+                                styles={{
+                                  "html body .goat-dashboard-preview ::-webkit-scrollbar-thumb": {
+                                    backgroundColor: brandedTheme.palette.grey[400],
+                                  },
+                                  "html body .goat-dashboard-preview ::-webkit-scrollbar-track": {
+                                    background: "transparent",
+                                  },
+                                }}
+                              />
+                              <Box
+                                className="goat-dashboard-preview"
+                                sx={{ color: "text.primary", height: "100%", width: "100%" }}>
                                 <PublicProjectLayout
                                   projectLayers={widgetProjectLayers}
                                   projectLayerGroups={projectLayerGroups}

@@ -21,12 +21,16 @@ import {
 import { addOrUpdateMarkerImages, addPatternImages } from "@/lib/transformers/map-image";
 import { applyMapLanguage } from "@/hooks/map/MapHooks";
 import createPulsingDot from "@/lib/utils/map/pulsing-dot-image";
-import type { FormatNumberTypes } from "@/lib/validations/common";
-import type { LayerInteractionFieldListContent } from "@/lib/validations/layer";
+import {
+  buildPopupFieldConfig,
+  getEffectivePopupTrigger,
+  popupFieldInfo,
+  selectPopupProperties,
+  splitPopupProperties,
+} from "@/lib/utils/map/popupProperties";
 import {
   type FeatureLayerPointProperties,
   type Layer,
-  layerInteractionContentType,
   type PopupProperties,
 } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
@@ -84,6 +88,12 @@ interface MapProps {
   containerSx?: any;
   isEditor?: boolean;
 }
+
+/**
+ * Fixed accent for the active-feature highlight. Independent of the (possibly
+ * branded) theme so the marker stays legible on every dashboard and basemap.
+ */
+const ACTIVE_FEATURE_PULSE_COLOR = "#2BB381";
 
 const MapViewer: React.FC<MapProps> = ({
   mapRef,
@@ -265,33 +275,6 @@ const MapViewer: React.FC<MapProps> = ({
     return ids;
   }, [layers, pendingFeaturesExist]);
 
-  const hiddenSystemProperties = useMemo(
-    () =>
-      new Set([
-        "layer_id",
-        "id",
-        "_rowid",
-        "feature_id",
-        "h3_3",
-        "h3_6",
-        "cluster",
-        "clustered",
-        "point_count",
-        "point_count_abbreviated",
-        "sqrt_point_count",
-        "ags_gemeinde",
-        "ags_landkreis",
-      ]),
-    []
-  );
-
-  const isSystemPropertyKey = useCallback(
-    (key: string) => {
-      return hiddenSystemProperties.has(key);
-    },
-    [hiddenSystemProperties]
-  );
-
   const handlePopoverClose = () => {
     dispatch(setPopupInfo(undefined));
     dispatch(setHighlightedFeature(undefined));
@@ -325,46 +308,6 @@ const MapViewer: React.FC<MapProps> = ({
   // handlers on touch devices, so we recognize taps ourselves from
   // touchstart/touchend pairs.
   const touchStartPointRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Resolves the effective popup trigger for a layer. Prefers the new
-  // `popup` schema; falls back to the legacy `interaction.type` for
-  // layers that haven't been migrated yet. Layers with no popup *and*
-  // no interaction config (e.g. layers freshly added from the data
-  // explorer) default to "click" — same behavior as
-  // seedPopupFromInteraction, so the runtime click detection stays in
-  // sync with what the renderer actually shows.
-  type PopupTrigger = "click" | "hover" | "click_and_hover";
-  const getEffectivePopupTrigger = useCallback(
-    (layer: Layer | ProjectLayer | undefined): PopupTrigger | undefined => {
-      const props = (layer?.properties as
-        | {
-            interaction?: { type?: string };
-            popup?: { enabled?: boolean; trigger?: PopupTrigger };
-          }
-        | undefined) ?? {};
-      const popup = props.popup;
-      if (popup) {
-        if (popup.enabled === false) return undefined;
-        if (
-          popup.trigger === "click" ||
-          popup.trigger === "hover" ||
-          popup.trigger === "click_and_hover"
-        ) {
-          return popup.trigger;
-        }
-      }
-      // Legacy fallback: only `click` and `none` are wired in the existing
-      // useInteractionOptions hook, so `hover` here is rare but accepted.
-      if (props.interaction?.type === "click") return "click";
-      if (props.interaction?.type === "hover") return "hover";
-      if (props.interaction?.type === "none") return undefined;
-      // Nothing configured at all → treat as clickable. Matches
-      // seedPopupFromInteraction(undefined), which produces
-      // `{ enabled: true, trigger: "click", ... }`.
-      return "click";
-    },
-    [],
-  );
 
   // Tools that take over the click/hover space — popup interaction must
   // step out of the way while any of these is active so we don't fight
@@ -488,66 +431,12 @@ const MapViewer: React.FC<MapProps> = ({
           lngLat = [interactiveFeature.geometry.coordinates[0], interactiveFeature.geometry.coordinates[1]];
         }
 
-        const interactionFieldLists = interactiveLayer.properties?.interaction?.content?.filter(
-          (content) => content.type === layerInteractionContentType.Enum.field_list
-        ) as LayerInteractionFieldListContent[] | undefined;
-
-        // Build field list metadata (labels, order, decorators) from all field_list
-        // interaction contents. Raw values stay keyed by column name so that
-        // LayerInfo can apply kind-aware formatting (e.g. m² → ha for area fields).
-        const fieldLabels: Record<string, string> = {};
-        const fieldOrder: string[] = [];
-        const fieldDecorators: Record<string, { prefix?: string; suffix?: string; format?: FormatNumberTypes }> = {};
-        interactionFieldLists?.forEach((content) => {
-          content.attributes.forEach((attr) => {
-            if (fieldOrder.includes(attr.name)) return; // first definition wins
-            fieldOrder.push(attr.name);
-            fieldLabels[attr.name] = attr.label || attr.name;
-            if (attr.format || attr.prefix || attr.suffix) {
-              fieldDecorators[attr.name] = {
-                format: attr.format as FormatNumberTypes | undefined,
-                prefix: attr.prefix,
-                suffix: attr.suffix,
-              };
-            }
-          });
-        });
-        const hasFieldList = fieldOrder.length > 0;
-
         // When a field list is configured, filter to the listed columns (raw values).
         // Otherwise, pass all feature properties.
-        const rawProperties = hasFieldList
-          ? fieldOrder.reduce(
-              (acc, name) => {
-                if (!isSystemPropertyKey(name)) {
-                  acc[name] = interactiveFeature.properties[name];
-                }
-                return acc;
-              },
-              {} as Record<string, unknown>
-            )
-          : interactiveFeature.properties;
+        const fieldConfig = buildPopupFieldConfig(interactiveLayer);
+        const rawProperties = selectPopupProperties(fieldConfig, interactiveFeature.properties);
 
-        const jsonProperties = {};
-        const primitiveProperties = {};
-        if (rawProperties) {
-          for (const key in rawProperties) {
-            if (!isSystemPropertyKey(key)) {
-              const value = rawProperties[key];
-              try {
-                // Type assertion to satisfy JSON.parse
-                const parsedValue = JSON.parse(value as string);
-                if (typeof parsedValue === "object" && parsedValue !== null) {
-                  jsonProperties[key] = parsedValue;
-                } else {
-                  throw new Error("Parsed value is not an object");
-                }
-              } catch (error) {
-                primitiveProperties[key] = value;
-              }
-            }
-          }
-        }
+        const { properties: primitiveProperties, jsonProperties } = splitPopupProperties(rawProperties);
         dispatch(
           setPopupInfo({
             lngLat,
@@ -569,11 +458,7 @@ const MapViewer: React.FC<MapProps> = ({
               interactiveLayer.id
             )?.toString(),
             projectLayerId: interactiveLayer.id?.toString(),
-            ...(hasFieldList && {
-              fieldLabels,
-              fieldOrder,
-              ...(Object.keys(fieldDecorators).length > 0 && { fieldDecorators }),
-            }),
+            ...popupFieldInfo(fieldConfig),
             onClose: handlePopoverClose,
           })
         );
@@ -777,13 +662,14 @@ const MapViewer: React.FC<MapProps> = ({
       const geolocationPulsingDot = createPulsingDot(mapRef.current);
       mapRef.current.addImage("geolocation-pulsing-dot", geolocationPulsingDot, { pixelRatio: 2 });
 
-      // load popup-tinted pulsing dot for the active-feature highlight on the
-      // new MapFeaturePopover. Uses the theme primary color so the pulse
-      // visually matches the popover instead of the user-location blue.
+      // Active-feature highlight for MapFeaturePopover. Deliberately NOT the
+      // theme primary: on a branded dashboard that can be any color (a dark
+      // brand ink renders as an unreadable smudge over the basemap), so the
+      // highlight keeps a fixed, always-legible accent.
       mapRef.current.addImage(
         "popup-active-pulsing-dot",
         createPulsingDot(mapRef.current, {
-          color: theme.palette.primary.main,
+          color: ACTIVE_FEATURE_PULSE_COLOR,
           innerBorder: false, // crisp edge on dark basemaps
           size: 100, // larger canvas → bigger blast radius
           innerRatio: 0.18, // keep the inner dot small (9 internal px)
@@ -800,7 +686,7 @@ const MapViewer: React.FC<MapProps> = ({
       mapRef.current.addImage(
         "popup-active-static-dot",
         createPulsingDot(mapRef.current, {
-          color: theme.palette.primary.main,
+          color: ACTIVE_FEATURE_PULSE_COLOR,
           innerBorder: false,
           size: 100,
           innerRatio: 0.18,
@@ -820,7 +706,7 @@ const MapViewer: React.FC<MapProps> = ({
       applyMapLanguage(map, i18n.language);
     }
     onLoad && onLoad();
-  }, [layers, mapRef, onLoad, dispatch, i18n.language, theme.palette.primary.main]);
+  }, [layers, mapRef, onLoad, dispatch, i18n.language]);
 
   // Re-apply label language when locale changes or basemap style reloads
   useEffect(() => {

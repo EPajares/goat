@@ -260,3 +260,42 @@ class HistogramResult(BaseModel):
     )
     missing_count: int = Field(0, description="Count of NULL values")
     total_rows: int = Field(0, description="Total number of rows")
+
+
+# Layer search models
+
+
+class LayerSearchItem(BaseModel):
+    """Single feature match from a layer text search."""
+
+    id: int = Field(..., description="Feature id (rowid + 1, matches OGC items ids)")
+    label: str | None = Field(None, description="Display label (label_column value)")
+    matched_column: str = Field(..., description="First searched column that matched")
+    matched_value: str = Field(
+        ..., description="Matched column's value, for highlighting"
+    )
+    values: dict[str, str | None] = Field(
+        default_factory=dict, description="All searched columns' values for this row"
+    )
+    centroid: list[float] = Field(..., description="[x, y] feature centroid")
+    bbox: list[float] | None = Field(
+        None, description="[minx, miny, maxx, maxy] of the feature geometry"
+    )
+
+
+class LayerSearchGroup(BaseModel):
+    """Search results for one layer."""
+
+    layer_id: str = Field(..., description="Layer ID (UUID)")
+    results: list[LayerSearchItem] = Field(default_factory=list)
+    truncated: bool = Field(False, description="More matches exist than were returned")
+    timed_out: bool = Field(False, description="Layer not scanned within the budget")
+    error: str | None = Field(
+        None, description="Per-layer failure (e.g. layer missing)"
+    )
+
+
+class LayerSearchResult(BaseModel):
+    """Result of a cross-layer text search."""
+
+    groups: list[LayerSearchGroup] = Field(default_factory=list)

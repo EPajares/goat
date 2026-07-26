@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
 
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
-import { MAPBOX_TOKEN } from "@/lib/constants";
 import { DEFAULT_BASEMAP } from "@/lib/constants/basemaps";
 import { setSelectedLayers, updateProjectLayer } from "@/lib/store/layer/slice";
 import { useInteractionDispatcher } from "@/hooks/map/useInteractionDispatcher";
@@ -13,7 +12,6 @@ import {
   removeTemporaryFilter,
   setActiveRightPanel,
   setCollapsedPanels,
-  setGeocoderResult,
   setSelectedBuilderItem,
 } from "@/lib/store/map/slice";
 import type { BuilderWidgetSchema, CustomBasemap } from "@/lib/validations/project";
@@ -48,11 +46,12 @@ import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
 import { CustomBasemapDialog } from "@/components/map/controls/CustomBasemapDialog";
 import { Fullscren } from "@/components/map/controls/Fullscreen";
-import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
 import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/measure";
+import SearchControl from "@/components/map/controls/search/SearchControl";
+import { usePublicSearchSource } from "@/components/map/controls/search/publicSearchLayers";
 import ViewContainer from "@/components/map/panels/Container";
 import PropertiesPanel from "@/components/map/panels/properties/Properties";
 import SimpleLayerStyle from "@/components/map/panels/style/SimpleLayerStyle";
@@ -75,7 +74,7 @@ const PublicProjectLayout = ({
   onProjectUpdate,
   viewOnly,
 }: PublicProjectLayoutProps) => {
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
 
   // Apply dashboard language override only for public/shared view
@@ -87,6 +86,15 @@ const PublicProjectLayout = ({
 
   // Measure tool - using the reusable hook
   const measureTool = useMeasureTool();
+
+  const {
+    source: searchSource,
+    layersById: searchLayersById,
+    placeholder: searchPlaceholder,
+  } = usePublicSearchSource(
+    project,
+    projectLayers
+  );
 
   const { translatedBaseMaps, activeBasemap, setActiveBasemap } = useBasemap(project);
   // Ephemeral preview of a non-active basemap while its edit dialog is open;
@@ -552,24 +560,26 @@ const PublicProjectLayout = ({
     return translatedBaseMaps.filter((b) => b.source === "custom" || allowed.includes(b.value));
   }, [builderConfig, translatedBaseMaps]);
 
+  // The search card is translucent and grows downward when results open, so the
+  // other controls sharing its corner are hidden for the duration instead of
+  // showing through it (or being shoved out of the way).
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+
   const renderControl = useCallback(
     (key: ControlKey, corner: CornerKey): React.ReactNode => {
       const isRightCorner = corner === "top-right" || corner === "bottom-right";
       switch (key) {
         case "location":
-          return (
-            <Geocoder
+          return searchSource?.mode === "public" && (searchSource.placesEnabled || searchSource.hasLayers) ? (
+            <SearchControl
               key="location"
-              accessToken={MAPBOX_TOKEN}
+              source={searchSource}
+              layersById={searchLayersById}
+              placeholder={searchPlaceholder}
               bbox={project?.max_extent ?? undefined}
-              language={i18n.language}
-              placeholder={t("enter_an_address")}
-              tooltip={t("search")}
-              onSelect={(result) => {
-                dispatch(setGeocoderResult(result));
-              }}
+              onPanelOpenChange={setSearchPanelOpen}
             />
-          );
+          ) : null;
         case "measure":
           return (
             <MeasureButton
@@ -628,11 +638,12 @@ const PublicProjectLayout = ({
     },
     [
       t,
-      i18n.language,
       measureTool,
       allowedStyles,
       activeBasemap,
-      dispatch,
+      searchSource,
+      searchLayersById,
+      searchPlaceholder,
       onProjectUpdate,
       project,
       viewOnly,
@@ -769,7 +780,10 @@ const PublicProjectLayout = ({
               zIndex: 2,
               transition: "all 0.3s",
             }}>
-            {controlsByCorner["bottom-right"].map((c) => renderControl(c, "bottom-right"))}
+            {(searchPanelOpen && controlsByCorner["bottom-right"].includes("location")
+              ? (["location"] as ControlKey[])
+              : controlsByCorner["bottom-right"]
+            ).map((c) => renderControl(c, "bottom-right"))}
             {/* -8px pulls the strip down to sit flush with the map's bottom edge (cancels the residual bottom inset of this bottom-right control box). */}
             <Box sx={{ mb: "-8px" }}>
               <AttributionControl
@@ -811,7 +825,10 @@ const PublicProjectLayout = ({
                   zIndex: 2,
                   transition: "all 0.3s",
                 }}>
-                {controls.map((c) => renderControl(c, corner))}
+                {(searchPanelOpen && controls.includes("location")
+              ? (["location"] as ControlKey[])
+              : controls
+            ).map((c) => renderControl(c, corner))}
               </Box>
             );
           })}

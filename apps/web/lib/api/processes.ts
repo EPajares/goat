@@ -235,6 +235,43 @@ export interface ProcessExecuteRequest<T> {
   inputs: T;
 }
 
+// Layer Search types
+export interface LayerSearchLayerInput {
+  layer_id: string;
+  columns: string[];
+  label_column?: string;
+  limit?: number;
+}
+
+export interface LayerSearchInputs {
+  query: string;
+  map_center?: [number, number];
+  project_id?: string;
+  layers?: LayerSearchLayerInput[];
+}
+
+export interface LayerSearchResultItem {
+  id: number;
+  label: string | null;
+  matched_column: string;
+  matched_value: string;
+  values?: Record<string, string | null>;
+  centroid: number[];
+  bbox: number[] | null;
+}
+
+export interface LayerSearchGroup {
+  layer_id: string;
+  results: LayerSearchResultItem[];
+  truncated: boolean;
+  timed_out: boolean;
+  error: string | null;
+}
+
+export interface LayerSearchOutput {
+  groups: LayerSearchGroup[];
+}
+
 // ============================================================================
 // Process execution functions
 // ============================================================================
@@ -276,6 +313,26 @@ export async function executeProcessAsync<TInput>(processId: string, inputs: TIn
     throw new Error(error.detail?.detail || error.detail || `Process execution failed: ${processId}`);
   }
 
+  return await response.json();
+}
+
+/**
+ * Search features across one or more layers
+ */
+export async function searchLayerFeatures(
+  inputs: LayerSearchInputs,
+  signal?: AbortSignal
+): Promise<LayerSearchOutput> {
+  const response = await apiRequestAuth(`${PROCESSES_API_BASE_URL}/layer-search/execution`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ inputs }),
+    signal,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => undefined);
+    throw new Error(error?.detail?.detail || error?.detail || "Layer search failed");
+  }
   return await response.json();
 }
 

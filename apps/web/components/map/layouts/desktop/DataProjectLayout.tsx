@@ -15,10 +15,10 @@ import {
   useProjectLayers,
 } from "@/lib/api/projects";
 import { useFolders } from "@/lib/api/folders";
-import { MAPBOX_TOKEN, SYSTEM_LAYERS_IDS } from "@/lib/constants";
+import { SYSTEM_LAYERS_IDS } from "@/lib/constants";
 import { DEFAULT_BASEMAP } from "@/lib/constants/basemaps";
 import { setSelectedLayers } from "@/lib/store/layer/slice";
-import { setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
+import { setActiveRightPanel } from "@/lib/store/map/slice";
 import { DATA_PANEL_HEIGHT_VAR } from "@/components/map/panels/DataPanel";
 import type { CustomBasemap, Project, ProjectLayerTreeUpdate } from "@/lib/validations/project";
 
@@ -36,11 +36,12 @@ import AttributionControl from "@/components/map/controls/Attribution";
 import { BasemapSelector } from "@/components/map/controls/BasemapSelector";
 import { CustomBasemapDialog } from "@/components/map/controls/CustomBasemapDialog";
 import { Fullscren } from "@/components/map/controls/Fullscreen";
-import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { Toolbox as ToolboxCtrl } from "@/components/map/controls/Toolbox";
 import { Zoom } from "@/components/map/controls/Zoom";
 import { MeasureButton, MeasureResultsPanel } from "@/components/map/controls/measure";
+import SearchControl from "@/components/map/controls/search/SearchControl";
+import { useEditorSearchLayers } from "@/components/map/controls/search/editorSearchLayers";
 import LayerSettingsPanel from "@/components/map/panels/layer/LayerSettingsPanel";
 import { MapFixedPopupSlot } from "@/components/map/popover/MapFixedPopupSlot";
 import { ProjectLayerTree } from "@/components/map/panels/layer/ProjectLayerTree";
@@ -59,7 +60,7 @@ interface DataProjectLayoutProps {
 }
 
 const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps) => {
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const dispatch = useAppDispatch();
   const projectId = project.id;
 
@@ -75,6 +76,18 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
   const projectLayers = useMemo(() => {
     return allProjectLayers?.filter((layer) => !SYSTEM_LAYERS_IDS.includes(layer.layer_id)) || [];
   }, [allProjectLayers]);
+
+  // Queryables for the search scope are only fetched once the control is opened.
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const { searchLayers, layersById: searchLayersById } = useEditorSearchLayers(
+    projectLayers,
+    searchExpanded
+  );
+  const searchSource = useMemo(
+    () => ({ mode: "editor" as const, placesEnabled: true as const, layers: searchLayers }),
+    [searchLayers]
+  );
 
   const { translatedBaseMaps, activeBasemap, setActiveBasemap } = useBasemap(project);
   // When editing a non-active basemap we preview it ephemerally (Redux only, no
@@ -328,18 +341,23 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
             left: `${panelWidth + GAP_SIZE}px`,
             top: 0,
           }}>
-          <Geocoder
-            accessToken={MAPBOX_TOKEN}
+          <SearchControl
+            source={searchSource}
+            layersById={searchLayersById}
             bbox={project?.max_extent ?? undefined}
-            language={i18n.language}
-            placeholder={t("enter_an_address")}
-            tooltip={t("search")}
-            onSelect={(result) => {
-              dispatch(setGeocoderResult(result));
-            }}
+            onExpandedChange={setSearchExpanded}
+            onPanelOpenChange={setSearchPanelOpen}
           />
-          {isProjectEditor && <ToolboxCtrl onToggle={handleToolboxToggle} open={activeRight === MapSidebarItemID.TOOLBOX} />}
-          <MeasureButton {...measureTool} />
+          {/* The results card is translucent and grows over this stack, so the
+              buttons below it step aside while it is open. */}
+          {!searchPanelOpen && (
+            <>
+              {isProjectEditor && (
+                <ToolboxCtrl onToggle={handleToolboxToggle} open={activeRight === MapSidebarItemID.TOOLBOX} />
+              )}
+              <MeasureButton {...measureTool} />
+            </>
+          )}
         </Box>
       </Box>
 

@@ -2,6 +2,7 @@
 
 import type { Theme } from "@mui/material";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { GlobalStyles } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -102,7 +103,9 @@ export default function MapPage({ params: { projectId } }) {
   const primaryColor = project?.builder_config?.settings?.primary_color;
   const iconColor = project?.builder_config?.settings?.icon_color;
   const fontColor = project?.builder_config?.settings?.font_color;
-  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor);
+  // "light": a published dashboard must render identically for every visitor,
+  // not in the viewer's own dark/light preference.
+  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor, "light");
 
   const isMobile = useMediaQuery((theme: Theme) => theme.breakpoints.down("md"));
 
@@ -121,6 +124,30 @@ export default function MapPage({ params: { projectId } }) {
 
   return (
     <PublicProjectProvider>
+      {/* One theme for the whole page — the loading screen renders before the
+          project (and its branding) is known, and must not fall back to the
+          viewer's own dark/light preference either. */}
+      <ThemeProvider theme={brandedTheme}>
+      {/* The root CssBaseline paints scrollbars and the body background from the
+          viewer's theme. These selectors are more specific than its own
+          ("html ::-webkit-scrollbar-thumb", "body"), and being document-wide
+          they also cover portalled modals. Unmounting the page removes them. */}
+      <GlobalStyles
+        styles={{
+          // No standard `scrollbar-color`/`scrollbar-width` here: setting either
+          // makes Chrome ignore every ::-webkit-scrollbar rule for the scroller,
+          // including the app's 5px width, so the bar would render native-thick.
+          "html body": {
+            backgroundColor: brandedTheme.palette.background.default,
+          },
+          "html body ::-webkit-scrollbar-thumb": {
+            backgroundColor: brandedTheme.palette.grey[400],
+          },
+          "html body ::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+        }}
+      />
       {isLoading && <LoadingPage />}
       {!isLoading && !projectError && project && (
         <>
@@ -152,8 +179,7 @@ export default function MapPage({ params: { projectId } }) {
                     width: "100%",
                     height: "100%",
                   }}>
-                  <ThemeProvider theme={brandedTheme}>
-                    <Box sx={{ color: "text.primary", height: "100%", width: "100%" }}>
+                  <Box sx={{ color: "text.primary", height: "100%", width: "100%" }}>
                       {isMobile ? (
                         <MobileProjectLayout
                           project={project}
@@ -171,8 +197,7 @@ export default function MapPage({ params: { projectId } }) {
                           onProjectUpdate={onProjectUpdate}
                         />
                       )}
-                    </Box>
-                  </ThemeProvider>
+                  </Box>
                 </Box>
                 <MapViewer
                   layers={_projectLayers}
@@ -203,6 +228,7 @@ export default function MapPage({ params: { projectId } }) {
         </MapProvider>
         </>
       )}
+      </ThemeProvider>
     </PublicProjectProvider>
   );
 }

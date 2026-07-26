@@ -11,8 +11,7 @@ export const AUTH_DISABLED = isAuthDisabled(process.env.NEXT_PUBLIC_AUTH);
 export const DOCS_URL = "https://goat.plan4better.de/docs";
 export const CONTACT_US_URL = "https://plan4better.de/contact";
 export const WEBSITE_URL = "https://plan4better.de";
-export const MAPBOX_TOKEN =
-  "pk.eyJ1IjoiZWxpYXNwYWphcmVzIiwiYSI6ImNqOW1scnVyOTRxcWwzMm5yYWhta2N2cXcifQ.aDCgidtC9cjf_O75frn9lA";
+export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 export const MAPTILER_KEY = "tffQ1wAu9TKyVMHrc3o3";
 
