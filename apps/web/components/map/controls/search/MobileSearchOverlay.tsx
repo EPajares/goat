@@ -74,17 +74,29 @@ const MobileSearchOverlay = ({
       // picked up as the dialog's accessible name.
       PaperProps={{ "aria-label": t("search") }}
       TransitionComponent={SlideUpTransition}
-      TransitionProps={{ onEntered: () => inputRef.current?.focus() }}>
+      TransitionProps={{
+        onEnter: () => inputRef.current?.focus(),
+        onEntered: () => inputRef.current?.focus(),
+      }}>
       <Stack
         direction="row"
         alignItems="center"
         spacing={1}
-        sx={{ p: 1, borderBottom: 1, borderColor: "divider" }}>
+        sx={{
+          px: 1,
+          // Symmetric vertical padding; the notch/status-bar inset is added on
+          // top of it so the bar only grows where a device actually needs it.
+          py: 1.25,
+          pt: "calc(env(safe-area-inset-top, 0px) + 10px)",
+          borderBottom: 1,
+          borderColor: "divider",
+        }}>
         <IconButton onClick={onClose} aria-label={t("back")}>
           <Icon iconName={ICON_NAME.CHEVRON_LEFT} fontSize="small" />
         </IconButton>
         <InputBase
           inputRef={inputRef}
+          autoFocus
           fullWidth
           value={query}
           onChange={(event) => setQuery(event.target.value)}
