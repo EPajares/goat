@@ -63,23 +63,16 @@ DEFAULT_H3_RESOLUTION: dict[RoutingMode, int] = {
 _PT_ACCESSEGRESS_RES = 9
 _PT_ACCESSEGRESS_MAX_MIN = 20
 
-# PT connectivity rasterizes the reference area to H3 cells, and each cell is a
-# reverse-RAPTOR group — so the cell count (≈ AOI area / cell area) drives cost.
-# The resolution is therefore chosen *dynamically* from the AOI's area: the
-# finest resolution whose estimated cell count stays under the target. Small
-# AOIs land at res-9 (== the egress-lookup resolution, so no coarsening at all);
-# larger AOIs step coarser to keep the RAPTOR run count bounded. The same chosen
-# resolution is used both to rasterize (here) and to key the C++ output cells
-# (cfg.connectivity_output_resolution), so opportunity and output cells align.
-_PT_CONNECTIVITY_MIN_RES = 8   # coarsest (large AOI)
-_PT_CONNECTIVITY_MAX_RES = 9   # finest (== egress-lookup res; small AOI)
-_PT_CONNECTIVITY_TARGET_CELLS = 6000  # headroom under MAX_OPPORTUNITIES_PER_LAYER
-
-# Average H3 cell area (m²) by resolution — used to size the AOI raster.
-_H3_CELL_AREA_M2: dict[int, float] = {
-    8: 737_327.0,
-    9: 105_332.0,
-}
+# Connectivity rasterizes the reference area to H3 cells; each cell is a per-cell
+# routing origin. Rasterization uses the fixed per-mode DEFAULT_H3_RESOLUTION
+# (same as every other heatmap type), so the output resolution is deterministic
+# and comparable across reference areas — a requirement for an analysis tool.
+#
+# Hard cap on rasterised AOI cells for connectivity (all modes). Higher than the
+# generic opportunity cap because each cell is a per-cell routing origin
+# (reverse-RAPTOR for PT, Dijkstra for street) — CPU-bound, not the temp-disk-
+# bound sampled-opportunity workload the generic cap guards against.
+_CONNECTIVITY_MAX_CELLS = 50_000
 _PT_TABLE_MODE_NAME: dict[RoutingMode, str] = {
     RoutingMode.walking: "walk",
     RoutingMode.bicycle: "bicycle",
@@ -93,12 +86,11 @@ _PT_TABLE_MODE_NAME: dict[RoutingMode, str] = {
     RoutingMode.car: "car",
 }
 
-# Hard cap on opportunity points per layer (and on AOI cells synthesised
-# for connectivity). Until streaming aggregation lands, DuckDB temp-disk
-# usage scales roughly with N_opps × samples_per_opp and the worker VM
-# typically OOMs above ~10k for non-walking modes. Capping uniformly here
-# gives a predictable upper bound across all modes + heatmap formulas.
-MAX_OPPORTUNITIES_PER_LAYER = 10_000
+# Hard cap on total opportunity points across all layers (gravity /
+# closest_average). Until streaming aggregation lands, DuckDB temp-disk usage
+# scales roughly with N_opps × samples_per_opp, so the bound is on the combined
+# point count, not per layer. Connectivity has its own AOI-cell cap.
+MAX_OPPORTUNITIES_TOTAL = 50_000
 
 # Mode default speeds (km/h) used when the user doesn't supply one. The
 # UI's "speed" field lives under show_advanced=True so most form
@@ -321,69 +313,27 @@ class HeatmapV2Tool(HeatmapToolBase):
             cfg.egress_table_path = self._accessegress_table_path(
                 params.egress_mode
             )
-            # Connectivity keys its output at the same resolution the AOI was
-            # rasterized to (chosen dynamically in _resolve_opportunity_layers),
-            # so the C++ output cells align with the opportunity cells.
-            cfg.connectivity_output_resolution = getattr(
-                self, "_pt_connectivity_res", _PT_CONNECTIVITY_MAX_RES
-            )
+            # Connectivity keys its output at the fixed per-mode resolution the
+            # AOI is rasterized to, so C++ output cells align with the AOI cells.
+            cfg.connectivity_output_resolution = DEFAULT_H3_RESOLUTION[
+                params.routing_mode
+            ]
 
         return cfg
 
     # ----------------------- connectivity helpers ----------------------------
 
-    def _pick_pt_connectivity_resolution(
-        self: Self,
-        aoi_table: str,
-        aoi_meta: object,
-    ) -> int:
-        """Choose the finest H3 resolution whose estimated AOI cell count stays
-        under the target, so PT connectivity's per-cell reverse-RAPTOR run count
-        is bounded and scales with the reference area.
-
-        Probes at the coarsest resolution (cheap even for huge AOIs) and
-        extrapolates the finer-resolution counts by H3 cell area.
-        """
-        probe = self._process_table_to_h3(
-            aoi_table, aoi_meta, _PT_CONNECTIVITY_MIN_RES,
-            "aoi_probe", h3_column="probe_cell",
-        )
-        n_probe = self.con.execute(f"SELECT COUNT(*) FROM {probe}").fetchone()[0]
-        if not n_probe:
-            return _PT_CONNECTIVITY_MAX_RES
-        area_m2 = n_probe * _H3_CELL_AREA_M2[_PT_CONNECTIVITY_MIN_RES]
-        chosen = _PT_CONNECTIVITY_MIN_RES
-        for res in range(_PT_CONNECTIVITY_MIN_RES + 1, _PT_CONNECTIVITY_MAX_RES + 1):
-            if area_m2 / _H3_CELL_AREA_M2[res] <= _PT_CONNECTIVITY_TARGET_CELLS:
-                chosen = res
-            else:
-                break
-        logger.info(
-            "[Heatmap] PT connectivity: AOI ~%.0f km² → res-%d "
-            "(~%d cells; probe %d cells @res-%d)",
-            area_m2 / 1e6, chosen,
-            round(area_m2 / _H3_CELL_AREA_M2[chosen]), n_probe,
-            _PT_CONNECTIVITY_MIN_RES,
-        )
-        return chosen
-
     def _rasterize_aoi_to_opportunities(
         self: Self,
         reference_area_path: str,
-        h3_resolution: int | None,
+        h3_resolution: int,
     ) -> tuple[list[tuple[float, float, float]], int]:
-        """Rasterize reference AOI polygon to H3 cells.
+        """Rasterize reference AOI polygon to H3 cells at a fixed resolution.
 
         Returns (centroid points in EPSG:3857 with weight=1.0, resolution used).
-        When ``h3_resolution`` is None the resolution is chosen dynamically from
-        the AOI area (PT connectivity); otherwise the given fixed resolution is
-        used (street connectivity).
         """
         # Register the AOI
         aoi_meta, aoi_table = self.import_input(reference_area_path, table_name="aoi_input")
-
-        if h3_resolution is None:
-            h3_resolution = self._pick_pt_connectivity_resolution(aoi_table, aoi_meta)
 
         # Convert to H3 cells (parent helper)
         aoi_cells_table = self._process_table_to_h3(
@@ -422,31 +372,23 @@ class HeatmapV2Tool(HeatmapToolBase):
         that layer's compute_heatmap call.
         """
         if params.heatmap_type == HeatmapType.connectivity:
-            # PT connectivity picks its rasterization resolution dynamically from
-            # the AOI area (h3_resolution=None) so the per-cell reverse-RAPTOR run
-            # count stays bounded; street uses the fixed per-mode default. The
-            # chosen PT resolution is stashed for _build_heatmap_cfg so the C++
-            # output cells key at the same resolution.
-            fixed_res = (
-                None
-                if params.routing_mode == RoutingMode.pt
-                else DEFAULT_H3_RESOLUTION[params.routing_mode]
+            # Fixed per-mode rasterization resolution (same as every other
+            # heatmap type), so the output resolution is deterministic across
+            # reference areas.
+            opp_points, _ = self._rasterize_aoi_to_opportunities(
+                params.reference_area_path,
+                DEFAULT_H3_RESOLUTION[params.routing_mode],
             )
-            opp_points, used_res = self._rasterize_aoi_to_opportunities(
-                params.reference_area_path, fixed_res
-            )
-            if params.routing_mode == RoutingMode.pt:
-                self._pt_connectivity_res = used_res
             if not opp_points:
                 raise ValueError(
                     "The reference area is empty or invalid. "
                     "Check that the layer contains valid polygons."
                 )
-            if len(opp_points) > MAX_OPPORTUNITIES_PER_LAYER:
+            if len(opp_points) > _CONNECTIVITY_MAX_CELLS:
                 raise ValueError(
                     f"The reference area is too large to analyse: it covers "
                     f"{len(opp_points):,} grid cells, but the maximum is "
-                    f"{MAX_OPPORTUNITIES_PER_LAYER:,}. "
+                    f"{_CONNECTIVITY_MAX_CELLS:,}. "
                     "Please choose a smaller reference area."
                 )
             # Connectivity: single synthesized layer; closest_k is unused.
@@ -468,14 +410,6 @@ class HeatmapV2Tool(HeatmapToolBase):
                     opp.input_path,
                 )
                 continue
-            if len(opp_points) > MAX_OPPORTUNITIES_PER_LAYER:
-                label = self._opportunity_label(opp, idx)
-                raise ValueError(
-                    f"Opportunity layer '{label}' has too many points: "
-                    f"{len(opp_points):,} features, but the maximum is "
-                    f"{MAX_OPPORTUNITIES_PER_LAYER:,}. "
-                    "Filter the layer or pick a smaller dataset."
-                )
             label = self._opportunity_label(opp, idx)
             # OpportunityV2 declares both fields with validated defaults, so
             # read them directly (no fallback needed).
@@ -483,6 +417,15 @@ class HeatmapV2Tool(HeatmapToolBase):
             layer_max_cost = float(opp.max_cost)
             n_destinations = opp.n_destinations
             layers.append((label, opp_points, sensitivity, layer_max_cost, n_destinations))
+
+        total_points = sum(len(pts) for _, pts, _, _, _ in layers)
+        if total_points > MAX_OPPORTUNITIES_TOTAL:
+            raise ValueError(
+                f"Too many opportunity points across all layers: "
+                f"{total_points:,}, but the maximum is "
+                f"{MAX_OPPORTUNITIES_TOTAL:,}. "
+                "Filter the layers or pick smaller datasets."
+            )
         return layers
 
     # ----------------------------------------------------------- per-layer compute

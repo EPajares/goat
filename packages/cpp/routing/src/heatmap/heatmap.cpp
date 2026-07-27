@@ -173,11 +173,28 @@ void build_reach_per_opp(duckdb::Connection &con,
     // Per-opportunity reverse-Dijkstra; sample the reachability field; stream
     // (lng, lat, opp_idx, cost) rows via Appender::AppendDataChunk with a
     // STANDARD_VECTOR_SIZE buffer (the row-at-a-time API dominated wall time).
+    // Aggregate incrementally: an opportunity's samples are folded into
+    // <out_table> in batches, flushed only at opportunity boundaries. The flat
+    // _hm_samples scratch therefore never holds more than one batch. Because a
+    // given (cell, opp_idx) group's rows all belong to one opportunity, they
+    // never span a batch, so the per-batch GROUP BY is identical to aggregating
+    // the whole table once — the reached cell is still counted exactly once.
+    constexpr size_t kAggFlushRows = 5'000'000;
+    std::string const samples_ddl =
+        "CREATE TEMP TABLE _hm_samples "
+        "(lng DOUBLE, lat DOUBLE, opp_idx INTEGER, cost DOUBLE)";
     con.Query("DROP TABLE IF EXISTS _hm_samples");
-    con.Query("CREATE TEMP TABLE _hm_samples "
-              "(lng DOUBLE, lat DOUBLE, opp_idx INTEGER, cost DOUBLE)");
+    con.Query(samples_ddl);
+    con.Query("DROP TABLE IF EXISTS " + out_table);
+    con.Query("CREATE TEMP TABLE " + out_table +
+              " (cell BIGINT, opp_idx INTEGER, min_cost DOUBLE)");
+    std::string const agg_sql =
+        "INSERT INTO " + out_table +
+        " SELECT h3_latlng_to_cell(lat, lng, " + std::to_string(h3_resolution) +
+        ")::BIGINT AS cell, opp_idx, GREATEST(ROUND(AVG(cost)), 1) AS min_cost"
+        " FROM _hm_samples GROUP BY 1, opp_idx";
     {
-        duckdb::Appender appender(con, "_hm_samples");
+        auto appender = std::make_unique<duckdb::Appender>(con, "_hm_samples");
         duckdb::vector<duckdb::LogicalType> chunk_types{
             duckdb::LogicalType::DOUBLE,
             duckdb::LogicalType::DOUBLE,
@@ -201,13 +218,29 @@ void build_reach_per_opp(duckdb::Connection &con,
         auto flush_chunk = [&]() {
             if (chunk_pos == 0) return;
             chunk.SetCardinality(chunk_pos);
-            appender.AppendDataChunk(chunk);
+            appender->AppendDataChunk(chunk);
             chunk.Reset();
             refresh_pointers();
             chunk_pos = 0;
         };
         size_t unsnapped = 0;
         size_t total_samples = 0;
+        size_t last_drain_at = 0;
+        // Aggregate the current batch of _hm_samples into <out_table> and clear
+        // the scratch. Called only at opportunity boundaries (see invariant
+        // above). Recreating the table avoids MVCC bloat from repeated DELETEs.
+        auto drain = [&]() {
+            flush_chunk();
+            appender.reset();  // destroy -> flushed rows become visible
+            auto rr = con.Query(agg_sql);
+            if (rr->HasError())
+                throw std::runtime_error(
+                    "Heatmap per-(cell, opp) cost failed: " + rr->GetError());
+            con.Query("DROP TABLE IF EXISTS _hm_samples");
+            con.Query(samples_ddl);
+            appender = std::make_unique<duckdb::Appender>(con, "_hm_samples");
+            last_drain_at = total_samples;
+        };
         for (size_t oi = 0; oi < opp_points.size(); ++oi)
         {
             int32_t const start = prep.opportunity_nodes[oi];
@@ -264,26 +297,20 @@ void build_reach_per_opp(duckdb::Connection &con,
                     }
                 }
             }
+            // Opportunity boundary: safe to aggregate the batch (this opp's
+            // samples are complete, so no (cell, opp) group is split).
+            if (total_samples - last_drain_at >= kAggFlushRows) drain();
         }
-        flush_chunk();
-        appender.Close();
+        drain();
         std::fprintf(stderr,
                      "[Pipeline] Dijkstras + sampling (%zu opps, %zu unsnapped, "
                      "%zu samples): %.0f ms\n",
                      opp_points.size() - unsnapped, unsnapped, total_samples,
                      timer.elapsed_ms());
     }
+    con.Query("DROP TABLE IF EXISTS _hm_samples");
 
-    std::ostringstream sql;
-    sql << "CREATE OR REPLACE TEMP TABLE " << out_table << " AS "
-        << "SELECT h3_latlng_to_cell(lat, lng, " << h3_resolution
-        << ")::BIGINT AS cell, opp_idx, MIN(cost) AS min_cost "
-        << "FROM _hm_samples GROUP BY 1, opp_idx";
-    auto r = con.Query(sql.str());
-    if (r->HasError())
-        throw std::runtime_error("Heatmap per-(cell, opp) min failed: " +
-                                 r->GetError());
-    std::fprintf(stderr, "[Pipeline] Per-(cell, opp) min (%s): %.0f ms\n",
+    std::fprintf(stderr, "[Pipeline] Per-(cell, opp) cost (%s): %.0f ms\n",
                  out_table.c_str(), timer.elapsed_ms());
 }
 
@@ -445,50 +472,14 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
     if (cfg.opportunities.empty())
         return;
 
-    // The access/egress lookup tables and opportunity grouping live at the PT
-    // lookup resolution (res-9). The *output* cells are coarsened to res-8 when
-    // the opportunity layer is spread over a large area, to keep the output
-    // cell count (and downstream join cardinality) manageable — the access
-    // cell is rolled up to its res-8 parent and the direct leg samples at the
-    // same resolution. Lookups stay at res-9 so they still match the tables.
+    // Output and area-summing cells use the fixed PT resolution (res-9, == the
+    // access/egress lookup resolution). No extent-based coarsening — the output
+    // resolution must not vary with the reference-area size (reproducibility).
     int32_t const h3_resolution =
         output::hex_resolution_for_mode(RoutingMode::PublicTransport);
-    int32_t output_resolution = h3_resolution;
-    {
-        double minx = cfg.opportunities[0].point.x, maxx = minx;
-        double miny = cfg.opportunities[0].point.y, maxy = miny;
-        for (auto const &o : cfg.opportunities)
-        {
-            minx = std::min(minx, o.point.x); maxx = std::max(maxx, o.point.x);
-            miny = std::min(miny, o.point.y); maxy = std::max(maxy, o.point.y);
-        }
-        double const dx = maxx - minx, dy = maxy - miny;
-        // Mercator distance inflates by 1/cos(lat); divide it back out (at the
-        // bbox-centre latitude) so the threshold is in real ground metres and
-        // latitude-independent. Coarse on purpose — a "large spread" switch.
-        double const merc_diag = std::sqrt(dx * dx + dy * dy);
-        double const lat_c = merc_y_to_lat((miny + maxy) / 2.0);
-        double const ground_m = merc_diag * std::cos(lat_c * M_PI / 180.0);
-        constexpr double kCoarsenOutputExtentM = 50000.0;  // ~50 km ground
-        if (ground_m > kCoarsenOutputExtentM && h3_resolution > 1)
-            output_resolution = h3_resolution - 1;  // res-9 → res-8
-        // Connectivity keys the output map at connectivity_output_resolution
-        // (the caller's AOI raster resolution); output_resolution then only sets
-        // the granularity of the reachable cells whose area is summed. For
-        // gravity/closest the output map *is* output_resolution. Report the
-        // resolution the emitted cells actually use.
-        if (cfg.heatmap_type == HeatmapType::Connectivity)
-            std::fprintf(stderr,
-                         "[Pipeline] Output resolution: h3-%d (AOI extent "
-                         "~%.0f km; area summed at h3-%d)\n",
-                         cfg.connectivity_output_resolution, ground_m / 1000.0,
-                         output_resolution);
-        else
-            std::fprintf(stderr,
-                         "[Pipeline] Output resolution: h3-%d "
-                         "(opp extent ~%.0f km)\n",
-                         output_resolution, ground_m / 1000.0);
-    }
+    int32_t const output_resolution = h3_resolution;
+    std::fprintf(stderr, "[Pipeline] Output resolution: h3-%d\n",
+                 output_resolution);
 
     // 1. Load the timetable.
     auto owned_tt =
@@ -734,8 +725,8 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
             sql << "INSERT INTO _pt_per_opp "
                 << "SELECT h3_cell_to_parent(a.h3_index, " << output_resolution
                 << ")::BIGINT AS cell, pr.grp_idx AS opp_idx, "
-                << "       MIN(pr.cost_min + a.cost_minutes + "
-                << cfg.transfer_cost << ") AS min_cost "
+                << "       GREATEST(ROUND(MIN(pr.cost_min + a.cost_minutes + "
+                << cfg.transfer_cost << ")), 1) AS min_cost "
                 << "FROM _pt_reach pr JOIN _access_used a "
                 << "  ON a.stop_idx = pr.stop_idx "
                 << "WHERE pr.grp_idx >= " << lo << " AND pr.grp_idx < " << hi
