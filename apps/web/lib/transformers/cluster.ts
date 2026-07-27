@@ -120,16 +120,20 @@ const safeIconImage = (imageName: string): unknown => [
 ];
 
 /**
- * For a marker layer with `marker_field` and `marker_mapping`, returns a MapLibre
- * expression that selects the icon of the dominant category in each cluster
- * via clusterProperties counters (cat_0, cat_1, …). Ties resolve to the first
- * matching position from `marker_mapping`.
- *
- * For a fixed-icon marker layer (no marker_field), returns the static image name.
+ * Returns the `icon-image` for cluster symbols. A layer's base marker takes
+ * precedence when set — a cluster mixes categories, so the neutral base icon
+ * is more honest than any single value's icon. Layers with `marker_field` +
+ * `marker_mapping` but no base marker fall back to the icon of the dominant
+ * category via clusterProperties counters (cat_0, cat_1, …); ties resolve to
+ * the first matching position from `marker_mapping`.
  */
 export const buildClusterMarkerIconExpression = (layer: LayerLike): unknown => {
   const props = layer.properties as FeatureLayerPointProperties;
   const layerId = String(layer.id);
+
+  if (props?.marker?.name) {
+    return safeIconImage(`${layerId}-${props.marker.name}`);
+  }
 
   if (props?.marker_field?.name && props?.marker_mapping?.length) {
     const mapping = props.marker_mapping;
@@ -151,8 +155,7 @@ export const buildClusterMarkerIconExpression = (layer: LayerLike): unknown => {
     return ["let", "m", maxExpr, caseExpr];
   }
 
-  const markerName = props?.marker?.name;
-  return markerName ? safeIconImage(`${layerId}-${markerName}`) : "";
+  return "";
 };
 
 /**

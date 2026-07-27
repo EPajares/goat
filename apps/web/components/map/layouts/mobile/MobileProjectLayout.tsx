@@ -221,9 +221,11 @@ const MobileProjectLayout = ({
   }, [clickedPopupLayer]);
   // Layer-style icon for the popup header (same look as the Layers panel
   // and the desktop popup).
+  const clickedFeatureProperties = (layerInfo?.featureProperties ??
+    layerInfo?.properties) as Record<string, unknown> | undefined;
   const clickedPopupLayerIcon = useMemo(
-    () => buildLayerIcon(clickedPopupLayer),
-    [clickedPopupLayer],
+    () => buildLayerIcon(clickedPopupLayer, clickedFeatureProperties),
+    [clickedPopupLayer, clickedFeatureProperties],
   );
 
   // --- Hooks ---

@@ -81,8 +81,19 @@ export function MapFixedPopupSlot({ layers }: MapFixedPopupSlotProps) {
     return normalizePopup(seedPopupFromInteraction(props?.interaction));
   }, [previewLayer]);
 
-  const clickedLayerIcon = useMemo(() => buildLayerIcon(clickedLayer), [clickedLayer]);
-  const previewIcon = useMemo(() => buildLayerIcon(previewLayer), [previewLayer]);
+  // Same feature-property resolution as the popover body below, so a
+  // marker_mapping layer's header icon matches the clicked feature.
+  const clickedFeatureProperties = (popupInfo?.featureProperties ??
+    highlightedFeature?.properties ??
+    popupInfo?.properties) as Record<string, unknown> | undefined;
+  const clickedLayerIcon = useMemo(
+    () => buildLayerIcon(clickedLayer, clickedFeatureProperties),
+    [clickedLayer, clickedFeatureProperties],
+  );
+  const previewIcon = useMemo(
+    () => buildLayerIcon(previewLayer, popupPreview?.feature?.properties ?? undefined),
+    [previewLayer, popupPreview?.feature?.properties],
+  );
 
   const previewCentroid = useMemo(() => {
     if (!popupPreview) return null;

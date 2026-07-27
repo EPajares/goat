@@ -23,6 +23,7 @@ interface TabsLayerLayoutProps {
   onTreeUpdate: (payload: ProjectLayerTreeUpdate) => Promise<void>;
   viewOnly?: boolean;
   downloadableLayers?: number[];
+  simpleLegendLayerIds?: number[];
   hideLegendHeading?: boolean;
   groupIcons?: Record<string, { url: string; source?: string }>;
   dimOutOfZoom?: boolean;
@@ -35,6 +36,7 @@ const TabsLayerLayout = ({
   config,
   onTreeUpdate,
   downloadableLayers,
+  simpleLegendLayerIds,
   hideLegendHeading,
   groupIcons,
   dimOutOfZoom,
@@ -209,6 +211,7 @@ const TabsLayerLayout = ({
           zoomTo: options?.show_zoom_to_action ?? true,
         }}
         downloadableLayers={downloadableLayers}
+        simpleLegendLayerIds={simpleLegendLayerIds}
         hideLegendHeading={hideLegendHeading}
         groupIcons={groupIcons}
         dimOutOfZoom={dimOutOfZoom}

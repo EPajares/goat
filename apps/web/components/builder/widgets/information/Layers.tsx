@@ -62,6 +62,7 @@ export const LayerInformationWidget = ({
   const opts = config.options as Record<string, any> | undefined;
   const excludedLayers: number[] = opts?.excluded_layers ?? [];
   const legendHiddenLayers: number[] = opts?.legend_hidden_layers ?? [];
+  const legendSimpleLayers: number[] = opts?.legend_simple_layers ?? [];
   const downloadableLayers: number[] = opts?.downloadable_layers ?? [];
   const outOfZoomBehavior = opts?.out_of_zoom_behavior ?? "hide";
 
@@ -249,6 +250,7 @@ export const LayerInformationWidget = ({
           onTreeUpdate={handleTreeUpdate}
           viewOnly={viewOnly}
           downloadableLayers={downloadableLayers}
+          simpleLegendLayerIds={legendSimpleLayers}
           hideLegendHeading={!!opts?.hide_legend_heading}
           groupIcons={opts as Record<string, { url: string; source?: string }> | undefined}
           dimOutOfZoom={outOfZoomBehavior === "dim"}
@@ -271,6 +273,7 @@ export const LayerInformationWidget = ({
             zoomTo: options?.show_zoom_to_action ?? true,
           }}
           downloadableLayers={downloadableLayers}
+          simpleLegendLayerIds={legendSimpleLayers}
           hideLegendHeading={!!opts?.hide_legend_heading}
           groupIcons={opts as Record<string, { url: string; source?: string }> | undefined}
           dimOutOfZoom={outOfZoomBehavior === "dim"}

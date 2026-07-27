@@ -123,6 +123,7 @@ export const informationLayersConfigSchema = informationConfigSchema.extend({
       show_zoom_to_action: z.boolean().optional().default(true),
       excluded_layers: z.array(z.number()).optional().default([]),
       legend_hidden_layers: z.array(z.number()).optional().default([]),
+      legend_simple_layers: z.array(z.number()).optional().default([]),
       downloadable_layers: z.array(z.number()).optional().default([]),
     })
     .passthrough()

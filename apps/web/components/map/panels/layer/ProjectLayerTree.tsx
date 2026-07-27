@@ -72,7 +72,7 @@ import { DraggableTreeView } from "./DraggableTreeView";
 import { LayerIcon } from "./legend/LayerIcon";
 import { MaskedImageIcon } from "@/components/map/panels/style/other/MaskedImageIcon";
 import { LayerLegendPanel } from "./legend/LayerLegend";
-import { getLegendColorMap, getLegendMarkerMap } from "@/lib/utils/map/legend";
+import { getLegendColorMap, getLegendMarkerMap, resolveFeatureMarker } from "@/lib/utils/map/legend";
 import PopupContentRenderer from "@/components/builder/widgets/common/PopupContentRenderer";
 
 // Extended tree item interface to include project layer data
@@ -370,6 +370,9 @@ interface ProjectLayerTreeProps {
   };
   /** Layer IDs that should show download action (view mode only) */
   downloadableLayers?: number[];
+  /** Layer IDs whose legend renders as a single row (base marker, else fill
+   * color) instead of the full attribute breakdown */
+  simpleLegendLayerIds?: number[];
   /** Hide attribute/field name headings in legend */
   hideLegendHeading?: boolean;
   /** Custom group icons keyed by group ID */
@@ -400,6 +403,7 @@ export const ProjectLayerTree = ({
   moreOptionsStyle = "compact",
   allowedActions,
   downloadableLayers,
+  simpleLegendLayerIds,
   hideLegendHeading,
   groupIcons,
   dimOutOfZoom = true,
@@ -1041,8 +1045,10 @@ export const ProjectLayerTree = ({
           legendNode = <LayerLegendPanel properties={props} geometryType="raster" hideHeading={hideLegendHeading} />;
         }
       }
-      // 4. Complex Legend - Only show legend if layer is visible
-      else if (hasComplexLegend) {
+      // 4. Complex Legend - Only show legend if layer is visible. Layers
+      // opted into the simple legend fall through to the geometry preview
+      // below (base marker, else fill color) with no attribute breakdown.
+      else if (hasComplexLegend && !simpleLegendLayerIds?.includes(node.id)) {
         // Check if legend panel will actually have content to show
         const colorMap = getLegendColorMap(props, "color");
         const strokeMap = getLegendColorMap(props, "stroke_color");
@@ -1104,7 +1110,8 @@ export const ProjectLayerTree = ({
           }
         }
       }
-      // 5. Simple Feature (Geometry Preview) - for layers without complex legends
+      // 5. Simple Feature (Geometry Preview) - for layers without complex
+      // legends and for simple-legend layers
       else {
         const baseColor = props.color
           ? Array.isArray(props.color) && props.color.length >= 3
@@ -1122,20 +1129,17 @@ export const ProjectLayerTree = ({
           : undefined;
         // When fill is disabled and custom marker is active, use black to match map behavior
         const iconColor = props.filled === false && props.custom_marker ? "#000000" : baseColor;
+        // Base marker with mapped-marker layers falling back to their base
+        // marker — the same precedence as the map's icon-image expression.
+        const simpleMarker = resolveFeatureMarker(props);
         iconNode = (
           <LayerIcon
             type={geomType} // Use geometry type for vector preview
             color={iconColor}
             strokeColor={props.stroked !== false ? strokeColor : undefined}
             filled={props.filled !== false}
-            iconUrl={
-              !props.marker_field && props.custom_marker && props.marker?.url ? props.marker.url : undefined
-            }
-            iconSource={
-              !props.marker_field && props.custom_marker && props.marker?.source
-                ? props.marker.source
-                : "library"
-            }
+            iconUrl={simpleMarker?.url}
+            iconSource={simpleMarker?.source ?? "library"}
           />
         );
       }
@@ -1152,7 +1156,7 @@ export const ProjectLayerTree = ({
         labelInfo: legendCaption,
       };
     });
-  }, [items, theme, currentZoom, viewMode, hideLegendHeading, groupIcons]);
+  }, [items, theme, currentZoom, viewMode, hideLegendHeading, groupIcons, simpleLegendLayerIds]);
 
   const renderPrefix = useCallback(togglePosition === "left" ? (item: ProjectTreeItem) => {
     const node = item.data as ProjectLayerTreeNode;

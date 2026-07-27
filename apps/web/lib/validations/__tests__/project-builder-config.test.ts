@@ -73,6 +73,26 @@ describe("builderConfigSchema — control_positions", () => {
     expect(result.data.settings.control_positions["bottom-left"]).toEqual([]);
   });
 
+  it("defaults legend_simple_layers to an empty array and preserves ids", () => {
+    const empty = informationLayersConfigSchema.safeParse({
+      type: "layers",
+      setup: { title: "My Layers" },
+      options: {},
+    });
+    expect(empty.success).toBe(true);
+    if (!empty.success) return;
+    expect(empty.data.options.legend_simple_layers).toEqual([]);
+
+    const withIds = informationLayersConfigSchema.safeParse({
+      type: "layers",
+      setup: { title: "My Layers" },
+      options: { legend_simple_layers: [86894, 86878] },
+    });
+    expect(withIds.success).toBe(true);
+    if (!withIds.success) return;
+    expect(withIds.data.options.legend_simple_layers).toEqual([86894, 86878]);
+  });
+
   it("preserves group_info through informationLayersConfigSchema parse", () => {
     const result = informationLayersConfigSchema.safeParse({
       type: "layers",

@@ -216,13 +216,16 @@ const MapViewer: React.FC<MapProps> = ({
   // icon the Layers panel renders (see ProjectLayerTree.tsx ~L1134) so
   // the popup feels consistent with the rest of the UI. Helper lives in
   // LayerIcon.tsx alongside the component it builds.
+  const clickedFeatureProperties = (popupInfo?.featureProperties ??
+    highlightedFeature?.properties ??
+    popupInfo?.properties) as Record<string, unknown> | undefined;
   const clickedPopupLayerIcon = useMemo(
-    () => buildLayerIcon(clickedPopupLayer),
-    [clickedPopupLayer],
+    () => buildLayerIcon(clickedPopupLayer, clickedFeatureProperties),
+    [clickedPopupLayer, clickedFeatureProperties],
   );
   const previewLayerIcon = useMemo(
-    () => buildLayerIcon(previewLayer),
-    [previewLayer],
+    () => buildLayerIcon(previewLayer, popupPreview?.feature?.properties ?? undefined),
+    [previewLayer, popupPreview?.feature?.properties],
   );
 
   // Centroid of the preview feature, used both for the popover anchor and the
