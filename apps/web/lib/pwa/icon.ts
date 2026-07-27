@@ -1,18 +1,34 @@
 import sharp from "sharp";
 
-export const PWA_ICON_SIZES = [180, 192, 512] as const;
+// 48/96 serve favicons (Google requires a multiple of 48px square,
+// otherwise it ignores the icon and falls back to /favicon.ico);
+// 180/192/512 serve PWA / home-screen icons.
+export const PWA_ICON_SIZES = [48, 96, 180, 192, 512] as const;
 export type PwaIconSize = (typeof PWA_ICON_SIZES)[number];
 
 export function isAllowedIconSize(size: number): size is PwaIconSize {
   return (PWA_ICON_SIZES as readonly number[]).includes(size);
 }
 
-// The favicon is deliberately not a fallback here — small favicons make
-// bad home-screen icons. null means: use the GOAT logo.
-export function resolveAppIconUrl(
-  settings: { app_icon_url?: string | null } | null | undefined
+export const ICON_SOURCES = ["app", "favicon"] as const;
+export type IconSource = (typeof ICON_SOURCES)[number];
+
+export function isIconSource(source: string): source is IconSource {
+  return (ICON_SOURCES as readonly string[]).includes(source);
+}
+
+export interface IconSettings {
+  app_icon_url?: string | null;
+  favicon_url?: string | null;
+}
+
+// Sources deliberately never fall back to each other — small favicons
+// make bad home-screen icons and vice versa. null means: use the GOAT logo.
+export function resolveIconUrl(
+  settings: IconSettings | null | undefined,
+  source: IconSource
 ): string | null {
-  const url = settings?.app_icon_url;
+  const url = source === "favicon" ? settings?.favicon_url : settings?.app_icon_url;
   return url ? url : null;
 }
 
