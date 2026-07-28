@@ -5,9 +5,9 @@ FROM node:22-alpine AS base
 FROM base AS builder
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
-RUN npm install -g turbo@1.13.3
+RUN npm install -g turbo@2.10.7
 COPY . .
-RUN turbo prune --scope=@p4b/keycloak-theme --docker
+RUN turbo prune @p4b/keycloak-theme --docker
 
 FROM base AS installer
 # keycloakify v8 shells out to maven to package the theme jar

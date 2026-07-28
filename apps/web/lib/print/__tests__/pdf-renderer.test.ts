@@ -1,5 +1,5 @@
-import type { Browser } from "@playwright/test";
-import { chromium } from "@playwright/test";
+import type { Browser } from "playwright-core";
+import { chromium } from "playwright-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describe("PDF Renderer (Integration)", () => {

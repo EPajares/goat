@@ -2,6 +2,7 @@ import { dir } from "i18next";
 import type { Metadata } from "next";
 import { Mulish } from "next/font/google";
 import { cookies } from "next/headers";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import "react-toastify/dist/ReactToastify.css";
 import "@p4b/ui/assets/fonts/index.css";
 
@@ -22,7 +23,7 @@ import "@/styles/globals.css";
 
 // --- Metadata ---
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const lng = cookieStore.get(LANGUAGE_COOKIE_NAME)?.value ?? fallbackLng;
   return getLocalizedMetadata(lng);
 }
@@ -39,15 +40,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={lang} dir={dir(lang)}>
       <body className={mulish.className}>
-        <StoreProvider>
-          <AuthProvider>
-            <I18nProvider language={lang}>
-              <ThemeRegistry theme={theme as "light" | "dark"}>
-                <ToastProvider>{children}</ToastProvider>
-              </ThemeRegistry>
-            </I18nProvider>
-          </AuthProvider>
-        </StoreProvider>
+        <NuqsAdapter>
+          <StoreProvider>
+            <AuthProvider>
+              <I18nProvider language={lang}>
+                <ThemeRegistry theme={theme as "light" | "dark"}>
+                  <ToastProvider>{children}</ToastProvider>
+                </ThemeRegistry>
+              </I18nProvider>
+            </AuthProvider>
+          </StoreProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

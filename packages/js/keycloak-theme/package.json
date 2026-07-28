@@ -14,16 +14,16 @@
   "dependencies": {
     "@emotion/react": "^11.11.0",
     "@emotion/styled": "^11.11.0",
-    "@mui/icons-material": "^5.11.16",
-    "@mui/material": "^5.13.0",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/material": "^5.18.0",
     "@p4b/ui": "workspace:*",
     "evt": "^2.4.15",
     "jwt-decode": "^3.1.2",
     "keycloak-js": "^21.0.1",
     "keycloakify": "^8.0.0",
     "powerhooks": "^0.26.8",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-google-recaptcha": "^2.1.0",
     "rfc4648": "^1.5.2",
     "tsafe": "^1.6.0"
@@ -46,8 +46,5 @@
     ">0.2%",
     "not dead",
     "not op_mini all"
-  ],
-  "resolutions": {
-    "eslint-config-react-app": "^7.0.1"
-  }
+  ]
 }

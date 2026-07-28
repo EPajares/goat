@@ -40,7 +40,7 @@ def _baked_extension_dir() -> str | None:
     return os.environ.get("DUCKDB_EXTENSION_DIRECTORY") or None
 
 
-def _configure_baked_extensions(con: "duckdb.DuckDBPyConnection") -> bool:
+def configure_baked_extensions(con: "duckdb.DuckDBPyConnection") -> bool:
     """Point a connection at the baked extension dir. Returns True if baked."""
     ext_dir = _baked_extension_dir()
     if not ext_dir:
@@ -548,7 +548,7 @@ class BaseDuckLakeManager:
     def _load_extensions(
         self: "BaseDuckLakeManager", con: duckdb.DuckDBPyConnection
     ) -> None:
-        _configure_baked_extensions(con)
+        configure_baked_extensions(con)
         for ext in self.REQUIRED_EXTENSIONS:
             con.execute(f"LOAD {ext}")
 
@@ -1046,7 +1046,7 @@ class DuckLakePool:
         # before loading ANY: once httpfs is loaded, later INSTALL downloads
         # route through its TLS stack (system CA store) which slim images may
         # lack; installing first keeps downloads on DuckDB's own bundled cert.
-        baked = _configure_baked_extensions(con)
+        baked = configure_baked_extensions(con)
         if not self._extensions_installed:
             if not baked:
                 for ext in self.REQUIRED_EXTENSIONS:

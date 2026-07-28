@@ -19,7 +19,7 @@ import { SYSTEM_LAYERS_IDS } from "@/lib/constants";
 import { DEFAULT_BASEMAP } from "@/lib/constants/basemaps";
 import { setSelectedLayers } from "@/lib/store/layer/slice";
 import { setActiveRightPanel } from "@/lib/store/map/slice";
-import { DATA_PANEL_HEIGHT_VAR } from "@/components/map/panels/DataPanel";
+import { DATA_PANEL_HEIGHT_CONSUMER_ATTR, DATA_PANEL_HEIGHT_VAR } from "@/components/map/panels/DataPanel";
 import type { CustomBasemap, Project, ProjectLayerTreeUpdate } from "@/lib/validations/project";
 
 import { MapSidebarItemID } from "@/types/map/common";
@@ -298,6 +298,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
   return (
     <>
       <Box
+      {...{ [DATA_PANEL_HEIGHT_CONSUMER_ATTR]: "" }}
         sx={{
           position: "absolute",
           top: toolbarHeight + 10,
@@ -363,6 +364,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
 
       {/* RIGHT OVERLAY */}
       <Stack
+        {...{ [DATA_PANEL_HEIGHT_CONSUMER_ATTR]: "" }}
         direction="column"
         sx={{
           position: "absolute",
@@ -446,6 +448,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
       {/* Right panel + measure results — rendered separately when data panel is open so controls can be to the left */}
       {dataPanelVisible && (
         <Box
+          {...{ [DATA_PANEL_HEIGHT_CONSUMER_ATTR]: "" }}
           sx={{
             position: "absolute",
             top: toolbarHeight + 10,
@@ -478,6 +481,7 @@ const DataProjectLayout = ({ project, onProjectUpdate }: DataProjectLayoutProps)
           global offsets or portals. Same pattern as the top-left
           controls (Geocoder / ToolboxCtrl / MeasureButton). */}
       <Box
+        {...{ [DATA_PANEL_HEIGHT_CONSUMER_ATTR]: "" }}
         sx={{
           position: "absolute",
           top: toolbarHeight + 10,

@@ -480,7 +480,7 @@ export const toolIconMap: Record<TOOL_ICON_NAME, React.FC<SvgIconProps>> = {
  * ToolIcon component - renders two-tone tool icons by name.
  * Usage: <ToolIcon iconName={TOOL_ICON_NAME.BUFFER} sx={{ fontSize: 24 }} />
  */
-export function ToolIcon({ iconName, ...rest }: SvgIconProps & { iconName: TOOL_ICON_NAME }): JSX.Element {
+export function ToolIcon({ iconName, ...rest }: SvgIconProps & { iconName: TOOL_ICON_NAME }): React.JSX.Element {
   const IconComponent = toolIconMap[iconName];
   if (!IconComponent) throw new Error(`Invalid tool icon name: ${iconName}`);
   return <IconComponent {...rest} />;

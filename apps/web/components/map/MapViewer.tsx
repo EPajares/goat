@@ -62,7 +62,7 @@ import {
 maplibregl.addProtocol("cog", cogProtocol);
 
 interface MapProps {
-  mapRef: React.RefObject<MapRef> | null;
+  mapRef: React.RefObject<MapRef | null> | null;
   initialViewState?: Partial<ViewState> & {
     bounds?: [number, number, number, number];
     fitBoundsOptions?: {

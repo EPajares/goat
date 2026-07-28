@@ -1,4 +1,5 @@
 import { Box } from "@mui/material";
+import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { v4 } from "uuid";
@@ -38,7 +39,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import AddSectionButton from "@/components/builder/AddSectionButton";
 import type { BuilderPanelSchemaWithPosition } from "@/components/builder/PanelContainer";
-import { Container } from "@/components/builder/PanelContainer";
+const Container = dynamic(() => import("@/components/builder/PanelContainer").then((m) => m.Container), { ssr: false });
 import { ProjectInfo } from "@/components/builder/widgets/information/ProjectInfo";
 import { FloatingPanel } from "@/components/common/FloatingPanel";
 import Header from "@/components/header/Header";

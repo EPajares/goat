@@ -5,7 +5,13 @@ import { getLocalizedMetadata } from "@/lib/metadata";
 import { isCustomDomainHost } from "@/lib/pwa/manifest";
 import type { ProjectPublic } from "@/lib/validations/project";
 
-export async function generateMetadata({ params: { projectId } }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
+
+  const {
+    projectId
+  } = params;
+
   const lng = "en";
   const PROJECTS_API_BASE_URL = new URL("api/v2/project", API_BASE_URL).href;
   let publicProject: ProjectPublic | null = null;
@@ -29,7 +35,7 @@ export async function generateMetadata({ params: { projectId } }) {
 
     // Use the request's Host header so OG previews on a custom domain
     // show that domain, not the canonical app URL.
-    const headersList = headers();
+    const headersList = await headers();
     const reqHost = headersList.get("host");
     const protocol = headersList.get("x-forwarded-proto") ?? "https";
     const fallbackUrl = APP_URL ?? "";

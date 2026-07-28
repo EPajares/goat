@@ -5,10 +5,8 @@ export const runtime = "nodejs";
 
 const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { projectId: string } }
-): Promise<Response> {
+export async function GET(request: Request, props: { params: Promise<{ projectId: string }> }): Promise<Response> {
+  const params = await props.params;
   const projectUrl = `${new URL("api/v2/project", API_BASE_URL).href}/${params.projectId}/public`;
 
   // Network errors, non-ok responses, and unparseable bodies (proxy error

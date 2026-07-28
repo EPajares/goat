@@ -2,8 +2,8 @@
  * PDF Renderer - Server-side PDF generation using Playwright
  * This runs in Node.js (API routes or backend service)
  */
-import type { Browser, Page } from "@playwright/test";
-import { chromium } from "@playwright/test";
+import type { Browser, Page } from "playwright-core";
+import { chromium } from "playwright-core";
 
 export interface PDFGenerationOptions {
   /** Target URL or HTML content */

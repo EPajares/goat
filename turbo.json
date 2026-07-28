@@ -3,7 +3,7 @@
   "globalDependencies": [
     "**/.env"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "outputs": [
         "dist/**",

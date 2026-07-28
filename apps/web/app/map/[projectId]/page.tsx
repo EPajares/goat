@@ -4,9 +4,10 @@ import type { DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 import { Box, GlobalStyles, Stack, debounce, useTheme } from "@mui/material";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "@mui/material/styles";
 import "maplibre-gl/dist/maplibre-gl.css";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, use } from "react";
 import { useTranslation } from "react-i18next";
 import type { MapRef, ViewStateChangeEvent } from "react-map-gl/maplibre";
 import { MapProvider } from "react-map-gl/maplibre";
@@ -35,12 +36,11 @@ import { widgetSchemaMap } from "@/lib/validations/widget";
 
 import { useAuthZ } from "@/hooks/auth/AuthZ";
 import { useBrandedTheme } from "@/hooks/dashboard/useBrandedTheme";
-import { useJobStatus } from "@/hooks/jobs/JobStatus";
+import { JobStatusWatcher } from "@/hooks/jobs/JobStatus";
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
-import BuilderConfigPanel from "@/components/builder/ConfigPanel";
 import { DraggableItem } from "@/components/builder/widgets/common/DraggableItem";
 import { LoadingPage } from "@/components/common/LoadingPage";
 import Header from "@/components/header/Header";
@@ -48,12 +48,22 @@ import MapViewer from "@/components/map/MapViewer";
 import DataProjectLayout from "@/components/map/layouts/desktop/DataProjectLayout";
 import PublicProjectLayout from "@/components/map/layouts/desktop/PublicProjectLayout";
 import DataPanel from "@/components/map/panels/DataPanel";
-import { ReportsLayout } from "@/components/reports";
-import WorkflowsLayout from "@/components/workflows/WorkflowsLayout";
+
+const BuilderConfigPanel = dynamic(() => import("@/components/builder/ConfigPanel"), { ssr: false });
+const ReportsLayout = dynamic(() => import("@/components/reports").then((m) => m.ReportsLayout), {
+  ssr: false,
+});
+const WorkflowsLayout = dynamic(() => import("@/components/workflows/WorkflowsLayout"), { ssr: false });
 
 const UPDATE_VIEW_STATE_DEBOUNCE_TIME = 200;
 
-export default function MapPage({ params: { projectId } }) {
+export default function MapPage(props: { params: Promise<{ projectId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    projectId
+  } = params;
+
   const theme = useTheme();
   const { t, i18n } = useTranslation("common");
   const mapRef = useRef<MapRef | null>(null);
@@ -242,11 +252,11 @@ export default function MapPage({ params: { projectId } }) {
     debouncedHandleMapLoad();
   }, [activeBasemap, handleMapLoad, mapMode]);
 
-  useJobStatus(() => {
+  const handleJobSuccess = useCallback(() => {
     mutateProjectLayers();
     mutateProjectLayerGroups();
     mutateProject();
-  });
+  }, [mutateProjectLayers, mutateProjectLayerGroups, mutateProject]);
 
   // Widget Drag and Drop
   const [activeWidget, setActiveWidget] = useState<BuilderWidgetSchema | null>(null);
@@ -480,6 +490,7 @@ export default function MapPage({ params: { projectId } }) {
 
   return (
     <>
+      <JobStatusWatcher onSuccess={handleJobSuccess} />
       {isLoading && <LoadingPage />}
       {!isLoading && !hasError && project && (
         <MapProvider>

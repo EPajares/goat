@@ -64,12 +64,18 @@ const LayerFieldSelector = <T extends boolean = false>(props: SelectorProps<T>) 
   const selectedValue = useMemo(() => {
     if (!props.multiple && !Array.isArray(selectedField)) {
       if (!selectedField) return "";
-      // Only set the value if the field exists in available options to avoid MUI out-of-range warnings
-      const fieldExists = safeFields.some((f) => f.name === selectedField.name);
-      return fieldExists ? JSON.stringify(selectedField) : "";
+      // Match by name and emit the stringified LIVE option: a saved field whose
+      // type/kind has since drifted (e.g. a column re-imported as number) would
+      // otherwise stringify differently from every option and trigger MUI's
+      // out-of-range warning.
+      const match = safeFields.find((f) => f.name === selectedField.name);
+      return match ? JSON.stringify(match) : "";
     } else {
       return selectedField && Array.isArray(selectedField) && selectedField.length > 0
-        ? selectedField.map((field) => JSON.stringify(field))
+        ? selectedField
+            .map((field) => safeFields.find((f) => f.name === field.name))
+            .filter((field): field is (typeof safeFields)[number] => !!field)
+            .map((field) => JSON.stringify(field))
         : EMPTY_FIELDS;
     }
   }, [props.multiple, selectedField, safeFields]);
