@@ -83,6 +83,22 @@ def clean_path(path: str) -> str:
     return path.replace(settings.API_V2_STR + "/", "")
 
 
+def route_pattern(request: Request) -> str:
+    """Full matched route pattern including all router prefixes.
+
+    starlette 1.x keeps included routers nested, so ``scope["route"].path``
+    only holds the sub-route's own path ("/profile" instead of
+    "/api/v2/users/profile"), which breaks the authz resource lookup. The
+    pattern is rebuilt from the concrete path by replacing each path-param
+    value with its placeholder — params are always whole path segments here.
+    """
+    values = {str(v): name for name, v in request.path_params.items()}
+    return "/".join(
+        f"{{{values[segment]}}}" if segment in values else segment
+        for segment in request.scope["path"].split("/")
+    )
+
+
 async def _validate_authorization(
     request: Request, user_token: Dict[str, Any], async_session: AsyncSession
 ) -> bool:
@@ -97,7 +113,7 @@ async def _validate_authorization(
                     path
                 )  # e.g /organizations/b65e040a-f8f0-453f-9888-baa2b9342cce
                 cleaned_route_path = clean_path(
-                    route.path
+                    route_pattern(request)
                 )  # e.g /organizations/{organization_id}
                 # Bind all user-controlled values as parameters — never
                 # f-string-interpolate them (SQL injection). The schema is a
@@ -165,5 +181,3 @@ async def auth_z(
         )
 
     return True
-
-
