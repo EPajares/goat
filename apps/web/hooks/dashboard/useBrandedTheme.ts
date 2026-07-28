@@ -1,6 +1,10 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
+import type { PaletteMode } from "@mui/material";
 import { createTheme, useTheme } from "@mui/material/styles";
+
+import { createAppTheme } from "@p4b/ui/theme/ThemeProvider";
 
 /** Converts a hex color like `#3A3541` to the `"R, G, B"` string used by the palette. */
 function hexToRgb(hex: string): string | null {
@@ -32,8 +36,24 @@ export function useBrandedTheme(
   primaryColor: string | undefined,
   iconColor: string | undefined,
   fontColor: string | undefined,
+  /**
+   * Pins the palette mode instead of inheriting the surrounding theme. Public
+   * dashboards pass "light": a published dashboard has to look the same for
+   * every visitor, and the app theme otherwise carries the *viewer's* own
+   * light/dark preference into someone else's branded dashboard.
+   */
+  forceMode?: PaletteMode,
 ) {
-  const baseTheme = useTheme();
+  const inheritedTheme = useTheme();
+  const { i18n } = useTranslation("common");
+  const locale = i18n?.language === "de" ? "de" : "en";
+  const baseTheme = useMemo(
+    () =>
+      forceMode && forceMode !== inheritedTheme.palette.mode
+        ? createAppTheme({ mode: forceMode, locale })
+        : inheritedTheme,
+    [forceMode, inheritedTheme, locale],
+  );
   return useMemo(() => {
     if (!primaryColor && !iconColor && !fontColor) return baseTheme;
 

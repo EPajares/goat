@@ -23,6 +23,61 @@ function extend(subject: any, baseObject: any): any {
   return baseObject;
 }
 
+export interface MatchRange {
+  0: number;
+  1: number;
+}
+
+export interface MatchTextPart {
+  text: string;
+  highlight: boolean;
+}
+
+/**
+ * Turn `match()` ranges into consecutive highlighted / plain text parts.
+ */
+export function parse(text: string, matches: MatchRange[]): MatchTextPart[] {
+  const result: MatchTextPart[] = [];
+
+  if (matches.length === 0) {
+    result.push({
+      text,
+      highlight: false,
+    });
+  } else if (matches[0][0] > 0) {
+    result.push({
+      text: text.slice(0, matches[0][0]),
+      highlight: false,
+    });
+  }
+
+  matches.forEach((match, i) => {
+    const startIndex = match[0];
+    const endIndex = match[1];
+
+    result.push({
+      text: text.slice(startIndex, endIndex),
+      highlight: true,
+    });
+
+    if (i === matches.length - 1) {
+      if (endIndex < text.length) {
+        result.push({
+          text: text.slice(endIndex, text.length),
+          highlight: false,
+        });
+      }
+    } else if (endIndex < matches[i + 1][0]) {
+      result.push({
+        text: text.slice(endIndex, matches[i + 1][0]),
+        highlight: false,
+      });
+    }
+  });
+
+  return result;
+}
+
 export function match(text: string, query: string, options: MatchOptions = {}) {
   options = extend(options, {
     insideWords: false,

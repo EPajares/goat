@@ -1,4 +1,3 @@
-import AddIcon from "@mui/icons-material/Add";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import BarChartIcon from "@mui/icons-material/BarChart";
@@ -9,6 +8,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import EditIcon from "@mui/icons-material/Edit";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import LockIcon from "@mui/icons-material/Lock";
+import PushPinIcon from "@mui/icons-material/PushPin";
+import PushPinOutlinedIcon from "@mui/icons-material/PushPinOutlined";
 import bbox from "@turf/bbox";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -18,7 +19,7 @@ import { TEMPORAL_VALUE_FORMAT } from "@p4b/ui/components/temporalFormats";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchIcon from "@mui/icons-material/Search";
-import { emphasize } from "@mui/material/styles";
+import { alpha, emphasize } from "@mui/material/styles";
 import {
   Badge,
   Box,
@@ -43,6 +44,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import { debounce } from "@mui/material/utils";
 import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -77,7 +79,7 @@ import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 import { useMap } from "react-map-gl/maplibre";
 import useLayerFields from "@/hooks/map/CommonHooks";
 
-import { useProjectLayers } from "@/lib/api/projects";
+import { updateProjectLayer, useProjectLayers } from "@/lib/api/projects";
 import { useUserProfile } from "@/lib/api/users";
 import ColumnStatsPanel from "@/components/map/panels/ColumnStatsPanel";
 import QuickFilterPopover from "@/components/map/panels/QuickFilterPopover";
@@ -197,10 +199,72 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
     startWidth: number;
   } | null>(null);
 
-  // Filter to primitive fields only (no objects/geometry)
-  const displayFields = useMemo(
-    () => layerFields.filter((f) => f.type !== "object" && f.type !== "geometry"),
-    [layerFields]
+  // Frozen (pinned-left) columns and column widths — persisted per project
+  // layer under other_properties.table_config so they survive reloads.
+  const tableConfig = useMemo(() => {
+    return ((projectLayer.other_properties as Record<string, unknown> | null | undefined)
+      ?.table_config ?? {}) as { frozen_columns?: unknown; column_widths?: unknown };
+  }, [projectLayer.other_properties]);
+
+  const frozenColumns = useMemo<string[]>(() => {
+    if (!Array.isArray(tableConfig.frozen_columns)) return [];
+    const valid = new Set(layerFields.map((f) => f.name));
+    return tableConfig.frozen_columns.filter(
+      (c): c is string => typeof c === "string" && valid.has(c)
+    );
+  }, [tableConfig, layerFields]);
+
+  // Seed widths from the persisted config; in-session drags take precedence.
+  // Without this, the sticky offsets of the 2nd+ frozen column would be
+  // computed from fallback widths that don't match the rendered widths.
+  const persistedWidths = useMemo<Record<string, number>>(() => {
+    const out: Record<string, number> = {};
+    if (tableConfig.column_widths && typeof tableConfig.column_widths === "object") {
+      for (const [k, v] of Object.entries(tableConfig.column_widths as Record<string, unknown>)) {
+        if (typeof v === "number" && Number.isFinite(v) && v > 0) out[k] = v;
+      }
+    }
+    return out;
+  }, [tableConfig]);
+
+  useEffect(() => {
+    setColumnWidths((prev) => ({ ...persistedWidths, ...prev }));
+  }, [persistedWidths]);
+
+  // Filter to primitive fields only (no objects/geometry); frozen columns
+  // render first, in their frozen order.
+  const displayFields = useMemo(() => {
+    const primitive = layerFields.filter((f) => f.type !== "object" && f.type !== "geometry");
+    if (frozenColumns.length === 0) return primitive;
+    const frozen = frozenColumns
+      .map((name) => primitive.find((f) => f.name === name))
+      .filter((f): f is (typeof primitive)[number] => !!f);
+    return [...frozen, ...primitive.filter((f) => !frozenColumns.includes(f.name))];
+  }, [layerFields, frozenColumns]);
+
+  // Sticky left offset per frozen column: row-number column (48px) plus the
+  // widths of all frozen columns before it. Frozen columns always have an
+  // entry in columnWidths (set when freezing), 160 is a safety fallback.
+  const ROW_NUMBER_COL_WIDTH = 48;
+  const FROZEN_FALLBACK_WIDTH = 160;
+  const frozenOffsets = useMemo<Record<string, number>>(() => {
+    const offsets: Record<string, number> = {};
+    let left = ROW_NUMBER_COL_WIDTH;
+    for (const name of frozenColumns) {
+      offsets[name] = left;
+      left += columnWidths[name] ?? FROZEN_FALLBACK_WIDTH;
+    }
+    return offsets;
+  }, [frozenColumns, columnWidths]);
+
+  // Frozen columns must render at exactly the width the offset math assumes,
+  // so their explicit width always resolves (fallback included).
+  const effectiveColumnWidth = useCallback(
+    (name: string): number | undefined =>
+      frozenOffsets[name] !== undefined
+        ? (columnWidths[name] ?? FROZEN_FALLBACK_WIDTH)
+        : columnWidths[name],
+    [frozenOffsets, columnWidths]
   );
 
   // Per-column metadata from queryables: kind, is_computed, display_config
@@ -302,10 +366,15 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
     dispatch(setHighlightedFeature(undefined));
   }, [layerId, dispatch]);
 
-  // Reset page to 0 when the active filter changes so results are always visible
+  // Reset page to 0 when the active filter changes so results are always
+  // visible. Compare by VALUE: saves and table-config updates recreate the
+  // project layer (and its query object) with identical content, and an
+  // identity-based reset would wipe the page + scroll position on every
+  // cell edit.
+  const combinedFilterKey = useMemo(() => JSON.stringify(combinedFilter ?? null), [combinedFilter]);
   useEffect(() => {
     setPage(0);
-  }, [combinedFilter]);
+  }, [combinedFilterKey]);
 
   // Clear highlight on unmount (table closed)
   useEffect(() => {
@@ -349,11 +418,19 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
       const activeResize = activeResizeRef.current;
       if (!activeResize) return;
       const nextWidth = Math.max(60, Math.min(600, activeResize.startWidth + (event.clientX - activeResize.startX)));
-      setColumnWidths((prev) => ({ ...prev, [activeResize.columnKey]: nextWidth }));
+      setColumnWidths((prev) => {
+        const next = { ...prev, [activeResize.columnKey]: nextWidth };
+        widthsLiveRef.current = next;
+        return next;
+      });
     };
 
     const handleMouseUp = () => {
-      activeResizeRef.current = null;
+      if (activeResizeRef.current) {
+        activeResizeRef.current = null;
+        // Persist the final width so sticky offsets stay correct on reload
+        persistWidthsRef.current();
+      }
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -381,6 +458,8 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
 
   // --- Selection (single row) ---
 
+  const editorActiveFeatureId = useAppSelector((state) => state.featureEditor.activeFeatureId);
+
   const selectRow = (rowId: string) => {
     setSelectedRowId(rowId);
     dispatch(setPopupInfo(undefined));
@@ -403,6 +482,17 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
     }
   };
 
+  // Edit-tool → table sync: picking a feature on the map with the edit tools
+  // selects its table row, so the two selections can never point at
+  // different features. New features drawn in draw mode have UUID ids that
+  // don't match any row and are ignored.
+  useEffect(() => {
+    if (!isEditing || !editorActiveFeatureId || !collectionData?.features) return;
+    const idx = collectionData.features.findIndex((f) => String(f.id) === editorActiveFeatureId);
+    if (idx < 0) return;
+    setSelectedRowId(`${collectionData.features[idx].id}-${page}-${idx}`);
+  }, [editorActiveFeatureId, isEditing, collectionData, page]);
+
   const handleRowDoubleClick = (rowId: string) => {
     if (!map) return;
     const feature = collectionData?.features.find((f, i) => `${f.id}-${page}-${i}` === rowId);
@@ -423,14 +513,15 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
   // Track selected (highlighted) cell — separate from editing
   const [selectedCell, setSelectedCell] = useState<{ rowId: string; column: string } | null>(null);
 
-  // Clear dirty state when editing stops or pending features are cleared (save/discard)
+  // Clear dirty CELL state when editing stops or pending features are
+  // cleared (save/discard). Row selection and its map highlight survive a
+  // save on purpose — losing them forced users to re-find their place.
   const pendingCount = Object.keys(pendingFeatures).length;
   useEffect(() => {
     if (!isEditing || pendingCount === 0) {
       setDirtyCells(new Map());
       setEditingCell(null);
       setSelectedCell(null);
-      setSelectedRowId(null);
       dispatch(setHighlightedFeature(undefined));
     }
   }, [isEditing, pendingCount, dispatch]);
@@ -605,11 +696,77 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
 
   // --- Column Header Menu ---
 
+  const columnMenuWidthRef = useRef<number | null>(null);
+
   const handleColumnMenuOpen = (event: React.MouseEvent<HTMLElement>, fieldName: string) => {
     event.preventDefault();
     event.stopPropagation();
+    // Remember the header cell's rendered width: freezing needs a concrete
+    // width to compute the next column's sticky offset.
+    columnMenuWidthRef.current = event.currentTarget.closest("th")?.offsetWidth ?? null;
     setColumnMenuAnchor(event.currentTarget);
     setColumnMenuField(fieldName);
+  };
+
+  // Persist table preferences (frozen columns + column widths) under
+  // other_properties.table_config: optimistic local update drives the UI;
+  // only editors persist (viewers get session-local behavior that resets on
+  // revalidation).
+  const persistTableConfig = useCallback(
+    async (nextFrozen: string[], nextWidths: Record<string, number>) => {
+      if (!projectLayers || !projectId) return;
+      const layers = JSON.parse(JSON.stringify(projectLayers)) as ProjectLayer[];
+      const index = layers.findIndex((l) => l.id === projectLayer.id);
+      if (index < 0) return;
+      const other = (layers[index].other_properties ?? {}) as Record<string, unknown>;
+      layers[index].other_properties = {
+        ...other,
+        table_config: { frozen_columns: nextFrozen, column_widths: nextWidths },
+      };
+      await mutateProjectLayers(layers, false);
+      if (isEditor) {
+        try {
+          await updateProjectLayer(projectId as string, projectLayer.id, layers[index]);
+        } catch (error) {
+          console.error("Failed to persist table config:", error);
+          await mutateProjectLayers();
+        }
+      }
+    },
+    [projectLayers, projectId, projectLayer.id, mutateProjectLayers, isEditor]
+  );
+
+  const handleToggleFreeze = useCallback(
+    async (fieldName: string) => {
+      const isFrozen = frozenColumns.includes(fieldName);
+      const nextFrozen = isFrozen
+        ? frozenColumns.filter((c) => c !== fieldName)
+        : [...frozenColumns, fieldName];
+
+      // Ensure the frozen column has a concrete width for offset math
+      let nextWidths = columnWidths;
+      if (!isFrozen && !columnWidths[fieldName]) {
+        const measured = columnMenuWidthRef.current;
+        nextWidths = {
+          ...columnWidths,
+          [fieldName]: measured && measured > 0 ? measured : FROZEN_FALLBACK_WIDTH,
+        };
+        setColumnWidths(nextWidths);
+      }
+
+      await persistTableConfig(nextFrozen, nextWidths);
+    },
+    [frozenColumns, columnWidths, persistTableConfig]
+  );
+
+  // Latest persist call for the window-level resize handlers (mounted once).
+  // widthsLiveRef carries the in-flight drag value: on mouseup the final
+  // setColumnWidths may not have re-rendered yet, so state alone would be
+  // a few pixels stale.
+  const widthsLiveRef = useRef<Record<string, number> | null>(null);
+  const persistWidthsRef = useRef<() => void>(() => undefined);
+  persistWidthsRef.current = () => {
+    void persistTableConfig(frozenColumns, widthsLiveRef.current ?? columnWidths);
   };
 
   // --- Row Context Menu ---
@@ -708,13 +865,13 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
           <Button
             size="small"
             variant="outlined"
-            startIcon={<AddIcon />}
+            startIcon={<EditIcon />}
             onClick={() => {
               setEditFieldsInitialField(null);
               setEditFieldsOpen(true);
             }}
             sx={{ textTransform: "none", whiteSpace: "nowrap" }}>
-            {t("add_field", { defaultValue: "Add a field" })}
+            {t("edit_fields")}
           </Button>
         )}
         {isEditor && (isEditing || (projectLayer.user_id === userProfile?.id && (!projectLayer.size || projectLayer.size <= MAX_EDITABLE_LAYER_SIZE))) && (
@@ -896,14 +1053,20 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
           flex: 1,
           minHeight: 0,
           overflow: "auto",
-          // Thin, unobtrusive scrollbar
+          // Thin, theme-aware scrollbars. The standard properties are what
+          // modern Chromium and Firefox honor (matching the app's global
+          // scrollbar colors); the -webkit pseudos remain for older engines.
+          scrollbarWidth: "thin",
+          scrollbarColor: (theme) =>
+            `${theme.palette.mode === "dark" ? "#374A62" : theme.palette.grey[400]} transparent`,
           "&::-webkit-scrollbar": { width: 6, height: 6 },
           "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "action.disabled",
+            backgroundColor: (theme) =>
+              theme.palette.mode === "dark" ? "#374A62" : theme.palette.grey[400],
             borderRadius: 3,
           },
           "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
-          scrollbarWidth: "thin",
+          "&::-webkit-scrollbar-corner": { background: "transparent" },
         }}>
         {(isLoading || areFieldsLoading) && !collectionData ? (
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
@@ -939,7 +1102,19 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
               // Declared here because this selector outranks the cell's own sx.
               "& .MuiTableCell-stickyHeader:first-of-type": {
                 left: 0,
+                zIndex: 5,
+              },
+              // Frozen column headers paint above the scrolling headers
+              // (same specificity trick as the corner cell above).
+              "& .MuiTableCell-stickyHeader.frozen-header": {
                 zIndex: 4,
+              },
+              // Row hover must reach frozen cells too — they're opaque, so
+              // the row-level hover background can't show through. Skip
+              // cells that already carry a state tint (dirty/selected).
+              "& .MuiTableRow-root:hover .frozen-body-cell:not(.frozen-cell-tinted)": {
+                background: (theme) =>
+                  `linear-gradient(${theme.palette.action.hover}, ${theme.palette.action.hover}), ${theme.palette.background.paper}`,
               },
             }}>
             <TableHead>
@@ -962,12 +1137,19 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
                   </Typography>
                 </TableCell>
                 {displayFields.map((field) => {
-                  const w = columnWidths[field.name];
+                  const w = effectiveColumnWidth(field.name);
+                  const frozenLeft = frozenOffsets[field.name];
                   return (
                     <TableCell
                       key={field.name}
+                      className={frozenLeft !== undefined ? "frozen-header" : undefined}
                       sx={{
                         ...(w ? { width: w, minWidth: w, maxWidth: w } : { minWidth: 100 }),
+                        ...(frozenLeft !== undefined && {
+                          position: "sticky",
+                          left: frozenLeft,
+                          backgroundColor: (theme) => emphasize(theme.palette.background.paper, 0.03),
+                        }),
                         cursor: "pointer",
                         userSelect: "none",
                         whiteSpace: "nowrap",
@@ -1068,21 +1250,63 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
                             ? formatFieldValue(displayValue, fieldKind as FieldKind, fieldDisplayConfig)
                             : String(displayValue);
 
+                      const frozenLeft = frozenOffsets[field.name];
+                      const bodyWidth = effectiveColumnWidth(field.name);
+                      const isRowSelected = selectedRowId === rowId;
+                      // Frozen cells must be opaque: scrolled columns slide
+                      // underneath. Layer the translucent state tint (cell
+                      // state or row selection) over the opaque paper
+                      // background via a gradient.
+                      // Row selection must match MUI's TableRow.Mui-selected
+                      // color exactly (primary at selectedOpacity)
+                      const frozenTint = (theme: Theme): string | null =>
+                        isDirty
+                          ? "rgba(255, 193, 7, 0.12)"
+                          : isSelected && !isEditing
+                            ? "rgba(128, 128, 128, 0.12)"
+                            : isRowSelected
+                              ? alpha(theme.palette.primary.main, theme.palette.action.selectedOpacity)
+                              : null;
                       return (
                         <TableCell
                           key={field.name}
+                          className={
+                            frozenLeft !== undefined
+                              ? `frozen-body-cell${isDirty || (isSelected && !isEditing) || isRowSelected ? " frozen-cell-tinted" : ""}`
+                              : undefined
+                          }
                           sx={{
-                            ...(columnWidths[field.name] ? { width: columnWidths[field.name], minWidth: columnWidths[field.name], maxWidth: columnWidths[field.name] } : {}),
+                            ...(bodyWidth ? { width: bodyWidth, minWidth: bodyWidth, maxWidth: bodyWidth } : {}),
                             cursor: isComputed ? "default" : "text",
                             position: "relative",
+                            ...(frozenLeft !== undefined && {
+                              position: "sticky",
+                              left: frozenLeft,
+                              zIndex: 1,
+                              // Base is plain paper so frozen data cells are
+                              // indistinguishable from normal cells; only the
+                              // header/row-number chrome uses the emphasized
+                              // shade.
+                              background: (theme) => {
+                                const tint = frozenTint(theme);
+                                const base = theme.palette.background.paper;
+                                return tint
+                                  ? `linear-gradient(${tint}, ${tint}), ${base}`
+                                  : base;
+                              },
+                            }),
                             // Computed columns get a subtle read-only tint
-                            backgroundColor: isDirty
-                              ? "rgba(255, 193, 7, 0.12)"
-                              : isComputed
-                                ? (theme) => `${theme.palette.action.disabledBackground}40`
-                                : isSelected && !isEditing
-                                  ? "action.hover"
-                                  : undefined,
+                            // (frozen cells handle their background above)
+                            backgroundColor:
+                              frozenLeft !== undefined
+                                ? undefined
+                                : isDirty
+                                  ? "rgba(255, 193, 7, 0.12)"
+                                  : isComputed
+                                    ? (theme) => `${theme.palette.action.disabledBackground}40`
+                                    : isSelected && !isEditing
+                                      ? "action.hover"
+                                      : undefined,
                             p: isEditing ? 0 : undefined,
                             ...(isEditing && {
                               outline: (theme) => `2px solid ${theme.palette.primary.main}`,
@@ -1280,6 +1504,25 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
             <ArrowDownwardIcon />
           </ListItemIcon>
           <ListItemText>{t("sort_desc", { defaultValue: "Sort Z-A" })}</ListItemText>
+        </MenuItem>
+        <Divider sx={{ my: 0.5 }} />
+        <MenuItem
+          onClick={() => {
+            if (columnMenuField) handleToggleFreeze(columnMenuField);
+            handleColumnMenuClose();
+          }}>
+          <ListItemIcon>
+            {columnMenuField && frozenColumns.includes(columnMenuField) ? (
+              <PushPinIcon />
+            ) : (
+              <PushPinOutlinedIcon />
+            )}
+          </ListItemIcon>
+          <ListItemText>
+            {columnMenuField && frozenColumns.includes(columnMenuField)
+              ? t("unfreeze_column", { defaultValue: "Unfreeze column" })
+              : t("freeze_column", { defaultValue: "Freeze column" })}
+          </ListItemText>
         </MenuItem>
         <Divider sx={{ my: 0.5 }} />
         {isEditor && (

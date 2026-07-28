@@ -88,7 +88,17 @@ export const defaultDrawStyles: DrawStyle[] = [
     type: "circle",
     filter: ["all", ["==", "active", "false"], ["==", "$type", "Point"], ["==", "meta", "feature"]],
     paint: {
-      "circle-radius": ["case", ["has", "user__iconImage"], ["max", 8, ["*", ["coalesce", ["get", "user__iconSize"], 0.5], 16]], 5],
+      // Ring around the icon: prefer the measured pixel radius supplied by
+      // the editor (_iconRadius — accounts for the image's intrinsic size);
+      // fall back to a size-based estimate, then to the plain point radius.
+      "circle-radius": [
+        "case",
+        ["has", "user__iconRadius"],
+        ["get", "user__iconRadius"],
+        ["has", "user__iconImage"],
+        ["max", 8, ["*", ["coalesce", ["get", "user__iconSize"], 0.5], 16]],
+        5,
+      ],
       "circle-color": ["case", ["has", "user__iconImage"], "transparent", "#fff"],
       "circle-stroke-color": "#ef4444",
       "circle-stroke-width": 2,
@@ -99,7 +109,14 @@ export const defaultDrawStyles: DrawStyle[] = [
     type: "circle",
     filter: ["all", ["==", "$type", "Point"], ["==", "meta", "feature"], ["==", "active", "true"]],
     paint: {
-      "circle-radius": ["case", ["has", "user__iconImage"], ["+", ["max", 8, ["*", ["coalesce", ["get", "user__iconSize"], 0.5], 16]], 2], 7],
+      "circle-radius": [
+        "case",
+        ["has", "user__iconRadius"],
+        ["+", ["get", "user__iconRadius"], 2],
+        ["has", "user__iconImage"],
+        ["+", ["max", 8, ["*", ["coalesce", ["get", "user__iconSize"], 0.5], 16]], 2],
+        7,
+      ],
       "circle-color": ["case", ["has", "user__iconImage"], "transparent", "#fff"],
       "circle-stroke-color": "#ef4444",
       "circle-stroke-width": 3,

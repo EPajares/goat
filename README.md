@@ -235,7 +235,7 @@ Only use this if you're modifying the GOAT source code.
 | `NEXT_PUBLIC_GEOAPI_URL` | Public URL of the GeoAPI (tiles/features) |
 | `NEXT_PUBLIC_PROCESSES_URL` | Public URL of the Processes API |
 | `NEXT_PUBLIC_DOCS_URL` | URL for documentation |
-| `NEXT_PUBLIC_MAP_TOKEN` | MapLibre/Mapbox token |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | Mapbox token for the map search control (geocoding) |
 | `KEYCLOAK_SERVER_URL` | Base URL of the Keycloak server (derives the issuer together with `REALM_NAME`) |
 | `REALM_NAME` | Keycloak realm |
 | `KEYCLOAK_CLIENT_ID` | Keycloak client (web login, core admin, print worker) |

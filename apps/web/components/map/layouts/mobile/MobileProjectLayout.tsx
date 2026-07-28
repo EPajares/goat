@@ -1,6 +1,6 @@
 import { Global } from "@emotion/react";
 import type { Theme } from "@mui/material";
-import { Box, IconButton, Stack, SwipeableDrawer, Typography, alpha, styled, useTheme } from "@mui/material";
+import { Box, IconButton, Stack, SwipeableDrawer, Typography, styled, useTheme } from "@mui/material";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
@@ -12,9 +12,8 @@ import { v4 } from "uuid";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
-import { MAPBOX_TOKEN } from "@/lib/constants";
 import { DEFAULT_BASEMAP } from "@/lib/constants/basemaps";
-import { setActiveRightPanel, setGeocoderResult } from "@/lib/store/map/slice";
+import { setActiveRightPanel } from "@/lib/store/map/slice";
 import type { PopupProperties } from "@/lib/validations/layer";
 import type { CustomBasemap } from "@/lib/validations/project";
 import { projectSchema } from "@/lib/validations/project";
@@ -33,10 +32,11 @@ import Header from "@/components/header/Header";
 import AttributionControl from "@/components/map/controls/Attribution";
 import { BaseMapSelectorList, BasemapSelectorButton } from "@/components/map/controls/BasemapSelector";
 import { CustomBasemapDialog } from "@/components/map/controls/CustomBasemapDialog";
-import Geocoder from "@/components/map/controls/Geocoder";
 import Scalebar from "@/components/map/controls/Scalebar";
 import { UserLocation } from "@/components/map/controls/UserLocation";
 import { Zoom } from "@/components/map/controls/Zoom";
+import SearchControl from "@/components/map/controls/search/SearchControl";
+import { usePublicSearchSource } from "@/components/map/controls/search/publicSearchLayers";
 import type { PublicProjectLayoutProps } from "@/components/map/layouts/desktop/PublicProjectLayout";
 import PropertiesPanel from "@/components/map/panels/properties/Properties";
 import { buildLayerIcon } from "@/components/map/panels/layer/legend/LayerIcon";
@@ -144,7 +144,7 @@ const MobileProjectLayout = ({
   onProjectUpdate,
   viewOnly,
 }: PublicProjectLayoutProps) => {
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const theme = useTheme();
   const dispatch = useAppDispatch();
 
@@ -162,6 +162,15 @@ const MobileProjectLayout = ({
       return undefined;
     }
   }, [_project]);
+
+  const {
+    source: searchSource,
+    layersById: searchLayersById,
+    placeholder: searchPlaceholder,
+  } = usePublicSearchSource(
+    project,
+    projectLayers
+  );
 
   // --- State ---
   const [open, setOpen] = useState(false); // Drawer open/closed state
@@ -212,9 +221,11 @@ const MobileProjectLayout = ({
   }, [clickedPopupLayer]);
   // Layer-style icon for the popup header (same look as the Layers panel
   // and the desktop popup).
+  const clickedFeatureProperties = (layerInfo?.featureProperties ??
+    layerInfo?.properties) as Record<string, unknown> | undefined;
   const clickedPopupLayerIcon = useMemo(
-    () => buildLayerIcon(clickedPopupLayer),
-    [clickedPopupLayer],
+    () => buildLayerIcon(clickedPopupLayer, clickedFeatureProperties),
+    [clickedPopupLayer, clickedFeatureProperties],
   );
 
   // --- Hooks ---
@@ -248,11 +259,11 @@ const MobileProjectLayout = ({
     [project?.builder_config?.interface]
   );
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  // Inherit the panel's branded color but NOT its opacity: on desktop a panel is
+  // a translucent card floating over the map, while here it backs a bottom sheet
+  // the map sits behind — carrying the alpha over left the sheet see-through.
   const getPanelBgColor = (panel: (typeof panels)[number] | undefined) =>
-    alpha(
-      panel?.config?.appearance?.backgroundColor || theme.palette.background.paper,
-      panel?.config?.appearance?.opacity ?? 1
-    );
+    panel?.config?.appearance?.backgroundColor || theme.palette.background.paper;
   // Color for the shared drawer chrome (puller + content area). Use the
   // active panel's color while showing panels; fall back to the theme
   // surface for utility views (basemap selector, layer settings, popup).
@@ -298,21 +309,65 @@ const MobileProjectLayout = ({
   // into the middle of the still-visible band. Features already above
   // the drawer stay put (no gratuitous camera movement).
   const { map } = useMap();
+
+  // Tracks whether the camera is currently mid-flight on a search-selection
+  // animation (`SearchControl`'s flyTo/fitBounds, tagged with
+  // `SEARCH_CAMERA_EVENT_DATA`), as opposed to a user gesture (drag/pinch)
+  // that also leaves `map.isMoving()` true. Only the former should make the
+  // drawer-offset effect below wait — deferring to a user pan's `moveend`
+  // would apply a stale correction to wherever the user panned away to.
+  const searchCameraAnimatingRef = useRef(false);
+  useEffect(() => {
+    if (!map) return;
+    const handleMoveStart = (event: { searchSelection?: boolean }) => {
+      if (event.searchSelection) {
+        searchCameraAnimatingRef.current = true;
+      }
+    };
+    const handleMoveEnd = () => {
+      searchCameraAnimatingRef.current = false;
+    };
+    map.on("movestart", handleMoveStart);
+    map.on("moveend", handleMoveEnd);
+    return () => {
+      map.off("movestart", handleMoveStart);
+      map.off("moveend", handleMoveEnd);
+    };
+  }, [map]);
+
   useEffect(() => {
     if (!layerInfo || !map) return;
-    const rect = map.getContainer().getBoundingClientRect();
-    // Top edge of the open drawer (paper + puller), in map-container px.
-    const drawerTop = window.innerHeight * (1 - drawerHeightRatio) - rect.top;
-    if (drawerTop <= 0) return;
-    const lngLat: [number, number] = [layerInfo.lngLat[0], layerInfo.lngLat[1]];
-    if (map.project(lngLat).y <= drawerTop) return;
-    map.easeTo({
-      center: lngLat,
-      // Land the feature in the center of the visible band above the
-      // drawer (offset is relative to the map-container center).
-      offset: [0, drawerTop / 2 - rect.height / 2],
-      duration: 500,
-    });
+
+    const applyDrawerOffset = () => {
+      const rect = map.getContainer().getBoundingClientRect();
+      // Top edge of the open drawer (paper + puller), in map-container px.
+      const drawerTop = window.innerHeight * (1 - drawerHeightRatio) - rect.top;
+      if (drawerTop <= 0) return;
+      const lngLat: [number, number] = [layerInfo.lngLat[0], layerInfo.lngLat[1]];
+      if (map.project(lngLat).y <= drawerTop) return;
+      map.easeTo({
+        center: lngLat,
+        // Land the feature in the center of the visible band above the
+        // drawer (offset is relative to the map-container center).
+        offset: [0, drawerTop / 2 - rect.height / 2],
+        duration: 500,
+      });
+    };
+
+    // A search selection's flyTo/fitBounds may still be animating the camera
+    // to its own target zoom. Firing easeTo on top of that would interrupt
+    // it mid-flight and stop at whatever zoom it had reached, since this
+    // effect never specifies one — defer to the end of that animation
+    // instead of competing with it. A plain user gesture (isMoving() true
+    // for any other reason) keeps the pre-existing immediate behavior.
+    if (map.isMoving() && searchCameraAnimatingRef.current) {
+      map.once("moveend", applyDrawerOffset);
+      return () => {
+        map.off("moveend", applyDrawerOffset);
+      };
+    }
+
+    applyDrawerOffset();
   }, [layerInfo, map]);
 
   // Effect to handle layer settings panel requests from ProjectLayerTree three dots menu
@@ -471,16 +526,14 @@ const MobileProjectLayout = ({
                 zIndex: 2,
                 pointerEvents: "all",
               }}>
-              <Geocoder
-                accessToken={MAPBOX_TOKEN}
-                bbox={project?.max_extent ?? undefined}
-                language={i18n.language}
-                placeholder={t("enter_an_address")}
-                tooltip={t("search")}
-                onSelect={(result) => {
-                  dispatch(setGeocoderResult(result));
-                }}
-              />
+              {searchSource?.mode === "public" && (searchSource.placesEnabled || searchSource.hasLayers) && (
+                <SearchControl
+                  source={searchSource}
+                  layersById={searchLayersById}
+                  placeholder={searchPlaceholder}
+                  bbox={project?.max_extent ?? undefined}
+                />
+              )}
             </Box>
           )}
           {/* Top-Right Controls (Unchanged) */}
@@ -563,6 +616,14 @@ const MobileProjectLayout = ({
           onOpen={toggleDrawer(true)}
           swipeAreaWidth={drawerBleeding}
           disableSwipeToOpen={false}
+          // Swipe-to-OPEN is otherwise dead: MUI ignores a closed-drawer touch
+          // unless it starts on its own invisible SwipeArea *or* this is set
+          // (SwipeableDrawer.js — `allowSwipeInChildren` defaults to false).
+          // Our visible puller is a child of the Paper and covers that
+          // SwipeArea, so every upward swipe was discarded while swipe-to-close
+          // (a different code path) kept working. Only the bleeding strip is
+          // on-screen while closed, so allowing Paper children is safe here.
+          allowSwipeInChildren
           disableDiscovery={false}>
           {/* Puller Area */}
           <Box
@@ -583,6 +644,10 @@ const MobileProjectLayout = ({
               left: 0,
               height: drawerBleeding,
               cursor: drawerView === "default" ? "pointer" : "grab",
+              // Suppress the browser's grey tap-flash on the sheet handle: it
+              // reads as the sheet's background changing for a moment.
+              WebkitTapHighlightColor: "transparent",
+              userSelect: "none",
               backgroundColor: drawerBgColor,
               boxShadow: "0 -3px 6px -2px rgba(0,0,0,0.15)",
             }}>
@@ -673,6 +738,7 @@ const MobileProjectLayout = ({
                 // Close drawer on item click for immediate map feedback
                 onClick={() => setOpen(false)}
                 hideHeader // Header is now in the puller area
+                flat // The sheet is the surface; no nested card
               />
             )}
 

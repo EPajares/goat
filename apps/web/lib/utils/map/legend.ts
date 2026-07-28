@@ -197,6 +197,41 @@ export function getLegendColorMap(
   return colorMap;
 }
 
+/**
+ * Resolves the marker image a given feature renders with on the map:
+ * the `marker_mapping` entry matching the feature's `marker_field` value,
+ * falling back to the layer's base `marker` — the same precedence as the
+ * icon-image match expression in getMapboxStyleMarker. Without feature
+ * properties (or without a match) the base marker is returned, so callers
+ * can use this for layer-level icons too.
+ */
+export function resolveFeatureMarker(
+  properties: Record<string, unknown>,
+  featureProperties?: Record<string, unknown>,
+): { url: string; source: "custom" | "library" } | undefined {
+  if (properties?.custom_marker !== true) return undefined;
+
+  const fieldName = (properties.marker_field as { name?: string } | undefined)?.name;
+  const mapping = properties.marker_mapping as
+    | [string[] | null, { url?: string; source?: "custom" | "library" } | null][]
+    | undefined;
+
+  if (fieldName && mapping?.length && featureProperties && featureProperties[fieldName] != null) {
+    const value = String(featureProperties[fieldName]);
+    for (const [values, marker] of mapping) {
+      if (values?.map(String).includes(value) && marker?.url) {
+        return { url: marker.url, source: marker.source ?? "library" };
+      }
+    }
+  }
+
+  const marker = properties.marker as
+    | { url?: string; source?: "custom" | "library" }
+    | undefined;
+  if (marker?.url) return { url: marker.url, source: marker.source ?? "library" };
+  return undefined;
+}
+
 export function getLegendMarkerMap(properties: Record<string, unknown>): MarkerMapItem[] {
   const markerMap: MarkerMapItem[] = [];
   if (!properties) return markerMap;

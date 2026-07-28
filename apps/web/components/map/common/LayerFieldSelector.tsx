@@ -43,7 +43,7 @@ export const containsText = (text: string, searchText: string) =>
 // Empty array constant to avoid creating new references
 const EMPTY_FIELDS: LayerFieldType[] = [];
 
-const LayerFieldSelector = (props: SelectorProps) => {
+const LayerFieldSelector = <T extends boolean = false>(props: SelectorProps<T>) => {
   const theme = useTheme();
   const [searchText, setSearchText] = useState("");
   const { selectedField, fields, setSelectedField } = props;
@@ -122,7 +122,8 @@ const LayerFieldSelector = (props: SelectorProps) => {
               const value = e.target.value as string;
               if (!value) return;
               const field = JSON.parse(value) as LayerFieldType;
-              setSelectedField(field as LayerFieldType);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setSelectedField(field as any);
             } else if (props.multiple) {
               const fields = e.target.value as string[];
               const selectedFields = fields

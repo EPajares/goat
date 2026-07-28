@@ -1,58 +1,70 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export default async function search(
-  endpoint: string,
-  source: string,
-  accessToken: string,
-  query: string,
-  onResult: (err: any, res: Response | null) => void,
-  proximity?: { longitude: number; latitude: number },
-  country?: string,
-  bbox?: number[],
-  types?: string,
-  limit?: number,
-  autocomplete?: boolean,
-  language?: string
-) {
-  try {
-    const baseUrl = `${endpoint}/geocoding/v5/${source}/${query}.json`;
-    const searchParams = {
-      ...(isNotNil(accessToken) && { access_token: accessToken }),
-      ...(isNotNil(proximity) && {
-        proximity:
-          proximity && Object.keys(proximity).length === 2
-            ? `${proximity.longitude},${proximity.latitude}`
-            : null,
-      }),
-      ...(isNotNil(bbox) && {
-        bbox: bbox && bbox.length > 0 ? bbox.join(",") : null,
-      }),
+import type { Feature } from "@/types/map/controllers";
 
-      ...(isNotNil(types) && {
-        types,
-      }),
-      ...(isNotNil(country) && {
-        country,
-      }),
-      ...(isNotNil(limit) && {
-        limit,
-      }),
-      ...(isNotNil(autocomplete) && {
-        autocomplete,
-      }),
-      ...(isNotNil(language) && {
-        language,
-      }),
-    };
-    const url = `${baseUrl}?${toUrlString(searchParams)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    onResult(null, data);
-    return { err: null, res };
-  } catch (err) {
-    onResult(err, null);
-    return { err, res: null };
-  }
+const GEOCODER_ENDPOINT = "https://api.mapbox.com";
+const GEOCODER_SOURCE = "mapbox.places";
+
+interface GeocodeUrlParams {
+  accessToken: string;
+  proximity?: { longitude: number; latitude: number };
+  bbox?: number[];
+  types?: string;
+  country?: string;
+  limit?: number;
+  autocomplete?: boolean;
+  language?: string;
 }
+
+function buildGeocodeUrl(endpoint: string, source: string, query: string, params: GeocodeUrlParams) {
+  const baseUrl = `${endpoint}/geocoding/v5/${source}/${encodeURIComponent(query)}.json`;
+  const searchParams = {
+    ...(isNotNil(params.accessToken) && { access_token: params.accessToken }),
+    ...(isNotNil(params.proximity) && {
+      proximity:
+        params.proximity && Object.keys(params.proximity).length === 2
+          ? `${params.proximity.longitude},${params.proximity.latitude}`
+          : null,
+    }),
+    ...(isNotNil(params.bbox) && {
+      bbox: params.bbox && params.bbox.length > 0 ? params.bbox.join(",") : null,
+    }),
+    ...(isNotNil(params.types) && {
+      types: params.types,
+    }),
+    ...(isNotNil(params.country) && {
+      country: params.country,
+    }),
+    ...(isNotNil(params.limit) && {
+      limit: params.limit,
+    }),
+    ...(isNotNil(params.autocomplete) && {
+      autocomplete: params.autocomplete,
+    }),
+    ...(isNotNil(params.language) && {
+      language: params.language,
+    }),
+  };
+  return `${baseUrl}?${toUrlString(searchParams)}`;
+}
+
+export async function searchPlaces(
+  query: string,
+  opts: {
+    accessToken: string;
+    proximity?: { longitude: number; latitude: number };
+    bbox?: number[];
+    language?: string;
+    limit?: number;
+    signal?: AbortSignal;
+  }
+): Promise<Feature[]> {
+  const url = buildGeocodeUrl(GEOCODER_ENDPOINT, GEOCODER_SOURCE, query, opts);
+  const res = await fetch(url, { signal: opts.signal });
+  if (!res.ok) throw new Error(`Geocoding failed: ${res.status}`);
+  const data = await res.json();
+  return data?.features ?? [];
+}
+
 function toUrlString(params: any) {
   return Object.keys(params)
     .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(params[key]))

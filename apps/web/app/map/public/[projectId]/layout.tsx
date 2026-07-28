@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { API_BASE_URL, APP_URL } from "@/lib/constants";
 import { getLocalizedMetadata } from "@/lib/metadata";
 import { isCustomDomainHost } from "@/lib/pwa/manifest";
-import { DEFAULT_FAVICON_URL } from "@/lib/validations/project";
 import type { ProjectPublic } from "@/lib/validations/project";
 
 export async function generateMetadata({ params: { projectId } }) {
@@ -25,7 +24,6 @@ export async function generateMetadata({ params: { projectId } }) {
   if (publicProject?.config?.project?.name) {
     const title = publicProject.config.project.name;
     const builderSettings = publicProject.config.project.builder_config?.settings;
-    const faviconUrl = builderSettings?.favicon_url;
     const ogImageUrl = builderSettings?.og_image_url;
     const metaDescription = builderSettings?.meta_description;
 
@@ -73,7 +71,13 @@ export async function generateMetadata({ params: { projectId } }) {
     return {
       ...metadata,
       icons: {
-        icon: faviconUrl || DEFAULT_FAVICON_URL,
+        // Served resized to a multiple of 48px — Google's favicon crawler
+        // ignores smaller icons and falls back to /favicon.ico.
+        icon: {
+          url: `/api/pwa-icon/${projectId}?size=96&source=favicon`,
+          sizes: "96x96",
+          type: "image/png",
+        },
         apple: `/api/pwa-icon/${projectId}?size=180`,
       },
       manifest: manifestUrl,

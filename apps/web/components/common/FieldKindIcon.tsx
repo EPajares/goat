@@ -103,6 +103,9 @@ const FieldKindIcon = ({ kind, error = false }: FieldKindIconProps) => {
           minWidth: 18,
           px: 0.5,
           borderRadius: "4px",
+          // Chips placed inline with text must center on the line box, not
+          // sit on the baseline (which makes them ride high next to labels)
+          verticalAlign: "middle",
           // action.hover adapts to light/dark mode by design
           backgroundColor: theme.palette.action.hover,
           color,
@@ -115,6 +118,7 @@ const FieldKindIcon = ({ kind, error = false }: FieldKindIconProps) => {
             sx={{
               fontSize: glyph.length > 1 ? 9 : 11,
               fontWeight: 700,
+              lineHeight: 1,
               letterSpacing: glyph.length > 1 ? "-0.3px" : 0,
             }}>
             {glyph}
@@ -122,7 +126,9 @@ const FieldKindIcon = ({ kind, error = false }: FieldKindIconProps) => {
         ) : (
           <Icon
             iconName={FIELD_KIND_ICONS[kind] ?? FIELD_KIND_ICONS.string}
-            style={{ fontSize: 10 }}
+            // display:block strips the FontAwesome baseline offset
+            // (vertical-align -0.125em) so the icon truly centers in the chip
+            style={{ fontSize: 10, display: "block" }}
             htmlColor={color}
           />
         )}

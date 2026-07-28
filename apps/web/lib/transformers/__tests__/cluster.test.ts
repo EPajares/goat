@@ -152,6 +152,35 @@ describe("buildClusterMarkerIconExpression (icon image for marker clusters)", ()
       ["image", "badge-sdf"],
     ]);
   });
+
+  it("prefers the base marker over the dominant-category expression when one is set", () => {
+    // A cluster mixes statuses, so a layer that has a neutral base marker
+    // shows it instead of the majority value's icon.
+    const layer = {
+      ...byAttrCustomUploadedMarkerLayer,
+      properties: {
+        ...(byAttrCustomUploadedMarkerLayer as { properties: object }).properties,
+        marker: { name: "base-sign", source: "custom", url: "" },
+      },
+    } as typeof byAttrCustomUploadedMarkerLayer;
+    expect(buildClusterMarkerIconExpression(layer)).toEqual([
+      "coalesce",
+      ["image", "abc-123-base-sign"],
+      ["image", "badge-sdf"],
+    ]);
+  });
+
+  it("keeps the dominant-category expression when the base marker name is empty", () => {
+    const layer = {
+      ...byAttrCustomUploadedMarkerLayer,
+      properties: {
+        ...(byAttrCustomUploadedMarkerLayer as { properties: object }).properties,
+        marker: { name: "", source: "custom", url: "" },
+      },
+    } as typeof byAttrCustomUploadedMarkerLayer;
+    const expr = buildClusterMarkerIconExpression(layer);
+    expect((expr as unknown[])[0]).toBe("let");
+  });
 });
 
 describe("buildClusterMarkerIconColor (gray override for built-in markers)", () => {

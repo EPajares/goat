@@ -10,11 +10,20 @@ import WidgetColorPicker from "@/components/builder/widgets/common/WidgetColorPi
 import { languages } from "@/i18n/settings";
 
 import type { InteractionRule } from "@/lib/validations/interaction";
-import type { BuilderPanelSchema, ControlKey, ControlPositions, Project, ProjectLayer, ProjectLayerGroup } from "@/lib/validations/project";
+import type {
+  BuilderPanelSchema,
+  ControlKey,
+  ControlPositions,
+  Project,
+  ProjectLayer,
+  ProjectLayerGroup,
+  SearchSettings as SearchSettingsType,
+} from "@/lib/validations/project";
 import { DEFAULT_CONTROL_POSITIONS, DEFAULT_FAVICON_URL, builderConfigSchema } from "@/lib/validations/project";
 
 import InteractionsModal, { InteractionsEntryButton } from "@/components/builder/InteractionsModal";
 import MapControlsLayout from "@/components/builder/MapControlsLayout";
+import { SearchSettingsSection } from "@/components/builder/settings/SearchSettings";
 import SocialPreviewImagePicker from "@/components/builder/SocialPreviewImagePicker";
 import SettingsGroupHeader from "@/components/builder/widgets/common/SettingsGroupHeader";
 import ConfirmModal from "@/components/modals/Confirm";
@@ -247,6 +256,14 @@ const SettingsTab: React.FC<SettingsTabProps> = ({
               </Box>
             </Box>
           </Stack>
+        </Box>
+        {/* ── Search ── */}
+        <Box sx={{ mb: 6 }}>
+          <SearchSettingsSection
+            settings={(settings?.search as SearchSettingsType) ?? { places: true, layers: [] }}
+            projectLayers={projectLayers}
+            onChange={(next) => onChange("search", next)}
+          />
         </Box>
         <Box sx={{ mb: 6 }}>
           <SettingsGroupHeader label={t("branding")} />

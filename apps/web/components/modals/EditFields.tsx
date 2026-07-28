@@ -123,12 +123,16 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
   /** Revalidate all SWR keys for this layer (queryables, collection items, etc.) */
   const revalidateLayer = useCallback(() => {
     mutateQueryables();
-    // Revalidate any SWR key that starts with the collection URL for this layer
-    globalMutate(
-      (key) => typeof key === "string" && key.startsWith(`${COLLECTIONS_API_BASE_URL}/${layerId}`),
-      undefined,
-      { revalidate: true },
-    );
+    // Revalidate any SWR key that starts with the collection URL for this
+    // layer. Single-argument mutate keeps the cached data on screen while
+    // refetching (a data argument — even undefined — would clear the cache).
+    // Items keys are [url, params] arrays, so match those too.
+    globalMutate((key) => {
+      const prefix = `${COLLECTIONS_API_BASE_URL}/${layerId}`;
+      if (typeof key === "string") return key.startsWith(prefix);
+      if (Array.isArray(key) && typeof key[0] === "string") return key[0].startsWith(prefix);
+      return false;
+    });
   }, [layerId, mutateQueryables]);
 
   // Build a map of original field names by ID for diffing

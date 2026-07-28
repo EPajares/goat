@@ -35,6 +35,12 @@ interface BasemapSelectorProps {
 interface BasemapSelectorListProps extends BasemapSelectorProps {
   onClick: () => void;
   hideHeader?: boolean;
+  /**
+   * Renders without the card surface (no elevation, radius or own background).
+   * The mobile bottom sheet already provides the surface — nesting the card in
+   * it left a raised, rounded edge where the list ended.
+   */
+  flat?: boolean;
 }
 
 interface BasemapSelectorButtonProps {
@@ -176,7 +182,7 @@ function BasemapRow({
 export function BaseMapSelectorList(props: BasemapSelectorListProps) {
   const theme = useTheme();
   const { t } = useTranslation("common");
-  const { styles, active, basemapChange, editable = false, onAdd, onEdit } = props;
+  const { styles, active, basemapChange, editable = false, onAdd, onEdit, flat = false } = props;
   const activeIndex = useMemo(
     () => styles.findIndex((style) => style.value === active),
     [styles, active]
@@ -184,6 +190,7 @@ export function BaseMapSelectorList(props: BasemapSelectorListProps) {
 
   return (
     <Paper
+      elevation={flat ? 0 : undefined}
       sx={{
         width: "100%",
         maxHeight: "100%",
@@ -191,6 +198,13 @@ export function BaseMapSelectorList(props: BasemapSelectorListProps) {
         flexDirection: "column",
         overflow: "hidden",
         position: "relative",
+        ...(flat && {
+          height: "100%",
+          borderRadius: 0,
+          backgroundColor: "transparent",
+          backgroundImage: "none",
+          boxShadow: "none",
+        }),
       }}>
       {!props.hideHeader && (
         <>
