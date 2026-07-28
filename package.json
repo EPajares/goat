@@ -73,7 +73,6 @@
       "form-data@3": "^3.0.5",
       "form-data@4": "^4.0.6",
       "fast-uri@3": "^3.1.4",
-      "webpack@5": "^5.104.1",
       "rollup@2": "^2.79.2",
       "rollup@4": "^4.59.0",
       "qs@6": "^6.15.2",
@@ -96,7 +95,10 @@
       "shell-quote": "^1.8.4",
       "@types/react": "^19.2.0",
       "@types/react-dom": "^19.2.0",
-      "@types/node": "^20.19.0"
+      "@types/node": "^20.19.0",
+      "wait-on@<8": "^8.0.5",
+      "@docusaurus/core>webpack": "~5.94.0",
+      "webpack": "5.109.1"
     }
   }
 }
