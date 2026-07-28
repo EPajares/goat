@@ -119,7 +119,13 @@ PYBIND11_MODULE(_routing, m)
     py::enum_<routing::HeatmapType>(m, "HeatmapType")
         .value("Gravity",        routing::HeatmapType::Gravity)
         .value("ClosestAverage", routing::HeatmapType::ClosestAverage)
-        .value("Connectivity",   routing::HeatmapType::Connectivity);
+        .value("Connectivity",   routing::HeatmapType::Connectivity)
+        .value("TwoSFCA",        routing::HeatmapType::TwoSFCA);
+
+    py::enum_<routing::TwoSFCAType>(m, "TwoSFCAType")
+        .value("Standard", routing::TwoSFCAType::Standard)
+        .value("E2SFCA",   routing::TwoSFCAType::E2SFCA)
+        .value("M2SFCA",   routing::TwoSFCAType::M2SFCA);
 
     py::enum_<routing::GravityDecay>(m, "GravityDecay")
         .value("Gaussian",    routing::GravityDecay::Gaussian)
@@ -154,6 +160,8 @@ PYBIND11_MODULE(_routing, m)
         .def_readwrite("sensitivity",     &routing::HeatmapConfig::sensitivity)
         .def_readwrite("max_sensitivity", &routing::HeatmapConfig::max_sensitivity)
         .def_readwrite("closest_k",       &routing::HeatmapConfig::closest_k)
+        .def_readwrite("two_sfca_type",   &routing::HeatmapConfig::two_sfca_type)
+        .def_readwrite("demand_path",     &routing::HeatmapConfig::demand_path)
         // PT (mode == PublicTransport)
         .def_readwrite("timetable_path",  &routing::HeatmapConfig::timetable_path)
         .def_readwrite("arrival_time",    &routing::HeatmapConfig::arrival_time)

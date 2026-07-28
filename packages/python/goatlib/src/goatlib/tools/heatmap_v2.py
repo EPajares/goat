@@ -32,6 +32,7 @@ from goatlib.analysis.schemas.heatmap import (
     ROUTING_MODE_LABELS,
     PotentialExpression,
     PotentialType,
+    TwoSFCAType_LABELS,
 )
 from goatlib.analysis.schemas.heatmap_v2 import (
     N_DESTINATIONS_MAX,
@@ -42,6 +43,7 @@ from goatlib.analysis.schemas.heatmap_v2 import (
     HeatmapType,
     HeatmapV2Params,
     OpportunityV2,
+    TwoSFCAType,
 )
 from goatlib.analysis.schemas.ui import (
     UISection,
@@ -1274,6 +1276,80 @@ def _pt_arrival_unix_minutes(pt_day: Weekday, seconds_of_day: int) -> int:
     return int(arrival_dt.timestamp() // 60)
 
 
+class Heatmap2SFCAV2WindmillParams(HeatmapV2WindmillParams):
+    """Two-Step Floating Catchment Area accessibility analysis."""
+
+    heatmap_type: HeatmapType = Field(
+        default=HeatmapType.two_sfca,
+        json_schema_extra=ui_field(section="configuration", hidden=True),
+    )
+    two_sfca_type: TwoSFCAType = Field(
+        default=TwoSFCAType.twosfca,
+        description="2SFCA method variant (standard / E2SFCA / M2SFCA).",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=5,
+            label_key="two_sfca_type",
+            enum_labels=TwoSFCAType_LABELS,
+        ),
+    )
+    # Supply layers — capacity is carried by the opportunity potential fields.
+    opportunities: list[OpportunityV2PointGravity] = Field(
+        ...,
+        title="Supply Layers",
+        min_length=1,
+        max_length=3,
+        description="Supply layers; each opportunity's potential is its capacity.",
+        json_schema_extra=ui_field(
+            section="opportunities",
+            field_order=10,
+            repeatable=True,
+            min_items=1,
+            max_items=3,
+        ),
+    )
+    # Demand layer (population). Rasterized to cells by the analysis layer.
+    demand_layer_id: str = Field(
+        ...,
+        description="Demand layer (e.g. population).",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=6,
+            label_key="demand_path",
+            widget="layer-selector",
+        ),
+    )
+    demand_layer_filter: dict[str, Any] | None = Field(
+        default=None,
+        json_schema_extra=ui_field(
+            section="configuration", field_order=7, hidden=True
+        ),
+    )
+    demand_field: str = Field(
+        ...,
+        description="Field in the demand layer holding the demand value.",
+        json_schema_extra=ui_field(
+            section="configuration",
+            field_order=8,
+            label_key="demand_field",
+            widget="field-selector",
+            widget_options={
+                "source_layer": "demand_layer_id",
+                "field_types": ["number"],
+            },
+            visible_when={"demand_layer_id": {"$ne": None}},
+        ),
+    )
+    result_layer_name: str | None = Field(
+        default=get_default_layer_name("heatmap_2sfca", "en"),
+        json_schema_extra=ui_field(
+            section="result",
+            field_order=1,
+            label_key="result_layer_name",
+        ),
+    )
+
+
 class HeatmapV2ToolRunner(BaseToolRunner[HeatmapV2WindmillParams]):
     """Heatmap V2 tool runner for Windmill — local C++ routing backend."""
 
@@ -1410,6 +1486,22 @@ class HeatmapV2ToolRunner(BaseToolRunner[HeatmapV2WindmillParams]):
             )
         )
 
+    def _resolve_demand(
+        self: Self, params: HeatmapV2WindmillParams
+    ) -> str | None:
+        """Export the demand layer (2SFCA only) to a parquet path."""
+        if not getattr(params, "demand_layer_id", None):
+            return None
+        return str(
+            self.export_layer_to_parquet(
+                layer_id=params.demand_layer_id,
+                user_id=params.user_id,
+                cql_filter=getattr(params, "demand_layer_filter", None),
+                scenario_id=params.scenario_id,
+                project_id=params.project_id,
+            )
+        )
+
     # --------------------------------------------------------- main
 
     def process(
@@ -1424,6 +1516,12 @@ class HeatmapV2ToolRunner(BaseToolRunner[HeatmapV2WindmillParams]):
         resolved_opportunities = (
             [] if is_connectivity else self._resolve_opportunities(params)
         )
+
+        # 2SFCA: resolve the demand layer + method variant.
+        is_two_sfca = params.heatmap_type == HeatmapType.two_sfca
+        demand_path = self._resolve_demand(params) if is_two_sfca else None
+        demand_field = getattr(params, "demand_field", None)
+        two_sfca_type = getattr(params, "two_sfca_type", TwoSFCAType.twosfca)
 
         # routing_mode is HeatmapRoutingMode across all heatmap types; normalise
         # via value to be robust to a raw string coming from Windmill.
@@ -1449,6 +1547,10 @@ class HeatmapV2ToolRunner(BaseToolRunner[HeatmapV2WindmillParams]):
             # Opportunities + optional reference-area clip
             opportunities=resolved_opportunities,
             reference_area_path=reference_area_path,
+            # 2SFCA supply-vs-demand
+            two_sfca_type=two_sfca_type,
+            demand_path=demand_path,
+            demand_field=demand_field,
             # PT (arrive-by reverse RAPTOR). access/egress modes select the
             # per-mode lookup table (walk/bicycle/pedelec/car); the analysis
             # layer resolves the table path and errors if it isn't built yet.
@@ -1497,6 +1599,13 @@ class HeatmapConnectivityV2ToolRunner(HeatmapV2ToolRunner):
     The base runner handles reference-area export + dispatch."""
 
     default_output_name = get_default_layer_name("heatmap_connectivity", "en")
+
+
+class Heatmap2SFCAV2ToolRunner(HeatmapV2ToolRunner):
+    """Per-formula entry point: pre-binds heatmap_type=two_sfca in the UI.
+    The base runner handles demand + supply export + dispatch."""
+
+    default_output_name = get_default_layer_name("heatmap_2sfca", "en")
 
 
 def main(params: HeatmapV2WindmillParams) -> dict:

@@ -35,6 +35,7 @@ from goatlib.analysis.schemas.heatmap_v2 import (
     HeatmapType,
     HeatmapV2Params,
     OpportunityV2,
+    TwoSFCAType,
 )
 from goatlib.config.settings import settings
 from goatlib.models.io import DatasetMetadata
@@ -236,6 +237,7 @@ class HeatmapV2Tool(HeatmapToolBase):
         output_path: str,
         max_cost: float | None = None,
         closest_k: int = 1,
+        demand_path: str | None = None,
     ) -> Any:
         """Build a routing.HeatmapConfig for one opportunity layer.
 
@@ -256,6 +258,7 @@ class HeatmapV2Tool(HeatmapToolBase):
             HeatmapType.gravity: routing.HeatmapType.Gravity,
             HeatmapType.closest_average: routing.HeatmapType.ClosestAverage,
             HeatmapType.connectivity: routing.HeatmapType.Connectivity,
+            HeatmapType.two_sfca: routing.HeatmapType.TwoSFCA,
         }
         decay_map = {
             GravityDecay.gaussian: routing.GravityDecay.Gaussian,
@@ -291,6 +294,15 @@ class HeatmapV2Tool(HeatmapToolBase):
         cfg.max_sensitivity = params.max_sensitivity
         cfg.closest_k = closest_k
         cfg.output_path = output_path
+
+        if params.heatmap_type == HeatmapType.two_sfca:
+            cfg.two_sfca_type = {
+                TwoSFCAType.twosfca: routing.TwoSFCAType.Standard,
+                TwoSFCAType.e2sfca: routing.TwoSFCAType.E2SFCA,
+                TwoSFCAType.m2sfca: routing.TwoSFCAType.M2SFCA,
+            }[params.two_sfca_type]
+            if demand_path is not None:
+                cfg.demand_path = demand_path
 
         # PT: arrive-by reverse RAPTOR + precomputed access/egress lookup
         # tables. max_cost here is the total journey budget (minutes). The
@@ -428,6 +440,61 @@ class HeatmapV2Tool(HeatmapToolBase):
             )
         return layers
 
+    # ----------------------------------------------------------- demand (2SFCA)
+
+    def _prepare_demand(
+        self: Self,
+        demand_path: str,
+        demand_field: str,
+        h3_resolution: int,
+        scratch_dir: Path | None = None,
+    ) -> str:
+        """Rasterize the demand layer to a (cell, demand) parquet at the output
+        H3 resolution. Points sum into their cell; polygons distribute the value
+        as value/num_cells across covered cells (mirrors v1 _process_demand)."""
+        meta, table = self.import_input(demand_path, table_name="demand_input")
+        geom_col = meta.geometry_column or "geometry"
+        geom_type = (meta.geometry_type or "").lower()
+        out_dir = scratch_dir if scratch_dir is not None else Path(tempfile.mkdtemp())
+        out_path = str(out_dir / "demand_cells.parquet")
+        if "polygon" in geom_type:
+            sql = f"""
+              COPY (
+                WITH feats AS (
+                  SELECT ROW_NUMBER() OVER () AS rid,
+                         "{demand_field}"::DOUBLE AS v,
+                         (UNNEST(ST_Dump(ST_Force2D({geom_col})))).geom AS g
+                  FROM {table} WHERE {geom_col} IS NOT NULL
+                ),
+                cells AS (
+                  SELECT rid, v,
+                    UNNEST(h3_polygon_wkt_to_cells_experimental(
+                      ST_AsText(g), {h3_resolution}, 'CONTAINMENT_OVERLAPPING')) AS cell
+                  FROM feats
+                ),
+                uniq AS (SELECT DISTINCT rid, v, cell FROM cells),
+                cnt AS (SELECT rid, COUNT(*) AS n FROM uniq GROUP BY rid)
+                SELECT u.cell::BIGINT AS cell, SUM(u.v / c.n) AS demand
+                FROM uniq u JOIN cnt c USING (rid)
+                GROUP BY u.cell
+              ) TO '{out_path}' (FORMAT PARQUET)
+            """
+        else:
+            sql = f"""
+              COPY (
+                SELECT h3_latlng_to_cell(ST_Y(g), ST_X(g), {h3_resolution})::BIGINT AS cell,
+                       SUM(v) AS demand
+                FROM (
+                  SELECT "{demand_field}"::DOUBLE AS v,
+                         (UNNEST(ST_Dump({geom_col}))).geom AS g
+                  FROM {table} WHERE {geom_col} IS NOT NULL
+                )
+                GROUP BY cell
+              ) TO '{out_path}' (FORMAT PARQUET)
+            """
+        self.con.execute(sql)
+        return out_path
+
     # ----------------------------------------------------------- per-layer compute
 
     def _compute_layer_scores(
@@ -441,6 +508,7 @@ class HeatmapV2Tool(HeatmapToolBase):
         n_destinations: int,
         params: HeatmapV2Params,
         scratch_dir: Path,
+        demand_path: str | None = None,
     ) -> str:
         """Run compute_heatmap for one opportunity layer; load + round the
         result into a DuckDB temp table; return its name."""
@@ -452,6 +520,7 @@ class HeatmapV2Tool(HeatmapToolBase):
             output_path=str(score_path),
             max_cost=layer_max_cost,
             closest_k=n_destinations,
+            demand_path=demand_path,
         )
 
         t0 = time.perf_counter()
@@ -465,13 +534,16 @@ class HeatmapV2Tool(HeatmapToolBase):
         )
 
         score_table = f"score_{idx}"
-        # Round per-layer scores to 2 decimal places — visual rendering
-        # quantile-bins into 5-7 colors; sub-0.01 precision is decorative.
+        # Round per-layer scores for rendering. 2 decimals suit gravity /
+        # closest-average / connectivity, but 2SFCA scores are per-capita
+        # supply-to-demand ratios that are routinely < 0.01 — rounding those to
+        # 2 dp collapses them to zero, so 2SFCA keeps more precision.
+        decimals = 6 if params.heatmap_type == HeatmapType.two_sfca else 2
         self.con.execute(
             f"""
             CREATE OR REPLACE TEMP TABLE {score_table} AS
             SELECT h3_index::UBIGINT AS h3_index,
-                   ROUND(score, 2) AS {col}_accessibility
+                   ROUND(score, {decimals}) AS {col}_accessibility
             FROM read_parquet('{score_path}')
             """
         )
@@ -521,17 +593,20 @@ class HeatmapV2Tool(HeatmapToolBase):
             f"s{idx}.{col}_accessibility"
             for idx, (col, _) in enumerate(score_tables)
         )
+        # 2SFCA totals are tiny per-capita ratios; keep more precision so they
+        # don't round to zero (2 dp is fine for the other formulas).
+        decimals = 6 if heatmap_type == HeatmapType.two_sfca else 2
         if heatmap_type == HeatmapType.closest_average:
             cnt_expr = " + ".join(
                 f"(s{idx}.{col}_accessibility IS NOT NULL)::INT"
                 for idx, (col, _) in enumerate(score_tables)
             )
             total_select = (
-                f"ROUND(({sum_expr}) / NULLIF({cnt_expr}, 0), 2) AS total_accessibility"
+                f"ROUND(({sum_expr}) / NULLIF({cnt_expr}, 0), {decimals}) AS total_accessibility"
             )
             drop_null_total = False
         else:
-            total_select = f"ROUND({sum_expr}, 2) AS total_accessibility"
+            total_select = f"ROUND({sum_expr}, {decimals}) AS total_accessibility"
             drop_null_total = True
 
         from_clause = f"{score_tables[0][1]} s0"
@@ -608,12 +683,19 @@ class HeatmapV2Tool(HeatmapToolBase):
 
         with tempfile.TemporaryDirectory() as td_str:
             scratch_dir = Path(td_str)
+            demand_path: str | None = None
+            if params.heatmap_type == HeatmapType.two_sfca:
+                demand_path = self._prepare_demand(
+                    params.demand_path, params.demand_field,
+                    DEFAULT_H3_RESOLUTION[params.routing_mode], scratch_dir,
+                )
+                logger.info("[Heatmap] 2SFCA demand rasterized: %.0f ms", lap())
             score_tables: list[tuple[str, str]] = []
             for idx, (col, opp_pts, sens, max_cost, n_dest) in enumerate(layer_specs):
                 table = self._compute_layer_scores(
                     idx, len(layer_specs),
                     col, opp_pts, sens, max_cost, n_dest,
-                    params, scratch_dir,
+                    params, scratch_dir, demand_path,
                 )
                 score_tables.append((col, table))
             last_t = time.perf_counter()  # per-layer prints already accounted for time

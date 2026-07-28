@@ -999,6 +999,10 @@
       "title": "Heatmap 2SFCA",
       "description": "Die 2SFCA-Methode (Two-Step Floating Catchment Area) misst die Erreichbarkeit mehrerer Einrichtungen, indem zunächst für jeden Standort ein Kapazitäts-Nachfrage-Verhältnis berechnet und anschließend die erreichbaren Verhältnisse je Rasterzelle aufsummiert werden."
     },
+    "heatmap_2sfca_v2": {
+      "title": "Heatmap 2SFCA V2",
+      "description": "Die 2SFCA-Methode (Two-Step Floating Catchment Area) misst die Erreichbarkeit mehrerer Einrichtungen, indem zunächst für jeden Standort ein Kapazitäts-Nachfrage-Verhältnis berechnet und anschließend die erreichbaren Verhältnisse je Rasterzelle aufsummiert werden."
+    },
     "huff_model": {
       "title": "Huff-Modell",
       "description": "Das Huff-Modell prognostiziert die Wahrscheinlichkeit, dass Verbraucher in einem Referenzgebiet bestimmte Standorte besuchen, basierend auf der Attraktivität der Standorte und der Entfernung zu diesen Standorten, einschließlich der Konkurrenz zwischen den Gelegenheiten."

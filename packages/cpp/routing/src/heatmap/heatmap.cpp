@@ -352,40 +352,99 @@ void reduce_and_export(HeatmapConfig const &cfg, duckdb::Connection &con,
                        PhaseTimer &timer)
 {
     {
+        double const inv_sensitivity_norm =
+            cfg.max_sensitivity / std::max(cfg.sensitivity, 1.0);
+
+        // Distance-decay W(min_cost), shared by Gravity and 2SFCA.
+        std::string decay_expr;
+        switch (cfg.decay)
+        {
+        case GravityDecay::Gaussian:
+            decay_expr =
+                "EXP(-1.0 * POW(min_cost / " + std::to_string(cfg.max_cost) +
+                ", 2) * " + std::to_string(inv_sensitivity_norm) + ")";
+            break;
+        case GravityDecay::Exponential:
+            decay_expr =
+                "EXP(-1.0 * (1.0 / " + std::to_string(inv_sensitivity_norm) +
+                ") * (min_cost / " + std::to_string(cfg.max_cost) + "))";
+            break;
+        case GravityDecay::Linear:
+            decay_expr =
+                "GREATEST(0.0, 1.0 - (min_cost / " +
+                std::to_string(cfg.max_cost) + "))";
+            break;
+        case GravityDecay::Power:
+            decay_expr =
+                "POW(GREATEST(min_cost / " + std::to_string(cfg.max_cost) +
+                ", 1e-9), -1.0 * (1.0 / " +
+                std::to_string(inv_sensitivity_norm) + "))";
+            break;
+        }
+
+        if (cfg.heatmap_type == HeatmapType::TwoSFCA)
+        {
+            // W = decay for E2SFCA/M2SFCA, binary (1) for standard 2SFCA.
+            std::string const W =
+                (cfg.two_sfca_type == TwoSFCAType::Standard) ? std::string("1.0")
+                                                             : decay_expr;
+            // Step-2 weight: 1 / W / W^2 for standard / E2SFCA / M2SFCA.
+            std::string const W2 =
+                (cfg.two_sfca_type == TwoSFCAType::M2SFCA)
+                    ? "(" + decay_expr + " * " + decay_expr + ")"
+                : (cfg.two_sfca_type == TwoSFCAType::E2SFCA)
+                    ? decay_expr
+                    : std::string("1.0");
+
+            // Per-cell demand (cell BIGINT, demand DOUBLE).
+            auto rd = con.Query(
+                "CREATE OR REPLACE TEMP TABLE _hm_demand AS "
+                "SELECT cell::BIGINT AS cell, demand::DOUBLE AS demand "
+                "FROM read_parquet('" + cfg.demand_path + "')");
+            if (rd->HasError())
+                throw std::runtime_error("2SFCA demand load failed: " +
+                                         rd->GetError());
+
+            // Step 1: R_j = capacity_j / SUM(demand * W) over reached cells.
+            std::ostringstream s1;
+            s1 << std::setprecision(15);
+            s1 << "CREATE OR REPLACE TEMP TABLE _hm_ratios AS "
+               << "SELECT po.opp_idx AS opp_idx, "
+               << "MAX(om.weight) / NULLIF(SUM(d.demand * " << W
+               << "), 0) AS ratio "
+               << "FROM _hm_per_opp po "
+               << "JOIN _hm_demand d USING (cell) "
+               << "JOIN _hm_opp_meta om USING (opp_idx) "
+               << "WHERE po.min_cost <= " << cfg.max_cost << " "
+               << "GROUP BY po.opp_idx";
+            auto r1 = con.Query(s1.str());
+            if (r1->HasError())
+                throw std::runtime_error("2SFCA step 1 failed: " +
+                                         r1->GetError());
+
+            // Step 2: A_cell = SUM(R_j * W2) over supplies reaching the cell.
+            std::ostringstream s2;
+            s2 << std::setprecision(15);
+            s2 << "CREATE OR REPLACE TEMP TABLE _hm_results AS "
+               << "SELECT po.cell AS cell, "
+               << "SUM(r.ratio * " << W2 << ") AS score "
+               << "FROM _hm_per_opp po "
+               << "JOIN _hm_ratios r USING (opp_idx) "
+               << "WHERE po.min_cost <= " << cfg.max_cost << " "
+               << "GROUP BY po.cell";
+            auto r2 = con.Query(s2.str());
+            if (r2->HasError())
+                throw std::runtime_error("2SFCA step 2 failed: " +
+                                         r2->GetError());
+        }
+        else
+        {
         std::ostringstream sql;
         sql << std::setprecision(15);
         sql << "CREATE OR REPLACE TEMP TABLE _hm_results AS ";
 
-        double const inv_sensitivity_norm =
-            cfg.max_sensitivity / std::max(cfg.sensitivity, 1.0);
-
         if (cfg.heatmap_type == HeatmapType::Gravity)
         {
-            std::string decay_expr;
-            switch (cfg.decay)
-            {
-            case GravityDecay::Gaussian:
-                decay_expr =
-                    "EXP(-1.0 * POW(min_cost / " + std::to_string(cfg.max_cost) +
-                    ", 2) * " + std::to_string(inv_sensitivity_norm) + ")";
-                break;
-            case GravityDecay::Exponential:
-                decay_expr =
-                    "EXP(-1.0 * (1.0 / " + std::to_string(inv_sensitivity_norm) +
-                    ") * (min_cost / " + std::to_string(cfg.max_cost) + "))";
-                break;
-            case GravityDecay::Linear:
-                decay_expr =
-                    "GREATEST(0.0, 1.0 - (min_cost / " +
-                    std::to_string(cfg.max_cost) + "))";
-                break;
-            case GravityDecay::Power:
-                decay_expr =
-                    "POW(GREATEST(min_cost / " + std::to_string(cfg.max_cost) +
-                    ", 1e-9), -1.0 * (1.0 / " +
-                    std::to_string(inv_sensitivity_norm) + "))";
-                break;
-            }
             sql << "SELECT po.cell, "
                 << "       SUM(om.weight * " << decay_expr << ") AS score "
                 << "FROM _hm_per_opp po "
@@ -436,6 +495,7 @@ void reduce_and_export(HeatmapConfig const &cfg, duckdb::Connection &con,
         if (r->HasError())
             throw std::runtime_error("Heatmap reducer SQL failed: " +
                                      r->GetError());
+        }
     }
     std::fprintf(stderr, "[Pipeline] Reducer: %.0f ms\n", timer.elapsed_ms());
 
