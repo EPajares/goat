@@ -13,7 +13,10 @@ namespace routing::kernel
 {
 
     static constexpr double kCarConnectorSpeedKmH = 50.0 * 0.8;
+    // Max snap distance in GROUND metres. Node coords are EPSG:3857, which is
+    // inflated by 1/cos(lat) == cosh(y/R), so this is converted per-origin.
     static constexpr double kDefaultMaxSnapDistance = 500.0;
+    static constexpr double kWebMercatorR = 6378137.0;
 
     namespace
     {
@@ -233,16 +236,20 @@ namespace routing::kernel
         for (size_t i = 0; i < origins.size(); ++i)
         {
             auto const &origin = origins[i];
+            // max_snap_distance is ground metres; convert to EPSG:3857 units at
+            // this origin's latitude (1/cos(lat) == cosh(y/R)).
+            double const local_max =
+                max_snap_distance * std::cosh(origin.y / kWebMercatorR);
 
             if (use_shared_tree)
             {
                 auto best = find_best_snap(
                     origin, *shared_tree, shared_node_edges, net,
                     base_node_count, base_edge_count,
-                    max_snap_distance, k_nearest_nodes);
+                    local_max, k_nearest_nodes);
 
                 if (!std::isfinite(best.proj.dist) ||
-                    best.proj.dist > max_snap_distance)
+                    best.proj.dist > local_max)
                     start_nodes.push_back(-1);
                 else
                     start_nodes.push_back(
@@ -251,10 +258,10 @@ namespace routing::kernel
             }
 
             // Per-origin bbox: only nodes within snap distance matter.
-            double const bmin_x = origin.x - max_snap_distance;
-            double const bmax_x = origin.x + max_snap_distance;
-            double const bmin_y = origin.y - max_snap_distance;
-            double const bmax_y = origin.y + max_snap_distance;
+            double const bmin_x = origin.x - local_max;
+            double const bmax_x = origin.x + local_max;
+            double const bmin_y = origin.y - local_max;
+            double const bmax_y = origin.y + local_max;
 
             std::vector<Point3857> local_coords;
             std::vector<int32_t> local_to_global;
@@ -300,10 +307,10 @@ namespace routing::kernel
             auto best = find_best_snap(
                 origin, tree, local_node_edges, net,
                 local_count, base_edge_count,
-                max_snap_distance, k_nearest_nodes);
+                local_max, k_nearest_nodes);
 
             if (!std::isfinite(best.proj.dist) ||
-                best.proj.dist > max_snap_distance)
+                best.proj.dist > local_max)
                 start_nodes.push_back(-1);
             else
                 start_nodes.push_back(
