@@ -158,31 +158,30 @@ GRAVITY_DECAY_LABELS: dict[str, str] = {
 # =========================================================================
 # Form-layer opportunity schema
 #
-# Adds a Point / MultiPoint geometry filter to the layer selector on top of
-# the analysis-layer OpportunityV2. v2's network prep loads edges in buffers
-# around opportunity points, so polygons / lines aren't meaningful input. At
-# runtime, instances of this subclass remain compatible with the analysis
-# layer's OpportunityV2 via inheritance.
+# Adds a point / polygon geometry filter to the layer selector on top of the
+# analysis-layer OpportunityV2; instances stay compatible via inheritance.
 # =========================================================================
 
 
 class OpportunityV2PointBase(OpportunityV2):
-    """Shared form-layer base for v2 opportunity cards. Restricts input_path
-    to Point/MultiPoint layers, splits the per-opportunity budget into
-    time/distance variants (gated by the outer cost_type, with per-mode
-    caps), and hides all formula-specific extras from
-    OpportunityV2/OpportunityGravity. The gravity / closest-average
-    subclasses below re-expose the fields each formula needs."""
+    """Shared form-layer base for v2 opportunity cards. Accepts point or
+    polygon layers, splits the per-opportunity budget into time/distance
+    variants (gated by the outer cost_type), and hides formula-specific extras;
+    the gravity / closest-average subclasses re-expose what each needs."""
 
     input_path: str = Field(
         ...,
-        description="Path to opportunity dataset (point layer).",
+        description="Path to opportunity dataset (point or polygon layer).",
         json_schema_extra=ui_field(
             section="opportunities",
             field_order=1,
             label_key="input_path",
             widget="layer-selector",
-            widget_options={"geometry_types": ["Point", "MultiPoint"]},
+            widget_options={
+                "geometry_types": [
+                    "Point", "MultiPoint", "Polygon", "MultiPolygon",
+                ]
+            },
         ),
     )
 

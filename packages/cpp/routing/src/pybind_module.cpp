@@ -135,15 +135,18 @@ PYBIND11_MODULE(_routing, m)
 
     py::class_<routing::Opportunity>(m, "Opportunity")
         .def(py::init<>())
-        .def(py::init([](routing::Point3857 const &p, double w) {
+        .def(py::init([](std::vector<routing::Point3857> seeds, double w,
+                         routing::Point3857 const &rep) {
                  routing::Opportunity o;
-                 o.point = p;
+                 o.seeds = std::move(seeds);
                  o.weight = w;
+                 o.rep = rep;
                  return o;
              }),
-             py::arg("point"), py::arg("weight") = 1.0)
-        .def_readwrite("point",  &routing::Opportunity::point)
-        .def_readwrite("weight", &routing::Opportunity::weight);
+             py::arg("seeds"), py::arg("weight"), py::arg("rep"))
+        .def_readwrite("seeds",  &routing::Opportunity::seeds)
+        .def_readwrite("weight", &routing::Opportunity::weight)
+        .def_readwrite("rep",    &routing::Opportunity::rep);
 
     py::class_<routing::HeatmapConfig>(m, "HeatmapConfig")
         .def(py::init<>())

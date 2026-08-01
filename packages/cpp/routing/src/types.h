@@ -184,8 +184,9 @@ namespace routing
 
     struct Opportunity
     {
-        Point3857 point;
+        std::vector<Point3857> seeds;  // >=1 network seeds; polygon → cell centroids
         double weight = 1.0;  // gravity potential / connectivity contribution
+        Point3857 rep;        // representative point (centroid) for opp_meta
     };
 
     struct HeatmapConfig
