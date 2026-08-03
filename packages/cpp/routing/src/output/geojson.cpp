@@ -136,8 +136,8 @@ std::string build_grid_contour_geojson_from_features(
     if (all_features.empty())
         return empty_feature_collection();
 
-    // VALUES list keyed by (origin_idx, cluster_idx, step_cost). Both
-    // indices participate in the band-difference JOIN below.
+    // VALUES list keyed by (origin_idx, cluster_idx, step_cost); the band
+    // difference partitions by (origin_idx, cluster_idx).
     std::ostringstream values;
     values << std::setprecision(15);
     for (size_t i = 0; i < all_features.size(); ++i)
@@ -149,32 +149,35 @@ std::string build_grid_contour_geojson_from_features(
                << "ST_GeomFromText('" << all_features[i].multipolygon_wkt << "'))";
     }
 
-    std::ostringstream sql;
-    sql << "WITH raw_input(origin_idx, cluster_idx, step_cost, geom) AS (VALUES "
-        << values.str() << "), "
-        << "raw AS (SELECT origin_idx, cluster_idx, step_cost, ST_MakeValid(geom) AS geom "
-        << "  FROM raw_input) ";
+    auto run_step = [&](std::string const &q, char const *what) {
+        auto r = con.Query(q);
+        if (r->HasError())
+            throw std::runtime_error(std::string(what) + " failed: " + r->GetError());
+    };
 
+    // Materialize each step so ST_MakeValid runs once (see parquet.cpp).
+    con.Query("DROP TABLE IF EXISTS _iso_raw");
+    run_step("CREATE TEMP TABLE _iso_raw AS "
+             "SELECT origin_idx, cluster_idx, step_cost, ST_MakeValid(geom) AS geom "
+             "FROM (VALUES " + values.str() +
+             ") v(origin_idx, cluster_idx, step_cost, geom)", "isoline repair");
+
+    std::string source_table = "_iso_raw";
     if (cfg.polygon_difference)
     {
-        sql << ", bands AS ("
-            << "  SELECT r.origin_idx, r.cluster_idx, r.step_cost, "
-            << "    CASE WHEN p.geom IS NULL THEN r.geom "
-            << "         ELSE ST_MakeValid(ST_Difference("
-            << "           ST_MakeValid(r.geom), ST_MakeValid(p.geom))) END AS geom "
-            << "  FROM raw r "
-            << "  LEFT JOIN raw p "
-            << "    ON p.origin_idx = r.origin_idx "
-            << "   AND p.cluster_idx = r.cluster_idx "
-            << "   AND p.step_cost = ("
-            << "     SELECT MAX(x.step_cost) FROM raw x "
-            << "      WHERE x.origin_idx = r.origin_idx "
-            << "        AND x.cluster_idx = r.cluster_idx "
-            << "        AND x.step_cost < r.step_cost"
-            << "   )"
-            << ") ";
+        con.Query("DROP TABLE IF EXISTS _iso_bands");
+        run_step("CREATE TEMP TABLE _iso_bands AS "
+                 "WITH ordered AS (SELECT origin_idx, cluster_idx, step_cost, geom, "
+                 "  LAG(geom) OVER (PARTITION BY origin_idx, cluster_idx "
+                 "                  ORDER BY step_cost) AS prev_geom FROM _iso_raw) "
+                 "SELECT origin_idx, cluster_idx, step_cost, "
+                 "  CASE WHEN prev_geom IS NULL THEN geom "
+                 "       ELSE ST_Difference(geom, prev_geom) END AS geom "
+                 "FROM ordered", "isoline band difference");
+        source_table = "_iso_bands";
     }
 
+    std::ostringstream sql;
     sql << "SELECT CAST(json_object("
         << "  'type', 'FeatureCollection', "
         << "  'features', COALESCE(json_group_array(feature), CAST('[]' AS JSON))"
@@ -191,7 +194,7 @@ std::string build_grid_contour_geojson_from_features(
         << "           WHEN ST_GeometryType(geom) = 'GEOMETRYCOLLECTION' "
         << "             THEN ST_CollectionExtract(geom, 3) "
         << "           ELSE NULL END AS geom "
-        << "    FROM " << (cfg.polygon_difference ? "bands" : "raw")
+        << "    FROM " << source_table
         << "  ) sub "
         << "  WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom) "
         << "  ORDER BY origin_idx, cluster_idx, step_cost"

@@ -164,6 +164,7 @@ namespace routing
         Gravity,         // sum_j weight_j × decay(cost_ij)
         ClosestAverage,  // mean cost of the K closest reachable opportunities
         Connectivity,    // sum of H3 cell areas reachable to each opportunity
+        TwoSFCA,         // two-step floating catchment area (supply vs demand)
     };
 
     enum class GravityDecay : uint8_t
@@ -174,10 +175,18 @@ namespace routing
         Power,        // (cost/max_cost)^(-sensitivity/max_sensitivity)
     };
 
+    enum class TwoSFCAType : uint8_t
+    {
+        Standard,  // binary catchment (W = 1 in both steps)
+        E2SFCA,    // enhanced: decay-weight demand (step 1) and ratio (step 2)
+        M2SFCA,    // modified: step-2 weight squared
+    };
+
     struct Opportunity
     {
-        Point3857 point;
+        std::vector<Point3857> seeds;  // >=1 network seeds; polygon → cell centroids
         double weight = 1.0;  // gravity potential / connectivity contribution
+        Point3857 rep;        // representative point (centroid) for opp_meta
     };
 
     struct HeatmapConfig
@@ -201,6 +210,12 @@ namespace routing
         double sensitivity = 300000.0;
         double max_sensitivity = 1000000.0;
         int closest_k = 3;          // ClosestAverage only
+
+        // --- 2SFCA (heatmap_type == TwoSFCA) ---
+        TwoSFCAType two_sfca_type = TwoSFCAType::Standard;
+        // Per-cell demand parquet (cell BIGINT, demand DOUBLE), rasterized
+        // caller-side from the demand layer at the output H3 resolution.
+        std::string demand_path;
 
         // --- PT heatmap (mode == PublicTransport) ---
         // Reverse (arrive-by) RAPTOR + precomputed access/egress lookup tables.

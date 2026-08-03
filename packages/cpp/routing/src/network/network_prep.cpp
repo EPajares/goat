@@ -179,7 +179,8 @@ HeatmapNetworkPrep prepare_radial_street_network(
     rcfg.starting_points = in.opportunities;
     rcfg.steps = 1;
 
-    auto core = prepare_radial_network(con, rcfg, /*load_geometry=*/false);
+    // Geometry needed: the sampler interpolates along each edge's polyline.
+    auto core = prepare_radial_network(con, rcfg, /*load_geometry=*/true);
 
     HeatmapNetworkPrep out;
     out.net = std::move(core.net);
