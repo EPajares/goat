@@ -119,7 +119,13 @@ PYBIND11_MODULE(_routing, m)
     py::enum_<routing::HeatmapType>(m, "HeatmapType")
         .value("Gravity",        routing::HeatmapType::Gravity)
         .value("ClosestAverage", routing::HeatmapType::ClosestAverage)
-        .value("Connectivity",   routing::HeatmapType::Connectivity);
+        .value("Connectivity",   routing::HeatmapType::Connectivity)
+        .value("TwoSFCA",        routing::HeatmapType::TwoSFCA);
+
+    py::enum_<routing::TwoSFCAType>(m, "TwoSFCAType")
+        .value("Standard", routing::TwoSFCAType::Standard)
+        .value("E2SFCA",   routing::TwoSFCAType::E2SFCA)
+        .value("M2SFCA",   routing::TwoSFCAType::M2SFCA);
 
     py::enum_<routing::GravityDecay>(m, "GravityDecay")
         .value("Gaussian",    routing::GravityDecay::Gaussian)
@@ -129,15 +135,18 @@ PYBIND11_MODULE(_routing, m)
 
     py::class_<routing::Opportunity>(m, "Opportunity")
         .def(py::init<>())
-        .def(py::init([](routing::Point3857 const &p, double w) {
+        .def(py::init([](std::vector<routing::Point3857> seeds, double w,
+                         routing::Point3857 const &rep) {
                  routing::Opportunity o;
-                 o.point = p;
+                 o.seeds = std::move(seeds);
                  o.weight = w;
+                 o.rep = rep;
                  return o;
              }),
-             py::arg("point"), py::arg("weight") = 1.0)
-        .def_readwrite("point",  &routing::Opportunity::point)
-        .def_readwrite("weight", &routing::Opportunity::weight);
+             py::arg("seeds"), py::arg("weight"), py::arg("rep"))
+        .def_readwrite("seeds",  &routing::Opportunity::seeds)
+        .def_readwrite("weight", &routing::Opportunity::weight)
+        .def_readwrite("rep",    &routing::Opportunity::rep);
 
     py::class_<routing::HeatmapConfig>(m, "HeatmapConfig")
         .def(py::init<>())
@@ -154,6 +163,8 @@ PYBIND11_MODULE(_routing, m)
         .def_readwrite("sensitivity",     &routing::HeatmapConfig::sensitivity)
         .def_readwrite("max_sensitivity", &routing::HeatmapConfig::max_sensitivity)
         .def_readwrite("closest_k",       &routing::HeatmapConfig::closest_k)
+        .def_readwrite("two_sfca_type",   &routing::HeatmapConfig::two_sfca_type)
+        .def_readwrite("demand_path",     &routing::HeatmapConfig::demand_path)
         // PT (mode == PublicTransport)
         .def_readwrite("timetable_path",  &routing::HeatmapConfig::timetable_path)
         .def_readwrite("arrival_time",    &routing::HeatmapConfig::arrival_time)

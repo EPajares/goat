@@ -979,6 +979,10 @@
       "title": "Heatmap 2SFCA",
       "description": "The Two-Step Floating Catchment Area (2SFCA) method is used to measure spatial accessibility by considering both supply and demand within defined catchment areas."
     },
+    "heatmap_2sfca_v2": {
+      "title": "Heatmap 2SFCA V2",
+      "description": "The Two-Step Floating Catchment Area (2SFCA) method is used to measure spatial accessibility by considering both supply and demand within defined catchment areas."
+    },
     "huff_model": {
       "title": "Huff Model",
       "description": "The Huff Model predicts the probability of consumers in a reference area visiting particular locations based on the attractiveness of the locations and the distance to those locations, including competition between opportunities."

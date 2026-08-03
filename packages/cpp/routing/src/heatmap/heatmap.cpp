@@ -110,7 +110,7 @@ constexpr double kHalfCirc = 40075016.68557849 / 2.0;
 // total RAM since nigiri's timetable (~1.7 GB) lives outside DuckDB; with a
 // spill directory configured, requests that exceed this spill to disk
 // instead of OOM-killing the worker on a shared host.
-constexpr int kHeatmapDuckDbMemoryLimitGb = 6;
+constexpr int kHeatmapDuckDbMemoryLimitGb = 4;
 
 inline double merc_x_to_lng(double x) { return (x / kHalfCirc) * 180.0; }
 inline double merc_y_to_lat(double y)
@@ -128,6 +128,7 @@ void build_reach_per_opp(duckdb::Connection &con,
                          double speed_km_h, std::string const &edge_dir,
                          std::string const &node_dir, int32_t h3_resolution,
                          double spacing_m, std::string const &out_table,
+                         std::vector<std::pair<int32_t, int32_t>> const &seed_offsets,
                          PhaseTimer &timer)
 {
     network::HeatmapNetworkPrepInput prep_in{
@@ -142,7 +143,7 @@ void build_reach_per_opp(duckdb::Connection &con,
     auto prep = network::prepare_radial_street_network(con, prep_in);
     std::fprintf(
         stderr,
-        "[Pipeline] Network prep (%d nodes, %zu edges, %zu opps): %.0f ms\n",
+        "[Pipeline] Network prep (%d nodes, %zu edges, %zu seeds): %.0f ms\n",
         prep.net.node_count, prep.net.source.size(), opp_points.size(),
         timer.elapsed_ms());
 
@@ -173,11 +174,28 @@ void build_reach_per_opp(duckdb::Connection &con,
     // Per-opportunity reverse-Dijkstra; sample the reachability field; stream
     // (lng, lat, opp_idx, cost) rows via Appender::AppendDataChunk with a
     // STANDARD_VECTOR_SIZE buffer (the row-at-a-time API dominated wall time).
+    // Aggregate incrementally: an opportunity's samples are folded into
+    // <out_table> in batches, flushed only at opportunity boundaries. The flat
+    // _hm_samples scratch therefore never holds more than one batch. Because a
+    // given (cell, opp_idx) group's rows all belong to one opportunity, they
+    // never span a batch, so the per-batch GROUP BY is identical to aggregating
+    // the whole table once — the reached cell is still counted exactly once.
+    constexpr size_t kAggFlushRows = 5'000'000;
+    std::string const samples_ddl =
+        "CREATE TEMP TABLE _hm_samples "
+        "(lng DOUBLE, lat DOUBLE, opp_idx INTEGER, cost DOUBLE)";
     con.Query("DROP TABLE IF EXISTS _hm_samples");
-    con.Query("CREATE TEMP TABLE _hm_samples "
-              "(lng DOUBLE, lat DOUBLE, opp_idx INTEGER, cost DOUBLE)");
+    con.Query(samples_ddl);
+    con.Query("DROP TABLE IF EXISTS " + out_table);
+    con.Query("CREATE TEMP TABLE " + out_table +
+              " (cell BIGINT, opp_idx INTEGER, min_cost DOUBLE)");
+    std::string const agg_sql =
+        "INSERT INTO " + out_table +
+        " SELECT h3_latlng_to_cell(lat, lng, " + std::to_string(h3_resolution) +
+        ")::BIGINT AS cell, opp_idx, GREATEST(ROUND(MIN(cost)), 1) AS min_cost"
+        " FROM _hm_samples GROUP BY 1, opp_idx";
     {
-        duckdb::Appender appender(con, "_hm_samples");
+        auto appender = std::make_unique<duckdb::Appender>(con, "_hm_samples");
         duckdb::vector<duckdb::LogicalType> chunk_types{
             duckdb::LogicalType::DOUBLE,
             duckdb::LogicalType::DOUBLE,
@@ -201,28 +219,47 @@ void build_reach_per_opp(duckdb::Connection &con,
         auto flush_chunk = [&]() {
             if (chunk_pos == 0) return;
             chunk.SetCardinality(chunk_pos);
-            appender.AppendDataChunk(chunk);
+            appender->AppendDataChunk(chunk);
             chunk.Reset();
             refresh_pointers();
             chunk_pos = 0;
         };
         size_t unsnapped = 0;
         size_t total_samples = 0;
-        for (size_t oi = 0; oi < opp_points.size(); ++oi)
+        size_t last_drain_at = 0;
+        // Aggregate the current batch of _hm_samples into <out_table> and clear
+        // the scratch. Called only at opportunity boundaries (see invariant
+        // above). Recreating the table avoids MVCC bloat from repeated DELETEs.
+        auto drain = [&]() {
+            flush_chunk();
+            appender.reset();  // destroy -> flushed rows become visible
+            auto rr = con.Query(agg_sql);
+            if (rr->HasError())
+                throw std::runtime_error(
+                    "Heatmap per-(cell, opp) cost failed: " + rr->GetError());
+            con.Query("DROP TABLE IF EXISTS _hm_samples");
+            con.Query(samples_ddl);
+            appender = std::make_unique<duckdb::Appender>(con, "_hm_samples");
+            last_drain_at = total_samples;
+        };
+        for (size_t oi = 0; oi < seed_offsets.size(); ++oi)
         {
-            int32_t const start = prep.opportunity_nodes[oi];
-            if (start < 0) { ++unsnapped; continue; }
-            // Reverse graph: cost[v] = cheapest path from v to the opportunity.
-            // Reusable scratch → cost is O(reached), not O(node_count).
+            auto const [start_seed, count] = seed_offsets[oi];
+            std::vector<int32_t> group_nodes;
+            group_nodes.reserve(count);
+            for (int32_t k = 0; k < count; ++k)
+            {
+                int32_t const n = prep.opportunity_nodes[start_seed + k];
+                if (n >= 0) group_nodes.push_back(n);
+            }
+            if (group_nodes.empty()) { ++unsnapped; continue; }
+            // cost[v] = distance from v to the nearest seed.
             auto const reached = kernel::dijkstra_reuse(
-                prep.rev_adj, start, max_cost, use_distance, scratch);
+                prep.rev_adj, group_nodes, max_cost, use_distance, scratch);
             int32_t const opp_idx = static_cast<int32_t>(oi);
 
-            // Sparse reachability sampling over only the reached subgraph
-            // (previously a full O(node_count + edges) scan per opportunity):
-            //   1) one sample per reached node, and
-            //   2) interpolated samples along edges between two reached nodes
-            //      that are longer than the sample spacing.
+            // Sample the reached subgraph: one point per node, plus points
+            // interpolated along each reached edge's polyline.
             for (int32_t u : reached)
             {
                 auto const &c = net.node_coords[u];
@@ -236,54 +273,74 @@ void build_reach_per_opp(duckdb::Connection &con,
             for (int32_t u : reached)
             {
                 double const su = scratch.dist[u];
-                auto const &sc = net.node_coords[u];
                 for (int32_t k = inc_off[u]; k < inc_off[u + 1]; ++k)
                 {
                     int32_t const eidx = inc_edges[k];
                     int32_t const t = net.target[eidx];
                     if (t < 0 || !scratch.reached(t)) continue;
                     double const tcost = scratch.dist[t];
-                    double const length = net.length_3857[eidx];
-                    if (length <= spacing_m) continue;
-                    auto const &tc = net.node_coords[t];
-                    double const dx = tc.x - sc.x;
-                    double const dy = tc.y - sc.y;
-                    int const n_splits =
-                        static_cast<int>(std::floor(length / spacing_m));
-                    for (int n = 1; n < n_splits; ++n)
+
+                    // Walk the edge polyline (source->target): a sample every
+                    // spacing_m of arc length, cost linear by arc fraction;
+                    // chord fallback if geometry missing.
+                    auto const &geom = net.edges[eidx].geometry;
+                    Point3857 const chord[2] = {net.node_coords[u],
+                                                net.node_coords[t]};
+                    Point3857 const *pts =
+                        (geom.size() >= 2) ? geom.data() : chord;
+                    size_t const npts = (geom.size() >= 2) ? geom.size() : 2;
+
+                    double total = 0.0;
+                    for (size_t j = 1; j < npts; ++j)
                     {
-                        double const frac = static_cast<double>(n) / n_splits;
-                        double const cost = su + frac * (tcost - su);
-                        if (cost > max_cost) continue;
-                        lng_col[chunk_pos] = merc_x_to_lng(sc.x + frac * dx);
-                        lat_col[chunk_pos] = merc_y_to_lat(sc.y + frac * dy);
-                        opp_col[chunk_pos] = opp_idx;
-                        cost_col[chunk_pos] = cost;
-                        if (++chunk_pos == STANDARD_VECTOR_SIZE) flush_chunk();
-                        ++total_samples;
+                        double const ex = pts[j].x - pts[j - 1].x;
+                        double const ey = pts[j].y - pts[j - 1].y;
+                        total += std::sqrt(ex * ex + ey * ey);
+                    }
+                    if (total <= spacing_m) continue;  // endpoints suffice
+
+                    double next_s = spacing_m;  // interior points only
+                    double acc = 0.0;
+                    for (size_t j = 1; j < npts && next_s < total; ++j)
+                    {
+                        double const ex = pts[j].x - pts[j - 1].x;
+                        double const ey = pts[j].y - pts[j - 1].y;
+                        double const seg = std::sqrt(ex * ex + ey * ey);
+                        while (next_s < total && next_s <= acc + seg)
+                        {
+                            double const segfrac =
+                                (seg > 0.0) ? (next_s - acc) / seg : 0.0;
+                            double const frac = next_s / total;
+                            double const cost = su + frac * (tcost - su);
+                            next_s += spacing_m;
+                            if (cost > max_cost) continue;
+                            lng_col[chunk_pos] =
+                                merc_x_to_lng(pts[j - 1].x + segfrac * ex);
+                            lat_col[chunk_pos] =
+                                merc_y_to_lat(pts[j - 1].y + segfrac * ey);
+                            opp_col[chunk_pos] = opp_idx;
+                            cost_col[chunk_pos] = cost;
+                            if (++chunk_pos == STANDARD_VECTOR_SIZE) flush_chunk();
+                            ++total_samples;
+                        }
+                        acc += seg;
                     }
                 }
             }
+            // Opportunity boundary: safe to aggregate the batch (this opp's
+            // samples are complete, so no (cell, opp) group is split).
+            if (total_samples - last_drain_at >= kAggFlushRows) drain();
         }
-        flush_chunk();
-        appender.Close();
+        drain();
         std::fprintf(stderr,
                      "[Pipeline] Dijkstras + sampling (%zu opps, %zu unsnapped, "
                      "%zu samples): %.0f ms\n",
-                     opp_points.size() - unsnapped, unsnapped, total_samples,
+                     seed_offsets.size() - unsnapped, unsnapped, total_samples,
                      timer.elapsed_ms());
     }
+    con.Query("DROP TABLE IF EXISTS _hm_samples");
 
-    std::ostringstream sql;
-    sql << "CREATE OR REPLACE TEMP TABLE " << out_table << " AS "
-        << "SELECT h3_latlng_to_cell(lat, lng, " << h3_resolution
-        << ")::BIGINT AS cell, opp_idx, MIN(cost) AS min_cost "
-        << "FROM _hm_samples GROUP BY 1, opp_idx";
-    auto r = con.Query(sql.str());
-    if (r->HasError())
-        throw std::runtime_error("Heatmap per-(cell, opp) min failed: " +
-                                 r->GetError());
-    std::fprintf(stderr, "[Pipeline] Per-(cell, opp) min (%s): %.0f ms\n",
+    std::fprintf(stderr, "[Pipeline] Per-(cell, opp) cost (%s): %.0f ms\n",
                  out_table.c_str(), timer.elapsed_ms());
 }
 
@@ -300,16 +357,16 @@ void build_opp_meta(duckdb::Connection &con,
     {
         if (!first) sql << ",";
         first = false;
-        double const lat = merc_y_to_lat(opportunities[oi].point.y);
-        double const lng = merc_x_to_lng(opportunities[oi].point.x);
+        double const lat = merc_y_to_lat(opportunities[oi].rep.y);
+        double const lng = merc_x_to_lng(opportunities[oi].rep.x);
         // opp_count is 1 per opportunity; it lets the shared reducer treat a
         // row as N co-located opportunities (used by the PT path, which groups
         // opportunities by cell). x/y (Web Mercator) let the PT path derive a
         // per-group representative point for the direct (no-transit) leg.
         sql << "(" << oi << ", h3_latlng_to_cell(" << lat << ", " << lng << ", "
             << h3_resolution << ")::BIGINT, " << opportunities[oi].weight
-            << ", 1, " << opportunities[oi].point.x << ", "
-            << opportunities[oi].point.y << ")";
+            << ", 1, " << opportunities[oi].rep.x << ", "
+            << opportunities[oi].rep.y << ")";
     }
     sql << ") v(opp_idx, opp_cell, weight, opp_count, x_3857, y_3857)";
     auto r = con.Query(sql.str());
@@ -325,40 +382,99 @@ void reduce_and_export(HeatmapConfig const &cfg, duckdb::Connection &con,
                        PhaseTimer &timer)
 {
     {
+        double const inv_sensitivity_norm =
+            cfg.max_sensitivity / std::max(cfg.sensitivity, 1.0);
+
+        // Distance-decay W(min_cost), shared by Gravity and 2SFCA.
+        std::string decay_expr;
+        switch (cfg.decay)
+        {
+        case GravityDecay::Gaussian:
+            decay_expr =
+                "EXP(-1.0 * POW(min_cost / " + std::to_string(cfg.max_cost) +
+                ", 2) * " + std::to_string(inv_sensitivity_norm) + ")";
+            break;
+        case GravityDecay::Exponential:
+            decay_expr =
+                "EXP(-1.0 * (1.0 / " + std::to_string(inv_sensitivity_norm) +
+                ") * (min_cost / " + std::to_string(cfg.max_cost) + "))";
+            break;
+        case GravityDecay::Linear:
+            decay_expr =
+                "GREATEST(0.0, 1.0 - (min_cost / " +
+                std::to_string(cfg.max_cost) + "))";
+            break;
+        case GravityDecay::Power:
+            decay_expr =
+                "POW(GREATEST(min_cost / " + std::to_string(cfg.max_cost) +
+                ", 1e-9), -1.0 * (1.0 / " +
+                std::to_string(inv_sensitivity_norm) + "))";
+            break;
+        }
+
+        if (cfg.heatmap_type == HeatmapType::TwoSFCA)
+        {
+            // W = decay for E2SFCA/M2SFCA, binary (1) for standard 2SFCA.
+            std::string const W =
+                (cfg.two_sfca_type == TwoSFCAType::Standard) ? std::string("1.0")
+                                                             : decay_expr;
+            // Step-2 weight: 1 / W / W^2 for standard / E2SFCA / M2SFCA.
+            std::string const W2 =
+                (cfg.two_sfca_type == TwoSFCAType::M2SFCA)
+                    ? "(" + decay_expr + " * " + decay_expr + ")"
+                : (cfg.two_sfca_type == TwoSFCAType::E2SFCA)
+                    ? decay_expr
+                    : std::string("1.0");
+
+            // Per-cell demand (cell BIGINT, demand DOUBLE).
+            auto rd = con.Query(
+                "CREATE OR REPLACE TEMP TABLE _hm_demand AS "
+                "SELECT cell::BIGINT AS cell, demand::DOUBLE AS demand "
+                "FROM read_parquet('" + cfg.demand_path + "')");
+            if (rd->HasError())
+                throw std::runtime_error("2SFCA demand load failed: " +
+                                         rd->GetError());
+
+            // Step 1: R_j = capacity_j / SUM(demand * W) over reached cells.
+            std::ostringstream s1;
+            s1 << std::setprecision(15);
+            s1 << "CREATE OR REPLACE TEMP TABLE _hm_ratios AS "
+               << "SELECT po.opp_idx AS opp_idx, "
+               << "MAX(om.weight) / NULLIF(SUM(d.demand * " << W
+               << "), 0) AS ratio "
+               << "FROM _hm_per_opp po "
+               << "JOIN _hm_demand d USING (cell) "
+               << "JOIN _hm_opp_meta om USING (opp_idx) "
+               << "WHERE po.min_cost <= " << cfg.max_cost << " "
+               << "GROUP BY po.opp_idx";
+            auto r1 = con.Query(s1.str());
+            if (r1->HasError())
+                throw std::runtime_error("2SFCA step 1 failed: " +
+                                         r1->GetError());
+
+            // Step 2: A_cell = SUM(R_j * W2) over supplies reaching the cell.
+            std::ostringstream s2;
+            s2 << std::setprecision(15);
+            s2 << "CREATE OR REPLACE TEMP TABLE _hm_results AS "
+               << "SELECT po.cell AS cell, "
+               << "SUM(r.ratio * " << W2 << ") AS score "
+               << "FROM _hm_per_opp po "
+               << "JOIN _hm_ratios r USING (opp_idx) "
+               << "WHERE po.min_cost <= " << cfg.max_cost << " "
+               << "GROUP BY po.cell";
+            auto r2 = con.Query(s2.str());
+            if (r2->HasError())
+                throw std::runtime_error("2SFCA step 2 failed: " +
+                                         r2->GetError());
+        }
+        else
+        {
         std::ostringstream sql;
         sql << std::setprecision(15);
         sql << "CREATE OR REPLACE TEMP TABLE _hm_results AS ";
 
-        double const inv_sensitivity_norm =
-            cfg.max_sensitivity / std::max(cfg.sensitivity, 1.0);
-
         if (cfg.heatmap_type == HeatmapType::Gravity)
         {
-            std::string decay_expr;
-            switch (cfg.decay)
-            {
-            case GravityDecay::Gaussian:
-                decay_expr =
-                    "EXP(-1.0 * POW(min_cost / " + std::to_string(cfg.max_cost) +
-                    ", 2) * " + std::to_string(inv_sensitivity_norm) + ")";
-                break;
-            case GravityDecay::Exponential:
-                decay_expr =
-                    "EXP(-1.0 * (1.0 / " + std::to_string(inv_sensitivity_norm) +
-                    ") * (min_cost / " + std::to_string(cfg.max_cost) + "))";
-                break;
-            case GravityDecay::Linear:
-                decay_expr =
-                    "GREATEST(0.0, 1.0 - (min_cost / " +
-                    std::to_string(cfg.max_cost) + "))";
-                break;
-            case GravityDecay::Power:
-                decay_expr =
-                    "POW(GREATEST(min_cost / " + std::to_string(cfg.max_cost) +
-                    ", 1e-9), -1.0 * (1.0 / " +
-                    std::to_string(inv_sensitivity_norm) + "))";
-                break;
-            }
             sql << "SELECT po.cell, "
                 << "       SUM(om.weight * " << decay_expr << ") AS score "
                 << "FROM _hm_per_opp po "
@@ -409,6 +525,7 @@ void reduce_and_export(HeatmapConfig const &cfg, duckdb::Connection &con,
         if (r->HasError())
             throw std::runtime_error("Heatmap reducer SQL failed: " +
                                      r->GetError());
+        }
     }
     std::fprintf(stderr, "[Pipeline] Reducer: %.0f ms\n", timer.elapsed_ms());
 
@@ -445,50 +562,14 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
     if (cfg.opportunities.empty())
         return;
 
-    // The access/egress lookup tables and opportunity grouping live at the PT
-    // lookup resolution (res-9). The *output* cells are coarsened to res-8 when
-    // the opportunity layer is spread over a large area, to keep the output
-    // cell count (and downstream join cardinality) manageable — the access
-    // cell is rolled up to its res-8 parent and the direct leg samples at the
-    // same resolution. Lookups stay at res-9 so they still match the tables.
+    // Output and area-summing cells use the fixed PT resolution (res-9, == the
+    // access/egress lookup resolution). No extent-based coarsening — the output
+    // resolution must not vary with the reference-area size (reproducibility).
     int32_t const h3_resolution =
         output::hex_resolution_for_mode(RoutingMode::PublicTransport);
-    int32_t output_resolution = h3_resolution;
-    {
-        double minx = cfg.opportunities[0].point.x, maxx = minx;
-        double miny = cfg.opportunities[0].point.y, maxy = miny;
-        for (auto const &o : cfg.opportunities)
-        {
-            minx = std::min(minx, o.point.x); maxx = std::max(maxx, o.point.x);
-            miny = std::min(miny, o.point.y); maxy = std::max(maxy, o.point.y);
-        }
-        double const dx = maxx - minx, dy = maxy - miny;
-        // Mercator distance inflates by 1/cos(lat); divide it back out (at the
-        // bbox-centre latitude) so the threshold is in real ground metres and
-        // latitude-independent. Coarse on purpose — a "large spread" switch.
-        double const merc_diag = std::sqrt(dx * dx + dy * dy);
-        double const lat_c = merc_y_to_lat((miny + maxy) / 2.0);
-        double const ground_m = merc_diag * std::cos(lat_c * M_PI / 180.0);
-        constexpr double kCoarsenOutputExtentM = 50000.0;  // ~50 km ground
-        if (ground_m > kCoarsenOutputExtentM && h3_resolution > 1)
-            output_resolution = h3_resolution - 1;  // res-9 → res-8
-        // Connectivity keys the output map at connectivity_output_resolution
-        // (the caller's AOI raster resolution); output_resolution then only sets
-        // the granularity of the reachable cells whose area is summed. For
-        // gravity/closest the output map *is* output_resolution. Report the
-        // resolution the emitted cells actually use.
-        if (cfg.heatmap_type == HeatmapType::Connectivity)
-            std::fprintf(stderr,
-                         "[Pipeline] Output resolution: h3-%d (AOI extent "
-                         "~%.0f km; area summed at h3-%d)\n",
-                         cfg.connectivity_output_resolution, ground_m / 1000.0,
-                         output_resolution);
-        else
-            std::fprintf(stderr,
-                         "[Pipeline] Output resolution: h3-%d "
-                         "(opp extent ~%.0f km)\n",
-                         output_resolution, ground_m / 1000.0);
-    }
+    int32_t const output_resolution = h3_resolution;
+    std::fprintf(stderr, "[Pipeline] Output resolution: h3-%d\n",
+                 output_resolution);
 
     // 1. Load the timetable.
     auto owned_tt =
@@ -676,11 +757,16 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
                 rows->GetValue(0, i).GetValue<double>(),
                 rows->GetValue(1, i).GetValue<double>()});
     }
+    // One seed per group: identity offsets.
+    std::vector<std::pair<int32_t, int32_t>> direct_offsets;
+    direct_offsets.reserve(grp_points.size());
+    for (int32_t i = 0; i < static_cast<int32_t>(grp_points.size()); ++i)
+        direct_offsets.push_back({i, 1});
     build_reach_per_opp(con, grp_points, cfg.access_mode, CostType::Time,
                         static_cast<double>(cfg.access_max_time),
                         default_mode_speed(cfg.access_mode), cfg.edge_dir,
                         cfg.node_dir, output_resolution, /*spacing_m=*/40.0,
-                        "_direct_per_opp", timer);
+                        "_direct_per_opp", direct_offsets, timer);
 
     // 6b. PT-chain cells: boarding-stop cost + access walk, per (cell, group).
     //
@@ -734,8 +820,8 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
             sql << "INSERT INTO _pt_per_opp "
                 << "SELECT h3_cell_to_parent(a.h3_index, " << output_resolution
                 << ")::BIGINT AS cell, pr.grp_idx AS opp_idx, "
-                << "       MIN(pr.cost_min + a.cost_minutes + "
-                << cfg.transfer_cost << ") AS min_cost "
+                << "       GREATEST(ROUND(MIN(pr.cost_min + a.cost_minutes + "
+                << cfg.transfer_cost << ")), 1) AS min_cost "
                 << "FROM _pt_reach pr JOIN _access_used a "
                 << "  ON a.stop_idx = pr.stop_idx "
                 << "WHERE pr.grp_idx >= " << lo << " AND pr.grp_idx < " << hi
@@ -799,10 +885,17 @@ void run_street(HeatmapConfig const &cfg, duckdb::Connection &con,
     if (cfg.opportunities.empty())
         return;
 
+    // Flatten seeds for network prep; seed_offsets[i] = opportunity i's
+    // [start, count) range.
     std::vector<Point3857> opp_points;
-    opp_points.reserve(cfg.opportunities.size());
+    std::vector<std::pair<int32_t, int32_t>> seed_offsets;
+    seed_offsets.reserve(cfg.opportunities.size());
     for (auto const &o : cfg.opportunities)
-        opp_points.push_back(o.point);
+    {
+        int32_t const start = static_cast<int32_t>(opp_points.size());
+        for (auto const &p : o.seeds) opp_points.push_back(p);
+        seed_offsets.push_back({start, static_cast<int32_t>(o.seeds.size())});
+    }
 
     int32_t const h3_resolution = output::hex_resolution_for_mode(cfg.mode);
     // 40 m sampling for heatmaps (vs the catchment hexagon builder's 20 m):
@@ -813,7 +906,7 @@ void run_street(HeatmapConfig const &cfg, duckdb::Connection &con,
     build_reach_per_opp(con, opp_points, cfg.mode, cfg.cost_type, cfg.max_cost,
                         cfg.speed_km_h, cfg.edge_dir, cfg.node_dir,
                         h3_resolution, kHeatmapSampleSpacingM, "_hm_per_opp",
-                        timer);
+                        seed_offsets, timer);
     build_opp_meta(con, cfg.opportunities, h3_resolution);
     reduce_and_export(cfg, con, timer);
 }

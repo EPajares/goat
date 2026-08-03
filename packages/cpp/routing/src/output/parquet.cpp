@@ -107,8 +107,8 @@ void write_grid_contour_parquet_from_features(
     // Load jsolines WKT into a temp table, apply difference if needed, export
     con.Query("INSTALL spatial; LOAD spatial;");
 
-    // VALUES list keyed by (origin_idx, cluster_idx, step_cost). Both
-    // indices participate in the band-difference JOIN below.
+    // VALUES list keyed by (origin_idx, cluster_idx, step_cost); the band
+    // difference partitions by (origin_idx, cluster_idx).
     std::ostringstream values;
     values << std::setprecision(15);
     for (size_t i = 0; i < all_features.size(); ++i)
@@ -120,52 +120,51 @@ void write_grid_contour_parquet_from_features(
                << "ST_GeomFromText('" << all_features[i].multipolygon_wkt << "'))";
     }
 
-    std::string source_table = cfg.polygon_difference ? "bands" : "raw";
+    auto run_step = [&](std::string const &q, char const *what) {
+        auto r = con.Query(q);
+        if (r->HasError())
+            throw std::runtime_error(std::string(what) + " failed: " + r->GetError());
+    };
 
-    std::ostringstream sql;
-    sql << "CREATE TEMP TABLE routing_grid_polygon_tmp AS "
-        << "WITH raw_input(origin_idx, cluster_idx, step_cost, geom) AS (VALUES "
-        << values.str() << "), "
-        << "raw AS (SELECT origin_idx, cluster_idx, step_cost, ST_MakeValid(geom) AS geom "
-        << "  FROM raw_input) ";
+    // Materialize each step into its own temp table so ST_MakeValid runs
+    // exactly once (a fused CTE lets DuckDB re-evaluate it). jsolines emits
+    // self-intersecting rings that ST_Difference/consumers reject, so repair
+    // up front.
+    con.Query("DROP TABLE IF EXISTS _iso_raw");
+    run_step("CREATE TEMP TABLE _iso_raw AS "
+             "SELECT origin_idx, cluster_idx, step_cost, ST_MakeValid(geom) AS geom "
+             "FROM (VALUES " + values.str() +
+             ") v(origin_idx, cluster_idx, step_cost, geom)", "isoline repair");
 
+    std::string source_table = "_iso_raw";
     if (cfg.polygon_difference)
     {
-        sql << ", bands AS ("
-            << "  SELECT r.origin_idx, r.cluster_idx, r.step_cost, "
-            << "    CASE WHEN p.geom IS NULL THEN r.geom "
-            << "         ELSE ST_MakeValid(ST_Difference("
-            << "           ST_MakeValid(r.geom), ST_MakeValid(p.geom))) END AS geom "
-            << "  FROM raw r "
-            << "  LEFT JOIN raw p "
-            << "    ON p.origin_idx = r.origin_idx "
-            << "   AND p.cluster_idx = r.cluster_idx "
-            << "   AND p.step_cost = ("
-            << "     SELECT MAX(x.step_cost) FROM raw x "
-            << "      WHERE x.origin_idx = r.origin_idx "
-            << "        AND x.cluster_idx = r.cluster_idx "
-            << "        AND x.step_cost < r.step_cost"
-            << "   )"
-            << ") ";
+        // Concentric bands = successive difference of cumulative isochrones;
+        // the previous band comes from a LAG window (per origin/cluster,
+        // ordered by step_cost), not a self-join.
+        con.Query("DROP TABLE IF EXISTS _iso_bands");
+        run_step("CREATE TEMP TABLE _iso_bands AS "
+                 "WITH ordered AS (SELECT origin_idx, cluster_idx, step_cost, geom, "
+                 "  LAG(geom) OVER (PARTITION BY origin_idx, cluster_idx "
+                 "                  ORDER BY step_cost) AS prev_geom FROM _iso_raw) "
+                 "SELECT origin_idx, cluster_idx, step_cost, "
+                 "  CASE WHEN prev_geom IS NULL THEN geom "
+                 "       ELSE ST_Difference(geom, prev_geom) END AS geom "
+                 "FROM ordered", "isoline band difference");
+        source_table = "_iso_bands";
     }
 
-    sql << "SELECT "
-        << "  CAST(row_number() OVER (ORDER BY origin_idx, cluster_idx, step_cost) AS INTEGER) AS id, "
-        << "  CAST(ROUND(step_cost) AS INTEGER) AS cost_step, "
-        << "  CASE WHEN ST_GeometryType(geom) IN ('POLYGON', 'MULTIPOLYGON') THEN geom "
-        << "       WHEN ST_GeometryType(geom) = 'GEOMETRYCOLLECTION' "
-        << "         THEN ST_CollectionExtract(geom, 3) "
-        << "       ELSE NULL END AS geometry "
-        << "FROM " << source_table << " "
-        << "WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom) "
-        << "ORDER BY origin_idx, cluster_idx, step_cost";
-
     con.Query("DROP TABLE IF EXISTS routing_grid_polygon_tmp");
-    auto create_result = con.Query(sql.str());
+    run_step("CREATE TEMP TABLE routing_grid_polygon_tmp AS SELECT "
+             "  CAST(row_number() OVER (ORDER BY origin_idx, cluster_idx, step_cost) AS INTEGER) AS id, "
+             "  CAST(ROUND(step_cost) AS INTEGER) AS cost_step, "
+             "  CASE WHEN ST_GeometryType(geom) IN ('POLYGON', 'MULTIPOLYGON') THEN geom "
+             "       WHEN ST_GeometryType(geom) = 'GEOMETRYCOLLECTION' "
+             "         THEN ST_CollectionExtract(geom, 3) ELSE NULL END AS geometry "
+             "FROM " + source_table +
+             " WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom) "
+             "ORDER BY origin_idx, cluster_idx, step_cost", "isoline export");
     std::fprintf(stderr, "[Output] DuckDB geom conversion + difference: %.0f ms\n", elapsed());
-    if (create_result->HasError())
-        throw std::runtime_error("Grid contour temp table failed: " +
-                                 create_result->GetError());
 
     write_query_to_parquet(con, "SELECT * FROM routing_grid_polygon_tmp",
                            output_path, "Grid contour parquet export failed");
