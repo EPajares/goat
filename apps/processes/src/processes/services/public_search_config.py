@@ -8,6 +8,7 @@ import uuid
 from typing import Any, TypedDict
 
 import duckdb
+from goatlib.storage import configure_baked_extensions
 
 from processes.config import settings
 
@@ -86,7 +87,9 @@ def _get_connection() -> duckdb.DuckDBPyConnection:
     global _con
     if _con is None:
         con = duckdb.connect()
-        con.execute("INSTALL postgres; LOAD postgres;")
+        if not configure_baked_extensions(con):
+            con.execute("INSTALL postgres;")
+        con.execute("LOAD postgres;")
         con.execute(
             f"ATTACH '{settings.POSTGRES_DATABASE_URI}' AS pubcfg (TYPE postgres, READ_ONLY)"
         )

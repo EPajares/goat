@@ -93,3 +93,12 @@ export function useJobStatus(onSuccess?: () => void, onFailed?: () => void) {
     checkJobStatus();
   }, [checkJobStatus]);
 }
+
+/** Mounts the job-status polling in an isolated subtree. The jobs SWR data
+ * changes identity on every poll, so whichever component calls useJobStatus
+ * re-renders each time — hosting it here keeps those re-renders away from the
+ * caller (MapPage renders its entire tree in ~300ms dev otherwise). */
+export function JobStatusWatcher({ onSuccess, onFailed }: { onSuccess?: () => void; onFailed?: () => void }) {
+  useJobStatus(onSuccess, onFailed);
+  return null;
+}

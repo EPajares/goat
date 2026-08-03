@@ -10,6 +10,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import dynamic from "next/dynamic";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -22,7 +23,7 @@ import { PopupContent, PopupHeader } from "@/components/map/popover/MapFeaturePo
 import { PopupHtmlStyles } from "@/components/map/popover/popupStyles";
 import { useSampleFeature } from "@/components/map/popover/sampleFeature";
 
-import { HtmlModeEditor } from "./HtmlModeEditor";
+const HtmlModeEditor = dynamic(() => import("./HtmlModeEditor").then((m) => m.HtmlModeEditor), { ssr: false });
 import { PopupAppearanceSettings } from "./PopupAppearanceSettings";
 
 interface Props {

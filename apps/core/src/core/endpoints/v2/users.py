@@ -236,7 +236,7 @@ async def get_profile(
 async def update_profile(
     *,
     db: AsyncSession = Depends(get_db),
-    user: UserProfileUpdate = Body(..., example=request_examples["user"]["update"]),
+    user: UserProfileUpdate = Body(..., examples=[request_examples["user"]["update"]]),
     user_token: dict = Depends(user_token),
     user_id: str | None = None,
 ) -> Any:

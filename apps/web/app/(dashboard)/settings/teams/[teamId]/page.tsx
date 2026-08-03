@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoadingButton } from "@mui/lab";
 import { Box, Divider, IconButton, Stack, Tab, Tabs, TextField, Typography, useTheme } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, use } from "react";
 import { useForm } from "react-hook-form";
 import { Trans, useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
@@ -330,7 +330,13 @@ function TeamMembers({ team }: { team: Team }) {
   );
 }
 
-export default function TeamPage({ params: { teamId } }) {
+export default function TeamPage(props: { params: Promise<{ teamId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    teamId
+  } = params;
+
   const { t } = useTranslation("common");
 
   const { team } = useTeam(teamId);

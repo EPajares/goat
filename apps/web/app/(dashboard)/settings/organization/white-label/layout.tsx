@@ -55,6 +55,7 @@ const DisabledTabSlot = forwardRef<
 });
 
 const WhiteLabelLayout = (props: WhiteLabelLayoutProps) => {
+  const children = props.children;
   const pathname = usePathname();
   const { t } = useTranslation("common");
 
@@ -132,7 +133,7 @@ const WhiteLabelLayout = (props: WhiteLabelLayoutProps) => {
           );
         })}
       </Tabs>
-      {props.children}
+      {children}
     </>
   );
 };

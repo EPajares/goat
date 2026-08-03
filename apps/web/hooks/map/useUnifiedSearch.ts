@@ -34,7 +34,7 @@ export function useUnifiedSearch(options: {
   // True from a (valid) keystroke until its debounced requests fire, so
   // consumers can tell "not searched yet" apart from "searched, no results".
   const [debouncePending, setDebouncePending] = useState(false);
-  const abortRef = useRef<AbortController>();
+  const abortRef = useRef<AbortController | undefined>(undefined);
   const seqRef = useRef(0);
   const paramsRef = useRef({ source, accessToken, getMapCenter, bbox, language });
   paramsRef.current = { source, accessToken, getMapCenter, bbox, language };

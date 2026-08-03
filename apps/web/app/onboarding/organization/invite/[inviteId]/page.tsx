@@ -4,7 +4,7 @@ import { LoadingButton } from "@mui/lab";
 import { Alert, Avatar, Box, Link, Stack, Typography, useTheme } from "@mui/material";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, use } from "react";
 import { useTranslation } from "react-i18next";
 
 import AuthContainer from "@p4b/ui/components/AuthContainer";
@@ -16,7 +16,13 @@ import type { GetInvitationsQueryParams } from "@/lib/validations/user";
 
 import type { ResponseResult } from "@/types/common";
 
-export default function OrganizationInviteJoin({ params: { inviteId } }) {
+export default function OrganizationInviteJoin(props: { params: Promise<{ inviteId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    inviteId
+  } = params;
+
   const theme = useTheme();
   const { t } = useTranslation("common");
   const [queryParams, _setQueryParams] = useState<GetInvitationsQueryParams>({

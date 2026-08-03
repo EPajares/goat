@@ -44,7 +44,7 @@ const req = (size: string, source?: string) =>
   new Request(
     `http://localhost:3000/api/pwa-icon/${PROJECT_ID}?size=${size}${source ? `&source=${source}` : ""}`
   );
-const params = { params: { projectId: PROJECT_ID } };
+const params = { params: Promise.resolve({ projectId: PROJECT_ID }) };
 
 afterEach(() => {
   vi.unstubAllGlobals();

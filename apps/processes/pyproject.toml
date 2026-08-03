@@ -8,7 +8,7 @@ requires-python = ">=3.11"
 # or routing — those are lazy, executed only on the Windmill worker image. So it
 # depends on base goatlib + the libs it actually imports, not goatlib[full].
 dependencies = [
-    "fastapi[standard]>=0.115.0",
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.115.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "duckdb>=1.5.4",

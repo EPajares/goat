@@ -9,7 +9,7 @@ COPY . .
 RUN pnpm install
 
 # Build the project
-RUN pnpm turbo run build --filter=storybook
+RUN pnpm turbo run build --filter=@p4b/storybook
 
 # production stage
 FROM nginx:stable-alpine as production-stage

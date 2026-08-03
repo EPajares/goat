@@ -54,7 +54,7 @@ async def create_folder(
     *,
     async_session: AsyncSession = Depends(get_db),
     user_id: UUID4 = Depends(get_user_id),
-    folder_in: FolderCreate = Body(..., example=folder_request_examples["create"]),
+    folder_in: FolderCreate = Body(..., examples=[folder_request_examples["create"]]),
 ) -> FolderRead:
     """Create a new folder."""
     # Count already existing folders for the user
@@ -98,7 +98,7 @@ async def read_folder(
     folder_id: UUID4 = Path(
         ...,
         description="The ID of the folder to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> FolderRead:
     """Retrieve a folder by its ID."""
@@ -130,12 +130,12 @@ async def read_folders(
     order_by: str = Query(
         None,
         description="Specify the column name that should be used to order. You can check the Project model to see which column names exist.",
-        example="created_at",
+        examples=["created_at"],
     ),
     order: OrderEnum = Query(
         "descendent",
         description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="descendent",
+        examples=["descendent"],
     ),
 ) -> List[FolderRead]:
     """Retrieve a list of owned and shared folders."""
@@ -157,7 +157,9 @@ async def read_folders(
     ).cte("accessible_folders")
 
     # Load full Folder objects for accessible IDs
-    folders_query = select(Folder).join(accessible_cte, Folder.id == accessible_cte.c.id)
+    folders_query = select(Folder).join(
+        accessible_cte, Folder.id == accessible_cte.c.id
+    )
 
     if search:
         folders_query = folders_query.where(Folder.name.ilike(f"%{search}%"))
@@ -171,12 +173,14 @@ async def read_folders(
     # Batch: owned-folder grantee_ids (one query for all owned folders)
     owned_grants: dict[UUID, list[UUID]] = {}
     if owned_ids:
-        rows = (await async_session.execute(
-            select(ResourceGrant.resource_id, ResourceGrant.grantee_id).where(
-                ResourceGrant.resource_type == "folder",
-                ResourceGrant.resource_id.in_(owned_ids),
+        rows = (
+            await async_session.execute(
+                select(ResourceGrant.resource_id, ResourceGrant.grantee_id).where(
+                    ResourceGrant.resource_type == "folder",
+                    ResourceGrant.resource_id.in_(owned_ids),
+                )
             )
-        )).all()
+        ).all()
         for resource_id, grantee_id in rows:
             owned_grants.setdefault(resource_id, []).append(grantee_id)
 
@@ -185,35 +189,69 @@ async def read_folders(
     if shared_ids:
         conditions = []
         if team_ids:
-            conditions.append(and_(ResourceGrant.grantee_type == "team", ResourceGrant.grantee_id.in_(team_ids)))
-        if organization_id:
-            conditions.append(and_(ResourceGrant.grantee_type == "organization", ResourceGrant.grantee_id == organization_id))
-        if conditions:
-            grant_rows = (await async_session.execute(
-                select(ResourceGrant, Role)
-                .join(Role, Role.id == ResourceGrant.role_id)
-                .where(
-                    ResourceGrant.resource_type == "folder",
-                    ResourceGrant.resource_id.in_(shared_ids),
-                    or_(*conditions),
+            conditions.append(
+                and_(
+                    ResourceGrant.grantee_type == "team",
+                    ResourceGrant.grantee_id.in_(team_ids),
                 )
-            )).all()
+            )
+        if organization_id:
+            conditions.append(
+                and_(
+                    ResourceGrant.grantee_type == "organization",
+                    ResourceGrant.grantee_id == organization_id,
+                )
+            )
+        if conditions:
+            grant_rows = (
+                await async_session.execute(
+                    select(ResourceGrant, Role)
+                    .join(Role, Role.id == ResourceGrant.role_id)
+                    .where(
+                        ResourceGrant.resource_type == "folder",
+                        ResourceGrant.resource_id.in_(shared_ids),
+                        or_(*conditions),
+                    )
+                )
+            ).all()
             for grant, role in grant_rows:
                 if grant.resource_id not in shared_grant_map:
                     shared_grant_map[grant.resource_id] = (grant, role)
 
     # Batch: team / org display names (one query each, only if needed)
-    team_ids_needed = {g.grantee_id for g, _ in shared_grant_map.values() if g.grantee_type == "team"}
-    org_ids_needed = {g.grantee_id for g, _ in shared_grant_map.values() if g.grantee_type == "organization"}
+    team_ids_needed = {
+        g.grantee_id for g, _ in shared_grant_map.values() if g.grantee_type == "team"
+    }
+    org_ids_needed = {
+        g.grantee_id
+        for g, _ in shared_grant_map.values()
+        if g.grantee_type == "organization"
+    }
 
     teams_by_id: dict[UUID, str] = {}
     if team_ids_needed:
-        team_rows = (await async_session.execute(select(Team).where(Team.id.in_(team_ids_needed)))).scalars().all()
+        team_rows = (
+            (
+                await async_session.execute(
+                    select(Team).where(Team.id.in_(team_ids_needed))
+                )
+            )
+            .scalars()
+            .all()
+        )
         teams_by_id = {t.id: t.name for t in team_rows}
 
     orgs_by_id: dict[UUID, str] = {}
     if org_ids_needed:
-        org_rows = (await async_session.execute(select(Organization).where(Organization.id.in_(org_ids_needed)))).scalars().all()
+        org_rows = (
+            (
+                await async_session.execute(
+                    select(Organization).where(Organization.id.in_(org_ids_needed))
+                )
+            )
+            .scalars()
+            .all()
+        )
         orgs_by_id = {o.id: o.name for o in org_rows}
 
     # Assemble response
@@ -221,22 +259,34 @@ async def read_folders(
     for f in folders:
         if f.user_id == user_id:
             shared_with_ids = owned_grants.get(f.id) or None
-            folder_reads.append(FolderRead(
-                **f.model_dump(), is_owned=True, role="folder-owner",
-                shared_from_name=None, shared_with_ids=shared_with_ids,
-            ))
+            folder_reads.append(
+                FolderRead(
+                    **f.model_dump(),
+                    is_owned=True,
+                    role="folder-owner",
+                    shared_from_name=None,
+                    shared_with_ids=shared_with_ids,
+                )
+            )
         else:
             entry = shared_grant_map.get(f.id)
             if entry:
                 grant, role = entry
-                name = teams_by_id.get(grant.grantee_id) or orgs_by_id.get(grant.grantee_id) or str(grant.grantee_id)
+                name = (
+                    teams_by_id.get(grant.grantee_id)
+                    or orgs_by_id.get(grant.grantee_id)
+                    or str(grant.grantee_id)
+                )
             else:
                 role, name = None, None  # type: ignore[assignment]
-            folder_reads.append(FolderRead(
-                **f.model_dump(), is_owned=False,
-                role=role.name if role else None,
-                shared_from_name=name,
-            ))
+            folder_reads.append(
+                FolderRead(
+                    **f.model_dump(),
+                    is_owned=False,
+                    role=role.name if role else None,
+                    shared_from_name=name,
+                )
+            )
 
     return folder_reads
 
@@ -254,10 +304,10 @@ async def update_folder(
     folder_id: UUID4 = Path(
         ...,
         description="The ID of the folder to update",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     user_id: UUID4 = Depends(get_user_id),
-    folder_in: FolderUpdate = Body(..., example=folder_request_examples["update"]),
+    folder_in: FolderUpdate = Body(..., examples=[folder_request_examples["update"]]),
 ) -> FolderUpdate:
     """Update a folder with new data."""
     db_obj = await crud_folder.get_by_multi_keys(
@@ -286,7 +336,7 @@ async def delete_folder(
     folder_id: UUID4 = Path(
         ...,
         description="The ID of the folder to delete",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     user_id: UUID4 = Depends(get_user_id),
     access_token: str = Depends(auth),
@@ -303,6 +353,7 @@ async def delete_folder(
 
 
 ### Folder sharing endpoints
+
 
 @router.post(
     "/{folder_id}/share",
@@ -321,25 +372,37 @@ async def share_folder(
     """Share a folder with a team or organization. Only the folder owner can call this."""
     folder = await async_session.get(Folder, folder_id)
     if folder is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found"
+        )
     if folder.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the folder owner can share it")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the folder owner can share it",
+        )
 
-    role_result = await async_session.execute(select(Role).where(Role.name == payload.role))
+    role_result = await async_session.execute(
+        select(Role).where(Role.name == payload.role)
+    )
     role = role_result.scalar_one_or_none()
     if role is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown role: {payload.role}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown role: {payload.role}",
+        )
 
     # Check for conflicting grant (different grantee)
     conflict_result = await async_session.execute(
-        select(ResourceGrant.id).where(
+        select(ResourceGrant.id)
+        .where(
             ResourceGrant.resource_type == "folder",
             ResourceGrant.resource_id == folder_id,
             or_(
                 ResourceGrant.grantee_type != payload.grantee_type,
                 ResourceGrant.grantee_id != payload.grantee_id,
             ),
-        ).limit(1)
+        )
+        .limit(1)
     )
     if conflict_result.first() is not None:
         raise HTTPException(
@@ -388,9 +451,14 @@ async def get_folder_grants(
     """List current grants for a folder. Only the folder owner can call this."""
     folder = await async_session.get(Folder, folder_id)
     if folder is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found"
+        )
     if folder.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the folder owner can view grants")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the folder owner can view grants",
+        )
 
     return await _get_folder_grants_response(async_session, folder_id)
 
@@ -413,9 +481,14 @@ async def delete_folder_grant(
     """Remove a specific grant from a folder. Only the folder owner can call this."""
     folder = await async_session.get(Folder, folder_id)
     if folder is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Folder not found"
+        )
     if folder.user_id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the folder owner can remove grants")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the folder owner can remove grants",
+        )
 
     result = await async_session.execute(
         sql_delete(ResourceGrant).where(
@@ -429,10 +502,13 @@ async def delete_folder_grant(
     )
     await async_session.commit()
     if result.rowcount == 0:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Grant not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Grant not found"
+        )
 
 
 ### Helpers
+
 
 async def _get_folder_grants_response(
     async_session: AsyncSession,

@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
@@ -37,9 +37,13 @@ const AccountPreferences = () => {
   const { changeColorMode } = useContext(ColorModeContext);
   const themeModes = ["dark", "light"] as const;
 
-  const { register, handleSubmit, watch } = useForm<SystemSettingsUpdate>({
+  const { control, handleSubmit, watch } = useForm<SystemSettingsUpdate>({
     mode: "onChange",
     resolver: zodResolver(systemSettingsSchemaUpdate),
+    defaultValues: {
+      preferred_language: (i18n.language as "en" | "de") ?? languages[0],
+      client_theme: muiTheme.palette.mode,
+    },
   });
 
   const onSubmit = useCallback(
@@ -98,52 +102,65 @@ const AccountPreferences = () => {
           <Divider />
 
           {/* Language selector */}
-          <TextField
-            select
-            label={t("language")}
-            size="medium"
-            disabled={isBusy}
-            defaultValue={i18n.language ?? languages[0]}
-            {...register("preferred_language")}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Icon iconName={ICON_NAME.LANGUAGE} fontSize="small" />
-                </InputAdornment>
-              ),
-            }}>
-            {languages.map((lng) => (
-              <MenuItem key={lng} value={lng}>
-                {t(lng)}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Controller
+            name="preferred_language"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                select
+                label={t("language")}
+                size="medium"
+                disabled={isBusy}
+                {...field}
+                value={field.value ?? i18n.language ?? languages[0]}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Icon iconName={ICON_NAME.LANGUAGE} fontSize="small" />
+                    </InputAdornment>
+                  ),
+                }}>
+                {languages.map((lng) => (
+                  <MenuItem key={lng} value={lng}>
+                    {t(lng)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
 
           {/* Theme selector */}
-          <TextField
-            select
-            label={t("theme")}
-            size="medium"
-            disabled={isBusy}
-            defaultValue={muiTheme.palette.mode}
-            {...register("client_theme")}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  {muiTheme.palette.mode === "dark" ? (
-                    <DarkModeIcon fontSize="small" />
-                  ) : (
-                    <LightModeIcon fontSize="small" />
-                  )}
-                </InputAdornment>
-              ),
-            }}>
-            {themeModes.map((mode) => (
-              <MenuItem key={mode} value={mode}>
-                {t(mode)}
-              </MenuItem>
-            ))}
-          </TextField>
+          <Controller
+            name="client_theme"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                select
+                label={t("theme")}
+                size="medium"
+                disabled={isBusy}
+                {...field}
+                value={field.value ?? muiTheme.palette.mode}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {muiTheme.palette.mode === "dark" ? (
+                        <DarkModeIcon fontSize="small" />
+                      ) : (
+                        <LightModeIcon fontSize="small" />
+                      )}
+                    </InputAdornment>
+                  ),
+                }}>
+                {themeModes.map((mode) => (
+                  <MenuItem key={mode} value={mode}>
+                    {t(mode)}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          />
+
         </Stack>
       </Box>
     </Box>

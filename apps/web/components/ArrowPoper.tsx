@@ -9,7 +9,7 @@ import React from "react";
 
 interface Props {
   content: ReactElement;
-  children: ReactElement;
+  children: ReactElement<Record<string, unknown>>;
   open: boolean;
   onClose?: () => void;
   arrow?: boolean;

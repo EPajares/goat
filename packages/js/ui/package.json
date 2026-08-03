@@ -7,6 +7,9 @@
   "scripts": {
     "clean": "rimraf .turbo node_modules dist"
   },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0"
+  },
   "peerDependenciesMeta": {
     "@types/react": {
       "optional": true
@@ -20,10 +23,10 @@
     "@fortawesome/free-regular-svg-icons": "^6.4.2",
     "@fortawesome/free-solid-svg-icons": "^6.4.2",
     "@fortawesome/react-fontawesome": "^0.2.0",
-    "@mui/icons-material": "^5.11.16",
-    "@mui/lab": "5.0.0-alpha.132",
-    "@mui/material": "^5.13.0",
-    "@mui/utils": "^5.13.7",
+    "@mui/icons-material": "^5.18.0",
+    "@mui/lab": "5.0.0-alpha.177",
+    "@mui/material": "^5.18.0",
+    "@mui/utils": "^5.17.1",
     "@mui/x-data-grid": "^6.7.0",
     "@mui/x-date-pickers": "^6.9.2",
     "@reduxjs/toolkit": "^1.9.5",
@@ -37,7 +40,6 @@
     "memoizee": "^0.4.15",
     "minimal-polyfills": "^2.2.2",
     "powerhooks": "^0.26.8",
-    "react": "^18.2.0",
     "react-redux": "^8.1.1",
     "react-swipeable-views": "^0.14.0",
     "react-swipeable-views-utils": "^0.14.0",
@@ -53,9 +55,11 @@
     "@storybook/addons": "^7.4.0",
     "@storybook/react": "^7.4.0",
     "@storybook/types": "^7.4.0",
-    "@types/react": "^18.3.27",
-    "@types/react-dom": "^18.3.7",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@types/uuid": "^9.0.2",
-    "eslint-config-p4b": "workspace:*"
+    "eslint-config-p4b": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }

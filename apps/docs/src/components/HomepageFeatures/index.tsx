@@ -7,7 +7,7 @@ import styles from "./styles.module.css";
 type FeatureItem = {
   title: string;
   Svg: React.ComponentType<React.ComponentProps<"svg">>;
-  description: JSX.Element;
+  description: React.JSX.Element;
 };
 
 const FeatureList: FeatureItem[] = [
@@ -43,6 +43,6 @@ const FeatureList: FeatureItem[] = [
   },
 ];
 
-export default function HomepageFeatures(): JSX.Element {
+export default function HomepageFeatures(): React.JSX.Element {
   return <Redirect to="/de/1.5" />;
 }

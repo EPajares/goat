@@ -81,7 +81,7 @@ async def create_organization(
     user_token: dict = Depends(user_token),
     user_id: str | None = None,
     organization: OrganizationCreate = Body(
-        ..., example=request_examples["organization"]["create"]
+        ..., examples=[request_examples["organization"]["create"]]
     ),
     request: Request,
 ) -> Any:
@@ -119,7 +119,7 @@ async def update_organization(
     user_id: str | None = None,
     organization_id: str,
     organization: OrganizationUpdate = Body(
-        ..., example=request_examples["organization"]["update"]
+        ..., examples=[request_examples["organization"]["update"]]
     ),
 ) -> Any:
     """
@@ -244,7 +244,7 @@ async def update_user_role_in_organization(
     organization_id: str,
     user_id: str,
     role: OrganizationUpdateMemberRole = Body(
-        ..., example=request_examples["organization"]["update_user_role"]
+        ..., examples=[request_examples["organization"]["update_user_role"]]
     ),
 ) -> Any:
     """
@@ -272,7 +272,7 @@ async def invite_user_to_organization(
     user_token: dict = Depends(user_token),
     user_id: str | None = None,
     payload: InvitationOrgCreate = Body(
-        ..., example=request_examples["organization"]["invite"]
+        ..., examples=[request_examples["organization"]["invite"]]
     ),
 ) -> Any:
     """
@@ -366,7 +366,7 @@ async def update_organization_invitation(
     user_id: str | None = None,
     invitation_id: str,
     payload: InvitationOrgUpdate = Body(
-        ..., example=request_examples["organization"]["invite_update"]
+        ..., examples=[request_examples["organization"]["invite_update"]]
     ),
 ) -> Any:
     """
@@ -404,7 +404,7 @@ async def update_organization_invitation_role(
     user_token: dict = Depends(user_token),
     invitation_id: str,
     role: OrganizationUpdateMemberRole = Body(
-        ..., example=request_examples["organization"]["update_user_role"]
+        ..., examples=[request_examples["organization"]["update_user_role"]]
     ),
 ) -> Any:
     """
