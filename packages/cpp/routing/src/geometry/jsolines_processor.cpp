@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -163,7 +164,7 @@ PixelPos follow_loop(int8_t idx, PixelPos xy, PixelPos prev_xy)
 	return {x, y};
 }
 
-PixelCoord interpolate(PixelPos pos,
+std::optional<PixelCoord> interpolate(PixelPos pos,
 					   double cutoff,
 					   PixelPos start,
 					   std::vector<double> const &surface,
@@ -205,25 +206,31 @@ PixelCoord interpolate(PixelPos pos,
 	if (startx < x)
 	{
 		double frac = (cutoff - top_left) / (bot_left - top_left);
-		return {static_cast<double>(x),
+		return PixelCoord{static_cast<double>(x),
 				static_cast<double>(y) + ensure_fraction_is_number(frac)};
 	}
 	if (startx > x)
 	{
 		double frac = (cutoff - top_right) / (bot_right - top_right);
-		return {static_cast<double>(x) + 1.0,
+		return PixelCoord{static_cast<double>(x) + 1.0,
 				static_cast<double>(y) + ensure_fraction_is_number(frac)};
 	}
 	if (starty > y)
 	{
 		double frac = (cutoff - bot_left) / (bot_right - bot_left);
-		return {static_cast<double>(x) + ensure_fraction_is_number(frac),
+		return PixelCoord{static_cast<double>(x) + ensure_fraction_is_number(frac),
 				static_cast<double>(y) + 1.0};
 	}
+	if (starty < y)
+	{
+		double frac = (cutoff - top_left) / (top_right - top_left);
+		return PixelCoord{static_cast<double>(x) + ensure_fraction_is_number(frac),
+				static_cast<double>(y)};
+	}
 
-	double frac = (cutoff - top_left) / (top_right - top_left);
-	return {static_cast<double>(x) + ensure_fraction_is_number(frac),
-			static_cast<double>(y)};
+	// No move (start == pos): pathological saddle step. Signal the caller to
+	// discard the ring instead of emitting a degenerate vertex.
+	return std::nullopt;
 }
 
 bool point_in_polygon(Point3857 const &p, std::vector<Point3857> const &poly)
@@ -369,11 +376,17 @@ std::vector<JsolinesFeature> build_jsolines_wkt(
 					index = pos.y * c_width + pos.x;
 
 					direction += (pos.x - start.x) * (pos.y + start.y);
-					PixelCoord coord = interpolate(pos, cutoff, start, surface, width, height);
+					auto coord_opt = interpolate(pos, cutoff, start, surface, width, height);
+					if (!coord_opt) break;  // no-move step: discard degenerate ring
+					PixelCoord coord = *coord_opt;
 
 					double merc_x = west + coord.x * step_x;
 					double merc_y = north - coord.y * step_y;
-					ring.push_back({to_longitude(merc_x), to_latitude(merc_y)});
+					// Skip zero-length segments (coincident consecutive points).
+					Point3857 pt{to_longitude(merc_x), to_latitude(merc_y)};
+					if (ring.empty() ||
+						pt.x != ring.back().x || pt.y != ring.back().y)
+						ring.push_back(pt);
 
 					if (pos.x == origx && pos.y == origy)
 					{
