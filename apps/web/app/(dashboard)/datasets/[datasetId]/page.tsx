@@ -2,7 +2,7 @@
 
 import { Box, Button, Container, Paper, Skeleton, Tab, Tabs, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, use } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
@@ -14,7 +14,13 @@ import DatasetMapPreview from "@/components/dashboard/dataset/DatasetMapPreview"
 import DatasetSummary from "@/components/dashboard/dataset/DatasetSummary";
 import DatasetTable from "@/components/dashboard/dataset/DatasetTable";
 
-export default function DatasetDetailPage({ params: { datasetId } }) {
+export default function DatasetDetailPage(props: { params: Promise<{ datasetId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    datasetId
+  } = params;
+
   const router = useRouter();
   const { t } = useTranslation("common");
   const { dataset, isLoading } = useDataset(datasetId);

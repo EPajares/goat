@@ -26,8 +26,8 @@ export type UserProfileFormFieldsProps = {
   onIsFormSubmittableValueChange: (isFormSubmittable: boolean) => void;
   activeStep?: number;
   steps?: Steps;
-  BeforeField?: (props: { attribute: Attribute }) => JSX.Element | null;
-  AfterField?: (props: { attribute: Attribute }) => JSX.Element | null;
+  BeforeField?: (props: { attribute: Attribute }) => React.JSX.Element | null;
+  AfterField?: (props: { attribute: Attribute }) => React.JSX.Element | null;
   getIncrementedTabIndex: () => number;
 };
 

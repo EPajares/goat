@@ -27,7 +27,7 @@ from goatlib.analysis.statistics import (
     calculate_unique_values,
     search_layer_features,
 )
-from goatlib.storage import build_cql_filter
+from goatlib.storage import build_cql_filter, configure_baked_extensions
 from goatlib.tools.custom_sql import validate_sql_query
 
 from processes.dependencies import (
@@ -609,6 +609,8 @@ class AnalyticsService:
 
         con = duckdb.connect()
         try:
+            if not configure_baked_extensions(con):
+                con.execute("INSTALL spatial;")
             con.execute("LOAD spatial;")
 
             for alias, columns in table_schemas.items():

@@ -3,10 +3,8 @@ import { renderProjectIcon } from "@/lib/pwa/serve-icon";
 
 export const runtime = "nodejs";
 
-export async function GET(
-  request: Request,
-  { params }: { params: { projectId: string } }
-): Promise<Response> {
+export async function GET(request: Request, props: { params: Promise<{ projectId: string }> }): Promise<Response> {
+  const params = await props.params;
   const searchParams = new URL(request.url).searchParams;
   const size = Number(searchParams.get("size") ?? "192");
   if (!isAllowedIconSize(size)) {

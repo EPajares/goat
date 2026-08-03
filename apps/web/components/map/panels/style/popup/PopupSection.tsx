@@ -9,6 +9,7 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
+import dynamic from "next/dynamic";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 import type { ReactNode } from "react";
@@ -41,7 +42,7 @@ import { ButtonBlockEditor } from "./blocks/ButtonBlockEditor";
 import { DividerBlockEditor } from "./blocks/DividerBlockEditor";
 import { FieldListBlockEditor } from "./blocks/FieldListBlockEditor";
 import { ImageBlockEditor } from "./blocks/ImageBlockEditor";
-import { TextBlockEditor } from "./blocks/TextBlockEditor";
+const TextBlockEditor = dynamic(() => import("./blocks/TextBlockEditor").then((m) => m.TextBlockEditor), { ssr: false });
 import { seedPopupFromInteraction } from "./seedFromLegacy";
 
 interface PopupSectionProps {

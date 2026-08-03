@@ -29,10 +29,13 @@ async def test_get_keycloak_user_returns_empty_when_unconfigured() -> None:
 
 
 @pytest.mark.unit
-async def test_get_keycloak_user_degrades_on_keycloak_error() -> None:
+async def test_get_keycloak_user_degrades_on_keycloak_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     async def admin() -> Any:
         return _FailingAdmin()
 
+    monkeypatch.setattr(keycloak_deps.settings, "AUTH", True)
     with patch.object(keycloak_deps, "keycloak_admin", admin):
         assert await keycloak_deps.get_keycloak_user("some-id") == {}
 
@@ -52,10 +55,28 @@ async def test_keycloak_admin_is_cached_across_calls(
 
 
 @pytest.mark.unit
-async def test_get_keycloak_user_returns_user() -> None:
+async def test_get_keycloak_user_returns_user(monkeypatch: pytest.MonkeyPatch) -> None:
     async def admin() -> Any:
         return _WorkingAdmin()
 
+    monkeypatch.setattr(keycloak_deps.settings, "AUTH", True)
     with patch.object(keycloak_deps, "keycloak_admin", admin):
         user = await keycloak_deps.get_keycloak_user("some-id")
         assert user["email"] == "user@example.com"
+
+
+@pytest.mark.unit
+async def test_get_keycloak_user_skips_lookup_when_auth_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(keycloak_deps.settings, "AUTH", False)
+    called = False
+
+    async def admin() -> Any:
+        nonlocal called
+        called = True
+        return _WorkingAdmin()
+
+    with patch.object(keycloak_deps, "keycloak_admin", admin):
+        assert await keycloak_deps.get_keycloak_user("some-id") == {}
+    assert called is False

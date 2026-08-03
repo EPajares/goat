@@ -6,7 +6,7 @@ import Layout from "@theme/Layout";
 
 import styles from "./index.module.css";
 
-export default function Storybook(): JSX.Element {
+export default function Storybook(): React.JSX.Element {
   const { siteConfig } = useDocusaurusContext();
   return (
     <Layout

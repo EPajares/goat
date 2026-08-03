@@ -592,7 +592,7 @@ export const brandColors: BrandColors = {
 
 library.add(...Object.values(nameToIcon));
 
-export function Icon({ iconName, ...rest }: SvgIconProps & { iconName: ICON_NAME }): JSX.Element {
+export function Icon({ iconName, ...rest }: SvgIconProps & { iconName: ICON_NAME }): React.JSX.Element {
   const def = nameToIcon[iconName];
   if (!def) throw new Error(`Invalid icon name: ${iconName}`);
 

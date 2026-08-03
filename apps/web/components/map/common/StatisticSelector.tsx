@@ -1,4 +1,5 @@
 import { Button, Stack, Typography } from "@mui/material";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -15,7 +16,7 @@ import { useLayerDatasetId, useStatisticValues } from "@/hooks/map/ToolsHooks";
 import FormLabelHelper from "@/components/common/FormLabelHelper";
 import LayerFieldSelector from "@/components/map/common/LayerFieldSelector";
 import Selector from "@/components/map/panels/common/Selector";
-import FormulaBuilder from "@/components/modals/FormulaBuilder";
+const FormulaBuilder = dynamic(() => import("@/components/modals/FormulaBuilder"), { ssr: false });
 
 export type StatisticConfig = {
   method?: StatisticOperation | undefined;

@@ -261,7 +261,7 @@ export default function FormulaBuilder({
 }: FormulaBuilderProps) {
   const { t } = useTranslation("common");
   const inputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<ReactCodeMirrorRef>();
+  const editorRef = useRef<ReactCodeMirrorRef | undefined>(undefined);
   const isSqlMode = mode === "sql";
 
   // State

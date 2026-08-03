@@ -22,17 +22,11 @@ const nextConfig = {
   },
   reactStrictMode: true,
   transpilePackages: ["@p4b/ui", "@p4b/tsconfig"],
-  modularizeImports: {
-    "@mui/icons-material": {
-      transform: "@mui/icons-material/{{member}}",
-    },
-  },
   images: {
-    domains: ["assets.plan4better.de", "source.unsplash.com"],
-  },
-  webpack: (config) => {
-    config.module.exprContextCritical = false; // Todo: Added to suppress warnings from cog-protocol (Find a better solution)
-    return config;
+    remotePatterns: [
+      { protocol: "https", hostname: "assets.plan4better.de" },
+      { protocol: "https", hostname: "source.unsplash.com" },
+    ],
   },
 };
 

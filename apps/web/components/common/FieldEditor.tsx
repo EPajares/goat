@@ -1,4 +1,5 @@
 import type { DragEndEvent } from "@dnd-kit/core";
+import dynamic from "next/dynamic";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -24,7 +25,8 @@ import { useTranslation } from "react-i18next";
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
 import FieldKindIcon from "@/components/common/FieldKindIcon";
-import FormulaBuilder, { type FormulaField } from "@/components/modals/FormulaBuilder";
+import { type FormulaField } from "@/components/modals/FormulaBuilder";
+const FormulaBuilder = dynamic(() => import("@/components/modals/FormulaBuilder"), { ssr: false });
 import { formatFieldValue } from "@/lib/utils/formatFieldValue";
 import type { FieldDefinition, FieldKind } from "@/lib/validations/layer";
 import { ALLOWED_KINDS_BY_GEOM_TYPE, COMPUTED_KINDS, RESERVED_FIELD_NAMES } from "@/lib/validations/layer";

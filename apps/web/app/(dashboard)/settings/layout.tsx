@@ -32,7 +32,7 @@ const SettingsLayout = (props: SettingsLayoutProps) => {
   const { children } = props;
   const pathname = usePathname();
   const theme = useTheme();
-  const { t, i18n } = useTranslation("common");
+  const { t } = useTranslation("common");
   const { isOrgAdmin, isLoading: isUserProfileLoading } = useAuthZ();
   const navigation = useMemo(() => {
     return [
@@ -109,7 +109,6 @@ const SettingsLayout = (props: SettingsLayoutProps) => {
                       key={item.icon}
                       href={item.link}
                       component={NextLink}
-                      locale={i18n.language || "en"}
                       passHref
                       style={{ textDecoration: "none" }}>
                       <ListItem

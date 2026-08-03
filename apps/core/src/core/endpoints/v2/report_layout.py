@@ -36,7 +36,7 @@ async def get_report_layouts(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> List[ReportLayoutRead]:
     """Get all report layouts for a project."""
@@ -60,12 +60,12 @@ async def get_report_layout(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_id: UUID4 = Path(
         ...,
         description="The ID of the report layout",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> ReportLayoutRead:
     """Get a specific report layout by ID."""
@@ -94,10 +94,10 @@ async def create_report_layout(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_in: ReportLayoutCreate = Body(
-        ..., example=report_layout_request_examples["create"]
+        ..., examples=[report_layout_request_examples["create"]]
     ),
 ) -> ReportLayoutRead:
     """Create a new report layout for a project."""
@@ -121,15 +121,15 @@ async def update_report_layout(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_id: UUID4 = Path(
         ...,
         description="The ID of the report layout",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_in: ReportLayoutUpdate = Body(
-        ..., example=report_layout_request_examples["update"]
+        ..., examples=[report_layout_request_examples["update"]]
     ),
 ) -> ReportLayoutRead:
     """Update an existing report layout."""
@@ -157,12 +157,12 @@ async def delete_report_layout(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_id: UUID4 = Path(
         ...,
         description="The ID of the report layout",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> None:
     """Delete a report layout."""
@@ -190,12 +190,12 @@ async def duplicate_report_layout(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     layout_id: UUID4 = Path(
         ...,
         description="The ID of the report layout to duplicate",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     new_name: str | None = Query(
         None,

@@ -7,6 +7,7 @@ const DefaultPalette = (mode: PaletteMode, themeColor: ThemeColor) => {
   const lightColor = '58, 53, 65'
   const darkColor = '231, 227, 252'
   const mainColor = mode === 'light' ? lightColor : darkColor
+  const mainColorHex = mode === 'light' ? '#3A3541' : '#E7E3FC'
 
   const primaryGradient = () => {
     if (themeColor === 'primary') {
@@ -26,7 +27,7 @@ const DefaultPalette = (mode: PaletteMode, themeColor: ThemeColor) => {
 
   return {
     customColors: {
-      main: mainColor,
+      main: mainColorHex,
       primaryGradient: primaryGradient(),
       tableHeaderBg: mode === 'light' ? '#F9FAFC' : '#3D3759'
     },

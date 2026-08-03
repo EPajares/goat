@@ -14,6 +14,7 @@ interface AccountLayoutProps {
 }
 
 const AccountLayout = (props: AccountLayoutProps) => {
+  const children = props.children;
   const pathname = usePathname();
   const { t } = useTranslation("common");
 
@@ -56,7 +57,7 @@ const AccountLayout = (props: AccountLayoutProps) => {
           />
         ))}
       </Tabs>
-      {props.children}
+      {children}
     </>
   );
 };

@@ -88,7 +88,7 @@ async def create_team(
     *,
     db: AsyncSession = Depends(get_db),
     user_token: dict = Depends(user_token),
-    team: TeamCreate = Body(..., example=request_examples["team"]["create"]),
+    team: TeamCreate = Body(..., examples=[request_examples["team"]["create"]]),
 ) -> Any:
     """
     Create a new team
@@ -110,7 +110,7 @@ async def update_team(
     user_token: dict = Depends(user_token),
     user_id: str | None = None,
     team_id: str,
-    team: TeamUpdate = Body(..., example=request_examples["team"]["update"]),
+    team: TeamUpdate = Body(..., examples=[request_examples["team"]["update"]]),
 ) -> Any:
     """
     Update a team

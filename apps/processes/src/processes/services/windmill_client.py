@@ -488,7 +488,12 @@ class WindmillClient:
                     j
                     for j in jobs
                     if j.get("script_path", "").endswith(
-                        ("layer_export", "project_export", "print_report", "workflow_runner")
+                        (
+                            "layer_export",
+                            "project_export",
+                            "print_report",
+                            "workflow_runner",
+                        )
                     )
                     or j.get("success") is False  # Failed jobs need error details
                     or j.get("running") is True  # Running jobs may need flow_status

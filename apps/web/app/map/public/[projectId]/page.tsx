@@ -1,11 +1,12 @@
 "use client";
 
 import type { Theme } from "@mui/material";
+import dynamic from "next/dynamic";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { GlobalStyles } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, use } from "react";
 import type { MapRef, ViewStateChangeEvent } from "react-map-gl/maplibre";
 import { MapProvider } from "react-map-gl/maplibre";
 import { shallowEqual, useSelector } from "react-redux";
@@ -32,9 +33,15 @@ import { ConsentBanner } from "@/components/analytics/ConsentBanner";
 import { LoadingPage } from "@/components/common/LoadingPage";
 import MapViewer from "@/components/map/MapViewer";
 import PublicProjectLayout from "@/components/map/layouts/desktop/PublicProjectLayout";
-import MobileProjectLayout from "@/components/map/layouts/mobile/MobileProjectLayout";
+const MobileProjectLayout = dynamic(() => import("@/components/map/layouts/mobile/MobileProjectLayout"), { ssr: false });
 
-export default function MapPage({ params: { projectId } }) {
+export default function MapPage(props: { params: Promise<{ projectId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    projectId
+  } = params;
+
   const { sharedProject, isLoading, isError: projectError } = usePublicProject(projectId);
   const theme = useTheme();
   const dispatch = useAppDispatch();

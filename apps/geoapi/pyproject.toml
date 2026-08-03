@@ -5,7 +5,7 @@ description = "GOAT GeoAPI - OGC Features and Tiles API powered by DuckDB/DuckLa
 authors = [{ name = "Plan4Better GmbH", email = "dev@plan4better.de" }]
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi[standard]>=0.115.0",
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.115.0",
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "duckdb>=1.5.4",

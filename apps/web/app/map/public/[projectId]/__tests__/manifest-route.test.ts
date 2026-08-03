@@ -16,7 +16,7 @@ import { GET } from "@/app/map/public/[projectId]/manifest.webmanifest/route";
 
 const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const DECOY_PAYLOAD_ID = "99999999-9999-9999-9999-999999999999";
-const params = { params: { projectId: PROJECT_ID } };
+const params = { params: Promise.resolve({ projectId: PROJECT_ID }) };
 
 function stubProjectFetch(ok = true) {
   vi.stubGlobal("fetch", vi.fn(async () =>

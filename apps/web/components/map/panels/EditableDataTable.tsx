@@ -1639,4 +1639,6 @@ const EditableDataTable: React.FC<EditableDataTableProps> = ({
   );
 };
 
-export default EditableDataTable;
+// Memoized: the parent DataPanel re-renders on drag start/end (isDragging) and
+// the full table is far too heavy to rebuild for a border-color change.
+export default React.memo(EditableDataTable);

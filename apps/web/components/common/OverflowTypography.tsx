@@ -1,10 +1,10 @@
 import type { TooltipProps } from "@mui/material";
 import { Tooltip, Typography, type TypographyProps } from "@mui/material";
-import type { FC, ReactChild } from "react";
+import type { FC, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 export interface OverflowTypograpyProps extends TypographyProps {
-  children: ReactChild;
+  children: ReactNode;
   tooltipProps?: Omit<TooltipProps, "title" | "children">;
 }
 

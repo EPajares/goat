@@ -38,13 +38,11 @@ async def get_workflows(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> List[WorkflowRead]:
     """Get all workflows for a project."""
-    workflows = await crud_workflow.get_by_project(
-        async_session, project_id=project_id
-    )
+    workflows = await crud_workflow.get_by_project(async_session, project_id=project_id)
     return [WorkflowRead.model_validate(w) for w in workflows]
 
 
@@ -62,12 +60,12 @@ async def get_workflow(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_id: UUID4 = Path(
         ...,
         description="The ID of the workflow",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> WorkflowRead:
     """Get a specific workflow by ID."""
@@ -96,10 +94,10 @@ async def create_workflow(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_in: WorkflowCreate = Body(
-        ..., example=workflow_request_examples["create"]
+        ..., examples=[workflow_request_examples["create"]]
     ),
 ) -> WorkflowRead:
     """Create a new workflow for a project."""
@@ -123,20 +121,23 @@ async def update_workflow(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_id: UUID4 = Path(
         ...,
         description="The ID of the workflow",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_in: WorkflowUpdate = Body(
-        ..., example=workflow_request_examples["update"]
+        ..., examples=[workflow_request_examples["update"]]
     ),
 ) -> WorkflowRead:
     """Update an existing workflow."""
     wf = await crud_workflow.update_for_project(
-        async_session, project_id=project_id, workflow_id=workflow_id, obj_in=workflow_in
+        async_session,
+        project_id=project_id,
+        workflow_id=workflow_id,
+        obj_in=workflow_in,
     )
     if not wf:
         raise HTTPException(
@@ -159,12 +160,12 @@ async def delete_workflow(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_id: UUID4 = Path(
         ...,
         description="The ID of the workflow",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> None:
     """Delete a workflow."""
@@ -192,12 +193,12 @@ async def duplicate_workflow(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     workflow_id: UUID4 = Path(
         ...,
         description="The ID of the workflow to duplicate",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     new_name: str | None = Query(
         None,

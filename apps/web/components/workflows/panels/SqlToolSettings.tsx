@@ -25,6 +25,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { formatDistance } from "date-fns";
+import dynamic from "next/dynamic";
 import { useEdges } from "@xyflow/react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -61,7 +62,7 @@ import Selector from "@/components/map/panels/common/Selector";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
 import CatalogExplorerModal from "@/components/modals/CatalogExplorer";
 import DatasetExplorerModal from "@/components/modals/DatasetExplorer";
-import FormulaBuilder from "@/components/modals/FormulaBuilder";
+const FormulaBuilder = dynamic(() => import("@/components/modals/FormulaBuilder"), { ssr: false });
 import type { FormulaField, SqlTable } from "@/components/modals/FormulaBuilder";
 import { useWorkflowExecutionContext } from "@/components/workflows/context/WorkflowExecutionContext";
 import SaveDatasetDialog from "@/components/workflows/dialogs/SaveDatasetDialog";
