@@ -401,6 +401,10 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                     "At least one attribute relationship is required when use_attribute_relationship is enabled"
                 )
 
+        # The UI hides add_join_fields for left joins
+        if self.join_type == JoinType.left:
+            self.add_join_fields = True
+
         # Statistics validation
         if self.calculate_statistics:
             if not self.field_statistics or len(self.field_statistics) == 0:

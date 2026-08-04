@@ -317,7 +317,7 @@ export default function FieldInput({
   if (isMultiSelect) {
     return (
       <Stack direction="row" alignItems="flex-end">
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <LayerFieldSelector
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             selectedField={selectedFields as any}
