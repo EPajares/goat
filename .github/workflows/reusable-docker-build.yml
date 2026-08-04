@@ -132,7 +132,11 @@ jobs:
         with:
           provenance: false
           platforms: ${{ matrix.platform }}
-          context: ${{ inputs.context }}
+          # Default to the checked-out workspace. With no context,
+          # build-push-action falls back to the Git context and BuildKit
+          # re-clones the whole repo (~1.5 GB) inside the builder, discarding
+          # the checkout above.
+          context: ${{ inputs.context || '.' }}
           file: ${{ inputs.file }}
           target: ${{ inputs.target }}
           push: true

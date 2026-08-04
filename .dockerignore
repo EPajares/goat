@@ -56,3 +56,5 @@ apps/processes/tests
 # Large data directories
 data/
 lint-results/
+
+.git
