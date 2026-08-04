@@ -194,7 +194,8 @@ const LayerFieldSelector = <T extends boolean = false>(props: SelectorProps<T>) 
             return <Typography variant="body2">{t("select_fields")}</Typography>;
           let displayText: string | undefined;
           if (props.multiple && Array.isArray(selectedField)) {
-            displayText = selectedField.map((f) => f.name).join(", ");
+            const [first, ...rest] = selectedField;
+            displayText = rest.length > 0 ? `${first.name}, ...` : first.name;
           } else if (selectedField && !Array.isArray(selectedField)) {
             displayText = selectedField.name;
           }
