@@ -12,6 +12,9 @@
     "demand": {
       "label": "Demand"
     },
+    "reference_area": {
+      "label": "Reference area"
+    },
     "scenario": {
       "label": "Scenario"
     },

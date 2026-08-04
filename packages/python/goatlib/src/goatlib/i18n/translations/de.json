@@ -12,6 +12,9 @@
     "demand": {
       "label": "Nachfrage"
     },
+    "reference_area": {
+      "label": "Referenzgebiet"
+    },
     "scenario": {
       "label": "Szenario"
     },
