@@ -508,6 +508,10 @@ class HeatmapV2WindmillParams(ToolInputBase):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_gravity", "en"),
+                "default_de": get_default_layer_name("heatmap_gravity", "de"),
+            },
         ),
     )
 
@@ -1030,6 +1034,10 @@ class HeatmapGravityV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_gravity", "en"),
+                "default_de": get_default_layer_name("heatmap_gravity", "de"),
+            },
         ),
     )
 
@@ -1066,6 +1074,14 @@ class HeatmapClosestAverageV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name(
+                    "heatmap_closest_average", "en"
+                ),
+                "default_de": get_default_layer_name(
+                    "heatmap_closest_average", "de"
+                ),
+            },
         ),
     )
 
@@ -1245,6 +1261,14 @@ class HeatmapConnectivityV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name(
+                    "heatmap_connectivity", "en"
+                ),
+                "default_de": get_default_layer_name(
+                    "heatmap_connectivity", "de"
+                ),
+            },
         ),
     )
 
@@ -1372,6 +1396,10 @@ class Heatmap2SFCAV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_2sfca", "en"),
+                "default_de": get_default_layer_name("heatmap_2sfca", "de"),
+            },
         ),
     )
 
