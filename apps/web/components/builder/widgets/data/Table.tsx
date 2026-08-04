@@ -1,7 +1,11 @@
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ClearIcon from "@mui/icons-material/Clear";
 import EditIcon from "@mui/icons-material/Edit";
+import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { Box, Button, IconButton, Popover, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, Popover, Stack, TextField, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -9,6 +13,7 @@ import { previewSql } from "@/lib/api/expressions";
 import { apiRequestAuth } from "@/lib/api/fetcher";
 import { useDatasetCollectionItems } from "@/lib/api/layers";
 import { PROCESSES_API_BASE_URL } from "@/lib/api/processes";
+import { appendUniqueFeatures } from "@/lib/utils/features";
 import { formatFieldValue } from "@/lib/utils/formatFieldValue";
 import { formatNumber } from "@/lib/utils/format-number";
 import type { FieldKind } from "@/lib/validations/layer";
@@ -21,10 +26,18 @@ import type { FormatNumberTypes } from "@/lib/validations/widget";
 
 import useLayerFields from "@/hooks/map/CommonHooks";
 import { useChartWidget } from "@/hooks/map/DashboardBuilderHooks";
+import {
+  combineCqlFilters,
+  useTableViewFilterController,
+} from "@/hooks/useTableViewFilterController";
 
-import WidgetRecordsTable from "@/components/builder/widgets/data/WidgetRecordsTable";
+import WidgetAggregateTable from "@/components/builder/widgets/data/WidgetAggregateTable";
+import ColumnFilterPopover from "@/components/map/panels/ColumnFilterPopover";
+import FeatureTable from "@/components/common/FeatureTable";
 import { NumberFormatSelector } from "@/components/builder/widgets/common/WidgetCommonConfigs";
 import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
+import { filterColumnType, filterValueLabel } from "@/lib/utils/columnFilterOperators";
+import { fieldIndicatorKind } from "@/components/common/FieldKindIcon";
 
 interface TableDataWidgetProps {
   widgetId: string;
@@ -194,6 +207,21 @@ export const TableDataWidget = ({
 
   const { layerFields, isLoading: areFieldsLoading } = useLayerFields(recordsLayerId || "");
 
+  // A dashboard has no Filter panel, so a viewer's column filters live in view
+  // state and are ANDed onto whatever the author configured.
+  const {
+    controller: viewFilterController,
+    cqlFilter: viewCqlFilter,
+    clear: clearViewFilters,
+  } = useTableViewFilterController(layerFields);
+  const [filterColumn, setFilterColumn] = useState<string | null>(null);
+  const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
+
+  // A filter written for one layer means nothing on the next one.
+  useEffect(() => {
+    clearViewFilters();
+  }, [config?.setup?.layer_project_id, config?.setup?.query_mode, mode, clearViewFilters]);
+
   const visibleFields = useMemo(() => {
     const selectedVisibleColumns = config?.setup?.visible_columns;
     if (!selectedVisibleColumns || selectedVisibleColumns.length === 0) return [];
@@ -237,9 +265,11 @@ export const TableDataWidget = ({
       offset: recordsPage * rowsPerPage,
     };
 
-    // Apply cross-filter (built by useChartWidget independently of query schema validation)
-    if (cqlFilter) {
-      params.filter = cqlFilter;
+    // Cross-filter (built by useChartWidget independently of query schema
+    // validation), plus any column filters the viewer applied here.
+    const combined = combineCqlFilters(cqlFilter, viewCqlFilter);
+    if (combined) {
+      params.filter = combined;
     }
 
     const configuredSortBy = config?.options?.sort_by;
@@ -263,6 +293,7 @@ export const TableDataWidget = ({
     rowsPerPage,
     recordsPage,
     cqlFilter,
+    viewCqlFilter,
     config?.options?.sort_by,
     config?.options?.sorting,
     interactiveSort,
@@ -279,8 +310,8 @@ export const TableDataWidget = ({
   const recordsQuerySignature = useMemo(() => {
     const sortBy = interactiveSort?.column ?? config?.options?.sort_by ?? "";
     const sorting = interactiveSort?.direction ?? config?.options?.sorting ?? "desc";
-    return `${recordsLayerId || ""}|${rowsPerPage}|${sortBy}|${sorting}|${isGroupedMode}|${isSqlMode}|${cqlFilter || ""}`;
-  }, [config?.options?.sort_by, config?.options?.sorting, interactiveSort, isGroupedMode, isSqlMode, cqlFilter, recordsLayerId, rowsPerPage]);
+    return `${recordsLayerId || ""}|${rowsPerPage}|${sortBy}|${sorting}|${isGroupedMode}|${isSqlMode}|${cqlFilter || ""}|${viewCqlFilter || ""}`;
+  }, [config?.options?.sort_by, config?.options?.sorting, interactiveSort, isGroupedMode, isSqlMode, cqlFilter, viewCqlFilter, recordsLayerId, rowsPerPage]);
 
   useEffect(() => {
     setRecordsPage(0);
@@ -299,11 +330,10 @@ export const TableDataWidget = ({
 
     setRecordsAccumulatedData((previous) => {
       if (!previous) return recordsData;
-      return {
-        ...recordsData,
-        features: [...previous.features, ...recordsData.features],
-        numberReturned: previous.features.length + recordsData.features.length,
-      };
+      // recordsPage advances before SWR has the matching payload, so this can
+      // run while recordsData is still the page already accumulated.
+      const features = appendUniqueFeatures(previous.features, recordsData.features);
+      return { ...recordsData, features, numberReturned: features.length };
     });
     setRecordsHasMore(recordsData.features.length >= rowsPerPage);
   }, [isGroupedMode, isSqlMode, recordsData, recordsPage, rowsPerPage]);
@@ -633,6 +663,49 @@ export const TableDataWidget = ({
     // Grouped rows are already fully fetched; render the full list to keep both table views consistent.
     setGroupedVisibleCount(sortedGroupedRows.length);
   }, [sortedGroupedRows.length]);
+
+  const recordColumnMenuItems = useCallback(
+    (fieldName: string) => {
+      const isSorted = interactiveSort?.column === fieldName;
+      return [
+        {
+          key: "sort-asc",
+          label: t("sort_asc"),
+          icon: <ArrowUpwardIcon />,
+          onSelect: () => setInteractiveSort({ column: fieldName, direction: "asc" }),
+        },
+        {
+          key: "sort-desc",
+          label: t("sort_desc"),
+          icon: <ArrowDownwardIcon />,
+          onSelect: () => setInteractiveSort({ column: fieldName, direction: "desc" }),
+        },
+        ...(isSorted
+          ? [
+              {
+                key: "sort-clear",
+                label: t("clear_sorting", { defaultValue: "Clear sorting" }),
+                icon: <ClearIcon />,
+                onSelect: () => setInteractiveSort(null),
+              },
+            ]
+          : []),
+        {
+          key: "filter",
+          label: viewFilterController.expressions.some((e) => e.attribute === fieldName)
+            ? t("edit_filter", { defaultValue: "Edit filter" })
+            : t("add_filter", { defaultValue: "Add filter" }),
+          icon: <FilterAltIcon />,
+          dividerBefore: true,
+          onSelect: (anchorEl: HTMLElement) => {
+            setFilterAnchorEl(anchorEl);
+            setFilterColumn(fieldName);
+          },
+        },
+      ];
+    },
+    [interactiveSort, t, viewFilterController.expressions]
+  );
 
   const handleInteractiveSortClick = useCallback((columnKey: string) => {
     setInteractiveSort((prev) => {
@@ -1699,20 +1772,50 @@ export const TableDataWidget = ({
 
       {!isSqlMode && !isGroupedMode && displayRecordsData && isRecordsConfigured && (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+          {viewFilterController.expressions.length > 0 && (
+            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ pb: 2 }}>
+              {viewFilterController.expressions.map((expression) => (
+                <Chip
+                  key={expression.id}
+                  size="small"
+                  variant="outlined"
+                  label={
+                    <Typography variant="caption" noWrap>
+                      <b>{recordColumnLabelMap[expression.attribute] || expression.attribute}</b>{" "}
+                      {t(`filter_expressions.${expression.expression}`)}{" "}
+                      {filterValueLabel(
+                        filterColumnType(
+                          layerFields.find((field) => field.name === expression.attribute) ?? {
+                            type: "string",
+                          }
+                        ),
+                        expression
+                      )}
+                    </Typography>
+                  }
+                  onDelete={() => viewFilterController.remove(expression.id)}
+                  sx={{ maxWidth: 240 }}
+                />
+              ))}
+            </Stack>
+          )}
           <Box
             ref={recordsScrollRef}
             sx={tableScrollSx}
             onWheel={trapWheelInTable}>
-            <WidgetRecordsTable
-              areFieldsLoading={areFieldsLoading}
-              displayData={displayRecordsData}
+            <FeatureTable
               fields={visibleFields}
-              stickyHeaderEnabled={stickyHeaderEnabled}
+              data={displayRecordsData}
+              isLoading={areFieldsLoading}
+              variant="bordered"
+              stickyHeader={stickyHeaderEnabled}
               headerColor={headerColor}
               headerLabelMap={recordColumnLabelMap}
               getColumnWidth={recordsColWidth}
-              formatCellValueForColumn={formatRecordCell}
-              renderHeaderLabel={(fieldName, label) => renderHeaderLabel(`record:${fieldName}`, label, "left", recordNumericFieldNames.has(fieldName))}
+              formatCellValue={formatRecordCell}
+              renderHeaderLabel={(fieldName, label) =>
+                renderHeaderLabel(`record:${fieldName}`, label, "left", recordNumericFieldNames.has(fieldName))
+              }
               onReorderColumns={(fromColumnKey, toColumnKey) => {
                 handleReorderColumn("records", fromColumnKey, toColumnKey);
               }}
@@ -1721,7 +1824,7 @@ export const TableDataWidget = ({
                   ? undefined
                   : (event, fieldName) => startColumnResize(event, "records", fieldName)
               }
-              onColumnSortClick={handleInteractiveSortClick}
+              columnMenuItems={recordColumnMenuItems}
               sortColumn={interactiveSort?.column}
               sortDirection={interactiveSort?.direction}
             />
@@ -1742,9 +1845,7 @@ export const TableDataWidget = ({
             sx={tableScrollSx}
             onWheel={trapWheelInTable}
             onScroll={handleGroupedScroll}>
-            <WidgetRecordsTable
-              areFieldsLoading={false}
-              fields={[]}
+            <WidgetAggregateTable
               stickyHeaderEnabled={stickyHeaderEnabled}
               headerColor={headerColor}
               tableColumns={groupedTableColumns}
@@ -1806,9 +1907,7 @@ export const TableDataWidget = ({
             ref={sqlScrollRef}
             sx={tableScrollSx}
             onWheel={handleSqlWheel}>
-            <WidgetRecordsTable
-              areFieldsLoading={false}
-              fields={[]}
+            <WidgetAggregateTable
               stickyHeaderEnabled={stickyHeaderEnabled}
               headerColor={headerColor}
               tableColumns={isSqlCollapsibleMode ? sqlCollapsibleColumns : sqlTableColumns}
@@ -1894,6 +1993,27 @@ export const TableDataWidget = ({
             </Typography>
           )}
         </Box>
+      )}
+
+      {/* Column filter popover — records mode only; grouped and SQL rows are computed. */}
+      {filterColumn && (
+        <ColumnFilterPopover
+          key={filterColumn}
+          anchorEl={filterAnchorEl}
+          columnName={filterColumn}
+          columnType={filterColumnType(
+            layerFields.find((field) => field.name === filterColumn) ?? { type: "string" }
+          )}
+          iconKind={fieldIndicatorKind(
+            layerFields.find((field) => field.name === filterColumn) ?? { type: "string" }
+          )}
+          layerId={recordsLayerId || ""}
+          controller={viewFilterController}
+          onClose={() => {
+            setFilterAnchorEl(null);
+            setFilterColumn(null);
+          }}
+        />
       )}
 
       {/* Column edit popover */}

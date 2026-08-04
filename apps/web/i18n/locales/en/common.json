@@ -2495,5 +2495,12 @@
   "search_results_count_one": "{{count}} result",
   "remove_pin": "Remove pin",
   "search_placeholder_label": "Search placeholder",
-  "search_placeholder_helper": "Leave empty to use the default text"
+  "search_placeholder_helper": "Leave empty to use the default text",
+  "edit_filter": "Edit filter",
+  "empty_value": "(empty)",
+  "showing_most_frequent_values": "Showing the {{count}} most frequent values. Search to find others.",
+  "operator_needs_no_value": "This operator needs no value. Press Done to apply it.",
+  "column_has_other_filters_one": "{{column}} has 1 other filter. Manage it in the layer Filter panel.",
+  "column_has_other_filters_other": "{{column}} has {{count}} other filters. Manage them in the layer Filter panel.",
+  "markdown_video_hint": "Videos: paste an https .mp4 URL on its own line. For a preview image: ![](video.mp4 \"poster.jpg\")"
 }

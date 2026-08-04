@@ -2493,5 +2493,12 @@
   "search_results_count_one": "{{count}} Ergebnis",
   "remove_pin": "Pin entfernen",
   "search_placeholder_label": "Platzhalter der Suche",
-  "search_placeholder_helper": "Leer lassen, um den Standardtext zu verwenden"
+  "search_placeholder_helper": "Leer lassen, um den Standardtext zu verwenden",
+  "edit_filter": "Filter bearbeiten",
+  "empty_value": "(leer)",
+  "showing_most_frequent_values": "Es werden die {{count}} häufigsten Werte angezeigt. Suchen Sie, um weitere zu finden.",
+  "operator_needs_no_value": "Dieser Operator benötigt keinen Wert. Drücken Sie Fertig, um ihn anzuwenden.",
+  "column_has_other_filters_one": "{{column}} hat 1 weiteren Filter. Verwalten Sie ihn im Filter-Panel des Layers.",
+  "column_has_other_filters_other": "{{column}} hat {{count}} weitere Filter. Verwalten Sie sie im Filter-Panel des Layers.",
+  "markdown_video_hint": "Videos: https-URL einer .mp4-Datei in eine eigene Zeile einfügen. Für ein Vorschaubild: ![](video.mp4 \"vorschaubild.jpg\")"
 }

@@ -281,7 +281,7 @@ export function createTheCQLBasedOnExpression(
             toIsoLiteral(expression.value[0]),
             toIsoLiteral(expression.value[1])
           );
-        case "is_between":
+        case "is_between": {
           if (attributeType === "date") {
             return date_is_between(
               expression.attribute,
@@ -289,11 +289,13 @@ export function createTheCQLBasedOnExpression(
               toIsoLiteral(expression.value[1])
             );
           }
-          return is_between(
-            expression.attribute,
-            parseInt(expression.value.split("-")[0]),
-            parseInt(expression.value.split("-")[1])
-          );
+          // Numeric bounds arrive as [min, max]; the legacy "35-45" string form
+          // is still accepted so older saved filters keep working.
+          const [min, max] = Array.isArray(expression.value)
+            ? expression.value
+            : String(expression.value).split("-");
+          return is_between(expression.attribute, Number(min), Number(max));
+        }
         case "s_intersects":
           return s_intersects(expression.value, expression.attribute);
       }
@@ -341,6 +343,11 @@ function toExpressionObject(expressionsInsideLogicalOperator): Expression[] {
     } else if (expressionToBeProcessed.op === "not" && expressionToBeProcessed.args[0].op === "isNull") {
       expression.expression = "is_not_blank";
       expression.attribute = expressionToBeProcessed.args[0].args.property;
+    } else if (expressionToBeProcessed.op === "not" && expressionToBeProcessed.args[0].op === "like") {
+      const inner = expressionToBeProcessed.args[0];
+      expression.expression = "does_not_contains_the_text";
+      expression.attribute = inner.args[0].property;
+      expression.value = String(inner.args[1]).replace(/%/g, "");
     } else if (expressionToBeProcessed.op === "=" && value === "") {
       expression.expression = "is_empty_string";
       expression.attribute = expressionToBeProcessed.args[0].property;
@@ -348,14 +355,27 @@ function toExpressionObject(expressionsInsideLogicalOperator): Expression[] {
       expression.expression = "is_not_empty_string";
       expression.attribute = expressionToBeProcessed.args[0].property;
     } else if (["and", "or"].includes(expressionToBeProcessed.op)) {
-      switch (expressionToBeProcessed.op) {
-        case "and":
-          expression.expression = "excludes";
-        case "or":
-          expression.expression = "includes";
+      // and/or wrap four different expressions. Tell them apart by the operators
+      // of their children, not by and/or alone — reading "and" as excludes and
+      // "or" as includes mislabels every range as a value list.
+      const args = expressionToBeProcessed.args as Array<{ op: string; args: [{ property: string }, unknown] }>;
+      const ops = args.map((arg) => arg.op);
+      const isAnd = expressionToBeProcessed.op === "and";
+      const hasOps = (a: string, b: string) => ops.length === 2 && ops.includes(a) && ops.includes(b);
+      const bound = (op: string) => args.find((arg) => arg.op === op)?.args[1];
+
+      if (isAnd && hasOps(">=", "<=")) {
+        expression.expression = "is_between";
+        expression.value = [bound(">="), bound("<=")] as (string | number)[];
+      } else if (!isAnd && hasOps("<", ">")) {
+        // "not between from and to" is written as (< from) OR (> to).
+        expression.expression = "is_not_between";
+        expression.value = [bound("<"), bound(">")] as (string | number)[];
+      } else {
+        expression.expression = isAnd ? "excludes" : "includes";
+        expression.value = args.map((arg) => arg.args[1]) as (string | number)[];
       }
-      expression.attribute = expressionToBeProcessed.args[0].args[0].property;
-      expression.value = expressionToBeProcessed.args.map((arg) => arg.args[1]);
+      expression.attribute = args[0].args[0].property;
     } else if (expressionToBeProcessed.op === "s_intersects") {
       expression.expression = "s_intersects";
       expression.attribute = expressionToBeProcessed.args[0].property;
