@@ -5,7 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { Box, Button, Chip, IconButton, Popover, Stack, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, Popover, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -1774,29 +1774,39 @@ export const TableDataWidget = ({
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           {viewFilterController.expressions.length > 0 && (
             <Stack direction="row" flexWrap="wrap" gap={1} sx={{ pb: 2 }}>
-              {viewFilterController.expressions.map((expression) => (
-                <Chip
-                  key={expression.id}
-                  size="small"
-                  variant="outlined"
-                  label={
-                    <Typography variant="caption" noWrap>
-                      <b>{recordColumnLabelMap[expression.attribute] || expression.attribute}</b>{" "}
-                      {t(`filter_expressions.${expression.expression}`)}{" "}
-                      {filterValueLabel(
-                        filterColumnType(
-                          layerFields.find((field) => field.name === expression.attribute) ?? {
-                            type: "string",
-                          }
-                        ),
-                        expression
-                      )}
-                    </Typography>
-                  }
-                  onDelete={() => viewFilterController.remove(expression.id)}
-                  sx={{ maxWidth: 240 }}
-                />
-              ))}
+              {viewFilterController.expressions.map((expression) => {
+                const columnLabel =
+                  recordColumnLabelMap[expression.attribute] || expression.attribute;
+                const operatorLabel = t(`filter_expressions.${expression.expression}`);
+                const valueLabel = filterValueLabel(
+                  filterColumnType(
+                    layerFields.find((field) => field.name === expression.attribute) ?? {
+                      type: "string",
+                    }
+                  ),
+                  expression
+                );
+                // A chip has to stay narrow enough that several fit on one row, so
+                // long values still truncate — the tooltip is how you read them.
+                const fullLabel = [columnLabel, operatorLabel, valueLabel]
+                  .filter(Boolean)
+                  .join(" ");
+                return (
+                  <Tooltip key={expression.id} title={fullLabel} placement="top">
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={
+                        <Typography variant="caption" noWrap>
+                          <b>{columnLabel}</b> {operatorLabel} {valueLabel}
+                        </Typography>
+                      }
+                      onDelete={() => viewFilterController.remove(expression.id)}
+                      sx={{ maxWidth: 280 }}
+                    />
+                  </Tooltip>
+                );
+              })}
             </Stack>
           )}
           <Box
