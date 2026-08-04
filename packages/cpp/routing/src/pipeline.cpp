@@ -249,6 +249,25 @@ namespace routing
                    cfg.mode != RoutingMode::PublicTransport &&
                    cfg.mode != RoutingMode::Car;
         }
+
+        // Export the reachability relation as a raw OD cost matrix:
+        // (orig_cell, dest_cell, cost), one row per reachable (cell,
+        // opportunity) pair. dest_cell is the opportunity's cell from
+        // _hm_opp_meta. `con` holds the temp tables built by the shared
+        // reachability engine (see heatmap::build_reachability_relation).
+        void export_od_costs(HeatmapConfig const &cfg, duckdb::Connection &con)
+        {
+            std::ostringstream sql;
+            sql << "COPY (SELECT p.cell AS orig_cell, om.opp_cell AS dest_cell, "
+                << "CAST(ROUND(p.min_cost) AS INTEGER) AS cost "
+                << "FROM _hm_per_opp p JOIN _hm_opp_meta om USING (opp_idx)) "
+                << "TO '" << output::sql_escape(cfg.output_path)
+                << "' (FORMAT PARQUET)";
+            auto r = con.Query(sql.str());
+            if (r->HasError())
+                throw std::runtime_error("OD cost export failed: " +
+                                         r->GetError());
+        }
     } // namespace
 
     std::string compute_catchment(RequestConfig const &cfg_in)
@@ -341,6 +360,10 @@ namespace routing
 
         if (cfg.mode == RoutingMode::PublicTransport)
         {
+            if (cfg.reverse)
+                throw std::runtime_error(
+                    "Reverse PT is not supported by the matrix; use "
+                    "compute_od_costs.");
             // Load timetable once for all origins.
             auto tt = nigiri::timetable::read(
                 std::filesystem::path{cfg.timetable_path});
@@ -374,15 +397,41 @@ namespace routing
             auto prep = network::prepare_street_matrix_network(con, prep_in);
 
             bool use_distance = (cfg.cost_type == CostType::Distance);
-            for (size_t oi = 0; oi < n_origins; ++oi)
+            if (!cfg.reverse)
             {
-                int32_t start = prep.origin_nodes[oi];
-                if (start < 0)
-                    continue;
-                auto costs = kernel::dijkstra(
-                    prep.adj, std::vector<int32_t>{start},
-                    cfg.max_cost, use_distance);
-                read_dest_costs(oi, costs, prep.destination_nodes);
+                for (size_t oi = 0; oi < n_origins; ++oi)
+                {
+                    int32_t start = prep.origin_nodes[oi];
+                    if (start < 0)
+                        continue;
+                    auto costs = kernel::dijkstra(
+                        prep.adj, std::vector<int32_t>{start},
+                        cfg.max_cost, use_distance);
+                    read_dest_costs(oi, costs, prep.destination_nodes);
+                }
+            }
+            else
+            {
+                // Reverse: one Dijkstra per destination on the transposed
+                // graph → cost[n→d] for all n; scatter into column di.
+                for (size_t di = 0; di < n_dests; ++di)
+                {
+                    int32_t start = prep.destination_nodes[di];
+                    if (start < 0)
+                        continue;
+                    auto costs = kernel::dijkstra(
+                        prep.rev_adj, std::vector<int32_t>{start},
+                        cfg.max_cost, use_distance);
+                    for (size_t oi = 0; oi < n_origins; ++oi)
+                    {
+                        int32_t node = prep.origin_nodes[oi];
+                        if (node < 0 || node >= static_cast<int32_t>(costs.size()))
+                            continue;
+                        double cost = costs[node];
+                        if (std::isfinite(cost) && cost <= cfg.max_cost)
+                            matrix[oi * n_dests + di] = cost;
+                    }
+                }
             }
         }
 
@@ -407,6 +456,8 @@ namespace routing
                     for (size_t di = 0; di < n_dests; ++di)
                     {
                         double c = matrix[oi * n_dests + di];
+                        if (cfg.sparse && std::isnan(c))
+                            continue;
                         std::string const &d_id = has_dest_ids
                             ? cfg.destination_ids[di]
                             : std::to_string(di);
@@ -433,6 +484,17 @@ namespace routing
     void compute_heatmap(HeatmapConfig const &cfg)
     {
         heatmap::compute_heatmap(cfg);
+    }
+
+    // OD cost matrix: an extension of the travel cost matrix that routes from
+    // an opportunity layer (supporting reverse PT via the arrive-by pipeline)
+    // and emits every reachable (orig_cell, dest_cell, cost) pair. Reuses the
+    // shared reachability engine, then exports its relation raw.
+    void compute_od_costs(HeatmapConfig const &cfg)
+    {
+        heatmap::build_reachability_relation(cfg, [&](duckdb::Connection &con) {
+            export_od_costs(cfg, con);
+        });
     }
 
 } // namespace routing

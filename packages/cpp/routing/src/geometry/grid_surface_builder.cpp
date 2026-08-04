@@ -18,6 +18,9 @@ namespace
 
 constexpr double kEarthCircumference = 40075016.68557849;
 constexpr double kHaloMeters = 200.0;
+// Web Mercator sphere radius. Distances in EPSG:3857 are inflated by
+// 1/cos(lat); ground metres = mercator metres * cos(lat) = merc / cosh(y/R).
+constexpr double kMercatorRadius = 6378137.0;
 
 double mercator_pixel_size(int zoom)
 {
@@ -290,18 +293,23 @@ CostGrid build_cost_grid_from_cluster(
 
     for (int32_t row = 0; row < height_px; ++row)
     {
+        double gy = max_y - (row + 0.5) * step_y;
+        // Convert the euclidean snap leg from Web Mercator metres to ground
+        // metres so it is charged at the same rate as the routed network cost
+        // (which is in true ground units). Scale is constant along a row.
+        double const ground_scale = 1.0 / std::cosh(gy / kMercatorRadius);
         for (int32_t col = 0; col < width_px; ++col)
         {
             double gx = min_x + (col + 0.5) * step_x;
-            double gy = max_y - (row + 0.5) * step_y;
 
             auto [idx, dist] = tree.nearest_within({gx, gy}, max_snap);
             if (idx < 0) continue;
 
             double base_cost = dedup[idx].cost;
+            double ground_dist = dist * ground_scale;
             double walk_cost = (cfg.cost_type == CostType::Distance)
-                ? dist
-                : (dist / speed_m_per_s) / 60.0;
+                ? ground_dist
+                : (ground_dist / speed_m_per_s) / 60.0;
             double total = std::round(base_cost + walk_cost);
             if (total <= budget)
                 surface[static_cast<size_t>(row) * width_px + col] = total;

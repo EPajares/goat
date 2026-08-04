@@ -4,6 +4,8 @@ from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from goatlib.analysis.schemas.catchment_area_v2 import CostType as CostTypeV2
+from goatlib.analysis.schemas.catchment_area_v2 import RoutingMode as RoutingModeV2
 from goatlib.analysis.schemas.ui import (
     SECTION_CONFIGURATION,
     SECTION_DEMAND,
@@ -736,3 +738,55 @@ class HuffmodelParams(HeatmapCommon):
             advanced=True,
         ),
     )
+
+
+class HuffmodelV2Params(BaseModel):
+    """Huff model on the v2 (on-the-fly routing) backend. Same model inputs as
+    v1 Huff, but the OD matrix is computed live (no od_matrix_path), and routing
+    mode/cost_type + PT params are exposed. Standalone (not HeatmapCommon) to
+    avoid the precomputed-OD-matrix required fields."""
+
+    reference_area_path: str = Field(..., description="Reference area polygon dataset.")
+    demand_path: str = Field(..., description="Demand layer dataset.")
+    demand_field: str = Field(..., description="Demand value field (e.g. population).")
+    opportunity_path: str = Field(..., description="Opportunity/supply layer dataset.")
+    attractivity: str = Field(..., description="Opportunity attractivity field.")
+    output_path: str = Field(..., description="Output parquet path.")
+
+    max_cost: int = Field(
+        default=20, description="Travel time budget (minutes) or distance (meters)."
+    )
+    attractiveness_param: float = Field(
+        default=1.0, gt=0.0, description="Huff attractiveness exponent (alpha)."
+    )
+    distance_decay: float = Field(
+        default=2.0, gt=0.0, description="Huff distance-decay exponent (beta)."
+    )
+
+    routing_mode: RoutingModeV2 = Field(
+        default=RoutingModeV2.walking,
+        description="Routing mode for live OD-matrix computation.",
+    )
+    cost_type: CostTypeV2 = Field(
+        default=CostTypeV2.time, description="Cost type (time or distance)."
+    )
+    speed: float | None = Field(
+        default=None,
+        description="Travel speed in km/h for active modes. None → mode default.",
+    )
+
+    arrival_time: int | None = Field(
+        default=None, description="Arrive-by time, unix minutes since epoch (PT only)."
+    )
+    access_mode: RoutingModeV2 = Field(
+        default=RoutingModeV2.walking, description="PT access mode."
+    )
+    egress_mode: RoutingModeV2 = Field(
+        default=RoutingModeV2.walking, description="PT egress mode."
+    )
+    access_max_time: int = Field(default=15, description="Max access minutes.")
+    egress_max_time: int = Field(default=15, description="Max egress minutes.")
+    transit_modes: list[str] | None = Field(
+        default=None, description="Allowed transit modes."
+    )
+    max_transfers: int = Field(default=5, description="Max transfers.")

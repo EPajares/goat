@@ -150,6 +150,13 @@ namespace routing
         double access_speed_km_h = 0.0;
         double egress_speed_km_h = 0.0;
         double transfer_cost = 2.0;
+
+        // Reverse mode (street only): seed the search from the destination side
+        // on the transposed graph, so cost[origin->destination] is recovered
+        // while running one Dijkstra per destination. Output schema unchanged.
+        // (Reverse PT is served by compute_heatmap's od_output_path, not here.)
+        bool reverse = false;
+        bool sparse = false;  // emit only reachable pairs
     };
 
     struct MatrixEntry

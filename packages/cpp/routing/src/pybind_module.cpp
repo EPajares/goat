@@ -114,7 +114,9 @@ PYBIND11_MODULE(_routing, m)
         .def_readwrite("egress_max_cost", &routing::MatrixConfig::egress_max_cost)
         .def_readwrite("access_speed_km_h", &routing::MatrixConfig::access_speed_km_h)
         .def_readwrite("egress_speed_km_h", &routing::MatrixConfig::egress_speed_km_h)
-        .def_readwrite("transfer_cost", &routing::MatrixConfig::transfer_cost);
+        .def_readwrite("transfer_cost", &routing::MatrixConfig::transfer_cost)
+        .def_readwrite("reverse", &routing::MatrixConfig::reverse)
+        .def_readwrite("sparse", &routing::MatrixConfig::sparse);
 
     py::enum_<routing::HeatmapType>(m, "HeatmapType")
         .value("Gravity",        routing::HeatmapType::Gravity)
@@ -223,6 +225,20 @@ PYBIND11_MODULE(_routing, m)
           py::arg("config"),
           "Compute per-origin accessibility heatmap (Gravity / ClosestAverage) "
           "against a fixed opportunity layer");
+
+    m.def("compute_od_costs",
+          [elapsed_ms](routing::HeatmapConfig const &config)
+          {
+              auto t0 = std::chrono::steady_clock::now();
+              routing::compute_od_costs(config);
+              auto t1 = std::chrono::steady_clock::now();
+              py::print("[routing] compute_od_costs total_ms=",
+                        elapsed_ms(t0, t1));
+          },
+          py::arg("config"),
+          "Emit the raw per-(cell, opportunity) OD cost relation "
+          "(orig_cell, dest_cell, cost) from the reachability pipeline to "
+          "config.output_path. Used by Huff v2 for its PT OD matrix.");
 
     m.def("build_access_egress_table",
           [elapsed_ms](routing::preprocessing::AccessEgressConfig const &config)

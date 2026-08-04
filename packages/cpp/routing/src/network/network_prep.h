@@ -48,6 +48,7 @@ struct StreetMatrixPrep
 {
     SubNetwork net;
     std::vector<std::vector<AdjEntry>> adj;
+    std::vector<std::vector<AdjEntry>> rev_adj;  // transposed graph (reverse mode)
     std::vector<int32_t> origin_nodes;       // -1 → unsnapped
     std::vector<int32_t> destination_nodes;  // -1 → unsnapped
 };
