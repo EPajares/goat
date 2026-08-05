@@ -138,6 +138,17 @@ SECTION_RESULT_HM = UISection(
     depends_on={"routing_mode": {"$ne": None}},
 )
 
+# Connectivity only: the reference area is a required input domain, so it gets
+# its own section (ordered right after configuration) rather than sharing the
+# advanced-clip slot the other heatmaps use.
+SECTION_REFERENCE_AREA = UISection(
+    id="reference_area",
+    order=3,
+    icon="layers",
+    label_key="reference_area",
+    depends_on={"routing_mode": {"$ne": None}},
+)
+
 # =========================================================================
 # Label Mappings
 # =========================================================================
@@ -497,6 +508,10 @@ class HeatmapV2WindmillParams(ToolInputBase):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_gravity", "en"),
+                "default_de": get_default_layer_name("heatmap_gravity", "de"),
+            },
         ),
     )
 
@@ -803,6 +818,10 @@ class HeatmapV2WindmillParams(ToolInputBase):
             widget="layer-selector",
             widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
             visible_when={"show_advanced": True},
+            # Advanced-only clip: stays optional when shown so the user can
+            # enable Advanced for other fields (e.g. speed) and leave this
+            # blank. Connectivity overrides to required.
+            optional=True,
         ),
     )
     reference_area_layer_filter: dict[str, Any] | None = Field(
@@ -1015,6 +1034,10 @@ class HeatmapGravityV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_gravity", "en"),
+                "default_de": get_default_layer_name("heatmap_gravity", "de"),
+            },
         ),
     )
 
@@ -1051,12 +1074,32 @@ class HeatmapClosestAverageV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name(
+                    "heatmap_closest_average", "en"
+                ),
+                "default_de": get_default_layer_name(
+                    "heatmap_closest_average", "de"
+                ),
+            },
         ),
     )
 
 
 class HeatmapConnectivityV2WindmillParams(HeatmapV2WindmillParams):
     """Total area reachable within max travel cost."""
+
+    # Adds a dedicated reference-area section (its required input domain) to
+    # the inherited routing → configuration → opportunities → result layout.
+    model_config = ConfigDict(
+        json_schema_extra=ui_sections(
+            SECTION_ROUTING_HM,
+            SECTION_CONFIGURATION,
+            SECTION_REFERENCE_AREA,
+            SECTION_OPPORTUNITIES_HM,
+            SECTION_RESULT_HM,
+        )
+    )
 
     # routing_mode is inherited from the base (full mode set incl. PT). PT
     # connectivity runs through the same arrive-by reverse-RAPTOR pipeline as
@@ -1199,13 +1242,13 @@ class HeatmapConnectivityV2WindmillParams(HeatmapV2WindmillParams):
     )
 
     # Connectivity requires the reference area; promote the inherited
-    # optional+advanced field to required+non-advanced.
+    # optional+advanced field to required, in its own dedicated section.
     reference_area_layer_id: str = Field(
         ...,
         description="Layer ID for the reference area polygon.",
         json_schema_extra=ui_field(
-            section="configuration",
-            field_order=4,
+            section="reference_area",
+            field_order=1,
             label_key="reference_area_path",
             widget="layer-selector",
             widget_options={"geometry_types": ["Polygon", "MultiPolygon"]},
@@ -1218,6 +1261,14 @@ class HeatmapConnectivityV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name(
+                    "heatmap_connectivity", "en"
+                ),
+                "default_de": get_default_layer_name(
+                    "heatmap_connectivity", "de"
+                ),
+            },
         ),
     )
 
@@ -1345,6 +1396,10 @@ class Heatmap2SFCAV2WindmillParams(HeatmapV2WindmillParams):
             section="result",
             field_order=1,
             label_key="result_layer_name",
+            widget_options={
+                "default_en": get_default_layer_name("heatmap_2sfca", "en"),
+                "default_de": get_default_layer_name("heatmap_2sfca", "de"),
+            },
         ),
     )
 

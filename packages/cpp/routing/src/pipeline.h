@@ -28,4 +28,12 @@ namespace routing
     */
     void compute_heatmap(HeatmapConfig const &cfg);
 
+    /*
+        OD cost matrix: an extension of the travel cost matrix that routes from
+        an opportunity layer (supporting reverse PT via the arrive-by
+        pipeline) and emits every reachable (orig_cell, dest_cell, cost) pair
+        to cfg.output_path. Used by Huff v2 for its OD matrix.
+    */
+    void compute_od_costs(HeatmapConfig const &cfg);
+
 } // namespace routing

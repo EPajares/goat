@@ -875,8 +875,8 @@ void run_pt(HeatmapConfig const &cfg, duckdb::Connection &con,
                                      r->GetError());
     }
 
-    // 8. Shared reducer + export.
-    reduce_and_export(cfg, con, timer);
+    // _hm_per_opp + _hm_opp_meta are now built; build_reachability_relation's
+    // emit callback decides whether to reduce (heatmap) or export (OD matrix).
 }
 
 void run_street(HeatmapConfig const &cfg, duckdb::Connection &con,
@@ -908,28 +908,16 @@ void run_street(HeatmapConfig const &cfg, duckdb::Connection &con,
                         h3_resolution, kHeatmapSampleSpacingM, "_hm_per_opp",
                         seed_offsets, timer);
     build_opp_meta(con, cfg.opportunities, h3_resolution);
-    reduce_and_export(cfg, con, timer);
+    // _hm_per_opp + _hm_opp_meta are now built; build_reachability_relation's
+    // emit callback decides whether to reduce (heatmap) or export (OD matrix).
 }
 
-} // namespace
-
-void compute_heatmap(HeatmapConfig const &cfg)
+// Configure the DuckDB connection: extensions + a bounded memory limit with a
+// spill directory (the PT intermediates can otherwise exhaust RAM).
+void configure_connection(HeatmapConfig const &cfg, duckdb::Connection &con,
+                          PhaseTimer &timer)
 {
-    validate(cfg);
-
-    PhaseTimer timer;
-    duckdb::DuckDB db(nullptr);
-    duckdb::Connection con(db);
     ensure_required_extensions_loaded(con);
-
-    // Bound DuckDB's buffer manager and give it a spill directory. The PT
-    // pipeline's intermediates (per-opportunity boarding reaches, the direct
-    // walk-leg samples, and the access-join fan-out) scale with opportunity
-    // count × density and can otherwise grow past available RAM and trip the
-    // (shared-host) OOM killer, since an in-memory DuckDB without a temp
-    // directory cannot spill. With a limit + temp dir, oversized requests
-    // spill to disk and complete instead of crashing. nigiri's timetable
-    // (~1.7 GB) lives outside DuckDB, so the limit is set below total RAM.
     {
         std::error_code ec;
         std::filesystem::path spill =
@@ -940,16 +928,42 @@ void compute_heatmap(HeatmapConfig const &cfg)
                   std::to_string(kHeatmapDuckDbMemoryLimitGb) + "GB'");
         con.Query("SET temp_directory='" + spill.string() + "'");
     }
+    std::fprintf(stderr, "[Pipeline] DuckDB init: %.0f ms\n",
+                 timer.elapsed_ms());
+}
 
-    std::fprintf(
-        stderr,
-        "[Pipeline] DuckDB init: %.0f ms\n",
-        timer.elapsed_ms());
-
+// Build the per-(cell, opportunity) reachability cost tables (_hm_per_opp +
+// _hm_opp_meta). Shared by the heatmap reducer and the OD-cost emitter.
+void run_reachability(HeatmapConfig const &cfg, duckdb::Connection &con,
+                      PhaseTimer &timer)
+{
     if (cfg.mode == RoutingMode::PublicTransport)
         run_pt(cfg, con, timer);
     else
         run_street(cfg, con, timer);
+}
+
+} // namespace
+
+void build_reachability_relation(
+    HeatmapConfig const &cfg,
+    std::function<void(duckdb::Connection &)> const &emit)
+{
+    validate(cfg);
+    PhaseTimer timer;
+    duckdb::DuckDB db(nullptr);
+    duckdb::Connection con(db);
+    configure_connection(cfg, con, timer);
+    run_reachability(cfg, con, timer);
+    emit(con);
+}
+
+void compute_heatmap(HeatmapConfig const &cfg)
+{
+    build_reachability_relation(cfg, [&](duckdb::Connection &con) {
+        PhaseTimer timer;
+        reduce_and_export(cfg, con, timer);
+    });
 }
 
 } // namespace routing::heatmap

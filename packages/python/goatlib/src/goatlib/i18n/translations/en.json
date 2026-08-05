@@ -12,6 +12,9 @@
     "demand": {
       "label": "Demand"
     },
+    "reference_area": {
+      "label": "Reference area"
+    },
     "scenario": {
       "label": "Scenario"
     },
@@ -248,27 +251,27 @@
       "description": "Layer defining the reference area where the analysis would be conducted"
     },
     "demand_field": {
-      "label": "Demand Field",
+      "label": "Demand field",
       "description": "Field with population or number of users"
     },
     "demand_path": {
-      "label": "Demand Layer",
+      "label": "Demand layer",
       "description": "Layer with demand points"
     },
     "opportunity_path": {
-      "label": "Opportunity Layer",
+      "label": "Opportunity layer",
       "description": "Layer with opportunity locations"
     },
     "attractivity": {
-      "label": "Attractivity Field",
+      "label": "Attractivity field",
       "description": "Field from the opportunity layer containing attractivity values"
     },
     "attractiveness_param": {
-      "label": "Attractiveness Parameter",
+      "label": "Attractiveness parameter",
       "description": "Exponent for the attractiveness in the Huff model gravity function"
     },
     "distance_decay": {
-      "label": "Distance Decay",
+      "label": "Distance decay",
       "description": "Exponent for distance decay in the Huff model gravity function"
     },
     "two_sfca_type": {
@@ -985,6 +988,10 @@
     },
     "huff_model": {
       "title": "Huff Model",
+      "description": "The Huff Model predicts the probability of consumers in a reference area visiting particular locations based on the attractiveness of the locations and the distance to those locations, including competition between opportunities."
+    },
+    "huff_model_v2": {
+      "title": "Huff Model V2",
       "description": "The Huff Model predicts the probability of consumers in a reference area visiting particular locations based on the attractiveness of the locations and the distance to those locations, including competition between opportunities."
     },
     "oev_gueteklassen": {
