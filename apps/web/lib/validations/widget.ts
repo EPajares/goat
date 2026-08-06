@@ -240,6 +240,10 @@ export const tableDataConfigSchema = dataConfigSchema.extend({
       size: z.number().min(1).max(5000).optional().default(50),
       sticky_header: z.boolean().optional().default(true),
       show_totals: z.boolean().optional().default(true),
+      // Viewer-facing column actions. Default on, so existing dashboards keep
+      // the behaviour they were published with.
+      show_sort_action: z.boolean().optional().default(true),
+      show_filter_action: z.boolean().optional().default(true),
       format: formatNumberTypes.optional().default("none"),
       column_formats: z.record(formatNumberTypes).optional(),
       description: z.string().optional(),

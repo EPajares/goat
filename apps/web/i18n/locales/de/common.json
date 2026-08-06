@@ -2500,5 +2500,7 @@
   "operator_needs_no_value": "Dieser Operator benötigt keinen Wert. Drücken Sie Fertig, um ihn anzuwenden.",
   "column_has_other_filters_one": "{{column}} hat 1 weiteren Filter. Verwalten Sie ihn im Filter-Panel des Layers.",
   "column_has_other_filters_other": "{{column}} hat {{count}} weitere Filter. Verwalten Sie sie im Filter-Panel des Layers.",
-  "markdown_video_hint": "Videos: https-URL einer .mp4-Datei in eine eigene Zeile einfügen. Für ein Vorschaubild: ![](video.mp4 \"vorschaubild.jpg\")"
+  "markdown_video_hint": "Videos: https-URL einer .mp4-Datei in eine eigene Zeile einfügen. Für ein Vorschaubild: ![](video.mp4 \"vorschaubild.jpg\")",
+  "allow_sorting": "Sortieren erlauben",
+  "allow_filtering": "Filtern erlauben"
 }

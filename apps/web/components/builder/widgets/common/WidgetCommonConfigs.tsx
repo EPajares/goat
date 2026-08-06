@@ -954,6 +954,40 @@ export const WidgetLayout = ({ config, onChange }: WidgetConfigProps) => {
                 }
                 label={<Typography variant="body2">{t("show_totals", { defaultValue: "Show totals" })}</Typography>}
               />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    color="primary"
+                    checked={((config as any)?.options?.show_sort_action ?? true) === true}
+                    onChange={(e) => {
+                      handleOptionChange("show_sort_action", e.target.checked);
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t("allow_sorting", { defaultValue: "Allow sorting" })}
+                  </Typography>
+                }
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    color="primary"
+                    checked={((config as any)?.options?.show_filter_action ?? true) === true}
+                    onChange={(e) => {
+                      handleOptionChange("show_filter_action", e.target.checked);
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t("allow_filtering", { defaultValue: "Allow filtering" })}
+                  </Typography>
+                }
+              />
             </Stack>
             {showCollapsibleOptions && (
               <>

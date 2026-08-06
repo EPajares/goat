@@ -75,6 +75,9 @@ export const TableDataWidget = ({
   const mode = config?.setup?.mode ?? tableModeTypes.Values.records;
   const isGroupedMode = mode === tableModeTypes.Values.grouped;
   const stickyHeaderEnabled = (config?.options?.sticky_header ?? true) === true;
+  // Viewer-facing column actions, both opt-out.
+  const sortingEnabled = (config?.options?.show_sort_action ?? true) === true;
+  const filteringEnabled = (config?.options?.show_filter_action ?? true) === true;
   const headerColor = config?.options?.header_color;
 
   const secondaryGroupByColumn = config?.setup?.group_by_secondary_column_name;
@@ -217,10 +220,18 @@ export const TableDataWidget = ({
   const [filterColumn, setFilterColumn] = useState<string | null>(null);
   const [filterAnchorEl, setFilterAnchorEl] = useState<HTMLElement | null>(null);
 
-  // A filter written for one layer means nothing on the next one.
+  // A filter written for one layer means nothing on the next one. Dropping the
+  // filter action has to clear them too, or the chips and the menu both
+  // disappear and the viewer cannot undo what they applied.
   useEffect(() => {
     clearViewFilters();
-  }, [config?.setup?.layer_project_id, config?.setup?.query_mode, mode, clearViewFilters]);
+  }, [
+    config?.setup?.layer_project_id,
+    config?.setup?.query_mode,
+    mode,
+    filteringEnabled,
+    clearViewFilters,
+  ]);
 
   const visibleFields = useMemo(() => {
     const selectedVisibleColumns = config?.setup?.visible_columns;
@@ -668,6 +679,7 @@ export const TableDataWidget = ({
     (fieldName: string) => {
       const isSorted = interactiveSort?.column === fieldName;
       return [
+        ...(!sortingEnabled ? [] : [
         {
           key: "sort-asc",
           label: t("sort_asc"),
@@ -690,21 +702,24 @@ export const TableDataWidget = ({
               },
             ]
           : []),
+        ]),
+        ...(!filteringEnabled ? [] : [
         {
           key: "filter",
           label: viewFilterController.expressions.some((e) => e.attribute === fieldName)
             ? t("edit_filter", { defaultValue: "Edit filter" })
             : t("add_filter", { defaultValue: "Add filter" }),
           icon: <FilterAltIcon />,
-          dividerBefore: true,
+          dividerBefore: sortingEnabled,
           onSelect: (anchorEl: HTMLElement) => {
             setFilterAnchorEl(anchorEl);
             setFilterColumn(fieldName);
           },
         },
+        ]),
       ];
     },
-    [interactiveSort, t, viewFilterController.expressions]
+    [interactiveSort, t, viewFilterController.expressions, sortingEnabled, filteringEnabled]
   );
 
   const handleInteractiveSortClick = useCallback((columnKey: string) => {
@@ -1772,7 +1787,7 @@ export const TableDataWidget = ({
 
       {!isSqlMode && !isGroupedMode && displayRecordsData && isRecordsConfigured && (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          {viewFilterController.expressions.length > 0 && (
+          {filteringEnabled && viewFilterController.expressions.length > 0 && (
             <Stack direction="row" flexWrap="wrap" gap={1} sx={{ pb: 2 }}>
               {viewFilterController.expressions.map((expression) => {
                 const columnLabel =
@@ -1834,7 +1849,9 @@ export const TableDataWidget = ({
                   ? undefined
                   : (event, fieldName) => startColumnResize(event, "records", fieldName)
               }
-              columnMenuItems={recordColumnMenuItems}
+              columnMenuItems={
+                sortingEnabled || filteringEnabled ? recordColumnMenuItems : undefined
+              }
               sortColumn={interactiveSort?.column}
               sortDirection={interactiveSort?.direction}
             />
@@ -1877,7 +1894,7 @@ export const TableDataWidget = ({
                   ? undefined
                   : (event, columnKey) => startColumnResize(event, "grouped", columnKey)
               }
-              onColumnSortClick={handleInteractiveSortClick}
+              onColumnSortClick={sortingEnabled ? handleInteractiveSortClick : undefined}
               sortColumn={interactiveSort?.column}
               sortDirection={interactiveSort?.direction}
               {...(isCollapsibleMode && {
@@ -1938,7 +1955,9 @@ export const TableDataWidget = ({
                   ? undefined
                   : (event, columnKey) => startColumnResize(event, "sql", columnKey)
               }
-              onColumnSortClick={isSqlCollapsibleMode ? undefined : handleInteractiveSortClick}
+              onColumnSortClick={
+                isSqlCollapsibleMode || !sortingEnabled ? undefined : handleInteractiveSortClick
+              }
               sortColumn={isSqlCollapsibleMode ? undefined : interactiveSort?.column}
               sortDirection={isSqlCollapsibleMode ? undefined : interactiveSort?.direction}
               {...(isSqlCollapsibleMode && {
