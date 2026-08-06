@@ -705,6 +705,12 @@ const MobileProjectLayout = ({
                 style={{ height: "100%", width: "100%" }}
                 // Ensure Swiper doesn't conflict with drawer swipe
                 touchStartPreventDefault={false} // Let drawer handle swipe if needed
+                // Swiper defaults to threshold 0 with preventClicks on, so a
+                // single pixel of horizontal drift during a tap starts a swipe
+                // and cancels the click that would have followed. That silently
+                // swallowed taps on every control in the sheet (layer toggles
+                // especially). 8px is well under a deliberate page swipe.
+                threshold={8}
                 // Track the active panel so the shared drawer chrome
                 // (puller + content area) can match its background color.
                 onSlideChange={(swiper: { activeIndex: number }) =>
