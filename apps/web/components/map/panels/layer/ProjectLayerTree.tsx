@@ -191,6 +191,69 @@ const EmptyLayerState = ({ projectId, isEditMode }: { projectId: string; isEditM
   );
 };
 
+// --- Visibility Toggle ---
+// Single source for the three toggle styles. Used as the row prefix
+// (togglePosition "left"), inside the row actions ("right"), and by the
+// dashboard widget's "show all" row.
+//
+// On coarse pointers the hit area is grown to 44px. The desktop target is
+// ~24px, which is fine for a mouse but easy to miss with a finger — that is
+// what made layers feel unresponsive in the mobile dashboard. Only the
+// padding grows; the glyph itself stays the same size.
+const COARSE_POINTER = "@media (pointer: coarse)";
+const COARSE_TARGET = { p: 1.5, minWidth: 44, minHeight: 44 };
+
+export const VisibilityToggle = ({
+  toggleStyle,
+  visible,
+  compact,
+  onToggle,
+}: {
+  toggleStyle: "eye" | "checkbox" | "switch";
+  visible: boolean;
+  /** Tighter desktop padding, used where the toggle sits inline before the label */
+  compact?: boolean;
+  onToggle: (e: React.MouseEvent) => void;
+}) => {
+  const { t } = useTranslation("common");
+  const padding = compact ? 0.25 : 0.5;
+
+  if (toggleStyle === "checkbox") {
+    return (
+      <Checkbox
+        size="small"
+        checked={visible}
+        onChange={(e) => onToggle(e as unknown as React.MouseEvent)}
+        sx={{ p: padding, [COARSE_POINTER]: COARSE_TARGET }}
+      />
+    );
+  }
+
+  if (toggleStyle === "switch") {
+    return (
+      <Switch
+        size="small"
+        checked={visible}
+        onChange={(e) => onToggle(e as unknown as React.MouseEvent)}
+        sx={{
+          transform: "scale(0.75)",
+          mx: -0.5,
+          // Undo the shrink on touch — the scaled switch is only ~28px tall
+          [COARSE_POINTER]: { transform: "none", mx: 0 },
+        }}
+      />
+    );
+  }
+
+  return (
+    <Tooltip title={visible ? t("hide") : t("show")} placement="top">
+      <IconButton size="small" onClick={onToggle} sx={{ p: padding, [COARSE_POINTER]: COARSE_TARGET }}>
+        <Icon iconName={visible ? ICON_NAME.EYE : ICON_NAME.EYE_SLASH} style={{ fontSize: "15px" }} />
+      </IconButton>
+    </Tooltip>
+  );
+};
+
 // ----------------------------------------------------------------------
 // 2. UTILS
 // ----------------------------------------------------------------------
@@ -901,32 +964,11 @@ export const ProjectLayerTree = ({
 
         {/* Visibility toggle - very right when position is "right" */}
         {togglePosition !== "left" && !hideActions && node.layer_type !== "table" && (
-          <>
-            {toggleStyle === "checkbox" ? (
-              <Checkbox
-                size="small"
-                checked={nodeVisibility}
-                onChange={(e) => handleVisibilityToggle(node, e as unknown as React.MouseEvent)}
-                sx={{ p: 0.5 }}
-              />
-            ) : toggleStyle === "switch" ? (
-              <Switch
-                size="small"
-                checked={nodeVisibility}
-                onChange={(e) => handleVisibilityToggle(node, e as unknown as React.MouseEvent)}
-                sx={{ transform: "scale(0.75)", mx: -0.5 }}
-              />
-            ) : (
-              <Tooltip title={nodeVisibility ? t("hide") : t("show")} placement="top">
-                <IconButton size="small" onClick={(e) => handleVisibilityToggle(node, e)} sx={{ px: 0.5 }}>
-                  <Icon
-                    iconName={!nodeVisibility ? ICON_NAME.EYE_SLASH : ICON_NAME.EYE}
-                    style={{ fontSize: "15px" }}
-                  />
-                </IconButton>
-              </Tooltip>
-            )}
-          </>
+          <VisibilityToggle
+            toggleStyle={toggleStyle}
+            visible={nodeVisibility}
+            onToggle={(e) => handleVisibilityToggle(node, e)}
+          />
         )}
       </Stack>
     );
@@ -1153,28 +1195,12 @@ export const ProjectLayerTree = ({
     const nodeVisibility = node.properties?.visibility ?? true;
     return (
       <Box onClick={(e) => e.stopPropagation()} sx={{ display: "flex", alignItems: "center" }}>
-        {toggleStyle === "checkbox" ? (
-          <Checkbox
-            size="small"
-            checked={nodeVisibility}
-            onChange={(e) => handleVisibilityToggle(node, e as unknown as React.MouseEvent)}
-            sx={{ p: 0.25 }}
-          />
-        ) : toggleStyle === "switch" ? (
-          <Switch
-            size="small"
-            checked={nodeVisibility}
-            onChange={(e) => handleVisibilityToggle(node, e as unknown as React.MouseEvent)}
-            sx={{ transform: "scale(0.75)", mx: -0.5 }}
-          />
-        ) : (
-          <IconButton size="small" onClick={(e) => handleVisibilityToggle(node, e)} sx={{ p: 0.25 }}>
-            <Icon
-              iconName={!nodeVisibility ? ICON_NAME.EYE_SLASH : ICON_NAME.EYE}
-              style={{ fontSize: "15px" }}
-            />
-          </IconButton>
-        )}
+        <VisibilityToggle
+          toggleStyle={toggleStyle}
+          visible={nodeVisibility}
+          compact
+          onToggle={(e) => handleVisibilityToggle(node, e)}
+        />
       </Box>
     );
   } : () => null, [togglePosition, hideActions, toggleStyle, handleVisibilityToggle]);
