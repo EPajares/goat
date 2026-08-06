@@ -156,6 +156,7 @@ StreetMatrixPrep prepare_street_matrix_network(
     out.origin_nodes      = kernel::snap_origins(out.net, in.origins,      rcfg);
     out.destination_nodes = kernel::snap_origins(out.net, in.destinations, rcfg);
     out.adj = kernel::build_adjacency_list(out.net);
+    out.rev_adj = kernel::build_reverse_adjacency_list(out.net);
     return out;
 }
 
