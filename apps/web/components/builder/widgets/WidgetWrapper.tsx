@@ -2,6 +2,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Box } from "@mui/material";
+import type { Theme } from "@mui/material/styles";
 import { useMemo } from "react";
 
 import { setSelectedBuilderItem } from "@/lib/store/map/slice";
@@ -55,6 +56,15 @@ import WidgetData from "@/components/builder/widgets/data/WidgetData";
 import WidgetElement from "@/components/builder/widgets/elements/WidgetElement";
 import WidgetInformation from "@/components/builder/widgets/information/WidgetInformation";
 import { ElementWrapper } from "@/components/common/ElementWrapper";
+
+// Widgets carry 16px of padding (8px outer + 8px content), which is a lot of a
+// phone's width and height. Halve it below `md` — the same breakpoint the
+// public map page uses to switch to MobileProjectLayout, so this matches
+// exactly when the bottom sheet is what's rendering these widgets.
+const widgetPadding = (theme: Theme) => ({
+  p: 1,
+  [theme.breakpoints.down("md")]: { p: 0.5 },
+});
 
 interface WidgetWrapperProps {
   widget: BuilderWidgetSchema;
@@ -128,7 +138,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
 
   const isFullHeight = widget.config?.type === "rich_text" || widget.config?.type === "text" || widget.config?.type === "tabs" || widget.config?.type === "table";
   const widgetContent = (
-    <Box sx={{ p: 1, height: isFullHeight ? "100%" : undefined }}>
+    <Box sx={(theme) => ({ ...widgetPadding(theme), height: isFullHeight ? "100%" : undefined })}>
       {widget.config?.type && informationTypes.options.includes(widget.config?.type as any) && (
         <WidgetInformation
           widgetId={widget.id}
@@ -172,7 +182,9 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
   );
 
   return viewOnly ? (
-    <Box sx={{ width: "100%", p: 1, pointerEvents: "all" }}>{widgetContent}</Box>
+    <Box sx={(theme) => ({ width: "100%", ...widgetPadding(theme), pointerEvents: "all" })}>
+      {widgetContent}
+    </Box>
   ) : (
     <DraggableWidgetContainer widget={widget} onWidgetDelete={onWidgetDelete}>
       {widgetContent}
