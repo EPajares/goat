@@ -47,7 +47,14 @@ import { normalizePopup } from "@/components/map/popover/normalizePopup";
 import { findPopupLayer } from "@/components/map/popover/popupVisibility";
 
 // --- Constants ---
-const drawerBleeding = 56;
+// Height of the puller strip above the drawer paper. In the default dashboard
+// view it holds only the 6px grab handle (top: 8) and the pagination dots
+// (centred), so 56px left ~20px of dead space above the first widget. The
+// special views render a full InfoHeader in this strip and still need the
+// taller bar. Total (puller + paper) is drawerHeightRatio either way, so the
+// sheet's top edge does not move when this switches.
+const DRAWER_BLEEDING_DEFAULT = 40;
+const DRAWER_BLEEDING_WITH_HEADER = 56;
 // Fraction of the viewport the open bottom drawer covers (paper +
 // puller). The paper height rule in GlobalSwiperStyles and the
 // pan-into-view logic below both derive from this.
@@ -57,7 +64,15 @@ const drawerHeightRatio = 0.6;
 type DrawerView = "default" | "layerInfo" | "basemapSelector" | "layerSettings";
 
 // --- GlobalSwiperStyles (Unchanged) ---
-const GlobalSwiperStyles = ({ open, drawerView }: { open: boolean; drawerView: DrawerView }) => (
+const GlobalSwiperStyles = ({
+  open,
+  drawerView,
+  drawerBleeding,
+}: {
+  open: boolean;
+  drawerView: DrawerView;
+  drawerBleeding: number;
+}) => (
   <Global
     styles={(theme: Theme) => ({
       "#swiper-pagination-container": {
@@ -497,10 +512,13 @@ const MobileProjectLayout = ({
     }
   }, [drawerView, layerInfo, activeLayer, activeRightPanel, t]);
 
+  // Only the header views need the taller puller strip — see the constants.
+  const drawerBleeding = currentHeaderInfo ? DRAWER_BLEEDING_WITH_HEADER : DRAWER_BLEEDING_DEFAULT;
+
   return (
     <>
       {/* Pass drawerView to GlobalSwiperStyles */}
-      <GlobalSwiperStyles open={open} drawerView={drawerView} />
+      <GlobalSwiperStyles open={open} drawerView={drawerView} drawerBleeding={drawerBleeding} />
       <Box sx={{ height: `calc(100% - 56px)`, width: "100%", display: "flex", flexDirection: "column" }}>
         {/* Header and Map Controls (Unchanged structure) */}
         {project?.builder_config?.settings?.toolbar && (
@@ -770,6 +788,12 @@ const MobileProjectLayout = ({
                 style={{ height: "100%", width: "100%" }}
                 // Ensure Swiper doesn't conflict with drawer swipe
                 touchStartPreventDefault={false} // Let drawer handle swipe if needed
+                // Swiper defaults to threshold 0 with preventClicks on, so a
+                // single pixel of horizontal drift during a tap starts a swipe
+                // and cancels the click that would have followed. That silently
+                // swallowed taps on every control in the sheet (layer toggles
+                // especially). 8px is well under a deliberate page swipe.
+                threshold={8}
                 // Track the active panel so the shared drawer chrome
                 // (puller + content area) can match its background color.
                 onSlideChange={(swiper: { activeIndex: number }) =>
@@ -797,7 +821,12 @@ const MobileProjectLayout = ({
                       // No touch handlers needed here anymore, handled by parent Box
                     >
                       {item?.widgets?.map((widget) => (
-                        <Box key={widget.id} sx={{ p: 2, width: "100%", flexShrink: 0 }}>
+                        // No padding here: WidgetWrapper already applies 16px of
+                        // its own (8px outer + 8px content), the same as the
+                        // desktop PanelContainer. Adding p:2 on top gave the
+                        // mobile sheet double the desktop padding on the
+                        // smaller screen, which ate a lot of vertical space.
+                        <Box key={widget.id} sx={{ width: "100%", flexShrink: 0 }}>
                           <WidgetWrapper
                             widget={widget}
                             projectLayers={projectLayers}
