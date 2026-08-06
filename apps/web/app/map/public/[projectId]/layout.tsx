@@ -3,10 +3,15 @@ import { headers } from "next/headers";
 import { API_BASE_URL, APP_URL } from "@/lib/constants";
 import { getLocalizedMetadata } from "@/lib/metadata";
 import { isCustomDomainHost } from "@/lib/pwa/manifest";
-import { DEFAULT_FAVICON_URL } from "@/lib/validations/project";
 import type { ProjectPublic } from "@/lib/validations/project";
 
-export async function generateMetadata({ params: { projectId } }) {
+export async function generateMetadata(props) {
+  const params = await props.params;
+
+  const {
+    projectId
+  } = params;
+
   const lng = "en";
   const PROJECTS_API_BASE_URL = new URL("api/v2/project", API_BASE_URL).href;
   let publicProject: ProjectPublic | null = null;
@@ -25,13 +30,12 @@ export async function generateMetadata({ params: { projectId } }) {
   if (publicProject?.config?.project?.name) {
     const title = publicProject.config.project.name;
     const builderSettings = publicProject.config.project.builder_config?.settings;
-    const faviconUrl = builderSettings?.favicon_url;
     const ogImageUrl = builderSettings?.og_image_url;
     const metaDescription = builderSettings?.meta_description;
 
     // Use the request's Host header so OG previews on a custom domain
     // show that domain, not the canonical app URL.
-    const headersList = headers();
+    const headersList = await headers();
     const reqHost = headersList.get("host");
     const protocol = headersList.get("x-forwarded-proto") ?? "https";
     const fallbackUrl = APP_URL ?? "";
@@ -73,7 +77,13 @@ export async function generateMetadata({ params: { projectId } }) {
     return {
       ...metadata,
       icons: {
-        icon: faviconUrl || DEFAULT_FAVICON_URL,
+        // Served resized to a multiple of 48px — Google's favicon crawler
+        // ignores smaller icons and falls back to /favicon.ico.
+        icon: {
+          url: `/api/pwa-icon/${projectId}?size=96&source=favicon`,
+          sizes: "96x96",
+          type: "image/png",
+        },
         apple: `/api/pwa-icon/${projectId}?size=180`,
       },
       manifest: manifestUrl,

@@ -68,6 +68,14 @@ Kostenfunktion für **Pedelec**:
 
 Wenn eine Kante der Klasse `Fußgänger` oder `Zebrastreifen` angehört, gehen wir davon aus, dass der Fahrer absteigt und sein Fahrrad/Pedelec schiebt. Die Kosten für diese Art von Segmenten sind: `Kosten = Länge / Geschwindigkeit`
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.75rem' }}>
+  <img src={require('/img/routing/bicycle_edge_cost_de.png').default} alt="Fahrradnetzwerk Kantenkosten nach Topologie — Belag- und Steigungsmultiplikatoren" style={{ maxWidth: "100%", objectFit: "contain"}}/>
+</div>
+
+:::note
+Die Kostenmultiplikatorwerte sind illustrative Beispiele. Die tatsächlichen Widerstandswerte variieren je nach spezifischem Belag und Steigungsgradient des jeweiligen Wegabschnitts.
+:::
+
 #### Netzausbreitung
 
 Um den kürzesten Weg vom Ausgangspunkt zu verschiedenen Zielen zu berechnen, wird eine eigene Implementierung des bekannten [Dijkstra Algorithm](https://de.wikipedia.org/wiki/Dijkstra-Algorithmus) verwendet.

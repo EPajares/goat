@@ -8,21 +8,32 @@
 namespace routing
 {
 
-    // Unified output entrypoint. Dispatches to GeoJSON or Parquet pathways based
-    // on cfg.output_format and cfg.catchment_type.
-    // - GeoJSON: returns a FeatureCollection string.
-    // - Parquet: writes to cfg.output_path and returns an empty string.
+    /*
+        Combined entrypoint for catchment area computation.
+        The supplied RequestConfig allows specifying routing config options, 
+        output formats and providing starting points.
+    */
     std::string compute_catchment(RequestConfig const &cfg);
 
-    // Compute many-to-many travel cost matrix.
-    // Writes a parquet file to cfg.output_path with columns:
-    //   origin_id (INT), destination_id (INT), cost (DOUBLE)
+    /*
+        Entrypoint for travel cost matrix computation.
+        The supplied MatrixConfig allows specifying routing config options.
+    */
     void compute_travel_cost_matrix(MatrixConfig const &cfg);
 
-    // Compute a per-origin accessibility heatmap against a fixed
-    // opportunity layer. Writes parquet to cfg.output_path with columns:
-    //   origin_id (VARCHAR), score (DOUBLE).
-    // Implementation lives in src/heatmap/.
+    /*
+        Combined entrypoint for heatmap computation.
+        The supplied HeatmapConfig allows selecting a heatmap type, 
+        specifying routing config options and providing opportunities.
+    */
     void compute_heatmap(HeatmapConfig const &cfg);
+
+    /*
+        OD cost matrix: an extension of the travel cost matrix that routes from
+        an opportunity layer (supporting reverse PT via the arrive-by
+        pipeline) and emits every reachable (orig_cell, dest_cell, cost) pair
+        to cfg.output_path. Used by Huff v2 for its OD matrix.
+    */
+    void compute_od_costs(HeatmapConfig const &cfg);
 
 } // namespace routing

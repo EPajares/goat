@@ -8,6 +8,7 @@ import { useTranslation } from "react-i18next";
 import { useMap } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
+import TemporalPicker from "@p4b/ui/components/TemporalPicker";
 
 import {
   type Expression as ExpressionType,
@@ -88,9 +89,15 @@ const Expression: React.FC<ExpressionProps> = (props) => {
       expression.expression === "is_empty_string" ||
       expression.expression === "is_not_empty_string" ||
       expression.expression === "is_blank" ||
-      expression.expression === "is_not_blank"
+      expression.expression === "is_not_blank" ||
+      expression.expression === "is_true" ||
+      expression.expression === "is_false"
     ) {
       hasValue = true;
+    }
+    if (expression.expression === "is_between" || expression.expression === "is_not_between") {
+      const v = expression.value;
+      hasValue = Array.isArray(v) ? v.length === 2 && !!v[0] && !!v[1] : hasValue;
     }
     return expression.attribute && expression.expression && hasValue;
   }, [expression]);
@@ -314,6 +321,60 @@ const Expression: React.FC<ExpressionProps> = (props) => {
                       />
                     </>
                   )}
+
+                  {/* Single Date Input */}
+                  {selectedAttribute?.type === "date" &&
+                    ["is_on", "is_not_on", "is_before", "is_after"].includes(
+                      selectedExpressionOperation.value as string
+                    ) && (
+                      <TemporalPicker
+                        kind="datetime"
+                        label={t("select_date")}
+                        value={expression.value as string}
+                        onChange={(value: string) => {
+                          setExpression({ ...expression, value });
+                        }}
+                      />
+                    )}
+
+                  {/* Date Range Input (From / To) */}
+                  {selectedAttribute?.type === "date" &&
+                    ["is_between", "is_not_between"].includes(
+                      selectedExpressionOperation.value as string
+                    ) && (
+                      <Stack direction="column" spacing={2}>
+                        {[0, 1].map((index) => (
+                          <TemporalPicker
+                            key={index}
+                            kind="datetime"
+                            label={index === 0 ? t("from") : t("to")}
+                            value={Array.isArray(expression.value) ? String(expression.value[index] ?? "") : ""}
+                            onChange={(value: string) => {
+                              const current = Array.isArray(expression.value)
+                                ? [...(expression.value as string[])]
+                                : ["", ""];
+                              current[index] = value;
+                              setExpression({ ...expression, value: current });
+                            }}
+                          />
+                        ))}
+                      </Stack>
+                    )}
+
+                  {/* Relative Range Input (number of days) */}
+                  {selectedAttribute?.type === "date" &&
+                    ["in_the_last", "not_in_the_last"].includes(
+                      selectedExpressionOperation.value as string
+                    ) && (
+                      <TextFieldInput
+                        type="number"
+                        label={t("number_of_days")}
+                        value={expression.value as string}
+                        onChange={(value: string) => {
+                          setExpression({ ...expression, value: Number(value) });
+                        }}
+                      />
+                    )}
                 </>
               )}
             </>

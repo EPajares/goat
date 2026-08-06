@@ -31,6 +31,12 @@ from geoapi.routers.metadata import (
     _apply_field_config_to_properties,
     _kind_from_json_type,
 )
+from geoapi.services.computed_columns import (
+    DEPENDS_ON_ANY,
+    ComputedColumnSpec,
+    parse_computed_columns,
+    select_recompute_specs,
+)
 from geoapi.services.feature_write_service import FeatureWriteService
 
 # ---------------------------------------------------------------------------
@@ -343,9 +349,13 @@ class TestApplyFieldConfigToProperties:
         assert _kind_from_json_type("number") == "number"
         assert _kind_from_json_type("integer") == "number"
 
+    def test_kind_from_json_type_boolean(self) -> None:
+        """boolean JSON type maps to kind 'boolean'."""
+        assert _kind_from_json_type("boolean") == "boolean"
+
     def test_kind_from_json_type_string_fallback(self) -> None:
-        """Any non-numeric JSON type maps to kind 'string'."""
-        for t in ("string", "boolean", "object", "geometry"):
+        """JSON types without a dedicated kind map to kind 'string'."""
+        for t in ("string", "object", "geometry"):
             assert _kind_from_json_type(t) == "string", f"Failed for type={t!r}"
 
     def test_augments_with_explicit_field_config(self) -> None:
@@ -424,3 +434,157 @@ class TestApplyFieldConfigToProperties:
         _apply_field_config_to_properties(properties, field_config)
 
         assert properties["pop_density"]["kind"] == "density"
+
+
+# ----------------------------------------------------------------------
+# Formula columns
+# ----------------------------------------------------------------------
+
+# Mirrors the real-world use case: a priority score computed from boolean
+# audit columns.
+FORMULA_SQL = "(CASE WHEN has_entry IS FALSE THEN 1 ELSE 0 END) * 3000 + (CASE WHEN has_surface IS FALSE THEN 1 ELSE 0 END) * 1500"
+
+FIELD_CONFIG_WITH_FORMULA: dict[str, Any] = {
+    "score": {
+        "kind": "formula",
+        "is_computed": True,
+        "formula": FORMULA_SQL,
+        "depends_on": ["has_entry", "has_surface"],
+        "output_kind": "number",
+        "display_config": {},
+    }
+}
+
+FORMULA_COLUMN_NAMES = ["geometry", "name", "has_entry", "has_surface", "score"]
+
+
+def _setup_formula_db() -> tuple[duckdb.DuckDBPyConnection, LayerInfo]:
+    con = duckdb.connect(":memory:")
+    con.execute("INSTALL spatial; LOAD spatial;")
+    con.execute("INSTALL ducklake; LOAD ducklake;")
+    tmpdir = tempfile.mkdtemp(prefix="goat_test_lake_")
+    con.execute(
+        f"ATTACH 'ducklake:{tmpdir}/meta.ducklake' AS lake "
+        f"(DATA_PATH '{tmpdir}/data');"
+    )
+    con.execute("CREATE SCHEMA lake.test_schema;")
+    con.execute(
+        """
+        CREATE TABLE lake.test_schema.features (
+            geometry    GEOMETRY,
+            name        VARCHAR,
+            has_entry   BOOLEAN,
+            has_surface BOOLEAN,
+            score       BIGINT
+        )
+        """
+    )
+    return con, _make_layer_info()
+
+
+class TestFormulaColumns:
+    """Formula specs parse from field_config and recompute on writes."""
+
+    def test_parse_field_config_builds_formula_spec(self) -> None:
+        specs = parse_computed_columns(FIELD_CONFIG_WITH_FORMULA)
+        assert len(specs) == 1
+        spec = specs[0]
+        assert spec.name == "score"
+        assert spec.depends_on == ("has_entry", "has_surface")
+        assert spec.compute_sql == f"({FORMULA_SQL})"
+
+    def test_formula_entry_without_expression_is_skipped(self) -> None:
+        config = {"broken": {"kind": "formula", "is_computed": True}}
+        assert parse_computed_columns(config) == []
+
+    def test_depends_on_any_sentinel_always_recomputes(self) -> None:
+        spec = ComputedColumnSpec("score", (DEPENDS_ON_ANY,), "(1)")
+        assert select_recompute_specs([spec], {"whatever"}) == [spec]
+        assert select_recompute_specs([spec], set()) == []
+
+    def test_create_feature_populates_formula(self) -> None:
+        con, layer_info = _setup_formula_db()
+        fake_mgr = _FakeManager(con)
+        svc = FeatureWriteService()
+
+        with patch(
+            "geoapi.services.feature_write_service.ducklake_write_manager", fake_mgr
+        ):
+            svc.create_feature(
+                layer_info=layer_info,
+                geometry=POLYGON_GEOJSON,
+                properties={"name": "Stop A", "has_entry": False, "has_surface": True},
+                column_names=FORMULA_COLUMN_NAMES,
+                geometry_column="geometry",
+                field_config=FIELD_CONFIG_WITH_FORMULA,
+            )
+
+        row = con.execute("SELECT score FROM lake.test_schema.features").fetchone()
+        assert row is not None
+        assert row[0] == 3000
+
+    def test_dependency_change_recomputes_formula(self) -> None:
+        con, layer_info = _setup_formula_db()
+        fake_mgr = _FakeManager(con)
+        svc = FeatureWriteService()
+
+        geom_json = json.dumps(POLYGON_GEOJSON)
+        con.execute(
+            "INSERT INTO lake.test_schema.features "
+            "(geometry, name, has_entry, has_surface, score) "
+            "VALUES (ST_GeomFromGeoJSON(?), 'Stop B', true, true, 0)",
+            [geom_json],
+        )
+        rowid = con.execute("SELECT rowid FROM lake.test_schema.features").fetchone()
+        assert rowid is not None
+        feature_id = str(rowid[0] + 1)
+
+        with patch(
+            "geoapi.services.feature_write_service.ducklake_write_manager", fake_mgr
+        ):
+            found = svc.update_feature_properties(
+                layer_info=layer_info,
+                feature_id=feature_id,
+                properties={"has_entry": False, "has_surface": False},
+                column_names=FORMULA_COLUMN_NAMES,
+                field_config=FIELD_CONFIG_WITH_FORMULA,
+            )
+
+        assert found is True
+        row = con.execute("SELECT score FROM lake.test_schema.features").fetchone()
+        assert row is not None
+        assert row[0] == 4500, "formula must recompute from the NEW values"
+
+    def test_unrelated_change_does_not_recompute_formula(self) -> None:
+        con, layer_info = _setup_formula_db()
+        fake_mgr = _FakeManager(con)
+        svc = FeatureWriteService()
+
+        geom_json = json.dumps(POLYGON_GEOJSON)
+        con.execute(
+            "INSERT INTO lake.test_schema.features "
+            "(geometry, name, has_entry, has_surface, score) "
+            "VALUES (ST_GeomFromGeoJSON(?), 'Stop C', false, true, 999)",
+            [geom_json],
+        )
+        rowid = con.execute("SELECT rowid FROM lake.test_schema.features").fetchone()
+        assert rowid is not None
+        feature_id = str(rowid[0] + 1)
+
+        with patch(
+            "geoapi.services.feature_write_service.ducklake_write_manager", fake_mgr
+        ):
+            svc.update_feature_properties(
+                layer_info=layer_info,
+                feature_id=feature_id,
+                properties={"name": "Renamed"},
+                column_names=FORMULA_COLUMN_NAMES,
+                field_config=FIELD_CONFIG_WITH_FORMULA,
+            )
+
+        row = con.execute(
+            "SELECT name, score FROM lake.test_schema.features"
+        ).fetchone()
+        assert row is not None
+        assert row[0] == "Renamed"
+        assert row[1] == 999, "score must not recompute when no dependency changed"

@@ -1,4 +1,7 @@
+import dayjs from "dayjs";
 import { v4 } from "uuid";
+
+import { TEMPORAL_VALUE_FORMAT } from "@p4b/ui/components/temporalFormats";
 
 import { type Expression, FilterType } from "@/lib/validations/filter";
 
@@ -62,6 +65,14 @@ export function does_not_contains_the_text(key: string, value: string) {
   return createNestedCondition("not", key, `%${value}%`, "like");
 }
 
+export function is_true(key: string) {
+  return `{"op":"=","args":[{"property":"${key}"},true]}`;
+}
+
+export function is_false(key: string) {
+  return `{"op":"=","args":[{"property":"${key}"},false]}`;
+}
+
 export function is_blank(key: string) {
   return `{
     "op": "isNull",
@@ -113,6 +124,72 @@ export function s_intersects(geom: string, geomProperty: string = "geom") {
   return `{"op":"s_intersects","args":[{"property":"${geomProperty}"},${geom}]}`;
 }
 
+function formatDateLiteral(d: dayjs.Dayjs): string {
+  return d.format(TEMPORAL_VALUE_FORMAT);
+}
+
+export function toIsoLiteral(value: string): string {
+  const d = dayjs(value);
+  if (!d.isValid()) return value;
+  return formatDateLiteral(d);
+}
+
+// "is on" for temporal values means "on that calendar day", not equality on
+// the exact second — exact equality would almost never match timestamp data.
+export function date_is_on(key: string, value: string) {
+  const d = dayjs(value);
+  if (!d.isValid()) return is(key, value);
+  return date_is_between(
+    key,
+    formatDateLiteral(d.startOf("day")),
+    formatDateLiteral(d.endOf("day"))
+  );
+}
+
+export function date_is_not_on(key: string, value: string) {
+  const d = dayjs(value);
+  if (!d.isValid()) return is_not(key, value);
+  return date_is_not_between(
+    key,
+    formatDateLiteral(d.startOf("day")),
+    formatDateLiteral(d.endOf("day"))
+  );
+}
+
+export function date_is_between(key: string, from: string, to: string) {
+  return and_operator([
+    createComparisonCondition(">=", key, from),
+    createComparisonCondition("<=", key, to),
+  ]);
+}
+
+export function date_is_not_between(key: string, from: string, to: string) {
+  return or_operator([
+    createComparisonCondition("<", key, from),
+    createComparisonCondition(">", key, to),
+  ]);
+}
+
+export function date_in_the_last(key: string, days: number) {
+  const now = dayjs();
+  const lower = formatDateLiteral(now.subtract(days, "day"));
+  const upper = formatDateLiteral(now);
+  return and_operator([
+    createComparisonCondition(">=", key, lower),
+    createComparisonCondition("<=", key, upper),
+  ]);
+}
+
+export function date_not_in_the_last(key: string, days: number) {
+  const now = dayjs();
+  const lower = formatDateLiteral(now.subtract(days, "day"));
+  const upper = formatDateLiteral(now);
+  return or_operator([
+    createComparisonCondition("<", key, lower),
+    createComparisonCondition(">", key, upper),
+  ]);
+}
+
 export function and_operator(args: string[]) {
   return `{"op":"and","args": [${args.map((arg) => `${arg}`)}]}`;
 }
@@ -124,15 +201,14 @@ export function or_operator(args: string[]) {
 
 export function createTheCQLBasedOnExpression(
   expressions,
-  layerFields: { name: string; type: string }[],
+  layerFields: { name: string; type: string; kind?: string }[],
   logicalOperator?: "and" | "or"
 ) {
   const queries = expressions
     .filter((exp) => exp.expression && exp.attribute)
     .map((expression) => {
-      const attributeType = layerFields.filter((field) => field.name === expression.attribute).length
-        ? layerFields.filter((field) => field.name === expression.attribute)[0].type
-        : undefined;
+      const matchedField = layerFields.find((field) => field.name === expression.attribute);
+      const attributeType = matchedField?.type;
 
       switch (expression.expression) {
         case "is":
@@ -163,6 +239,10 @@ export function createTheCQLBasedOnExpression(
           } else {
             return excludes(expression.attribute, expression.value.map(Number));
           }
+        case "is_true":
+          return is_true(expression.attribute);
+        case "is_false":
+          return is_false(expression.attribute);
         case "is_blank":
           return is_blank(expression.attribute);
         case "is_not_blank":
@@ -175,12 +255,47 @@ export function createTheCQLBasedOnExpression(
           return contains_the_text(expression.attribute, expression.value);
         case "does_not_contains_the_text":
           return does_not_contains_the_text(expression.attribute, expression.value);
-        case "is_between":
-          return is_between(
+        case "is_on":
+          return date_is_on(expression.attribute, expression.value);
+        case "is_not_on":
+          return date_is_not_on(expression.attribute, expression.value);
+        case "is_before":
+          return createComparisonCondition(
+            "<",
             expression.attribute,
-            parseInt(expression.value.split("-")[0]),
-            parseInt(expression.value.split("-")[1])
+            toIsoLiteral(expression.value)
           );
+        case "is_after":
+          return createComparisonCondition(
+            ">",
+            expression.attribute,
+            toIsoLiteral(expression.value)
+          );
+        case "in_the_last":
+          return date_in_the_last(expression.attribute, Number(expression.value));
+        case "not_in_the_last":
+          return date_not_in_the_last(expression.attribute, Number(expression.value));
+        case "is_not_between":
+          return date_is_not_between(
+            expression.attribute,
+            toIsoLiteral(expression.value[0]),
+            toIsoLiteral(expression.value[1])
+          );
+        case "is_between": {
+          if (attributeType === "date") {
+            return date_is_between(
+              expression.attribute,
+              toIsoLiteral(expression.value[0]),
+              toIsoLiteral(expression.value[1])
+            );
+          }
+          // Numeric bounds arrive as [min, max]; the legacy "35-45" string form
+          // is still accepted so older saved filters keep working.
+          const [min, max] = Array.isArray(expression.value)
+            ? expression.value
+            : String(expression.value).split("-");
+          return is_between(expression.attribute, Number(min), Number(max));
+        }
         case "s_intersects":
           return s_intersects(expression.value, expression.attribute);
       }
@@ -228,6 +343,11 @@ function toExpressionObject(expressionsInsideLogicalOperator): Expression[] {
     } else if (expressionToBeProcessed.op === "not" && expressionToBeProcessed.args[0].op === "isNull") {
       expression.expression = "is_not_blank";
       expression.attribute = expressionToBeProcessed.args[0].args.property;
+    } else if (expressionToBeProcessed.op === "not" && expressionToBeProcessed.args[0].op === "like") {
+      const inner = expressionToBeProcessed.args[0];
+      expression.expression = "does_not_contains_the_text";
+      expression.attribute = inner.args[0].property;
+      expression.value = String(inner.args[1]).replace(/%/g, "");
     } else if (expressionToBeProcessed.op === "=" && value === "") {
       expression.expression = "is_empty_string";
       expression.attribute = expressionToBeProcessed.args[0].property;
@@ -235,14 +355,27 @@ function toExpressionObject(expressionsInsideLogicalOperator): Expression[] {
       expression.expression = "is_not_empty_string";
       expression.attribute = expressionToBeProcessed.args[0].property;
     } else if (["and", "or"].includes(expressionToBeProcessed.op)) {
-      switch (expressionToBeProcessed.op) {
-        case "and":
-          expression.expression = "excludes";
-        case "or":
-          expression.expression = "includes";
+      // and/or wrap four different expressions. Tell them apart by the operators
+      // of their children, not by and/or alone — reading "and" as excludes and
+      // "or" as includes mislabels every range as a value list.
+      const args = expressionToBeProcessed.args as Array<{ op: string; args: [{ property: string }, unknown] }>;
+      const ops = args.map((arg) => arg.op);
+      const isAnd = expressionToBeProcessed.op === "and";
+      const hasOps = (a: string, b: string) => ops.length === 2 && ops.includes(a) && ops.includes(b);
+      const bound = (op: string) => args.find((arg) => arg.op === op)?.args[1];
+
+      if (isAnd && hasOps(">=", "<=")) {
+        expression.expression = "is_between";
+        expression.value = [bound(">="), bound("<=")] as (string | number)[];
+      } else if (!isAnd && hasOps("<", ">")) {
+        // "not between from and to" is written as (< from) OR (> to).
+        expression.expression = "is_not_between";
+        expression.value = [bound("<"), bound(">")] as (string | number)[];
+      } else {
+        expression.expression = isAnd ? "excludes" : "includes";
+        expression.value = args.map((arg) => arg.args[1]) as (string | number)[];
       }
-      expression.attribute = expressionToBeProcessed.args[0].args[0].property;
-      expression.value = expressionToBeProcessed.args.map((arg) => arg.args[1]);
+      expression.attribute = args[0].args[0].property;
     } else if (expressionToBeProcessed.op === "s_intersects") {
       expression.expression = "s_intersects";
       expression.attribute = expressionToBeProcessed.args[0].property;

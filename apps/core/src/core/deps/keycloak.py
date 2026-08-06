@@ -3,7 +3,7 @@ from typing import Any
 
 from core.core.config import settings
 from keycloak import KeycloakAdmin, KeycloakOpenIDConnection
-from keycloak.exceptions import KeycloakError
+from keycloak.exceptions import KeycloakError, KeycloakGetError
 
 logger = logging.getLogger(__name__)
 
@@ -45,11 +45,19 @@ async def get_keycloak_user(user_id: str) -> dict[str, Any]:
     realm all degrade to "no extra data". Writes (update/delete) intentionally
     do NOT go through this — a failed write must surface, not desync silently.
     """
+    if not settings.AUTH:
+        return {}
     admin = await keycloak_admin()
     if admin is None:
         return {}
     try:
         return admin.get_user(user_id) or {}
+    except KeycloakGetError as e:
+        if e.response_code == 404:
+            logger.warning("keycloak user %s not found in realm", user_id)
+        else:
+            logger.warning("keycloak user lookup failed for %s", user_id, exc_info=True)
+        return {}
     except KeycloakError:
         logger.warning("keycloak user lookup failed for %s", user_id, exc_info=True)
         return {}

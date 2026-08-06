@@ -1,0 +1,69 @@
+name: "Build"
+
+# Reusable build workflow. Mirrors test.yml: one child job per area, driven by
+# the change-detection booleans from checks.yml.
+
+on:
+  workflow_call:
+    inputs:
+      web:
+        type: boolean
+        default: false
+      keycloak-theme:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: web
+    if: ${{ inputs.web }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📥 Checkout PR
+        uses: plan4better/.github/.github/actions/pr-git-checkout@main
+
+      - name: 📥 Monorepo install
+        uses: plan4better/.github/.github/actions/pnpm-install@main
+        with:
+          enable-corepack: true
+          cwd: ${{ github.workspace }}
+          node_version: 22
+
+      - name: 🏗️ GOAT build
+        uses: ./.github/actions/pnpm-cache-build
+        with:
+          cwd: ${{ github.workspace }}
+
+  # Fast compile check for the theme jar. The deployable artifact is the
+  # docker image built by release.yml (release-docker-keycloak).
+  keycloak-theme:
+    name: keycloak-theme
+    if: ${{ inputs.keycloak-theme }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📥 Checkout PR
+        uses: plan4better/.github/.github/actions/pr-git-checkout@main
+
+      - name: 📥 Monorepo install
+        uses: plan4better/.github/.github/actions/pnpm-install@main
+        with:
+          enable-corepack: true
+          cwd: ${{ github.workspace }}
+          node_version: 22
+
+      - name: 🏗️ Keycloak theme build
+        shell: bash
+        run: |
+          cd ${{ github.workspace }}/packages/js/keycloak-theme
+          pnpm run build-keycloak-theme

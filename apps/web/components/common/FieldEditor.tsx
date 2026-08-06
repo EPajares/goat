@@ -1,4 +1,5 @@
 import type { DragEndEvent } from "@dnd-kit/core";
+import dynamic from "next/dynamic";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -18,11 +19,14 @@ import {
   alpha,
   useTheme,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
+import FieldKindIcon from "@/components/common/FieldKindIcon";
+import { type FormulaField } from "@/components/modals/FormulaBuilder";
+const FormulaBuilder = dynamic(() => import("@/components/modals/FormulaBuilder"), { ssr: false });
 import { formatFieldValue } from "@/lib/utils/formatFieldValue";
 import type { FieldDefinition, FieldKind } from "@/lib/validations/layer";
 import { ALLOWED_KINDS_BY_GEOM_TYPE, COMPUTED_KINDS, RESERVED_FIELD_NAMES } from "@/lib/validations/layer";
@@ -39,6 +43,9 @@ const UNIT_OPTIONS_BY_KIND: Record<FieldKind, string[]> = {
   area: ["auto", "mm²", "cm²", "m²", "ha", "km²"],
   perimeter: ["auto", "mm", "cm", "m", "km"],
   length: ["auto", "mm", "cm", "m", "km"],
+  datetime: [],
+  boolean: [],
+  formula: [],
 };
 
 const PREVIEW_VALUES_BY_KIND: Record<FieldKind, number[]> = {
@@ -47,6 +54,9 @@ const PREVIEW_VALUES_BY_KIND: Record<FieldKind, number[]> = {
   area: [42500, 12.35],
   perimeter: [4250, 12.35],
   length: [4250, 12.35],
+  datetime: [],
+  boolean: [],
+  formula: [],
 };
 
 interface FieldEditorProps {
@@ -72,23 +82,25 @@ interface FieldEditorProps {
    * in-place stub. Use this to open an AddFieldDialog from the parent.
    */
   onAddField?: () => void;
+  /**
+   * Dataset/layer id — enables formula fields (the formula builder validates
+   * and previews expressions against this collection).
+   */
+  layerId?: string;
 }
 
-const FIELD_TYPE_ICON: Record<FieldKind, ICON_NAME> = {
-  string: ICON_NAME.LETTER_T,
-  number: ICON_NAME.HASHTAG,
-  area: ICON_NAME.RULES_COMBINED,
-  perimeter: ICON_NAME.RULER_HORIZONTAL,
-  length: ICON_NAME.RULER_HORIZONTAL,
+const ALL_FIELD_TYPE_ITEMS: Record<FieldKind, SelectorItem> = {
+  string: { value: "string", label: "Text", iconNode: <FieldKindIcon kind="string" /> },
+  number: { value: "number", label: "Number", iconNode: <FieldKindIcon kind="number" /> },
+  area: { value: "area", label: "Area", iconNode: <FieldKindIcon kind="area" /> },
+  perimeter: { value: "perimeter", label: "Perimeter", iconNode: <FieldKindIcon kind="perimeter" /> },
+  length: { value: "length", label: "Length", iconNode: <FieldKindIcon kind="length" /> },
+  datetime: { value: "datetime", label: "Date", iconNode: <FieldKindIcon kind="datetime" /> },
+  boolean: { value: "boolean", label: "Boolean", iconNode: <FieldKindIcon kind="boolean" /> },
+  formula: { value: "formula", label: "Formula", iconNode: <FieldKindIcon kind="formula" /> },
 };
 
-const ALL_FIELD_TYPE_ITEMS: Record<FieldKind, SelectorItem> = {
-  string: { value: "string", label: "Text", icon: ICON_NAME.LETTER_T },
-  number: { value: "number", label: "Number", icon: ICON_NAME.HASHTAG },
-  area: { value: "area", label: "Area", icon: ICON_NAME.RULES_COMBINED },
-  perimeter: { value: "perimeter", label: "Perimeter", icon: ICON_NAME.RULER_HORIZONTAL },
-  length: { value: "length", label: "Length", icon: ICON_NAME.RULER_HORIZONTAL },
-};
+const NUMERIC_KINDS: FieldKind[] = ["number", "area", "perimeter", "length"];
 
 // --- Sortable field row ---
 
@@ -156,13 +168,7 @@ const SortableFieldRow = ({
         </Box>
 
         {/* Type indicator */}
-        <Box sx={{ width: 18, flexShrink: 0, display: "flex", justifyContent: "center" }}>
-          <Icon
-            iconName={FIELD_TYPE_ICON[field.kind] ?? ICON_NAME.LETTER_T}
-            style={{ fontSize: 12 }}
-            htmlColor={error ? theme.palette.error.main : theme.palette.text.secondary}
-          />
-        </Box>
+        <FieldKindIcon kind={field.kind} error={!!error} />
 
         {/* Always-visible input */}
         <Input
@@ -248,15 +254,44 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
   lockedFieldIds,
   geometryType,
   onAddField,
+  layerId,
 }) => {
   const { t } = useTranslation("common");
   const theme = useTheme();
+  const [formulaBuilderOpen, setFormulaBuilderOpen] = useState(false);
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
-  const availableKinds: FieldKind[] = geometryType
-    ? ALLOWED_KINDS_BY_GEOM_TYPE[geometryType] ?? ["string", "number"]
-    : ["string", "number"];
+  // Columns the formula builder can reference: every other field, typed for
+  // its client-side validation (formula fields count as their result kind).
+  const formulaFields: FormulaField[] = useMemo(
+    () =>
+      fields
+        .filter((f) => f.id !== selectedFieldId)
+        .map((f) => {
+          const kind = f.kind === "formula" ? (f.output_kind ?? "string") : f.kind;
+          const type =
+            kind === "number" || kind === "area" || kind === "perimeter" || kind === "length"
+              ? "number"
+              : kind === "boolean"
+                ? "boolean"
+                : "string";
+          return { name: f.name, type };
+        }),
+    [fields, selectedFieldId]
+  );
+
+  const handleFormulaChange = (id: string, expression: string) => {
+    onChange(fields.map((f) => (f.id === id ? { ...f, formula: expression } : f)));
+  };
+
+  // Formula fields validate and backfill against the existing table, so they
+  // are only offered when editing an existing dataset (layerId present) —
+  // not in the create-new-dataset flow.
+  const baseKinds: FieldKind[] = geometryType
+    ? ALLOWED_KINDS_BY_GEOM_TYPE[geometryType] ?? ["string", "number", "datetime", "boolean", "formula"]
+    : ["string", "number", "datetime", "boolean", "formula"];
+  const availableKinds: FieldKind[] = baseKinds.filter((k) => k !== "formula" || !!layerId);
 
   const fieldTypeItems: SelectorItem[] = availableKinds.map((k) => ALL_FIELD_TYPE_ITEMS[k]);
   const hasFields = fields.length > 0;
@@ -286,6 +321,9 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
         errors[field.id] = t("field_name_unique");
       } else if (!SAFE_NAME_REGEX.test(name)) {
         warnings[field.id] = t("field_name_special_chars_warning");
+      }
+      if (!errors[field.id] && field.kind === "formula" && !field.formula?.trim()) {
+        errors[field.id] = t("formula_required");
       }
     }
     return { fieldErrors: errors, fieldWarnings: warnings };
@@ -490,9 +528,16 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
               abbreviate?: boolean;
               always_show_sign?: boolean;
             };
-            const showFormat = selectedField.kind !== "string";
-            const unitOptions = UNIT_OPTIONS_BY_KIND[selectedField.kind];
-            const previewValues = PREVIEW_VALUES_BY_KIND[selectedField.kind];
+            // Formula fields format as their inferred result kind; unknown
+            // until first saved (the backend infers it), so no formatting
+            // options are offered for a brand-new formula field.
+            const isFormula = selectedField.kind === "formula";
+            const formatKind = (
+              isFormula ? selectedField.output_kind : selectedField.kind
+            ) as FieldKind | undefined;
+            const showFormat = !!formatKind && NUMERIC_KINDS.includes(formatKind);
+            const unitOptions = formatKind ? UNIT_OPTIONS_BY_KIND[formatKind] : [];
+            const previewValues = formatKind ? PREVIEW_VALUES_BY_KIND[formatKind] : [];
             return (
               <Stack spacing={2}>
                 <Typography variant="subtitle2" fontWeight="bold">
@@ -514,8 +559,45 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
                   }
                   setSelectedItems={(item) => handleTypeChange(selectedField.id, item)}
                   items={fieldTypeItems}
-                  disabled={lockedFieldIds?.has(selectedField.id) || COMPUTED_KINDS.has(selectedField.kind)}
+                  disabled={lockedFieldIds?.has(selectedField.id)}
                 />
+
+                {isFormula && (
+                  <Stack spacing={1}>
+                    <Typography variant="caption" color="text.secondary">
+                      {t("formula")}
+                    </Typography>
+                    {selectedField.formula ? (
+                      <Box
+                        sx={{
+                          px: 1.5,
+                          py: 1,
+                          bgcolor: "action.hover",
+                          borderRadius: 1,
+                          fontFamily: "monospace",
+                          fontSize: "0.75rem",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                          maxHeight: 120,
+                          overflowY: "auto",
+                        }}>
+                        {selectedField.formula}
+                      </Box>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">
+                        {t("no_formula_yet")}
+                      </Typography>
+                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Icon iconName={ICON_NAME.CODE} style={{ fontSize: 14 }} />}
+                      onClick={() => setFormulaBuilderOpen(true)}
+                      sx={{ alignSelf: "flex-start", textTransform: "none" }}>
+                      {selectedField.formula ? t("edit_formula") : t("add_formula")}
+                    </Button>
+                  </Stack>
+                )}
 
                 {showFormat && (
                   <>
@@ -629,7 +711,7 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
                                 fontFamily: "monospace",
                                 fontSize: "0.75rem",
                               }}>
-                              {formatFieldValue(v, selectedField.kind, cfg)}
+                              {formatFieldValue(v, formatKind ?? selectedField.kind, cfg)}
                             </Box>
                           ))}
                         </Stack>
@@ -654,6 +736,21 @@ const FieldEditor: React.FC<FieldEditorProps> = ({
           </Box>
         )}
       </Box>
+      {selectedField?.kind === "formula" && (
+        <FormulaBuilder
+          open={formulaBuilderOpen}
+          onClose={() => setFormulaBuilderOpen(false)}
+          onApply={(expression) => {
+            handleFormulaChange(selectedField.id, expression);
+            setFormulaBuilderOpen(false);
+          }}
+          initialExpression={selectedField.formula ?? ""}
+          fields={formulaFields}
+          collectionId={layerId}
+          showGroupBy={false}
+          title={t("formula")}
+        />
+      )}
     </Stack>
   );
 };

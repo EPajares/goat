@@ -3,6 +3,8 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
 
+import { popupMarkdownComponents } from "@/components/builder/widgets/common/markdownComponents";
+
 interface MarkdownContentEditorProps {
   value: string;
   onChange: (value: string) => void;
@@ -100,7 +102,7 @@ const MarkdownContentEditor = ({
             ...previewStyles,
           }}>
           {value.trim() ? (
-            <ReactMarkdown>{value}</ReactMarkdown>
+            <ReactMarkdown components={popupMarkdownComponents}>{value}</ReactMarkdown>
           ) : (
             <Typography variant="body2" color="text.disabled">
               {resolvedPlaceholder}
@@ -109,9 +111,15 @@ const MarkdownContentEditor = ({
         </Box>
       )}
       {tab === "write" && (
-        <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
-          {resolvedHint}
-        </Typography>
+        <>
+          <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: "block" }}>
+            {resolvedHint}
+          </Typography>
+          {/* Own line: the poster syntax is too easy to miss inside the list above. */}
+          <Typography variant="caption" color="text.disabled" sx={{ display: "block" }}>
+            {t("markdown_video_hint")}
+          </Typography>
+        </>
       )}
     </>
   );

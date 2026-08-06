@@ -38,6 +38,8 @@ import type { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 
+import FieldKindIcon, { fieldIndicatorKind } from "@/components/common/FieldKindIcon";
+
 const SqlCodeEditor = dynamic(() => import("./SqlCodeEditor"), { ssr: false });
 
 import type {
@@ -202,40 +204,6 @@ function databaseTypeToSqlType(dbType: string): string {
   return "varchar";
 }
 
-// Get icon for field type
-function getFieldTypeIcon(type: string): ICON_NAME {
-  const normalizedType = type.toLowerCase();
-  if (
-    normalizedType.includes("int") ||
-    normalizedType.includes("double") ||
-    normalizedType.includes("float") ||
-    normalizedType === "number"
-  ) {
-    return ICON_NAME.NUMBER;
-  }
-  if (normalizedType.includes("varchar") || normalizedType.includes("text") || normalizedType === "string") {
-    return ICON_NAME.TEXT;
-  }
-  if (
-    normalizedType.includes("date") ||
-    normalizedType.includes("time") ||
-    normalizedType.includes("timestamp")
-  ) {
-    return ICON_NAME.CLOCK;
-  }
-  if (
-    normalizedType.includes("geom") ||
-    normalizedType.includes("point") ||
-    normalizedType.includes("polygon") ||
-    normalizedType.includes("line")
-  ) {
-    return ICON_NAME.MAP;
-  }
-  if (normalizedType === "boolean" || normalizedType === "bool") {
-    return ICON_NAME.CIRCLECHECK;
-  }
-  return ICON_NAME.DATABASE;
-}
 
 // SQL table definition for SQL mode
 export interface SqlTable {
@@ -293,7 +261,7 @@ export default function FormulaBuilder({
 }: FormulaBuilderProps) {
   const { t } = useTranslation("common");
   const inputRef = useRef<HTMLInputElement>(null);
-  const editorRef = useRef<ReactCodeMirrorRef>();
+  const editorRef = useRef<ReactCodeMirrorRef | undefined>(undefined);
   const isSqlMode = mode === "sql";
 
   // State
@@ -1041,12 +1009,8 @@ export default function FormulaBuilder({
                                     onMouseLeave={() => setHoveredField(null)}
                                     sx={{ py: 0.25, pl: 4, pr: 1.5 }}
                                     dense>
-                                    <ListItemIcon sx={{ minWidth: 24 }}>
-                                      <Icon
-                                        iconName={getFieldTypeIcon(field.type)}
-                                        sx={{ fontSize: "0.875rem" }}
-                                        color="action"
-                                      />
+                                    <ListItemIcon sx={{ minWidth: 28 }}>
+                                      <FieldKindIcon kind={fieldIndicatorKind(field)} />
                                     </ListItemIcon>
                                     <ListItemText
                                       primary={
@@ -1088,12 +1052,8 @@ export default function FormulaBuilder({
                                   onMouseLeave={() => setHoveredField(null)}
                                   sx={{ py: 0.5, px: 1.5 }}
                                   dense>
-                                  <ListItemIcon sx={{ minWidth: 24 }}>
-                                    <Icon
-                                      iconName={getFieldTypeIcon(field.type)}
-                                      sx={{ fontSize: "1rem" }}
-                                      color="action"
-                                    />
+                                  <ListItemIcon sx={{ minWidth: 28 }}>
+                                    <FieldKindIcon kind={fieldIndicatorKind(field)} />
                                   </ListItemIcon>
                                   <ListItemText
                                     primary={
@@ -1206,11 +1166,7 @@ export default function FormulaBuilder({
                     {hoveredField ? (
                       <>
                         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                          <Icon
-                            iconName={getFieldTypeIcon(hoveredField.type)}
-                            fontSize="small"
-                            color="primary"
-                          />
+                          <FieldKindIcon kind={fieldIndicatorKind(hoveredField)} />
                           <Typography variant="body2" fontWeight="bold" fontFamily="monospace">
                             {hoveredField.name}
                           </Typography>
@@ -1397,7 +1353,7 @@ export default function FormulaBuilder({
                         {nonGeomFields.map((field) => (
                           <MenuItem key={field.name} value={field.name}>
                             <Stack direction="row" spacing={1} alignItems="center">
-                              <Icon iconName={getFieldTypeIcon(field.type)} fontSize="inherit" />
+                              <FieldKindIcon kind={fieldIndicatorKind(field)} />
                               <Typography variant="body2" fontFamily="monospace">
                                 {field.name}
                               </Typography>

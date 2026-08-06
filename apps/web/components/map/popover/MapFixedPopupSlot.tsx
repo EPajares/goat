@@ -13,6 +13,7 @@ import { buildLayerIcon } from "@/components/map/panels/layer/legend/LayerIcon";
 import { seedPopupFromInteraction } from "@/components/map/panels/style/popup/seedFromLegacy";
 import { MapFeaturePopover } from "@/components/map/popover/MapFeaturePopover";
 import { normalizePopup } from "@/components/map/popover/normalizePopup";
+import { findPopupLayer } from "@/components/map/popover/popupVisibility";
 
 export interface MapFixedPopupSlotProps {
   layers: ProjectLayer[] | undefined;
@@ -39,18 +40,12 @@ export function MapFixedPopupSlot({ layers }: MapFixedPopupSlotProps) {
   const popupPreview = useAppSelector((s) => s.map.popupPreview);
   const highlightedFeature = useAppSelector((s) => s.map.highlightedFeature);
 
-  // Mirror MapViewer's lookup: popupInfo.layerId is set to `layer_id ?? id`
-  // at dispatch time, so try both — ProjectLayer stores the dataset id on
-  // `layer_id` while plain Layer uses `id`.
-  const clickedLayer = useMemo(() => {
-    if (!popupInfo?.layerId || !layers) return undefined;
-    const target = popupInfo.layerId;
-    return layers.find(
-      (l) =>
-        (l as { layer_id?: string }).layer_id === target ||
-        l.id.toString() === target,
-    );
-  }, [popupInfo?.layerId, layers]);
+  // Mirror MapViewer's lookup: the clicked ProjectLayer's own id wins (the
+  // same dataset can back several project layers), with a dataset-id fallback.
+  const clickedLayer = useMemo(
+    () => findPopupLayer(popupInfo?.layerId, layers, popupInfo?.projectLayerId),
+    [popupInfo?.layerId, popupInfo?.projectLayerId, layers],
+  );
 
   const activePopupConfig = useMemo<PopupProperties | undefined>(() => {
     if (!clickedLayer) return undefined;
@@ -86,8 +81,19 @@ export function MapFixedPopupSlot({ layers }: MapFixedPopupSlotProps) {
     return normalizePopup(seedPopupFromInteraction(props?.interaction));
   }, [previewLayer]);
 
-  const clickedLayerIcon = useMemo(() => buildLayerIcon(clickedLayer), [clickedLayer]);
-  const previewIcon = useMemo(() => buildLayerIcon(previewLayer), [previewLayer]);
+  // Same feature-property resolution as the popover body below, so a
+  // marker_mapping layer's header icon matches the clicked feature.
+  const clickedFeatureProperties = (popupInfo?.featureProperties ??
+    highlightedFeature?.properties ??
+    popupInfo?.properties) as Record<string, unknown> | undefined;
+  const clickedLayerIcon = useMemo(
+    () => buildLayerIcon(clickedLayer, clickedFeatureProperties),
+    [clickedLayer, clickedFeatureProperties],
+  );
+  const previewIcon = useMemo(
+    () => buildLayerIcon(previewLayer, popupPreview?.feature?.properties ?? undefined),
+    [previewLayer, popupPreview?.feature?.properties],
+  );
 
   const previewCentroid = useMemo(() => {
     if (!popupPreview) return null;

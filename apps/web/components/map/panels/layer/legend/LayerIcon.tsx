@@ -5,7 +5,7 @@ import React from "react";
 import type { Layer } from "@/lib/validations/layer";
 import type { ProjectLayer } from "@/lib/validations/project";
 import { rgbToHex } from "@/lib/utils/helpers";
-import { getLegendColorMap } from "@/lib/utils/map/legend";
+import { getLegendColorMap, resolveFeatureMarker } from "@/lib/utils/map/legend";
 
 import { MaskedImageIcon } from "@/components/map/panels/style/other/MaskedImageIcon";
 
@@ -118,10 +118,12 @@ function LegendSwatch({ colors }: { colors: string[] }) {
  *
  *   1. Tables → a table glyph (skipped here; popups don't open on tables)
  *   2. Raster → image icon
- *   3. Complex legend (color_field / stroke_color_field / marker_field)
+ *   3. Custom marker → the marker glyph; with `featureProperties` given,
+ *      the marker the feature actually renders with (marker_mapping)
+ *   4. Complex legend (color_field / stroke_color_field / marker_field)
  *      → multi-color swatch built from `getLegendColorMap` so the user
  *      sees that the layer is attribute-styled, not a single color
- *   4. Simple feature → `<LayerIcon>` with the base color/stroke (point
+ *   5. Simple feature → `<LayerIcon>` with the base color/stroke (point
  *      dot, line, or polygon rect)
  *
  * Returns `undefined` only when the layer is missing or has no
@@ -129,6 +131,7 @@ function LegendSwatch({ colors }: { colors: string[] }) {
  */
 export function buildLayerIcon(
   layer: ProjectLayer | Layer | undefined,
+  featureProperties?: Record<string, unknown>,
 ): React.ReactNode | undefined {
   if (!layer) return undefined;
 
@@ -155,24 +158,22 @@ export function buildLayerIcon(
   const filled = props.filled !== false;
   const stroked = props.stroked !== false;
   const customMarker = Boolean(props.custom_marker);
-  const marker = props.marker as { url?: string; source?: "custom" | "library" } | undefined;
-  const markerField = props.marker_field;
 
-  // Static custom marker (one glyph for the whole layer, not driven by
-  // `marker_field`): the marker IS the visible affordance on the map, so
-  // it takes precedence over any color-based legend swatch. Without
-  // this short-circuit, a layer styled with custom_marker + color_field
-  // would misleadingly render a fill-color swatch in the popup header
-  // even though the map shows markers.
-  if (customMarker && !markerField && marker?.url) {
+  // Custom marker: the marker IS the visible affordance on the map, so it
+  // takes precedence over any color-based legend swatch. For marker_field
+  // layers, resolveFeatureMarker picks the clicked feature's mapped icon
+  // (base marker when there is no match or no feature) — the same
+  // precedence the icon-image match expression uses on the map.
+  const resolvedMarker = customMarker ? resolveFeatureMarker(props, featureProperties) : undefined;
+  if (resolvedMarker) {
     const iconColor = !filled ? "#000000" : baseColor;
     return (
       <LayerIcon
         type={geomType.toLowerCase()}
         color={iconColor}
         filled={filled}
-        iconUrl={marker.url}
-        iconSource={marker.source ?? "library"}
+        iconUrl={resolvedMarker.url}
+        iconSource={resolvedMarker.source}
       />
     );
   }
@@ -201,10 +202,6 @@ export function buildLayerIcon(
       color={iconColor}
       strokeColor={stroked ? strokeColor : undefined}
       filled={filled}
-      iconUrl={!markerField && customMarker && marker?.url ? marker.url : undefined}
-      iconSource={
-        !markerField && customMarker && marker?.source ? marker.source : "library"
-      }
     />
   );
 }

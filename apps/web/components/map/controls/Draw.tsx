@@ -111,6 +111,9 @@ export const DrawControl = (props: DrawControlProps) => {
     if (drawControl) {
       setDrawControl(drawControl);
     }
+    // Clear on unmount — a MapboxDraw instance detached from the map throws
+    // on every API call, so consumers must not see it via the context.
+    return () => setDrawControl(null);
   }, [drawControl, setDrawControl]);
 
   return null;

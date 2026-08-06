@@ -36,6 +36,7 @@ class HeatmapType(StrEnum):
     gravity = "gravity"
     closest_average = "closest_average"
     connectivity = "connectivity"
+    two_sfca = "two_sfca"
 
 
 class GravityDecay(StrEnum):
@@ -43,6 +44,13 @@ class GravityDecay(StrEnum):
     exponential = "exponential"
     linear = "linear"
     power = "power"
+
+
+class TwoSFCAType(StrEnum):
+    """2SFCA method variant (mirrors v1)."""
+    twosfca = "twosfca"
+    e2sfca = "e2sfca"
+    m2sfca = "m2sfca"
 
 
 # Analysis-layer opportunity schema. Relaxes the v1 per-opportunity max_cost
@@ -170,6 +178,23 @@ class HeatmapV2Params(BaseModel):
         ),
     )
 
+    # ---- 2SFCA ---------------------------------------------------------------
+    two_sfca_type: TwoSFCAType = TwoSFCAType.twosfca
+    demand_path: str | None = Field(
+        default=None,
+        description=(
+            "Demand layer parquet (points or polygons with a demand value). "
+            "Required when heatmap_type == two_sfca."
+        ),
+    )
+    demand_field: str | None = Field(
+        default=None,
+        description=(
+            "Field in the demand layer holding the demand value (e.g. "
+            "population). Required when heatmap_type == two_sfca."
+        ),
+    )
+
     # ---- Output --------------------------------------------------------------
     output_path: str = Field(
         ...,
@@ -189,5 +214,10 @@ class HeatmapV2Params(BaseModel):
                 raise ValueError(
                     f"{self.heatmap_type.value} requires at least one "
                     "opportunity layer."
+                )
+        if self.heatmap_type == HeatmapType.two_sfca:
+            if not self.demand_path or not self.demand_field:
+                raise ValueError(
+                    "two_sfca requires demand_path and demand_field."
                 )
         return self

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Popup } from "react-map-gl/maplibre";
 
 import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
+import TemporalPicker from "@p4b/ui/components/TemporalPicker";
 
 import type { MapPopoverEditorProps } from "@/types/map/popover";
 import { EditorModes } from "@/types/map/popover";
@@ -12,7 +13,15 @@ import useLayerFields from "@/hooks/map/CommonHooks";
 
 import { formatFieldValue } from "@/lib/utils/formatFieldValue";
 import type { FieldKind } from "@/lib/validations/layer";
+import { resolveDisplayKind } from "@/lib/validations/layer";
 
+import {
+  BOOLEAN_SELECT_ITEMS,
+  booleanToSelectValue,
+  parseBooleanInput,
+} from "@/lib/utils/fieldInput";
+
+import Selector from "@/components/map/panels/common/Selector";
 import TextFieldInput from "@/components/map/panels/common/TextFieldInput";
 
 const MapPopoverEditor: React.FC<MapPopoverEditorProps> = ({
@@ -53,13 +62,17 @@ const MapPopoverEditor: React.FC<MapPopoverEditorProps> = ({
   const { layerFields } = useLayerFields(layer?.id || "");
   const filteredLayerFields = useMemo(() => {
     return layerFields.filter(
-      (field) => field.type === "string" || field.type === "number",
+      (field) =>
+        field.type === "string" ||
+        field.type === "number" ||
+        field.type === "date" ||
+        field.type === "boolean",
     );
   }, [layerFields]);
 
-  const [featureProperties, setFeatureProperties] = useState<Record<string, string | number>>(
-    feature?.properties || {}
-  );
+  const [featureProperties, setFeatureProperties] = useState<
+    Record<string, string | number | boolean | null>
+  >(feature?.properties || {});
 
   const _lngLat = useMemo(() => {
     let _lngLat = lngLat || [0, 0];
@@ -124,21 +137,46 @@ const MapPopoverEditor: React.FC<MapPopoverEditorProps> = ({
                     if (raw !== undefined && raw !== null && raw !== "") {
                       displayValue = formatFieldValue(
                         raw,
-                        (field.kind as FieldKind) ?? "number",
+                        (resolveDisplayKind(field) as FieldKind) ?? "number",
                         field.display_config ?? {},
                       );
                     } else if (editMode === EditorModes.DRAW) {
                       displayValue = t("computed_on_save");
                     }
                   } else {
-                    displayValue = featureProperties[field.name]
-                      ? featureProperties[field.name].toString()
-                      : "";
+                    const raw = featureProperties[field.name];
+                    displayValue = raw !== null && raw !== undefined && raw !== "" ? String(raw) : "";
                   }
 
                   return (
                     <Stack key={field.name} direction="row" spacing={2} alignItems="center">
-                      {(field.type === "string" || field.type === "number") && (
+                      {!isComputed && field.type === "date" && (
+                        <TemporalPicker
+                          kind="datetime"
+                          label={field.name}
+                          value={(featureProperties[field.name] as string) ?? ""}
+                          onChange={(value) => {
+                            setFeatureProperties((prev) => ({ ...prev, [field.name]: value || null }));
+                          }}
+                        />
+                      )}
+                      {!isComputed && field.type === "boolean" && (
+                        <Selector
+                          label={field.name}
+                          selectedItems={BOOLEAN_SELECT_ITEMS.find(
+                            (i) => i.value === booleanToSelectValue(featureProperties[field.name])
+                          )}
+                          setSelectedItems={(item) => {
+                            const value = Array.isArray(item) ? item[0]?.value : item?.value;
+                            setFeatureProperties((prev) => ({
+                              ...prev,
+                              [field.name]: parseBooleanInput(String(value ?? "")),
+                            }));
+                          }}
+                          items={[...BOOLEAN_SELECT_ITEMS]}
+                        />
+                      )}
+                      {(field.type === "string" || field.type === "number" || (isComputed && (field.type === "date" || field.type === "boolean"))) && (
                         <TextFieldInput
                           type={isComputed || field.type !== "number" ? "text" : "number"}
                           label={field.name}

@@ -1009,3 +1009,30 @@ class TestHistogram:
         assert len(result.bins) == 0
         assert result.total_rows == 0
         assert result.missing_count == 0
+
+    def test_histogram_time_column_bins_on_seconds_of_day(self, duckdb_connection):
+        """TIME columns bin on epoch seconds-of-day (08:00 -> 28800)."""
+        con = duckdb_connection
+        con.execute("CREATE TABLE t_time (tm TIME)")
+        con.execute(
+            "INSERT INTO t_time VALUES ('08:00:00'), ('09:30:00'), "
+            "('12:00:00'), ('23:00:00')"
+        )
+        result = calculate_histogram(con, "t_time", column="tm", num_bins=4)
+        assert result.total_rows == 4
+        assert sum(b.count for b in result.bins) == 4
+        assert result.bins[0].range[0] == 28800.0
+        assert result.bins[-1].range[1] == 82800.0
+
+    def test_histogram_date_column_bins_on_epoch(self, duckdb_connection):
+        """DATE columns bin on unix epoch seconds without error."""
+        con = duckdb_connection
+        con.execute("CREATE TABLE t_date (d DATE)")
+        con.execute(
+            "INSERT INTO t_date VALUES ('2026-01-05'), ('2026-02-10'), "
+            "('2026-06-20'), ('2026-12-31')"
+        )
+        result = calculate_histogram(con, "t_date", column="d", num_bins=4)
+        assert result.total_rows == 4
+        assert sum(b.count for b in result.bins) == 4
+        assert result.bins[0].range[0] < result.bins[-1].range[1]

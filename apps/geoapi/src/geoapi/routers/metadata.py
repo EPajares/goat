@@ -26,10 +26,14 @@ from geoapi.services.layer_service import layer_service
 router = APIRouter(tags=["Metadata"])
 
 
-def _kind_from_json_type(json_type: str) -> str:
-    """Infer the field kind from the JSON-schema type for columns without explicit metadata."""
+def _kind_from_json_type(json_type: str, json_format: str | None = None) -> str:
+    """Infer the field kind from the JSON-schema type/format for columns without explicit metadata."""
+    if json_format == "date-time":
+        return "datetime"
     if json_type in ("number", "integer"):
         return "number"
+    if json_type == "boolean":
+        return "boolean"
     return "string"
 
 
@@ -64,9 +68,15 @@ def _apply_field_config_to_properties(
             continue
         entry = field_config.get(name, {})
         json_type = prop.get("type", "string")
-        prop["kind"] = entry.get("kind") or _kind_from_json_type(json_type)
+        json_format = prop.get("format")
+        prop["kind"] = entry.get("kind") or _kind_from_json_type(json_type, json_format)
         prop["is_computed"] = entry.get("is_computed", False)
         prop["display_config"] = entry.get("display_config", {})
+        if entry.get("kind") == "formula":
+            # The expression (for the editor) and the result kind (drives
+            # value formatting and formatting options in the frontend).
+            prop["formula"] = entry.get("formula")
+            prop["output_kind"] = entry.get("output_kind", "string")
 
 
 # OGC conformance classes
@@ -261,11 +271,16 @@ async def get_queryables(
     if_none_match: str | None = Header(default=None, alias="if-none-match"),
 ) -> Queryables | Response:
     """Get queryable properties for a collection."""
+    # field_config lives in PG, not DuckLake: editing it (kind, formula,
+    # display_config) rotates neither the layer version nor the pinned
+    # snapshot, so it must be part of the fingerprint itself — otherwise
+    # a 304 would serve stale field metadata forever.
+    field_config = await _load_field_config(layer_info)
     etag = build_query_etag(
         layer_info.layer_id,
         get_layer_version(layer_info.layer_id),
         ducklake_pool.pinned_snapshot_id,
-        params={"kind": "queryables"},
+        params={"kind": "queryables", "field_config": field_config},
     )
     if cached := not_modified(if_none_match, etag):
         return cached
@@ -287,13 +302,15 @@ async def get_queryables(
         if col_name == "geom":
             properties["geom"] = {"$ref": "https://geojson.org/schema/Geometry.json"}
         else:
-            properties[col_name] = {
+            prop: dict[str, Any] = {
                 "name": col_name,
                 "type": col["json_type"],
             }
+            if col.get("format"):
+                prop["format"] = col["format"]
+            properties[col_name] = prop
 
     # Augment each property with field-config metadata (kind, is_computed, display_config).
-    field_config = await _load_field_config(layer_info)
     _apply_field_config_to_properties(properties, field_config)
 
     apply_cache_headers(response, etag)

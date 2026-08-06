@@ -306,7 +306,7 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                 widget="field-selector",
                 widget_options={
                     "source_layer": "join_layer_id",
-                    "multi": True,
+                    "multiple": True,
                     "default_all": True,
                 },
                 visible_when={
@@ -400,6 +400,10 @@ class JoinToolParams(ScenarioSelectorMixin, ToolInputBase, BaseModel):
                 raise ValueError(
                     "At least one attribute relationship is required when use_attribute_relationship is enabled"
                 )
+
+        # The UI hides add_join_fields for left joins
+        if self.join_type == JoinType.left:
+            self.add_join_fields = True
 
         # Statistics validation
         if self.calculate_statistics:

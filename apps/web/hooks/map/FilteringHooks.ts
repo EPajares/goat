@@ -86,6 +86,25 @@ const useLogicalExpressionOperations = (selectedField?: FieldType | (string & No
           value: "is_not_empty_string",
         },
       ];
+    } else if (selectedField === "boolean") {
+      return [
+        {
+          label: t("filter_expressions.is_true"),
+          value: "is_true",
+        },
+        {
+          label: t("filter_expressions.is_false"),
+          value: "is_false",
+        },
+        {
+          label: t("filter_expressions.is_blank"),
+          value: "is_blank",
+        },
+        {
+          label: t("filter_expressions.is_not_blank"),
+          value: "is_not_blank",
+        },
+      ];
     } else if (selectedField === "date") {
       return [
         {

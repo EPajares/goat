@@ -162,8 +162,8 @@ Set the `Maximum transfers` to limit how many PT connections are allowed per tri
 
 Configure how users travel **to** and **from** PT stations:
 
-- **Access mode** — Transport mode to reach the PT station (Walk, Bicycle, Car).
-- **Egress mode** — Transport mode from the PT station to the destination (Walk, Bicycle, Car).
+- **Access mode** — Transport mode to reach the PT station (Walk, Bicycle, Pedelec, Car).
+- **Egress mode** — Transport mode from the PT station to the destination (Walk, Bicycle, Pedelec, Car).
 
 For each mode, configure the **maximum travel time or distance** and the **travel speed**. For example, you can model a cyclist who rides at 15 km/h for up to 10 minutes to reach a train station.
 

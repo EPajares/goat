@@ -3,7 +3,7 @@
   "globalDependencies": [
     "**/.env"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "outputs": [
         "dist/**",
@@ -49,7 +49,7 @@
   "globalEnv": [
     "ANALYZE",
     "NEXT_PUBLIC_APP_URL",
-    "NEXT_PUBLIC_MAP_TOKEN",
+    "NEXT_PUBLIC_MAPBOX_TOKEN",
     "NEXT_PUBLIC_API_URL",
     "NEXT_PUBLIC_GEOAPI_URL",
     "NEXT_PUBLIC_PROCESSES_URL",

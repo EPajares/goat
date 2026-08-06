@@ -343,9 +343,12 @@ export const PieChartWidget = ({ config: rawConfig }: { config: PieChartSchema }
                       ? "48%"
                       : sizePreset.innerRadius
                 }
-                outerRadius={isAllLabelsOutsideLayout ? "66%" : undefined}
-                startAngle={isHalfDonut ? 180 : undefined}
-                endAngle={isHalfDonut ? 0 : undefined}
+                // Omit these rather than passing undefined. Recharts applies its
+                // own defaults with {...defaultProps, ...props}, so an explicit
+                // undefined overwrites the default instead of falling back to it
+                // — which renders every sector at "M NaN,NaN".
+                {...(isAllLabelsOutsideLayout ? { outerRadius: "66%" } : {})}
+                {...(isHalfDonut ? { startAngle: 180, endAngle: 0 } : {})}
                 cursor="default"
                 isAnimationActive={false}
                 paddingAngle={isFullPie ? 0 : piePaddingAngle}

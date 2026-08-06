@@ -12,7 +12,7 @@ from pydantic import Field, field_validator, model_validator
 
 from goatlib.analysis.geoanalysis.aggregate_points import AggregatePointsTool
 from goatlib.analysis.schemas.aggregate import (
-    AggregateColumnStatistic,
+    AggregateFieldStatistic,
     AggregatePointsParams,
     AggregationAreaType,
     validate_area_type_config,
@@ -127,7 +127,7 @@ class AggregatePointsToolParams(
         ),
     )
 
-    column_statistics: List[AggregateColumnStatistic] = Field(
+    column_statistics: List[AggregateFieldStatistic] = Field(
         ...,
         description="Statistical operations to perform on the aggregated points.",
         min_length=1,

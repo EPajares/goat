@@ -1,0 +1,69 @@
+name: "Next.js bundle analysis comment"
+
+# Posts the bundle-size comment produced by nextjs-bundle-analysis.yml. Runs in
+# the base repo's context so it can comment on fork PRs, where the analysis run
+# itself only gets a read-only token.
+on:
+  workflow_run:
+    workflows: ["PR"]
+    types: [completed]
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.event == 'pull_request'
+    steps:
+      - name: 📥 Download bundle comment artifact
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          run_id: ${{ github.event.workflow_run.id }}
+          name: bundle-comment
+          path: bundle-comment
+          if_no_artifact_found: ignore
+
+      # The artifact is built from PR code, so treat its contents as untrusted:
+      # sanitize the PR number and only comment if that PR's head matches the
+      # commit the triggering run actually analyzed.
+      - name: 🔍 Validate PR number
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! -f bundle-comment/__bundle_analysis_comment.txt || ! -f bundle-comment/__pr_number ]]; then
+            echo "No bundle comment artifact; nothing to post."
+            exit 0
+          fi
+          number=$(tr -cd '0-9' < bundle-comment/__pr_number)
+          head_sha=$(gh api "repos/${{ github.repository }}/pulls/$number" --jq .head.sha 2>/dev/null || echo missing)
+          if [[ -n "$number" && "$head_sha" == "${{ github.event.workflow_run.head_sha }}" ]]; then
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+          else
+            echo "PR number in artifact does not match the triggering run; skipping."
+          fi
+
+      - name: 💬 Find Comment
+        if: steps.pr.outputs.number
+        uses: peter-evans/find-comment@v4
+        id: fc
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          body-includes: "<!-- __NEXTJS_BUNDLE_@p4b/web -->"
+
+      - name: 💬 Create Comment
+        if: steps.pr.outputs.number && steps.fc.outputs.comment-id == 0
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ steps.pr.outputs.number }}
+          body-path: bundle-comment/__bundle_analysis_comment.txt
+
+      - name: 💬 Update Comment
+        if: steps.pr.outputs.number && steps.fc.outputs.comment-id != 0
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          body-path: bundle-comment/__bundle_analysis_comment.txt
+          edit-mode: replace

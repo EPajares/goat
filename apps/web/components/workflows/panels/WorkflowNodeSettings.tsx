@@ -35,6 +35,7 @@ import { useDateFnsLocale } from "@/i18n/utils";
 
 import { predictNodeSchema, useTempLayerFeatures, useWorkflowMetadata } from "@/lib/api/workflows";
 import type { InputSchemaInfo } from "@/lib/api/workflows";
+import { OEV_STATION_CONFIG_DEFAULT } from "@/lib/constants/oev-gueteklassen";
 import type { AppDispatch, RootState } from "@/lib/store";
 import {
   selectActiveDataPanelView,
@@ -61,6 +62,7 @@ import Container from "@/components/map/panels/Container";
 import SectionHeader from "@/components/map/panels/common/SectionHeader";
 import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import ToolsHeader from "@/components/map/panels/common/ToolsHeader";
+import OevStationConfigInput from "@/components/map/panels/toolbox/generic/inputs/OevStationConfigInput";
 import {
   getObjectDefaults,
   processObjectProperties,
@@ -294,6 +296,23 @@ export default function WorkflowNodeSettings({
       setAdvancedCollapsed(advCollapsed);
     }
   }, [process, sections]);
+
+  // The oev_gueteklassen schema doesn't expose station_config as an input, so seed
+  // the default here and render a fallback control (same special-casing as GenericTool).
+  useEffect(() => {
+    if (processId !== "oev_gueteklassen") {
+      return;
+    }
+    setValues((prev) => {
+      if (prev.station_config) {
+        return prev;
+      }
+      return {
+        ...prev,
+        station_config: OEV_STATION_CONFIG_DEFAULT,
+      };
+    });
+  }, [processId]);
 
   // Get all inputs from all sections
   const allInputs = useMemo(() => {
@@ -1087,6 +1106,10 @@ export default function WorkflowNodeSettings({
                 const baseInputs = visibleInputs.filter((input) => !input.advanced);
                 const advancedInputs = visibleInputs.filter((input) => input.advanced);
                 const hasAdvancedOptions = advancedInputs.length > 0;
+                const shouldRenderOevStationConfigFallback =
+                  processId === "oev_gueteklassen" &&
+                  section.id === "configuration" &&
+                  !visibleInputs.some((input) => input.name === "station_config");
 
                 const isCollapsed = collapsedSections[section.id] ?? section.collapsed;
                 const isAdvancedCollapsed = advancedCollapsed[section.id] ?? true;
@@ -1148,6 +1171,13 @@ export default function WorkflowNodeSettings({
                                 variables={variables}
                               />
                             ))}
+                            {shouldRenderOevStationConfigFallback && (
+                              <OevStationConfigInput
+                                input={{ name: "station_config", title: "Station configuration" }}
+                                value={effectiveValues.station_config}
+                                onChange={(value) => handleInputChange("station_config", value)}
+                              />
+                            )}
                           </Stack>
                         }
                         advancedOptions={

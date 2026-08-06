@@ -1,6 +1,6 @@
 import LayersIcon from "@mui/icons-material/Layers";
 import { Box, Stack, Tab, Tabs, Typography } from "@mui/material";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { setSelectedLayers } from "@/lib/store/layer/slice";
@@ -12,9 +12,17 @@ import { MapSidebarItemID } from "@/types/map/common";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
 import Container from "@/components/map/panels/Container";
-import Filter from "@/components/map/panels/filter/Filter";
-import PropertiesPanel from "@/components/map/panels/properties/Properties";
-import LayerStyle from "@/components/map/panels/style/LayerStyle";
+import FilterImpl from "@/components/map/panels/filter/Filter";
+import PropertiesPanelImpl from "@/components/map/panels/properties/Properties";
+import LayerStyleImpl from "@/components/map/panels/style/LayerStyle";
+
+// Tab switches flip local state in this component; without memo every switch
+// re-renders all mounted tab trees (~500ms of render work in dev). The trees
+// read live state from redux/SWR internally, so blocking parent-driven renders
+// loses nothing.
+const Filter = React.memo(FilterImpl);
+const PropertiesPanel = React.memo(PropertiesPanelImpl);
+const LayerStyle = React.memo(LayerStyleImpl);
 
 interface LayerSettingsPanelProps {
   projectId: string;
@@ -74,11 +82,22 @@ const LayerSettingsPanel = ({ projectId, projectLayers = [] }: LayerSettingsPane
     clampTabValue(getTabFromPanelId(activeRightPanel, layerType), layerType)
   );
 
+  // Tabs render on first visit and then stay mounted (hidden): remounting
+  // LayerStyle/Filter on every switch costs ~500ms of pure mount work.
+  const visitedTabsRef = useRef(new Set<number>());
+  visitedTabsRef.current.add(activeTab);
+  const isTabLive = (tab: number) => activeTab === tab || visitedTabsRef.current.has(tab);
+
   // 3. Keep syncing if Redux changes while panel is open
   useEffect(() => {
     const newTab = clampTabValue(getTabFromPanelId(activeRightPanel, layerType), layerType);
     setActiveTab(newTab);
   }, [activeRightPanel, layerType]);
+
+  const activeLayerId = activeLayer?.id;
+  useEffect(() => {
+    visitedTabsRef.current = new Set();
+  }, [activeLayerId]);
 
   const handleClose = () => {
     dispatch(setSelectedLayers([]));
@@ -146,10 +165,10 @@ const LayerSettingsPanel = ({ projectId, projectLayers = [] }: LayerSettingsPane
             {layerType === "raster" && (
               <>
                 <Box role="tabpanel" hidden={activeTab !== 0} sx={{ height: "100%" }}>
-                  {activeTab === 0 && <LayerStyle projectId={projectId} />}
+                  {isTabLive(0) && <LayerStyle projectId={projectId} />}
                 </Box>
                 <Box role="tabpanel" hidden={activeTab !== 1} sx={{ height: "100%" }}>
-                  {activeTab === 1 && <PropertiesPanel activeLayer={activeLayer} />}
+                  {isTabLive(1) && <PropertiesPanel activeLayer={activeLayer} />}
                 </Box>
               </>
             )}
@@ -157,10 +176,10 @@ const LayerSettingsPanel = ({ projectId, projectLayers = [] }: LayerSettingsPane
             {layerType === "table" && (
               <>
                 <Box role="tabpanel" hidden={activeTab !== 0} sx={{ height: "100%" }}>
-                  {activeTab === 0 && <Filter activeLayer={activeLayer} projectId={projectId} />}
+                  {isTabLive(0) && <Filter activeLayer={activeLayer} projectId={projectId} />}
                 </Box>
                 <Box role="tabpanel" hidden={activeTab !== 1} sx={{ height: "100%" }}>
-                  {activeTab === 1 && <PropertiesPanel activeLayer={activeLayer} />}
+                  {isTabLive(1) && <PropertiesPanel activeLayer={activeLayer} />}
                 </Box>
               </>
             )}
@@ -168,13 +187,13 @@ const LayerSettingsPanel = ({ projectId, projectLayers = [] }: LayerSettingsPane
             {layerType !== "raster" && layerType !== "table" && (
               <>
                 <Box role="tabpanel" hidden={activeTab !== 0} sx={{ height: "100%" }}>
-                  {activeTab === 0 && <LayerStyle projectId={projectId} />}
+                  {isTabLive(0) && <LayerStyle projectId={projectId} />}
                 </Box>
                 <Box role="tabpanel" hidden={activeTab !== 1} sx={{ height: "100%" }}>
-                  {activeTab === 1 && <Filter activeLayer={activeLayer} projectId={projectId} />}
+                  {isTabLive(1) && <Filter activeLayer={activeLayer} projectId={projectId} />}
                 </Box>
                 <Box role="tabpanel" hidden={activeTab !== 2} sx={{ height: "100%" }}>
-                  {activeTab === 2 && <PropertiesPanel activeLayer={activeLayer} />}
+                  {isTabLive(2) && <PropertiesPanel activeLayer={activeLayer} />}
                 </Box>
               </>
             )}

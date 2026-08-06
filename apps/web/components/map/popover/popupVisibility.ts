@@ -18,15 +18,25 @@ export interface PopupLayerLike {
 }
 
 /**
- * Find the layer that owns an open popup. `popupInfo.layerId` is set to
- * `layer_id ?? id` at dispatch time, so match against both — ProjectLayer
- * stores the dataset id on `layer_id` while a plain Layer uses `id`.
+ * Find the layer that owns an open popup. `popupInfo.projectLayerId` (the
+ * clicked ProjectLayer's own id, set at dispatch time) is authoritative: the
+ * same dataset can back several project layers, each with its own popup
+ * config, and the dataset id alone can't tell the twins apart. Fall back to
+ * `popupInfo.layerId` (`layer_id ?? id` at dispatch time, matched against
+ * both — ProjectLayer stores the dataset id on `layer_id` while a plain
+ * Layer uses `id`) for popups dispatched without a project layer.
  */
 export function findPopupLayer<T extends PopupLayerLike>(
   layerId: string | undefined,
   layers: T[] | undefined,
+  projectLayerId?: string,
 ): T | undefined {
-  if (!layerId || !layers) return undefined;
+  if (!layers) return undefined;
+  if (projectLayerId) {
+    const exact = layers.find((l) => l.id.toString() === projectLayerId);
+    if (exact) return exact;
+  }
+  if (!layerId) return undefined;
   return layers.find((l) => l.layer_id === layerId || l.id.toString() === layerId);
 }
 
@@ -43,9 +53,10 @@ export function findPopupLayer<T extends PopupLayerLike>(
 export function shouldClosePopupForHiddenLayer(
   layerId: string | undefined,
   layers: PopupLayerLike[] | undefined,
+  projectLayerId?: string,
 ): boolean {
   if (!layerId || !layers) return false;
-  const layer = findPopupLayer(layerId, layers);
+  const layer = findPopupLayer(layerId, layers, projectLayerId);
   if (!layer) return true; // owning layer was removed from the project
   return (layer.properties?.visibility ?? true) === false;
 }

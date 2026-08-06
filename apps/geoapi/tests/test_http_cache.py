@@ -98,6 +98,48 @@ class TestEndpointRevalidation:
         assert third.status_code == 200
         assert third.headers.get("etag") != etag
 
+    @patch("geoapi.routers.metadata._load_field_config")
+    @patch("geoapi.routers.metadata.ducklake_pool")
+    @patch("geoapi.routers.metadata.layer_service")
+    def test_queryables_etag_rotates_on_field_config_change(
+        self,
+        mock_layer_service,
+        mock_pool,
+        mock_load_field_config,
+        test_client,
+        sample_layer_metadata,
+    ) -> None:
+        """field_config lives in PG, not DuckLake: editing a column's
+        display_config creates no snapshot and bumps no layer version, so
+        the tag must key on the config itself or a 304 serves stale
+        formatting forever."""
+        mock_layer_service.get_layer_metadata = AsyncMock(
+            return_value=sample_layer_metadata
+        )
+        mock_pool.pinned_snapshot_id = 42
+        mock_load_field_config.return_value = {
+            "value": {"kind": "number", "display_config": {"always_show_sign": False}}
+        }
+
+        first = test_client.get(f"/collections/{self.COLLECTION}/queryables")
+        assert first.status_code == 200
+        etag = first.headers.get("etag")
+        assert etag
+
+        # display_config edited in PG — same snapshot, same layer version
+        mock_load_field_config.return_value = {
+            "value": {"kind": "number", "display_config": {"always_show_sign": True}}
+        }
+        second = test_client.get(
+            f"/collections/{self.COLLECTION}/queryables",
+            headers={"If-None-Match": etag},
+        )
+        assert second.status_code == 200
+        assert second.headers.get("etag") != etag
+        assert second.json()["properties"]["value"]["display_config"] == {
+            "always_show_sign": True
+        }
+
     @patch("geoapi.routers.metadata.ducklake_pool")
     @patch("geoapi.routers.metadata.layer_service")
     def test_collection_etag_roundtrip(

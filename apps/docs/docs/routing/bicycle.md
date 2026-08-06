@@ -68,6 +68,14 @@ Cost function for **pedelec**:
 
 If an edge is of class `pedestrian` or `crosswalk`, we assume the rider would dismount and walk their bicycle/pedelec. The cost for this type of segment is: `cost = length / speed`
 
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '0.75rem' }}>
+  <img src={require('/img/routing/bicycle_edge_cost.png').default} alt="Cycling network edge cost by topology — surface and slope multipliers" style={{ maxWidth: "100%", objectFit: "contain"}}/>
+</div>
+
+:::note
+Cost multiplier values are illustrative examples. Actual impedance values vary depending on the specific surface type and slope gradient of each path segment.
+:::
+
 #### Network Propagation
 
 To compute the shortest path from the origin point to various destinations, a custom implementation of the well-known [Dijkstra Algorithm](https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm) is used.

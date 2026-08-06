@@ -37,14 +37,24 @@ yarn-error.log*
 .env
 
 # Python
-__pycache__
+**/__pycache__
 app.egg-info
 *.pyc
-.mypy_cache
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
 .coverage
 htmlcov
 .venv
 
+# Test fixtures — not needed at runtime, ~110MB in goatlib alone
+packages/python/*/tests
+apps/core/tests
+apps/geoapi/tests
+apps/processes/tests
+
 # Large data directories
 data/
 lint-results/
+
+.git

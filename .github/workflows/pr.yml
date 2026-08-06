@@ -3,32 +3,22 @@ name: "PR"
 on:
   pull_request:
     branches: [main]
-  pull_request_target:
-    branches: [main]
   push:
     branches: [main]
   merge_group:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  # Key on PR number, not head_ref: fork branches often share names (several
+  # contributors PR from their fork's `main`), and equal groups would cancel
+  # each other's CI.
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   file-changes:
     name: file-changes
     uses: ./.github/workflows/checks.yml
-    secrets: inherit
-
-  pr-base:
-    name: pr-base
-    # PR-only: this posts PR comments and has no meaning on a push to main.
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'pull_request_target' }}
-    uses: "plan4better/.github/.github/workflows/reusable-pr-base.yml@main"
-    permissions:
-      contents: none
-      issues: read
-      pull-requests: write
     secrets: inherit
 
   lint:
@@ -59,27 +49,26 @@ jobs:
       geoapi: ${{ needs.file-changes.outputs.geoapi == 'true' }}
       processes: ${{ needs.file-changes.outputs.processes == 'true' }}
 
-  build-goat:
+  build:
     name: build
     needs: file-changes
-    if: ${{ needs.file-changes.outputs.web == 'true' || needs.file-changes.outputs.storybook == 'true' }}
-    uses: ./.github/workflows/production-build.yml
+    uses: ./.github/workflows/build.yml
     secrets: inherit
+    with:
+      web: >-
+        ${{ needs.file-changes.outputs.web == 'true'
+        || needs.file-changes.outputs.storybook == 'true' }}
+      keycloak-theme: ${{ needs.file-changes.outputs.keycloak-theme == 'true' }}
 
-  analyze-goat:
-    name: analyze-goat
-    needs: build-goat
+  analyze:
+    name: analyze
+    needs: [file-changes, build]
+    if: ${{ needs.file-changes.outputs.web == 'true' || needs.file-changes.outputs.storybook == 'true' }}
     uses: ./.github/workflows/nextjs-bundle-analysis.yml
     secrets: inherit
 
-  build-keycloak:
-    name: build-keycloak
-    needs: file-changes
-    if: ${{ needs.file-changes.outputs.keycloak-theme == 'true' }}
-    uses: ./.github/workflows/keycloak-build.yml
-
   required:
-    needs: [lint, test, build-goat, analyze-goat, build-keycloak]
+    needs: [lint, test, build, analyze]
     if: always()
     runs-on: ubuntu-latest
     steps:

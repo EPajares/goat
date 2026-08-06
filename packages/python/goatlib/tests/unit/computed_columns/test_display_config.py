@@ -1,6 +1,7 @@
 import pytest
 from goatlib.computed_columns.display_config import (
     AreaDisplayConfig,
+    DatetimeDisplayConfig,
     LengthDisplayConfig,
     NumberDisplayConfig,
     PerimeterDisplayConfig,
@@ -67,12 +68,36 @@ def test_length_display_config_valid_units() -> None:
         assert cfg.unit == unit
 
 
+def test_datetime_display_config_defaults() -> None:
+    cfg = DatetimeDisplayConfig()
+    assert cfg.format is None
+    assert cfg.tz == "UTC"
+
+
+def test_datetime_display_config_accepts_tz() -> None:
+    cfg = DatetimeDisplayConfig(tz="Europe/Berlin")
+    assert cfg.tz == "Europe/Berlin"
+
+
+def test_datetime_display_config_accepts_format() -> None:
+    cfg = DatetimeDisplayConfig(format="YYYY-MM-DD HH:mm")
+    assert cfg.format == "YYYY-MM-DD HH:mm"
+
+
+def test_datetime_display_config_rejects_extra_keys() -> None:
+    with pytest.raises(ValidationError):
+        DatetimeDisplayConfig(unit="m")
+
+
 def test_get_display_config_model_returns_correct_class() -> None:
     assert get_display_config_model("string") is StringDisplayConfig
     assert get_display_config_model("number") is NumberDisplayConfig
     assert get_display_config_model("area") is AreaDisplayConfig
     assert get_display_config_model("perimeter") is PerimeterDisplayConfig
     assert get_display_config_model("length") is LengthDisplayConfig
+    assert get_display_config_model("datetime") is DatetimeDisplayConfig
+    assert get_display_config_model("date") is None
+    assert get_display_config_model("time") is None
 
 
 def test_get_display_config_model_unknown_kind() -> None:

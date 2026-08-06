@@ -123,6 +123,7 @@ export const informationLayersConfigSchema = informationConfigSchema.extend({
       show_zoom_to_action: z.boolean().optional().default(true),
       excluded_layers: z.array(z.number()).optional().default([]),
       legend_hidden_layers: z.array(z.number()).optional().default([]),
+      legend_simple_layers: z.array(z.number()).optional().default([]),
       downloadable_layers: z.array(z.number()).optional().default([]),
     })
     .passthrough()
@@ -239,6 +240,10 @@ export const tableDataConfigSchema = dataConfigSchema.extend({
       size: z.number().min(1).max(5000).optional().default(50),
       sticky_header: z.boolean().optional().default(true),
       show_totals: z.boolean().optional().default(true),
+      // Viewer-facing column actions. Default on, so existing dashboards keep
+      // the behaviour they were published with.
+      show_sort_action: z.boolean().optional().default(true),
+      show_filter_action: z.boolean().optional().default(true),
       format: formatNumberTypes.optional().default("none"),
       column_formats: z.record(formatNumberTypes).optional(),
       description: z.string().optional(),
@@ -247,7 +252,7 @@ export const tableDataConfigSchema = dataConfigSchema.extend({
     .default({}),
 });
 
-export const filterLayoutTypes = z.enum(["checkbox", "cards", "chips", "select", "range"]);
+export const filterLayoutTypes = z.enum(["checkbox", "cards", "chips", "select", "range", "picker"]);
 export const pieLayoutTypes = z.enum(["center_active", "all_labels_outside", "legend"]);
 export const pieChartTypes = z.enum(["donut", "pie", "half_donut"]);
 export const labelSizeTypes = z.enum(["sm", "md", "lg"]);
@@ -276,6 +281,8 @@ export const filterDataConfigSchema = dataConfigSchema.extend({
       show_histogram: z.boolean().optional().default(true),
       steps: z.number().min(1).max(100).optional().default(50),
       show_slider: z.boolean().optional().default(true),
+      // Range slider step unit for datetime columns
+      granularity: z.enum(["minute", "hour", "day", "week", "month"]).optional(),
     })
     .default({}),
   options: dataConfigOptionsBaseSchema
@@ -568,7 +575,11 @@ export type WidgetElementConfig =
   | TabsContainerSchema
   | LinksElementSchema;
 export type WidgetInformationConfig = LayerInformationSchema;
-export type WidgetDataConfig = NumbersDataSchema | TableDataSchema | FilterDataSchema | RichTextDataSchema;
+export type WidgetDataConfig =
+  | NumbersDataSchema
+  | TableDataSchema
+  | FilterDataSchema
+  | RichTextDataSchema;
 
 export type LayersLayoutStyleType = z.infer<typeof layersLayoutStyleTypes>;
 export type LayersToggleStyleType = z.infer<typeof layersToggleStyleTypes>;

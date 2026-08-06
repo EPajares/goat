@@ -56,7 +56,9 @@ async def create_project(
     user_id: UUID4 = Depends(get_user_id),
     *,
     project_in: IProjectCreate = Body(
-        ..., example=project_request_examples["create"], description="Project to create"
+        ...,
+        examples=[project_request_examples["create"]],
+        description="Project to create",
     ),
 ) -> IProjectRead:
     """This will create an empty project with a default initial view state. The project does not contains layers."""
@@ -96,7 +98,7 @@ async def read_project(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> IProjectRead:
     """Retrieve a project by its ID."""
@@ -215,23 +217,23 @@ async def read_projects(
     team_id: UUID | None = Query(
         None,
         description="The ID of the team to get the layers from",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     organization_id: UUID | None = Query(
         None,
         description="The ID of the organization to get the layers from",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     search: str = Query(None, description="Searches the name of the project"),
     order_by: str = Query(
         None,
         description="Specify the column name that should be used to order. You can check the Project model to see which column names exist.",
-        example="created_at",
+        examples=["created_at"],
     ),
     order: OrderEnum = Query(
         "descendent",
         description="Specify the order to apply. There are the option ascendent or descendent.",
-        example="descendent",
+        examples=["descendent"],
     ),
 ) -> Page[IProjectRead]:
     """Retrieve a list of projects."""
@@ -273,10 +275,12 @@ async def update_project(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     project_in: IProjectBaseUpdate = Body(
-        ..., example=project_request_examples["update"], description="Project to update"
+        ...,
+        examples=[project_request_examples["update"]],
+        description="Project to update",
     ),
 ) -> IProjectRead:
     """Update base attributes of a project by its ID."""
@@ -301,7 +305,7 @@ async def delete_project(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> None:
     """Delete a project by its ID."""
@@ -331,7 +335,7 @@ async def read_project_initial_view_state(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
 ) -> InitialViewState:
     """Retrieve initial view state of a project by its ID."""
@@ -373,11 +377,11 @@ async def update_project_initial_view_state(
     project_id: UUID4 = Path(
         ...,
         description="The ID of the project to get",
-        example="3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        examples=["3fa85f64-5717-4562-b3fc-2c963f66afa6"],
     ),
     initial_view_state: InitialViewState = Body(
         ...,
-        example=project_request_examples["initial_view_state"],
+        examples=[project_request_examples["initial_view_state"]],
         description="Initial view state to update",
     ),
 ) -> InitialViewState:

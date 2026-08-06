@@ -83,14 +83,38 @@ export function useFeatureEditor(mapRef: React.RefObject<MapRef | null> | null) 
     const markerSize = props.marker_size ?? 100;
     // Resolve icon-image — may be a data-driven expression or a simple string
     const iconImage = getMapboxStyleMarker(editingProjectLayer as ProjectLayer);
+    const iconImageName =
+      typeof iconImage === "string" ? iconImage : `${editingProjectLayer.id}-${props.marker?.name}`;
+    const iconSize = markerSize / 200;
+
+    // The draw styles render the selection as a ring AROUND the icon. Its
+    // radius must come from the icon's real rendered size — icon images have
+    // arbitrary intrinsic dimensions, so a fixed formula based on _iconSize
+    // alone leaves the ring hidden behind larger icons.
+    let iconRadius: number | undefined;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const img = (mapRef?.current?.getMap() as any)?.getImage?.(iconImageName);
+      const width = img?.data?.width;
+      if (typeof width === "number" && width > 0) {
+        const pixelRatio = img.pixelRatio ?? 1;
+        const height = img.data.height ?? width;
+        const cssSize = Math.max(width, height) / pixelRatio;
+        iconRadius = Math.round((cssSize * iconSize) / 2 + 4);
+      }
+    } catch {
+      /* image not registered (yet) — styles fall back to the size formula */
+    }
+
     return {
-      _iconImage: typeof iconImage === "string" ? iconImage : `${editingProjectLayer.id}-${props.marker?.name}`,
-      _iconSize: markerSize / 200,
+      _iconImage: iconImageName,
+      _iconSize: iconSize,
       _iconAnchor: props.marker_anchor || "center",
       _iconOpacity: props.filled ? (props.opacity ?? 1) : 1,
       _iconColor: "#000000",
+      ...(iconRadius !== undefined ? { _iconRadius: iconRadius } : {}),
     };
-  }, [editingProjectLayer]);
+  }, [editingProjectLayer, mapRef]);
 
   // Timestamp of last feature create — used to ignore the map click that follows a draw.create
   const lastCreateTimeRef = useRef(0);
@@ -670,31 +694,44 @@ export function useFeatureEditor(mapRef: React.RefObject<MapRef | null> | null) 
       drawControl?.deleteAll();
       dispatch(clearPendingFeatures());
       toast.success(t("features_saved"));
-      // Refresh tiles by optimistically updating updated_at
-      if (projectLayers) {
-        const now = new Date().toISOString();
+      // Refresh tiles by optimistically updating updated_at — the tile URL's
+      // v= cache-buster derives from it, so bumping it makes MapLibre refetch.
+      const bumpLayerUpdatedAt = () =>
         mutateProjectLayers(
-          projectLayers.map((l) =>
-            l.layer_id === activeLayerId ? { ...l, updated_at: now } : l
-          ),
+          (current) =>
+            current?.map((l) =>
+              l.layer_id === activeLayerId ? { ...l, updated_at: new Date().toISOString() } : l
+            ),
           { revalidate: false },
         );
-      }
+      bumpLayerUpdatedAt();
       // Revalidate any SWR cache entry for this layer's collection items
       // (data table feature pages, queryables) so newly written values
       // — including recomputed columns like area/perimeter — show up.
       const itemsPrefix = `${COLLECTIONS_API_BASE_URL}/${activeLayerId}`;
-      globalMutate(
-        (key) => {
+      // Single-argument mutate = revalidate while KEEPING the cached data on
+      // screen. Passing (key, undefined, {revalidate: true}) is NOT the same:
+      // SWR then treats undefined as new data and clears the cache, which
+      // blanks the data table (spinner, lost scroll) on every save.
+      const revalidateCollection = () =>
+        globalMutate((key) => {
           if (typeof key === "string") return key.startsWith(itemsPrefix);
           if (Array.isArray(key) && typeof key[0] === "string") {
             return key[0].startsWith(itemsPrefix);
           }
           return false;
-        },
-        undefined,
-        { revalidate: true },
-      );
+        });
+      revalidateCollection();
+      // The read pool serves a pinned DuckLake snapshot whose post-write
+      // refresh runs on a background thread (~1s) — the immediate revalidate
+      // and tile refetch can race it and get the pre-write snapshot, so do
+      // both once more after the pin has had time to advance. Without the
+      // second updated_at bump the stale tiles would stick: MapLibre only
+      // refetches when the tile URL changes.
+      setTimeout(() => {
+        revalidateCollection();
+        bumpLayerUpdatedAt();
+      }, 2500);
     } catch (error) {
       console.error("Failed to save features:", error);
       toast.error(t("error_saving_features"));

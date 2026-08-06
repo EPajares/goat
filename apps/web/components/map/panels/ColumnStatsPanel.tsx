@@ -16,6 +16,8 @@ import { useTranslation } from "react-i18next";
 import useSWR from "swr";
 
 import { apiRequestAuth } from "@/lib/api/fetcher";
+import { formatFieldValue } from "@/lib/utils/formatFieldValue";
+import type { FieldKind } from "@/lib/validations/layer";
 
 const PROCESSES_API_BASE_URL = `${process.env.NEXT_PUBLIC_PROCESSES_URL}/processes`;
 
@@ -28,6 +30,8 @@ interface ColumnStatsPanelProps {
   layerId: string;
   columnName: string;
   columnType: string;
+  /** Field kind ("datetime"/"boolean"/...) for kind-aware value formatting */
+  columnKind?: string;
   cqlFilter?: string;
   onClose: () => void;
   onPrev: () => void;
@@ -235,9 +239,11 @@ function HistogramChart({ bins }: { bins: HistogramResponse["bins"] }) {
 function TopValuesList({
   values,
   maxCount,
+  kind,
 }: {
   values: UniqueValuesResponse["values"];
   maxCount: number;
+  kind?: string;
 }) {
   const theme = useTheme();
   const { t } = useTranslation("common");
@@ -269,6 +275,8 @@ function TopValuesList({
           <Typography variant="caption" noWrap sx={{ flex: 1, zIndex: 1, py: 0.25, px: 0.5 }}>
             {item.value === null ? (
               <em style={{ color: theme.palette.text.disabled }}>null</em>
+            ) : kind && kind !== "string" && kind !== "number" ? (
+              formatFieldValue(item.value, kind as FieldKind, {})
             ) : (
               String(item.value)
             )}
@@ -306,6 +314,7 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({
   layerId,
   columnName,
   columnType,
+  columnKind,
   cqlFilter,
   onClose,
   onPrev,
@@ -415,7 +424,7 @@ const ColumnStatsPanel: React.FC<ColumnStatsPanelProps> = ({
               sx={{ mb: 0.5, display: "block" }}>
               {t("top_values", { defaultValue: "Top Values" })}
             </Typography>
-            <TopValuesList values={uniqueValues?.values ?? []} maxCount={maxCount} />
+            <TopValuesList values={uniqueValues?.values ?? []} maxCount={maxCount} kind={columnKind} />
 
             {/* Totals */}
             <Divider sx={{ my: 1 }} />

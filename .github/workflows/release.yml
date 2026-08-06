@@ -153,14 +153,21 @@ jobs:
       platforms: linux/amd64
       image-name: ghcr.io/${{ github.repository }}/docs
 
-  release-keycloak-theme:
+  release-docker-keycloak:
     needs: [file-changes, lint, test]
     if: needs.file-changes.outputs.keycloak-theme == 'true' || startsWith(github.ref, 'refs/tags/v')
-    uses: ./.github/workflows/keycloak-build.yml
-    secrets: inherit
+    uses: ./.github/workflows/reusable-docker-build.yml
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
     with:
-      keycloak-theme-artifact-id: "p4b-keyclok-theme-${{ needs.file-changes.outputs.sha-short}}"
-      push: true
+      dockerhub-enable: false
+      ghcr-enable: true
+      push: ${{ github.event_name != 'pull_request' }}
+      file: ./packages/js/keycloak-theme/Dockerfile
+      platforms: linux/amd64
+      image-name: ghcr.io/${{ github.repository }}/keycloak
 
   # Windmill images - server and workers
   release-docker-windmill-server:

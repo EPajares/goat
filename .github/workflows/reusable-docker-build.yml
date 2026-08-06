@@ -105,14 +105,14 @@ jobs:
 
       - name: 🐳 Login to DockerHub
         if: inputs.dockerhub-enable
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.dockerhub-username }}
           password: ${{ secrets.dockerhub-token }}
 
       - name: 📦 Login to GHCR
         if: inputs.ghcr-enable
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -128,11 +128,15 @@ jobs:
 
       - name: 🐳 Build and Push per-platform (digest only)
         id: build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           provenance: false
           platforms: ${{ matrix.platform }}
-          context: ${{ inputs.context }}
+          # Default to the checked-out workspace. With no context,
+          # build-push-action falls back to the Git context and BuildKit
+          # re-clones the whole repo (~1.5 GB) inside the builder, discarding
+          # the checkout above.
+          context: ${{ inputs.context || '.' }}
           file: ${{ inputs.file }}
           target: ${{ inputs.target }}
           push: true
@@ -160,7 +164,7 @@ jobs:
       - name: 💬 Find PR comment
         if: github.event_name == 'pull_request' && inputs.comment-enable
         id: fc
-        uses: peter-evans/find-comment@v2
+        uses: peter-evans/find-comment@v4
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: github-actions[bot]
@@ -168,7 +172,7 @@ jobs:
 
       - name: 💬 Create/update PR comment
         if: github.event_name == 'pull_request' && inputs.comment-enable
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           comment-id: ${{ steps.fc.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
@@ -211,14 +215,14 @@ jobs:
 
       - name: 🐳 Login to DockerHub
         if: inputs.dockerhub-enable
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.dockerhub-username }}
           password: ${{ secrets.dockerhub-token }}
 
       - name: 📦 Login to GHCR
         if: inputs.ghcr-enable
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

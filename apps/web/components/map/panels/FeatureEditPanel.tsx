@@ -18,8 +18,18 @@ import useLayerFields from "@/hooks/map/CommonHooks";
 
 import { formatFieldValue } from "@/lib/utils/formatFieldValue";
 import type { FieldKind } from "@/lib/validations/layer";
+import { resolveDisplayKind } from "@/lib/validations/layer";
+
+import TemporalPicker from "@p4b/ui/components/TemporalPicker";
+
+import {
+  BOOLEAN_SELECT_ITEMS,
+  booleanToSelectValue,
+  parseBooleanInput,
+} from "@/lib/utils/fieldInput";
 
 import Container from "@/components/map/panels/Container";
+import Selector from "@/components/map/panels/common/Selector";
 import TextFieldInput from "@/components/map/panels/common/TextFieldInput";
 
 const FeatureEditPanel: React.FC = () => {
@@ -33,12 +43,19 @@ const FeatureEditPanel: React.FC = () => {
   const { layerFields } = useLayerFields(activeLayerId || "");
 
   const pushHistory = () => {
-    const drawFeatures = drawControl?.getAll() || { type: "FeatureCollection" as const, features: [] };
+    // Snapshot capture must never block the edit itself: getAll() throws when
+    // the draw control has been removed from the map.
+    let drawFeatures: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+    try {
+      drawFeatures = drawControl?.getAll() ?? drawFeatures;
+    } catch {
+      // fall through with an empty collection
+    }
     dispatch(pushSnapshot({ drawFeatures }));
   };
 
   const filteredFields = layerFields.filter(
-    (f) => f.type === "string" || f.type === "number"
+    (f) => f.type === "string" || f.type === "number" || f.type === "date" || f.type === "boolean"
   );
 
   // In draw mode, eagerly create a pending feature so user can fill attributes before drawing
@@ -99,9 +116,13 @@ const FeatureEditPanel: React.FC = () => {
       pushHistory();
     }
 
-    const parsedValue = filteredFields.find((f) => f.name === fieldName)?.type === "number"
-      ? (value === "" ? null : Number(value))
-      : (value || null);
+    const fieldType = filteredFields.find((f) => f.name === fieldName)?.type;
+    const parsedValue =
+      fieldType === "number"
+        ? (value === "" ? null : Number(value))
+        : fieldType === "boolean"
+          ? parseBooleanInput(value)
+          : (value || null);
     dispatch(
       updatePendingProperties({
         id: activeFeatureId,
@@ -165,7 +186,7 @@ const FeatureEditPanel: React.FC = () => {
               if (raw != null && raw !== "") {
                 displayValue = formatFieldValue(
                   raw,
-                  (field.kind as FieldKind) ?? "number",
+                  (resolveDisplayKind(field) as FieldKind) ?? "number",
                   field.display_config ?? {},
                 );
               } else if (mode === "draw") {
@@ -176,6 +197,34 @@ const FeatureEditPanel: React.FC = () => {
                 feature?.properties[field.name] != null
                   ? String(feature.properties[field.name])
                   : "";
+            }
+
+            if (!isComputed && field.type === "date") {
+              return (
+                <TemporalPicker
+                  key={field.name}
+                  kind="datetime"
+                  label={field.name}
+                  value={(feature?.properties[field.name] as string) ?? ""}
+                  onChange={(value) => handlePropertyChange(field.name, value)}
+                />
+              );
+            }
+
+            if (!isComputed && field.type === "boolean") {
+              const current = booleanToSelectValue(feature?.properties[field.name]);
+              return (
+                <Selector
+                  key={field.name}
+                  label={field.name}
+                  selectedItems={BOOLEAN_SELECT_ITEMS.find((i) => i.value === current)}
+                  setSelectedItems={(item) => {
+                    const value = Array.isArray(item) ? item[0]?.value : item?.value;
+                    handlePropertyChange(field.name, String(value ?? ""));
+                  }}
+                  items={[...BOOLEAN_SELECT_ITEMS]}
+                />
+              );
             }
 
             return (

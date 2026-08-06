@@ -28,6 +28,12 @@ Incorporates street-level information from  **[OpenStreetMap](https://wiki.opens
 
 ## 3. Technical Details
 
+A public transport trip consists of three legs: an **access leg** from the origin to a PT station, the **transit leg** through the PT network, and an **egress leg** from the PT station to the destination. The access and egress modes can be configured independently.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+  <img src={require('/img/routing/pt_trip_structure.png').default} alt="PT trip structure and example combinations" style={{ maxWidth: "100%", objectFit: "contain"}}/>
+</div>
+
 Public transport routing is performed using the **[R5 Routing Engine](https://github.com/conveyal/r5)** (_Rapid Realistic Routing on Real-world and Reimagined networks_). R5 is the routing engine from **[Conveyal](https://conveyal.com/)**, a web-based platform that allows users to create transportation scenarios and evaluate them in terms of cumulative opportunities and accessibility indicators.
 
 

@@ -11,7 +11,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "react-toastify";
 
-import { COLLECTIONS_API_BASE_URL, addColumn, deleteColumn, renameColumn, updateColumnDisplayConfig, useDataset, useLayerQueryables } from "@/lib/api/layers";
+import { COLLECTIONS_API_BASE_URL, addColumn, deleteColumn, renameColumn, updateColumnDisplayConfig, updateColumnFormula, useDataset, useLayerQueryables } from "@/lib/api/layers";
 import type { FieldDefinition, FieldKind } from "@/lib/validations/layer";
 import { mutate as globalMutate } from "swr";
 
@@ -97,6 +97,8 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
           is_computed?: boolean;
           display_config?: Record<string, unknown>;
           type?: string;
+          formula?: string;
+          output_kind?: string;
         };
         return {
           id: name,
@@ -104,6 +106,8 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
           kind: s.kind ?? (s.type === "number" || s.type === "integer" ? "number" : "string"),
           is_computed: s.is_computed ?? false,
           display_config: s.display_config ?? {},
+          formula: s.formula,
+          output_kind: s.output_kind,
         };
       });
 
@@ -119,12 +123,16 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
   /** Revalidate all SWR keys for this layer (queryables, collection items, etc.) */
   const revalidateLayer = useCallback(() => {
     mutateQueryables();
-    // Revalidate any SWR key that starts with the collection URL for this layer
-    globalMutate(
-      (key) => typeof key === "string" && key.startsWith(`${COLLECTIONS_API_BASE_URL}/${layerId}`),
-      undefined,
-      { revalidate: true },
-    );
+    // Revalidate any SWR key that starts with the collection URL for this
+    // layer. Single-argument mutate keeps the cached data on screen while
+    // refetching (a data argument — even undefined — would clear the cache).
+    // Items keys are [url, params] arrays, so match those too.
+    globalMutate((key) => {
+      const prefix = `${COLLECTIONS_API_BASE_URL}/${layerId}`;
+      if (typeof key === "string") return key.startsWith(prefix);
+      if (Array.isArray(key) && typeof key[0] === "string") return key[0].startsWith(prefix);
+      return false;
+    });
   }, [layerId, mutateQueryables]);
 
   // Build a map of original field names by ID for diffing
@@ -188,16 +196,27 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
 
       for (const field of fields) {
         if (!originalIds.has(field.id)) {
-          // New field — add column with kind + display_config
+          // New field — add column with kind + display_config (+ formula)
           await addColumn(layerId, {
             name: field.name,
             kind: field.kind,
             display_config: field.display_config ?? {},
+            ...(field.kind === "formula" ? { formula: field.formula } : {}),
           });
         } else {
           const orig = originalMap.get(field.id);
           if (orig && orig.name !== field.name) {
             await renameColumn(layerId, orig.name, field.name);
+          }
+          // Formula change: the backend revalidates, re-infers the result
+          // type and recomputes the whole column.
+          if (
+            orig &&
+            field.kind === "formula" &&
+            field.formula &&
+            field.formula !== orig.formula
+          ) {
+            await updateColumnFormula(layerId, field.name, field.formula);
           }
           // Persist display_config edits on existing fields
           const origConfig = JSON.stringify(orig?.display_config ?? {});
@@ -231,6 +250,7 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
       const orig = originalMap.get(f.id);
       if (!orig) return true; // new field
       if (orig.name !== f.name) return true;
+      if ((orig.formula ?? "") !== (f.formula ?? "")) return true;
       return (
         JSON.stringify(orig.display_config ?? {}) !==
         JSON.stringify(f.display_config ?? {})
@@ -253,6 +273,7 @@ const EditFieldsModal: React.FC<EditFieldsModalProps> = ({
             onRemoveOverride={handleRemoveRequest}
             lockedFieldIds={lockedFieldIds}
             geometryType={layerGeometryType}
+            layerId={layerId}
           />
         </DialogContent>
         <DialogActions

@@ -17,7 +17,11 @@ import { useTranslation } from "react-i18next";
 
 import { ICON_NAME } from "@p4b/ui/components/Icon";
 
-import type { FilterDataSchema, FilterLayoutTypes, WidgetDataConfig } from "@/lib/validations/widget";
+import type {
+  FilterDataSchema,
+  FilterLayoutTypes,
+  WidgetDataConfig,
+} from "@/lib/validations/widget";
 import { filterLayoutTypes } from "@/lib/validations/widget";
 
 import type { SelectorItem } from "@/types/map/common";
@@ -263,19 +267,41 @@ export const WidgetFilterLayout = ({
     projectId as string
   );
 
-  const layoutOptions = useMemo(
-    () => [
+  const { layerFields } = useLayerFields(selectedLayerDatasetId ?? "");
+  const isTemporal = useMemo<boolean>(() => {
+    const field = layerFields.find((f) => f.name === config.setup?.column_name);
+    return field?.type === "date";
+  }, [layerFields, config.setup?.column_name]);
+
+  const layoutOptions = useMemo(() => {
+    const base: { value: FilterLayoutTypes; label: string }[] = [
       { value: filterLayoutTypes.Values.select, label: t("dropdown") },
       { value: filterLayoutTypes.Values.chips, label: t("chips") },
       { value: filterLayoutTypes.Values.checkbox, label: t("checkbox") },
       { value: filterLayoutTypes.Values.range, label: t("range") },
-    ],
-    [t]
-  );
+    ];
+    if (isTemporal) base.push({ value: filterLayoutTypes.Values.picker, label: t("picker") });
+    return base;
+  }, [t, isTemporal]);
 
   const selectedLayout = useMemo(() => {
     return layoutOptions.find((option) => option.value === config.setup?.layout);
   }, [config.setup?.layout, layoutOptions]);
+
+  const granularityOptions = useMemo(
+    () => [
+      { value: "minute", label: t("minute") },
+      { value: "hour", label: t("hour") },
+      { value: "day", label: t("day") },
+      { value: "week", label: t("week") },
+      { value: "month", label: t("month") },
+    ],
+    [t]
+  );
+  const selectedGranularity = useMemo(() => {
+    const effective = config.setup?.granularity ?? "day";
+    return granularityOptions.find((o) => o.value === effective);
+  }, [granularityOptions, config.setup?.granularity]);
 
   return (
     <>
@@ -304,6 +330,23 @@ export const WidgetFilterLayout = ({
               items={layoutOptions}
               label={t("layout")}
             />
+            {isTemporal && selectedLayout?.value === filterLayoutTypes.Values.range && (
+              <Selector
+                selectedItems={selectedGranularity}
+                setSelectedItems={(item: SelectorItem | SelectorItem[] | undefined) => {
+                  const value = Array.isArray(item) ? item[0]?.value : item?.value;
+                  onChange({
+                    ...config,
+                    setup: {
+                      ...config.setup,
+                      granularity: value as "minute" | "hour" | "day" | "week" | "month" | undefined,
+                    },
+                  });
+                }}
+                items={granularityOptions}
+                label={t("granularity")}
+              />
+            )}
             {/* Select (Dropdown) specific settings */}
             {selectedLayout?.value === filterLayoutTypes.Values.select && (
               <>

@@ -54,13 +54,27 @@ def calculate_histogram(
 
     col = f'"{column}"'
 
+    # Temporal columns are binned on their epoch value (time -> seconds of day,
+    # date/timestamp -> unix seconds); the caller formats the numeric edges back.
+    value_expr = col
+    try:
+        type_row = con.execute(
+            f"SELECT lower(typeof({col})) FROM {table_name} "
+            f"WHERE {where_clause} AND {col} IS NOT NULL LIMIT 1",
+            params or [],
+        ).fetchone()
+        if type_row and type_row[0] and ("time" in type_row[0] or "date" in type_row[0]):
+            value_expr = f"epoch({col})"
+    except Exception:
+        value_expr = col
+
     # First, get min, max, total count, and null count
     stats_query = f"""
         SELECT
             COUNT(*) AS total_rows,
-            COUNT({col}) AS non_null_count,
-            MIN({col}) AS min_val,
-            MAX({col}) AS max_val
+            COUNT({value_expr}) AS non_null_count,
+            MIN({value_expr}) AS min_val,
+            MAX({value_expr}) AS max_val
         FROM {table_name}
         WHERE {where_clause}
     """
@@ -113,7 +127,7 @@ def calculate_histogram(
     bins = _count_bins(
         con=con,
         table_name=table_name,
-        column=column,
+        value_expr=value_expr,
         edges=edges,
         where_clause=where_clause,
         params=params,
@@ -211,13 +225,13 @@ def _build_histogram_edges(
 def _count_bins(
     con: duckdb.DuckDBPyConnection,
     table_name: str,
-    column: str,
+    value_expr: str,
     edges: list[float],
     where_clause: str,
     params: list[Any] | None,
 ) -> list[HistogramBin]:
     """Count values for each bin edge interval."""
-    col = f'"{column}"'
+    col = value_expr
     base_params = params or []
     bins: list[HistogramBin] = []
 

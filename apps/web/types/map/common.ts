@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { ICON_NAME } from "@p4b/ui/components/Icon";
 
 import type { CustomBasemap } from "@/lib/validations/project";
@@ -39,4 +41,6 @@ export type SelectorItem = {
   value: string | number;
   label: string;
   icon?: ICON_NAME;
+  /** Custom indicator (e.g. FieldKindIcon chip) — takes precedence over `icon`. */
+  iconNode?: ReactNode;
 };

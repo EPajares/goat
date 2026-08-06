@@ -17,7 +17,10 @@ import type { PopperPlacementType, TooltipProps } from "@mui/material";
 import { useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { stripMediaUrls } from "@/lib/utils/mediaEmbed";
 import type { PopupPlacement, PopupSize, PopupType } from "@/lib/validations/widget";
+
+import { popupMarkdownComponents } from "@/components/builder/widgets/common/markdownComponents";
 
 export type { PopupPlacement, PopupSize, PopupType };
 
@@ -53,12 +56,14 @@ const DIALOG_MAX_WIDTH: Record<PopupSize, "xs" | "sm" | "md"> = {
  * Strip markdown syntax for tooltip rendering (plain text only).
  */
 function stripMarkdown(input: string): string {
-  return input
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/[*_`#>~-]+/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+  return stripMediaUrls(
+    input
+      .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[*_`#>~-]+/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 const dialogMarkdownStyles = {
@@ -168,7 +173,7 @@ const PopupContentRenderer = ({
                     </Typography>
                   )}
                   <Box sx={{ ...dialogMarkdownStyles, "& p": { mb: 0.5, lineHeight: 1.5 } }}>
-                    <ReactMarkdown>{content}</ReactMarkdown>
+                    <ReactMarkdown components={popupMarkdownComponents}>{content}</ReactMarkdown>
                   </Box>
                   {url && (
                     <Typography
@@ -215,7 +220,7 @@ const PopupContentRenderer = ({
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={dialogMarkdownStyles}>
-          <ReactMarkdown>{content}</ReactMarkdown>
+          <ReactMarkdown components={popupMarkdownComponents}>{content}</ReactMarkdown>
         </Box>
       </DialogContent>
     </Dialog>

@@ -1,0 +1,27 @@
+name: "PR Base"
+
+# PR metadata jobs (labels, semantic title check, welcome comment, cache
+# cleanup). These need a write token even on fork PRs, hence
+# pull_request_target — which is safe here only because none of these jobs
+# check out or execute PR code (they all run with contents: none). Keep the
+# CI pipeline (pr.yml) on plain pull_request; never add pull_request_target
+# to a workflow that builds PR code.
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, edited, synchronize]
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+jobs:
+  pr-base:
+    name: pr-base
+    uses: "plan4better/.github/.github/workflows/reusable-pr-base.yml@main"
+    permissions:
+      contents: none
+      issues: read
+      pull-requests: write
+      # clean-pr-cache deletes the closed PR's action caches.
+      actions: write
+    secrets: inherit

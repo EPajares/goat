@@ -205,6 +205,80 @@ class TestDuckDBCQLEvaluator:
         assert '"geom"' in sql
 
 
+class TestTemporalCQL:
+    """Date/datetime filtering emits plain ISO string params (no typed literals)."""
+
+    def test_date_comparison_plain_iso_string(self):
+        cql = '{"op": "<", "args": [{"property": "created_on"}, "2024-06-01"]}'
+        ast = parse_cql2_filter(cql, "cql2-json")
+        sql, params = cql2_to_duckdb_sql(ast, ["created_on"])
+
+        assert '"created_on" < ?' in sql
+        assert params == ["2024-06-01"]
+
+    def test_datetime_comparison_full_iso_string(self):
+        cql = '{"op": ">", "args": [{"property": "logged_at"}, "2024-06-01T10:30:00"]}'
+        ast = parse_cql2_filter(cql, "cql2-json")
+        sql, params = cql2_to_duckdb_sql(ast, ["logged_at"])
+
+        assert '"logged_at" > ?' in sql
+        assert params == ["2024-06-01T10:30:00"]
+
+    def test_date_range_and_composition(self):
+        cql = """{
+            "op": "and",
+            "args": [
+                {"op": ">=", "args": [{"property": "d"}, "2024-01-01"]},
+                {"op": "<=", "args": [{"property": "d"}, "2024-03-31"]}
+            ]
+        }"""
+        ast = parse_cql2_filter(cql, "cql2-json")
+        sql, params = cql2_to_duckdb_sql(ast, ["d"])
+
+        assert '"d" >= ?' in sql
+        assert '"d" <= ?' in sql
+        assert params == ["2024-01-01", "2024-03-31"]
+
+    def test_iso_string_compares_against_date_column_in_duckdb(self):
+        """Plain ISO strings compare correctly against a real DATE column."""
+        import duckdb
+
+        con = duckdb.connect()
+        con.execute("CREATE TABLE t (d DATE)")
+        con.execute("INSERT INTO t VALUES ('2024-01-01'), ('2024-06-15'), ('2024-12-31')")
+
+        cql = '{"op": "<", "args": [{"property": "d"}, "2024-06-01"]}'
+        ast = parse_cql2_filter(cql, "cql2-json")
+        sql, params = cql2_to_duckdb_sql(ast, ["d"])
+
+        rows = con.execute(f"SELECT d FROM t WHERE {sql}", params).fetchall()
+        assert len(rows) == 1
+
+    def test_iso_string_range_against_timestamp_column_in_duckdb(self):
+        """and(>=,<=) with ISO strings filters a real TIMESTAMP column."""
+        import duckdb
+
+        con = duckdb.connect()
+        con.execute("CREATE TABLE t (ts TIMESTAMP)")
+        con.execute(
+            "INSERT INTO t VALUES "
+            "('2024-01-01 08:00:00'), ('2024-02-15 12:00:00'), ('2024-06-01 09:00:00')"
+        )
+
+        cql = """{
+            "op": "and",
+            "args": [
+                {"op": ">=", "args": [{"property": "ts"}, "2024-01-01T00:00:00"]},
+                {"op": "<=", "args": [{"property": "ts"}, "2024-03-01T00:00:00"]}
+            ]
+        }"""
+        ast = parse_cql2_filter(cql, "cql2-json")
+        sql, params = cql2_to_duckdb_sql(ast, ["ts"])
+
+        rows = con.execute(f"SELECT ts FROM t WHERE {sql}", params).fetchall()
+        assert len(rows) == 2
+
+
 class TestParseCQL2Filter:
     """Tests for parse_cql2_filter function."""
 

@@ -162,8 +162,8 @@ Legen Sie die `Maximalen Umstiege` fest, um die Anzahl der zulässigen ÖV-Verbi
 
 Konfigurieren Sie, wie Nutzer **zu** und **von** ÖV-Haltestellen gelangen:
 
-- **Zugangsart** — Verkehrsmittel zur Haltestelle (Zu Fuß, Fahrrad, Auto).
-- **Abgangsart** — Verkehrsmittel von der Haltestelle zum Ziel (Zu Fuß, Fahrrad, Auto).
+- **Zugangsart** — Verkehrsmittel zur Haltestelle (Zu Fuß, Fahrrad, Pedelec, Auto).
+- **Abgangsart** — Verkehrsmittel von der Haltestelle zum Ziel (Zu Fuß, Fahrrad, Pedelec, Auto).
 
 Für jeden Modus können Sie die **maximale Reisezeit oder Entfernung** sowie die **Reisegeschwindigkeit** konfigurieren. Beispielsweise können Sie einen Radfahrer modellieren, der mit 15 km/h bis zu 10 Minuten zur Bahnstation fährt.
 

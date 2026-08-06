@@ -71,6 +71,7 @@ const LayersWidgetConfig = ({ config, onChange }: LayersWidgetConfigProps) => {
   const opts = options as Record<string, any>;
   const excludedLayers: number[] = opts.excluded_layers ?? [];
   const legendHiddenLayers: number[] = opts.legend_hidden_layers ?? [];
+  const legendSimpleLayers: number[] = opts.legend_simple_layers ?? [];
   const downloadableLayers: number[] = opts.downloadable_layers ?? [];
   const groupInfo = config.setup?.group_info ?? {};
 
@@ -237,9 +238,11 @@ const LayersWidgetConfig = ({ config, onChange }: LayersWidgetConfigProps) => {
                       name={l.name || ""}
                       included={!excludedLayers.includes(l.id)}
                       legendShow={!legendHiddenLayers.includes(l.id)}
+                      legendSimple={legendSimpleLayers.includes(l.id)}
                       downloadable={downloadableLayers.includes(l.id)}
                       onToggleInclude={() => toggleLayerExclusion(l.id)}
                       onToggleLegend={() => toggleArrayOption("legend_hidden_layers", legendHiddenLayers, l.id)}
+                      onToggleSimpleLegend={() => toggleArrayOption("legend_simple_layers", legendSimpleLayers, l.id)}
                       onToggleDownload={() => toggleArrayOption("downloadable_layers", downloadableLayers, l.id)}
                     />
                   ))}
@@ -255,9 +258,11 @@ const LayersWidgetConfig = ({ config, onChange }: LayersWidgetConfigProps) => {
                   name={l.name || ""}
                   included={!excludedLayers.includes(l.id)}
                   legendShow={!legendHiddenLayers.includes(l.id)}
+                  legendSimple={legendSimpleLayers.includes(l.id)}
                   downloadable={downloadableLayers.includes(l.id)}
                   onToggleInclude={() => toggleLayerExclusion(l.id)}
                   onToggleLegend={() => toggleArrayOption("legend_hidden_layers", legendHiddenLayers, l.id)}
+                  onToggleSimpleLegend={() => toggleArrayOption("legend_simple_layers", legendSimpleLayers, l.id)}
                   onToggleDownload={() => toggleArrayOption("downloadable_layers", downloadableLayers, l.id)}
                 />
               ))}
@@ -476,17 +481,21 @@ const ConfigLayerRow = ({
   name,
   included,
   legendShow,
+  legendSimple,
   downloadable,
   onToggleInclude,
   onToggleLegend,
+  onToggleSimpleLegend,
   onToggleDownload,
 }: {
   name: string;
   included: boolean;
   legendShow: boolean;
+  legendSimple: boolean;
   downloadable: boolean;
   onToggleInclude: () => void;
   onToggleLegend: () => void;
+  onToggleSimpleLegend: () => void;
   onToggleDownload: () => void;
 }) => {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -513,8 +522,10 @@ const ConfigLayerRow = ({
         <LayerSettingsPopover
           anchorEl={anchorEl}
           legendShow={legendShow}
+          legendSimple={legendSimple}
           downloadable={downloadable}
           onToggleLegend={onToggleLegend}
+          onToggleSimpleLegend={onToggleSimpleLegend}
           onToggleDownload={onToggleDownload}
           onClose={() => setAnchorEl(null)}
         />
@@ -527,15 +538,19 @@ const ConfigLayerRow = ({
 const LayerSettingsPopover = ({
   anchorEl,
   legendShow,
+  legendSimple,
   downloadable,
   onToggleLegend,
+  onToggleSimpleLegend,
   onToggleDownload,
   onClose,
 }: {
   anchorEl: HTMLElement;
   legendShow: boolean;
+  legendSimple: boolean;
   downloadable: boolean;
   onToggleLegend: () => void;
+  onToggleSimpleLegend: () => void;
   onToggleDownload: () => void;
   onClose: () => void;
 }) => {
@@ -559,6 +574,17 @@ const LayerSettingsPopover = ({
           />
           <Typography variant="body2">{t("show_in_legend")}</Typography>
         </Stack>
+        {legendShow && (
+          <Stack direction="row" alignItems="center">
+            <Switch
+              size="small"
+              checked={legendSimple}
+              onChange={onToggleSimpleLegend}
+              sx={{ transform: "scale(0.8)" }}
+            />
+            <Typography variant="body2">{t("simple_legend")}</Typography>
+          </Stack>
+        )}
         <Stack direction="row" alignItems="center">
           <Switch
             size="small"

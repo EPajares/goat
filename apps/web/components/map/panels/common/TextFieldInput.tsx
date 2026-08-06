@@ -63,6 +63,8 @@ const TextFieldInput: React.FC<TextFieldInputProps> = ({
             width: "100%",
             padding: "0px 15px 0px 12px",
             height: "40px",
+            // GOAT green accent for number input spinners
+            accentColor: "#2BB381",
           },
         }}
         endAdornment={

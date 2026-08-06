@@ -26,7 +26,14 @@ const LabelOptions = ({
   onStyleChange?: (newStyle: FeatureLayerProperties) => void;
 }) => {
   const { t } = useTranslation("common");
-  const { layerFields } = useLayerFields(layer?.layer_id || "");
+  const { layerFields: allLayerFields } = useLayerFields(layer?.layer_id || "");
+  // Map labels render the raw property value via MapLibre expressions (no
+  // kind-aware formatting), so raw ISO timestamps / true/false would be
+  // painted on the map — restrict to string/number until labels format kinds.
+  const layerFields = useMemo(
+    () => allLayerFields.filter((f) => f.type === "string" || f.type === "number"),
+    [allLayerFields]
+  );
   const [collapseAdvancedSettings, setCollapseAdvancedSettings] = useState(true);
   const textLabelOptions = useMemo(() => {
     const textLabelProperties = TextLabelSchema.safeParse(layer?.properties?.text_label);

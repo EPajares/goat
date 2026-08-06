@@ -52,7 +52,7 @@ def refresh_spy(monkeypatch: pytest.MonkeyPatch) -> dict[str, int]:
     def spy() -> None:
         calls["n"] += 1
 
-    monkeypatch.setattr(catalog_events, "_refresh_local_pins", spy)
+    monkeypatch.setattr(catalog_events, "refresh_local_pins", spy)
     return calls
 
 

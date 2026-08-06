@@ -58,7 +58,7 @@ import type { WorkflowNode } from "@/lib/validations/workflow";
 
 import useLayerFields from "@/hooks/map/CommonHooks";
 
-import DatasetTable from "@/components/common/DatasetTable";
+import FeatureTable from "@/components/common/FeatureTable";
 import MapViewer from "@/components/map/MapViewer";
 
 // Panel heights
@@ -819,7 +819,7 @@ const WorkflowDataPanel: React.FC<WorkflowDataPanelProps> = ({
             {!areFieldsLoading && tableData && fields && (
               <>
                 <Box sx={{ flex: 1, overflow: "auto" }}>
-                  <DatasetTable areFieldsLoading={areFieldsLoading} displayData={tableData} fields={fields} />
+                  <FeatureTable fields={fields} data={tableData} isLoading={areFieldsLoading} />
                 </Box>
                 <Box sx={{ borderTop: `1px solid ${theme.palette.divider}` }}>
                   <TablePagination

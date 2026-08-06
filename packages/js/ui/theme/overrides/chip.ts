@@ -1,4 +1,5 @@
 import type { Theme } from '@mui/material/styles'
+import { alpha } from '@mui/material/styles'
 
 const Chip = (theme: Theme) => {
   return {
@@ -9,7 +10,7 @@ const Chip = (theme: Theme) => {
         },
         outlined: {
           '&.MuiChip-colorDefault': {
-            borderColor: `rgba(${theme.palette.customColors.main}, 0.22)`
+            borderColor: alpha(theme.palette.customColors.main, 0.22)
           }
         },
         deleteIcon: {

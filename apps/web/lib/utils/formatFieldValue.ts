@@ -1,4 +1,11 @@
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+import { TEMPORAL_DISPLAY_FORMAT } from "@p4b/ui/components/temporalFormats";
+
 import type { FieldKind } from "@/lib/validations/layer";
+
+dayjs.extend(utc);
 
 type DisplayConfig = {
   decimals?: "auto" | number;
@@ -6,6 +13,7 @@ type DisplayConfig = {
   thousands_separator?: boolean;
   abbreviate?: boolean;
   always_show_sign?: boolean;
+  format?: string;
 };
 
 const AREA_AUTO_THRESHOLDS: { from: number; unit: string; factor: number }[] = [
@@ -90,10 +98,32 @@ export function formatFieldValue(
 
   if (kind === "string") return String(value);
 
+  if (kind === "boolean") {
+    if (value === true) return "True";
+    if (value === false) return "False";
+    return String(value);
+  }
+
+  if (kind === "datetime") {
+    // Render in UTC so the wall time matches the stored value and the filter
+    // literals (backend session tz is pinned to UTC), identically for every
+    // viewer — never in the browser's local timezone.
+    const parsed = dayjs.utc(value as string | number | Date);
+    if (!parsed.isValid()) return String(value);
+    return parsed.format(cfg.format ?? TEMPORAL_DISPLAY_FORMAT);
+  }
+
   if (typeof value !== "number" || Number.isNaN(value)) return String(value);
 
   if (kind === "number") {
     return formatNumber(value, cfg, 2, true);
+  }
+
+  // Only the dimensioned kinds get unit formatting; anything else (including
+  // an unresolved "formula" kind — callers should resolve it to the formula's
+  // output kind first) falls back to the raw value.
+  if (kind !== "area" && kind !== "perimeter" && kind !== "length") {
+    return String(value);
   }
 
   // Dimensioned kinds: area, perimeter, length

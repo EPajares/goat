@@ -83,6 +83,39 @@ def clean_path(path: str) -> str:
     return path.replace(settings.API_V2_STR + "/", "")
 
 
+def route_pattern(request: Request) -> str:
+    """Full matched route pattern including all router prefixes.
+
+    starlette 1.x keeps included routers nested, so ``scope["route"].path``
+    only holds the sub-route's own path ("/profile" instead of
+    "/api/v2/users/profile"), which breaks the authz resource lookup.
+
+    The full pattern is the route's own path spliced onto the *literal* prefix
+    segments of the concrete request path. Prefix segments are copied verbatim
+    and the placeholder part comes from the route itself, so nothing here
+    depends on user-controlled values: a param whose value happens to equal a
+    static segment name ("…/project/project/layer") cannot rewrite the pattern.
+
+    Raises:
+        ValueError: if the route path cannot be aligned with the request path
+            (e.g. a ``:path`` converter spanning several segments). Callers
+            must treat that as authorization failure — never as a pass.
+    """
+    route = request.scope.get("route")
+    route_path: str = getattr(route, "path", "") or ""
+    path: str = request.scope["path"]
+
+    suffix = route_path.strip("/").split("/") if route_path.strip("/") else []
+    segments = path.strip("/").split("/") if path.strip("/") else []
+    if len(suffix) > len(segments):
+        raise ValueError(
+            f"route path {route_path!r} does not fit request path {path!r}"
+        )
+
+    prefix = segments[: len(segments) - len(suffix)]
+    return "/" + "/".join([*prefix, *suffix])
+
+
 async def _validate_authorization(
     request: Request, user_token: Dict[str, Any], async_session: AsyncSession
 ) -> bool:
@@ -97,7 +130,7 @@ async def _validate_authorization(
                     path
                 )  # e.g /organizations/b65e040a-f8f0-453f-9888-baa2b9342cce
                 cleaned_route_path = clean_path(
-                    route.path
+                    route_pattern(request)
                 )  # e.g /organizations/{organization_id}
                 # Bind all user-controlled values as parameters — never
                 # f-string-interpolate them (SQL injection). The schema is a
@@ -165,5 +198,3 @@ async def auth_z(
         )
 
     return True
-
-

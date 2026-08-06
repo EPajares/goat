@@ -22,8 +22,12 @@ _subscriber_thread: threading.Thread | None = None
 _subscriber_stop = threading.Event()
 
 
-def _refresh_local_pins() -> None:
-    """Force-refresh all pinned readers in this process (rate-limited by pins)."""
+def refresh_local_pins() -> None:
+    """Force-refresh all pinned readers in this process (rate-limited by pins).
+
+    Synchronous (~1s when a rebuild is needed) — callers on the event loop
+    should wrap it in ``asyncio.to_thread``.
+    """
     from geoapi.ducklake import ducklake_manager
     from geoapi.ducklake_pool import ducklake_pool
 
@@ -38,7 +42,7 @@ def notify_catalog_changed() -> None:
     write response is not delayed, and the publish swallows Redis failures.
     """
     threading.Thread(
-        target=_refresh_local_pins, daemon=True, name="pin-write-bump"
+        target=refresh_local_pins, daemon=True, name="pin-write-bump"
     ).start()
     try:
         client = get_redis_client()
@@ -66,7 +70,7 @@ def _subscriber_loop() -> None:
             sender = data.decode() if isinstance(data, bytes) else str(data)
             if sender == INSTANCE_ID:
                 continue
-            _refresh_local_pins()
+            refresh_local_pins()
         except Exception as e:
             logger.debug("Catalog-change subscriber reset: %s", e)
             if pubsub is not None:

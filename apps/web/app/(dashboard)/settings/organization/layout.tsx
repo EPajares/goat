@@ -14,6 +14,7 @@ interface OrganizationLayoutProps {
 }
 
 const OrganizationLayout = (props: OrganizationLayoutProps) => {
+  const children = props.children;
   const pathname = usePathname();
   const { t } = useTranslation("common");
 
@@ -38,7 +39,7 @@ const OrganizationLayout = (props: OrganizationLayoutProps) => {
   const hideOwnTabs = pathname?.includes("/white-label");
 
   if (hideOwnTabs) {
-    return <>{props.children}</>;
+    return <>{children}</>;
   }
 
   return (
@@ -66,7 +67,7 @@ const OrganizationLayout = (props: OrganizationLayoutProps) => {
           />
         ))}
       </Tabs>
-      {props.children}
+      {children}
     </>
   );
 };

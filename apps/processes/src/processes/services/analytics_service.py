@@ -7,9 +7,11 @@ These are synchronous operations that return immediate results.
 import json
 import logging
 import re
+import time
 from typing import Any
 
 import duckdb
+from fastapi import HTTPException
 from goatlib.analysis.statistics import (
     AreaOperation,
     ClassBreakMethod,
@@ -23,8 +25,9 @@ from goatlib.analysis.statistics import (
     calculate_feature_count,
     calculate_histogram,
     calculate_unique_values,
+    search_layer_features,
 )
-from goatlib.storage import build_cql_filter
+from goatlib.storage import build_cql_filter, configure_baked_extensions
 from goatlib.tools.custom_sql import validate_sql_query
 
 from processes.dependencies import (
@@ -32,13 +35,20 @@ from processes.dependencies import (
     get_schema_for_layer,
     normalize_layer_id,
 )
-from processes.ducklake import ducklake_manager, preview_ducklake_manager
+from processes.ducklake import (
+    ducklake_manager,
+    preview_ducklake_manager,
+    search_ducklake_manager,
+)
+from processes.services.public_search_config import get_public_search_layers
 
 logger = logging.getLogger(__name__)
 
 
 class AnalyticsService:
     """Service for computing analytics on DuckLake layers."""
+
+    SEARCH_TIME_BUDGET_SECONDS = 8.0
 
     def _get_table_name(self, collection: str) -> str:
         """Get the full DuckLake table name for a collection/layer ID.
@@ -469,6 +479,110 @@ class AnalyticsService:
 
         return result.model_dump()
 
+    def _scan_one_layer(
+        self,
+        spec: dict[str, Any],
+        query: str,
+        map_center: list[float] | None,
+    ) -> dict[str, Any]:
+        """Scan a single layer; returns a LayerSearchGroup dict.
+
+        Uses `search_ducklake_manager` (a connection pool separate from the
+        analytics/preview ones) and a single connection for both the geometry
+        column detection and the search itself, to avoid two lock acquisitions
+        per layer.
+        """
+        table_name = self._get_table_name(spec["layer_id"])
+        with search_ducklake_manager.connection() as con:
+            geometry_column = "geometry"
+            for row in con.execute(f"DESCRIBE {table_name}").fetchall():
+                col_name, col_type = row[0], row[1]
+                if "GEOMETRY" in col_type.upper():
+                    geometry_column = col_name
+                    break
+            group = search_layer_features(
+                con,
+                table_name,
+                query=query,
+                columns=spec["columns"],
+                layer_id=spec["layer_id"],
+                label_column=spec.get("label_column"),
+                geometry_column=geometry_column,
+                map_center=tuple(map_center) if map_center else None,
+                limit=spec.get("limit", 5),
+            )
+        return group.model_dump()
+
+    def layer_search(
+        self,
+        query: str,
+        map_center: list[float] | None = None,
+        project_id: str | None = None,
+        layers: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Search feature attributes across layers (see LayerSearchProcessInput)."""
+        specs: list[dict[str, Any]]
+        if layers is not None:
+            specs = layers
+        else:
+            try:
+                specs = [dict(s) for s in get_public_search_layers(project_id or "")]
+            except ValueError:
+                raise  # invalid project_id (bad UUID): loud 400/422
+            except Exception as e:
+                # Infra failures here (e.g. duckdb.IOException when Postgres is
+                # unreachable) can carry the FULL connection URI, including the
+                # password, in their message. Never let str(e) reach a caller —
+                # this endpoint is unauthenticated.
+                logger.error(
+                    "get_public_search_layers failed for project %s: %s",
+                    project_id,
+                    e,
+                )
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "type": "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/job-execution-failed",
+                        "title": "Service unavailable",
+                        "status": 503,
+                        "detail": "search temporarily unavailable",
+                    },
+                ) from None
+
+        groups: list[dict[str, Any]] = []
+        start = time.monotonic()
+        for spec in specs:
+            if time.monotonic() - start > self.SEARCH_TIME_BUDGET_SECONDS:
+                groups.append(
+                    {
+                        "layer_id": spec["layer_id"],
+                        "results": [],
+                        "truncated": False,
+                        "timed_out": True,
+                        "error": None,
+                    }
+                )
+                continue
+            try:
+                groups.append(self._scan_one_layer(spec, query, map_center))
+            except ValueError:
+                raise  # unknown column: loud 400 (author misconfiguration)
+            except Exception as e:  # missing table etc. — degrade per-group
+                logger.warning("layer-search failed for %s: %s", spec["layer_id"], e)
+                groups.append(
+                    {
+                        "layer_id": spec["layer_id"],
+                        "results": [],
+                        "truncated": False,
+                        "timed_out": False,
+                        # Generic on purpose: raw DuckDB messages (e.g. "Did you
+                        # mean t_<uuid>") can leak other layer IDs to an
+                        # unauthenticated caller.
+                        "error": "layer unavailable",
+                    }
+                )
+        return {"groups": groups}
+
     def validate_sql(
         self,
         sql_query: str,
@@ -495,6 +609,8 @@ class AnalyticsService:
 
         con = duckdb.connect()
         try:
+            if not configure_baked_extensions(con):
+                con.execute("INSTALL spatial;")
             con.execute("LOAD spatial;")
 
             for alias, columns in table_schemas.items():

@@ -65,7 +65,7 @@ async def update_system_settings(
     async_session: AsyncSession = Depends(get_db),
     user_id: UUID4 = Depends(get_user_id),
     system_settings_in: SystemSettingsUpdate = Body(
-        ..., example=system_settings_request_examples["update"]
+        ..., examples=[system_settings_request_examples["update"]]
     ),
 ) -> SystemSettingsRead:
     """Update system settings"""

@@ -11,11 +11,13 @@ import { type ProjectLayer } from "@/lib/validations/project";
 import { type FilterDataSchema, filterLayoutTypes } from "@/lib/validations/widget";
 
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
+import useLayerFields from "@/hooks/map/CommonHooks";
 
 import { WidgetStatusContainer } from "@/components/builder/widgets/common/WidgetStatusContainer";
 import CheckboxFilter from "@/components/builder/widgets/data/CheckboxFilter";
 import ChipsFilter from "@/components/builder/widgets/data/ChipsFilter";
 import RangeFilter from "@/components/builder/widgets/data/RangeFilter";
+import TemporalRangeInput from "@/components/builder/widgets/data/TemporalRangeInput";
 import AutocompleteLayerValue from "@/components/builder/widgets/data/AutocompleteLayerValue";
 
 // Deep compare helper
@@ -36,15 +38,20 @@ interface FilterDataProps {
 export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: FilterDataProps) => {
   const dispatch = useAppDispatch();
   const { map } = useMap();
-  const isRangeLayout = rawConfig?.setup?.layout === filterLayoutTypes.Values.range;
+  // Range + picker (temporal) both drive the range state / dispatch effect.
+  const isRangeLayout =
+    rawConfig?.setup?.layout === filterLayoutTypes.Values.range ||
+    rawConfig?.setup?.layout === filterLayoutTypes.Values.picker;
 
   // Local dropdown state (for select, chips, checkbox)
   const [selectedValues, setSelectedValues] = useState<string[] | string | undefined>(
     rawConfig?.setup?.multiple ? [] : ""
   );
 
-  // Local range state (for range filter)
-  const [selectedRange, setSelectedRange] = useState<[number, number] | null>(null);
+  // Local range state — numbers for numeric range, ISO strings for temporal.
+  const [selectedRange, setSelectedRange] = useState<
+    [number, number] | [string, string] | null
+  >(null);
 
   // Flash animation when filter is updated via map click
   const [isFlashing, setIsFlashing] = useState(false);
@@ -67,6 +74,12 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
   const layer = useMemo(() => {
     return projectLayers?.find((l) => l.id === rawConfig?.setup?.layer_project_id) ?? null;
   }, [projectLayers, rawConfig?.setup?.layer_project_id]);
+
+  const { layerFields } = useLayerFields(layer?.layer_id ?? "");
+  const isTemporal = useMemo<boolean>(() => {
+    const field = layerFields.find((f) => f.name === rawConfig?.setup?.column_name);
+    return field?.type === "date";
+  }, [layerFields, rawConfig?.setup?.column_name]);
 
   /**
    * React to map feature clicks: if filter_by_map_click is enabled and the clicked
@@ -300,7 +313,7 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
    * Build additional targets for range filter
    */
   const buildAdditionalTargetsRange = useCallback(
-    (min: number, max: number) => {
+    (min: number | string, max: number | string) => {
       const targetLayers = rawConfig?.options?.target_layers;
       if (!targetLayers?.length) return undefined;
 
@@ -416,6 +429,11 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
 
     const [min, max] = selectedRange;
 
+    if (min === "" || max === "" || min == null || max == null) {
+      if (existingFilter) dispatch(removeTemporaryFilter(id));
+      return;
+    }
+
     const filterObject = {
       op: "and",
       args: [
@@ -530,11 +548,31 @@ export const FilterDataWidget = ({ id, config: rawConfig, projectLayers }: Filte
         )}
       {layer &&
         rawConfig?.setup.column_name &&
+        isTemporal &&
+        (rawConfig?.setup.layout === filterLayoutTypes.Values.range ||
+          rawConfig?.setup.layout === filterLayoutTypes.Values.picker) && (
+          <TemporalRangeInput
+            inputStyle={
+              rawConfig?.setup.layout === filterLayoutTypes.Values.picker ? "picker" : "range"
+            }
+            granularity={rawConfig?.setup.granularity}
+            layerId={layer.layer_id}
+            fieldName={rawConfig.setup.column_name}
+            showHistogram={rawConfig?.setup.show_histogram}
+            color={rawConfig?.options?.color}
+            selectedRange={selectedRange as [string, string] | null}
+            onSelectedRangeChange={setSelectedRange}
+          />
+        )}
+      {/* Numeric field: standard range slider */}
+      {layer &&
+        rawConfig?.setup.column_name &&
+        !isTemporal &&
         rawConfig?.setup.layout === filterLayoutTypes.Values.range && (
           <RangeFilter
             layerId={layer.layer_id}
             fieldName={rawConfig?.setup.column_name}
-            selectedRange={selectedRange}
+            selectedRange={selectedRange as [number, number] | null}
             onSelectedRangeChange={setSelectedRange}
             showHistogram={rawConfig?.setup.show_histogram}
             steps={rawConfig?.setup.steps}

@@ -563,6 +563,7 @@ class FeatureService:
 
         try:
             con = duckdb.connect(":memory:")
+            con.execute("SET TimeZone='UTC'")
             con.execute("INSTALL spatial; LOAD spatial;")
 
             # Detect geometry column

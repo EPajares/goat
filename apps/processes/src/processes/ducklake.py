@@ -24,3 +24,13 @@ preview_ducklake_manager = BaseDuckLakeManager(
     pin_snapshot=settings.DUCKLAKE_PIN_SNAPSHOT,
     refresh_interval=settings.DUCKLAKE_SNAPSHOT_REFRESH_SECONDS,
 )
+
+# Separate singleton for layer-search.
+# layer-search fans out unauthenticated ILIKE scans across many layers, so it
+# must not share the analytics lock with authenticated analytics queries — nor
+# the preview lock, since arbitrary preview-sql queries must not block search.
+search_ducklake_manager = BaseDuckLakeManager(
+    read_only=True,
+    pin_snapshot=settings.DUCKLAKE_PIN_SNAPSHOT,
+    refresh_interval=settings.DUCKLAKE_SNAPSHOT_REFRESH_SECONDS,
+)

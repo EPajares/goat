@@ -114,12 +114,20 @@ PYBIND11_MODULE(_routing, m)
         .def_readwrite("egress_max_cost", &routing::MatrixConfig::egress_max_cost)
         .def_readwrite("access_speed_km_h", &routing::MatrixConfig::access_speed_km_h)
         .def_readwrite("egress_speed_km_h", &routing::MatrixConfig::egress_speed_km_h)
-        .def_readwrite("transfer_cost", &routing::MatrixConfig::transfer_cost);
+        .def_readwrite("transfer_cost", &routing::MatrixConfig::transfer_cost)
+        .def_readwrite("reverse", &routing::MatrixConfig::reverse)
+        .def_readwrite("sparse", &routing::MatrixConfig::sparse);
 
     py::enum_<routing::HeatmapType>(m, "HeatmapType")
         .value("Gravity",        routing::HeatmapType::Gravity)
         .value("ClosestAverage", routing::HeatmapType::ClosestAverage)
-        .value("Connectivity",   routing::HeatmapType::Connectivity);
+        .value("Connectivity",   routing::HeatmapType::Connectivity)
+        .value("TwoSFCA",        routing::HeatmapType::TwoSFCA);
+
+    py::enum_<routing::TwoSFCAType>(m, "TwoSFCAType")
+        .value("Standard", routing::TwoSFCAType::Standard)
+        .value("E2SFCA",   routing::TwoSFCAType::E2SFCA)
+        .value("M2SFCA",   routing::TwoSFCAType::M2SFCA);
 
     py::enum_<routing::GravityDecay>(m, "GravityDecay")
         .value("Gaussian",    routing::GravityDecay::Gaussian)
@@ -129,15 +137,18 @@ PYBIND11_MODULE(_routing, m)
 
     py::class_<routing::Opportunity>(m, "Opportunity")
         .def(py::init<>())
-        .def(py::init([](routing::Point3857 const &p, double w) {
+        .def(py::init([](std::vector<routing::Point3857> seeds, double w,
+                         routing::Point3857 const &rep) {
                  routing::Opportunity o;
-                 o.point = p;
+                 o.seeds = std::move(seeds);
                  o.weight = w;
+                 o.rep = rep;
                  return o;
              }),
-             py::arg("point"), py::arg("weight") = 1.0)
-        .def_readwrite("point",  &routing::Opportunity::point)
-        .def_readwrite("weight", &routing::Opportunity::weight);
+             py::arg("seeds"), py::arg("weight"), py::arg("rep"))
+        .def_readwrite("seeds",  &routing::Opportunity::seeds)
+        .def_readwrite("weight", &routing::Opportunity::weight)
+        .def_readwrite("rep",    &routing::Opportunity::rep);
 
     py::class_<routing::HeatmapConfig>(m, "HeatmapConfig")
         .def(py::init<>())
@@ -154,6 +165,8 @@ PYBIND11_MODULE(_routing, m)
         .def_readwrite("sensitivity",     &routing::HeatmapConfig::sensitivity)
         .def_readwrite("max_sensitivity", &routing::HeatmapConfig::max_sensitivity)
         .def_readwrite("closest_k",       &routing::HeatmapConfig::closest_k)
+        .def_readwrite("two_sfca_type",   &routing::HeatmapConfig::two_sfca_type)
+        .def_readwrite("demand_path",     &routing::HeatmapConfig::demand_path)
         // PT (mode == PublicTransport)
         .def_readwrite("timetable_path",  &routing::HeatmapConfig::timetable_path)
         .def_readwrite("arrival_time",    &routing::HeatmapConfig::arrival_time)
@@ -212,6 +225,20 @@ PYBIND11_MODULE(_routing, m)
           py::arg("config"),
           "Compute per-origin accessibility heatmap (Gravity / ClosestAverage) "
           "against a fixed opportunity layer");
+
+    m.def("compute_od_costs",
+          [elapsed_ms](routing::HeatmapConfig const &config)
+          {
+              auto t0 = std::chrono::steady_clock::now();
+              routing::compute_od_costs(config);
+              auto t1 = std::chrono::steady_clock::now();
+              py::print("[routing] compute_od_costs total_ms=",
+                        elapsed_ms(t0, t1));
+          },
+          py::arg("config"),
+          "Emit the raw per-(cell, opportunity) OD cost relation "
+          "(orig_cell, dest_cell, cost) from the reachability pipeline to "
+          "config.output_path. Used by Huff v2 for its PT OD matrix.");
 
     m.def("build_access_egress_table",
           [elapsed_ms](routing::preprocessing::AccessEgressConfig const &config)

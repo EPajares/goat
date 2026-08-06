@@ -43,15 +43,16 @@ export const withCustomDomain: MiddlewareFactory = (next) => {
 
     // Static assets and API routes must not be rewritten — they're
     // served verbatim by Next.js / the routing layer. Only the page
-    // route(s) get redirected to /map/public/<projectId>.
+    // route(s) and /favicon.ico get rewritten.
     const path = request.nextUrl.pathname;
+    const isFavicon = path === "/favicon.ico";
     if (
-      path.startsWith("/_next/") ||
-      path.startsWith("/api/") ||
-      path === "/favicon.ico" ||
-      // any path with a file extension is almost certainly a static
-      // asset (woff2, png, css, js, json, ico, svg, ...).
-      /\.[a-z0-9]{2,5}$/i.test(path)
+      !isFavicon &&
+      (path.startsWith("/_next/") ||
+        path.startsWith("/api/") ||
+        // any path with a file extension is almost certainly a static
+        // asset (woff2, png, css, js, json, ico, svg, ...).
+        /\.[a-z0-9]{2,5}$/i.test(path))
     ) {
       return next(request, _next);
     }
@@ -60,6 +61,19 @@ export const withCustomDomain: MiddlewareFactory = (next) => {
     if (!projectId) {
       // Unknown custom host: let the rest of the stack handle it.
       return next(request, _next);
+    }
+
+    if (isFavicon) {
+      // Serve the project's favicon instead of the bundled GOAT one:
+      // crawlers (notably Google's favicon bot) fall back to
+      // /favicon.ico when the <link rel="icon"> candidate is unsuitable,
+      // and must never see the GOAT icon on a customer domain. The
+      // target is path-based — query params on middleware rewrites are
+      // dropped before route handlers run (vercel/next.js#84448).
+      const url = request.nextUrl.clone();
+      url.pathname = `/api/pwa-icon/${projectId}/favicon`;
+      url.search = "";
+      return NextResponse.rewrite(url);
     }
 
     // Rewrite to the public-dashboard route. Preserve any sub-path

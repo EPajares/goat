@@ -36,6 +36,13 @@ export interface MapPopoverInfoProps {
    */
   layerId?: string;
   /**
+   * The clicked ProjectLayer's own id (`layer_project.id`). `layerId`
+   * carries the dataset id, which is ambiguous when the same dataset
+   * backs several project layers with different popup configs — popup
+   * hosts resolve the owning layer by this id first.
+   */
+  projectLayerId?: string;
+  /**
    * When a field_list interaction is configured, maps column names to
    * display labels and controls which fields are shown (and in what order).
    */

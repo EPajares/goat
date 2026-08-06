@@ -72,7 +72,7 @@ class AggregationAreaType(StrEnum):
 H3Resolution = Literal[3, 4, 5, 6, 7, 8, 9, 10]
 
 
-class AggregateColumnStatistic(FieldStatistic):
+class AggregateFieldStatistic(FieldStatistic):
     """Aggregate column statistic with UI wiring to source_layer_id."""
 
     field: Optional[str] = Field(

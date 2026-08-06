@@ -5,6 +5,7 @@ Includes support for i18n translation resolution based on Accept-Language header
 """
 
 import logging
+import uuid
 from typing import Any
 
 from goatlib.analysis.statistics import (
@@ -20,10 +21,11 @@ from goatlib.analysis.statistics import (
     FeatureCountResult,
     HistogramInput,
     HistogramResult,
+    LayerSearchResult,
     UniqueValuesInput,
     UniqueValuesResult,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from processes.models.processes import (
     InputDescription,
@@ -84,6 +86,47 @@ class HistogramProcessInput(HistogramInput):
     """Histogram input with collection (layer ID)."""
 
     collection: str = Field(description="Layer ID (UUID)")
+
+
+class LayerSearchLayerSpecInput(BaseModel):
+    """One searchable layer in an editor-mode layer-search request."""
+
+    layer_id: str = Field(description="Layer ID (UUID)")
+    columns: list[str] = Field(
+        min_length=1, max_length=3, description="Columns to match"
+    )
+    label_column: str | None = Field(
+        default=None, description="Column shown as result label"
+    )
+    limit: int = Field(default=5, ge=1, le=10, description="Max results for this layer")
+
+
+class LayerSearchProcessInput(BaseModel):
+    """Cross-layer feature text search.
+
+    Public mode: pass project_id (searchable layers resolved from the published
+    snapshot). Editor mode: pass layers explicitly (requires authentication).
+    """
+
+    query: str = Field(min_length=2, max_length=100, description="Search text")
+    map_center: list[float] | None = Field(
+        default=None,
+        min_length=2,
+        max_length=2,
+        description="[lon, lat] for proximity ranking",
+    )
+    project_id: uuid.UUID | None = Field(default=None, description="Public project ID")
+    layers: list[LayerSearchLayerSpecInput] | None = Field(
+        default=None, max_length=20, description="Explicit layers (editor mode)"
+    )
+
+    @field_validator("query")
+    @classmethod
+    def _strip_and_check_length(cls, value: str) -> str:
+        stripped = value.strip()
+        if len(stripped) < 2:
+            raise ValueError("query must have at least 2 non-whitespace characters")
+        return stripped
 
 
 # Analytics process definitions
@@ -149,6 +192,15 @@ ANALYTICS_DEFINITIONS: dict[str, dict[str, Any]] = {
         "output_model": HistogramResult,
         "keywords": ["analytics", "statistics", "histogram", "distribution"],
         "tool_key": "histogram",
+        "hidden": True,
+    },
+    "layer-search": {
+        "title": "Layer Search",
+        "description": "Search feature attributes across project layers",
+        "input_model": LayerSearchProcessInput,
+        "output_model": LayerSearchResult,
+        "keywords": ["analytics", "search", "features"],
+        "tool_key": "layer_search",
         "hidden": True,
     },
 }

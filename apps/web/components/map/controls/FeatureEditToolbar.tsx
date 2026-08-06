@@ -7,7 +7,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 import { setMode } from "@/lib/store/featureEditor/slice";
 import type { FeatureEditMode } from "@/lib/store/featureEditor/types";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
-import { DATA_PANEL_HEIGHT_VAR } from "@/components/map/panels/DataPanel";
+import { DATA_PANEL_HEIGHT_CONSUMER_ATTR, DATA_PANEL_HEIGHT_VAR } from "@/components/map/panels/DataPanel";
 
 // --- Styled components matching workflow CanvasToolbar style ---
 
@@ -109,7 +109,7 @@ const FeatureEditToolbar: React.FC<FeatureEditToolbarProps> = ({
   };
 
   return (
-    <ToolbarContainer>
+    <ToolbarContainer {...{ [DATA_PANEL_HEIGHT_CONSUMER_ATTR]: "" }}>
       {/* Draw tools — hidden for table layers */}
       <ToolGroup>
         {!isTableLayer ? (

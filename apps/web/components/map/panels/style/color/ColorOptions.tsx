@@ -31,6 +31,13 @@ const ColorOptions = ({
 }) => {
   const { t } = useTranslation("common");
 
+  // Color scales exist only for string (ordinal) and number (breaks) fields;
+  // offering datetime/boolean here would silently produce no scale at all.
+  const colorableFields = useMemo(
+    () => layerFields.filter((f) => f.type === "string" || f.type === "number"),
+    [layerFields]
+  );
+
   const colorSet = useMemo(
     () => ({
       selectedColor: layerStyle?.[`${type}_field`] ? layerStyle?.[`${type}_range`] : layerStyle?.[`${type}`],
@@ -67,7 +74,7 @@ const ColorOptions = ({
       advancedOptions={
         <>
           <LayerFieldSelector
-            fields={layerFields}
+            fields={colorableFields}
             selectedField={selectedField}
             setSelectedField={(field) => {
               const newStyle = JSON.parse(JSON.stringify(layerStyle)) || {};

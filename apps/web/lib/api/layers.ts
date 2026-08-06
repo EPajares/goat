@@ -657,6 +657,8 @@ export interface AddColumnPayload {
   kind: FieldKind;
   display_config?: Record<string, unknown>;
   default_value?: unknown;
+  /** SQL expression for kind="formula" (validated server-side) */
+  formula?: string;
 }
 
 export const addColumn = async (layerId: string, payload: AddColumnPayload) => {
@@ -671,6 +673,26 @@ export const addColumn = async (layerId: string, payload: AddColumnPayload) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Failed to add column");
+  }
+  return response.json();
+};
+
+export const updateColumnFormula = async (
+  layerId: string,
+  columnName: string,
+  formula: string,
+) => {
+  const response = await apiRequestAuth(
+    `${COLLECTIONS_API_BASE_URL}/${layerId}/columns/${columnName}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formula }),
+    }
+  );
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to update formula");
   }
   return response.json();
 };

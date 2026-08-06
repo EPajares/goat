@@ -59,6 +59,7 @@ const layerFieldType = z.object({
   $ref: z.string().optional(),
   name: z.string(),
   type: z.string(),
+  format: z.string().optional(),
   // D2: computed-field metadata exposed by the queryables endpoint
   kind: z.string().optional(),
   is_computed: z.boolean().optional(),
@@ -490,6 +491,13 @@ export const layerMetadataSchema = contentMetadataSchema.extend({
   in_catalog: z.boolean().optional().default(false),
 });
 
+export const tableConfigSchema = z.object({
+  // Columns pinned to the left of the data table, in pin order
+  frozen_columns: z.array(z.string()).optional(),
+  // Column widths in px — required for stable sticky offsets across reloads
+  column_widths: z.record(z.string(), z.number()).optional(),
+});
+
 export const otherPropertiesSchmea = z.object({
   url: z.string().optional(),
   layers: z.array(z.string()).optional(),
@@ -500,6 +508,8 @@ export const otherPropertiesSchmea = z.object({
   version: z.string().optional(),
   dpi: z.number().optional(),
   tile_size: z.number().optional(),
+  // Per-project-layer data table preferences
+  table_config: tableConfigSchema.optional(),
 });
 
 // Raster styling schemas
@@ -788,8 +798,19 @@ export const fieldKindSchema = z.enum([
   "area",
   "perimeter",
   "length",
+  "datetime",
+  "boolean",
+  "formula",
 ]);
 export type FieldKind = z.infer<typeof fieldKindSchema>;
+
+/** The kind used to FORMAT a field's values: formula fields format as their
+ * inferred result kind (number/string/boolean/datetime). */
+export const resolveDisplayKind = (field: {
+  kind?: string;
+  output_kind?: string;
+}): string | undefined =>
+  field.kind === "formula" ? (field.output_kind ?? "string") : field.kind;
 
 const numericFormatSchema = z.object({
   decimals: z.union([z.literal("auto"), z.number().int().min(0).max(10)])
@@ -811,6 +832,10 @@ export const perimeterDisplayConfigSchema = numericFormatSchema.extend({
 export const lengthDisplayConfigSchema = numericFormatSchema.extend({
   unit: lengthLikeUnitSchema.default("auto"),
 }).strict();
+export const datetimeDisplayConfigSchema = z.object({
+  tz: z.string().default("UTC"),
+  format: z.string().nullish(),
+}).strict();
 
 export const displayConfigSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("string"), config: stringDisplayConfigSchema }),
@@ -818,6 +843,7 @@ export const displayConfigSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("area"), config: areaDisplayConfigSchema }),
   z.object({ kind: z.literal("perimeter"), config: perimeterDisplayConfigSchema }),
   z.object({ kind: z.literal("length"), config: lengthDisplayConfigSchema }),
+  z.object({ kind: z.literal("datetime"), config: datetimeDisplayConfigSchema }),
 ]);
 
 export const fieldDefinitionSchema = z.object({
@@ -826,6 +852,9 @@ export const fieldDefinitionSchema = z.object({
   kind: fieldKindSchema,
   is_computed: z.boolean().default(false),
   display_config: z.record(z.string(), z.unknown()).default({}),
+  // Formula fields only: the SQL expression and its inferred result kind
+  formula: z.string().optional(),
+  output_kind: z.string().optional(),
 });
 
 export const RESERVED_FIELD_NAMES = ["id", "geometry", "geom", "__duckdb_row_id"];
@@ -854,16 +883,19 @@ export type CreateEmptyLayerInput = z.infer<typeof createEmptyLayerSchema>;
 
 // Map of geometry types to allowed kinds for the Add-Field dropdown
 export const ALLOWED_KINDS_BY_GEOM_TYPE: Record<string, FieldKind[]> = {
-  point: ["string", "number"],
-  multipoint: ["string", "number"],
-  line: ["string", "number", "length"],
-  multiline: ["string", "number", "length"],
-  polygon: ["string", "number", "area", "perimeter"],
-  multipolygon: ["string", "number", "area", "perimeter"],
+  point: ["string", "number", "datetime", "boolean", "formula"],
+  multipoint: ["string", "number", "datetime", "boolean", "formula"],
+  line: ["string", "number", "length", "datetime", "boolean", "formula"],
+  multiline: ["string", "number", "length", "datetime", "boolean", "formula"],
+  polygon: ["string", "number", "area", "perimeter", "datetime", "boolean", "formula"],
+  multipolygon: ["string", "number", "area", "perimeter", "datetime", "boolean", "formula"],
 };
 
+// Kinds whose VALUES are computed by the backend (read-only in editors).
+// Formula belongs here: its values are derived, only its expression is edited.
 export const COMPUTED_KINDS: ReadonlySet<FieldKind> = new Set([
   "area",
   "perimeter",
   "length",
+  "formula",
 ]);

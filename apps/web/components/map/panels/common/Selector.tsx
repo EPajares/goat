@@ -1,5 +1,6 @@
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Box,
   Checkbox,
   FormControl,
   InputAdornment,
@@ -154,16 +155,22 @@ const Selector = (props: SelectorProps) => {
           if (!multiple && !Array.isArray(selectedItems) && selectedItems)
             return (
               <div style={{ display: "flex", alignItems: "center" }}>
-                {selectedItems.icon && (
-                  <Icon
-                    iconName={selectedItems.icon}
-                    style={{
-                      fontSize: "14px",
-                      color: theme.palette.text.secondary,
-                    }}
-                    sx={{ mr: 2 }}
-                    color="inherit"
-                  />
+                {selectedItems.iconNode ? (
+                  <Box component="span" sx={{ mr: 2, display: "inline-flex" }}>
+                    {selectedItems.iconNode}
+                  </Box>
+                ) : (
+                  selectedItems.icon && (
+                    <Icon
+                      iconName={selectedItems.icon}
+                      style={{
+                        fontSize: "14px",
+                        color: theme.palette.text.secondary,
+                      }}
+                      sx={{ mr: 2 }}
+                      color="inherit"
+                    />
+                  )
                 )}
                 <Typography variant="body2" fontWeight="bold">
                   {selectedItems.label}
@@ -241,16 +248,22 @@ const Selector = (props: SelectorProps) => {
                 checked={selectedValue?.findIndex((selected) => selected === item.value) > -1}
               />
             )}
-            {item.icon && (
-              <Icon
-                iconName={item.icon}
-                style={{
-                  fontSize: "14px",
-                  color: theme.palette.text.secondary,
-                }}
-                sx={{ mr: 2 }}
-                color="inherit"
-              />
+            {item.iconNode ? (
+              <Box component="span" sx={{ mr: 2, display: "inline-flex" }}>
+                {item.iconNode}
+              </Box>
+            ) : (
+              item.icon && (
+                <Icon
+                  iconName={item.icon}
+                  style={{
+                    fontSize: "14px",
+                    color: theme.palette.text.secondary,
+                  }}
+                  sx={{ mr: 2 }}
+                  color="inherit"
+                />
+              )
             )}
             <Typography
               variant="body2"

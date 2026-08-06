@@ -77,7 +77,7 @@ class IntersectionToolParams(
             section="field_selection",
             field_order=1,
             widget="field-selector",
-            widget_options={"source_layer": "input_layer_id", "multi": True},
+            widget_options={"source_layer": "input_layer_id", "multiple": True},
         ),
     )
     overlay_fields: Optional[List[str]] = Field(
@@ -87,7 +87,7 @@ class IntersectionToolParams(
             section="field_selection",
             field_order=2,
             widget="field-selector",
-            widget_options={"source_layer": "overlay_layer_id", "multi": True},
+            widget_options={"source_layer": "overlay_layer_id", "multiple": True},
         ),
     )
 

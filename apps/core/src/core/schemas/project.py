@@ -191,6 +191,10 @@ class LayerProjectIds(BaseModel):
 class IFeatureBaseProject(CQLQuery):
     group: str | None = Field(None, description="Layer group name")
     charts: dict[str, Any] | None = Field(None, description="Layer chart properties")
+    other_properties: dict[str, Any] | None = Field(
+        None,
+        description="Per-project-layer preferences (e.g. data table configuration)",
+    )
 
 
 class IFeatureBaseProjectRead(IFeatureBaseProject):
@@ -211,19 +215,27 @@ class IFeatureBaseProjectRead(IFeatureBaseProject):
 class IFeatureStandardProjectRead(
     LayerProjectIds, FeatureStandardRead, IFeatureBaseProjectRead
 ):
-    pass
+    # Override the dataset-read typing (strict WMS model): project-layer
+    # other_properties is a free-form preference blob (e.g. table_config).
+    other_properties: dict[str, Any] | None = Field(
+        None, description="Per-project-layer preferences"
+    )
 
 
 class IFeatureToolProjectRead(
     LayerProjectIds, FeatureToolRead, IFeatureBaseProjectRead
 ):
-    pass
+    other_properties: dict[str, Any] | None = Field(
+        None, description="Per-project-layer preferences"
+    )
 
 
 class IFeatureStreetNetworkProjectRead(
     LayerProjectIds, FeatureStreetNetworkRead, IFeatureBaseProjectRead
 ):
-    pass
+    other_properties: dict[str, Any] | None = Field(
+        None, description="Per-project-layer preferences"
+    )
 
 
 class IFeatureStandardProjectUpdate(IFeatureBaseProject):
@@ -252,6 +264,10 @@ class IFeatureToolProjectUpdate(IFeatureBaseProject):
 
 class ITableProjectRead(LayerProjectIds, TableRead, CQLQuery):
     group: str | None = Field(None, description="Layer group name", max_length=255)
+    other_properties: dict[str, Any] | None = Field(
+        None,
+        description="Per-project-layer preferences (e.g. data table configuration)",
+    )
     total_count: int | None = Field(
         None, description="Total count of features in the layer"
     )
@@ -266,6 +282,10 @@ class ITableProjectRead(LayerProjectIds, TableRead, CQLQuery):
 class ITableProjectUpdate(CQLQuery):
     name: str | None = Field(None, description="Layer name", max_length=255)
     group: str | None = Field(None, description="Layer group name", max_length=255)
+    other_properties: dict[str, Any] | None = Field(
+        None,
+        description="Per-project-layer preferences (e.g. data table configuration)",
+    )
 
 
 class IRasterProjectRead(LayerProjectIds, RasterRead):

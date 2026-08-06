@@ -156,6 +156,7 @@ StreetMatrixPrep prepare_street_matrix_network(
     out.origin_nodes      = kernel::snap_origins(out.net, in.origins,      rcfg);
     out.destination_nodes = kernel::snap_origins(out.net, in.destinations, rcfg);
     out.adj = kernel::build_adjacency_list(out.net);
+    out.rev_adj = kernel::build_reverse_adjacency_list(out.net);
     return out;
 }
 
@@ -179,7 +180,8 @@ HeatmapNetworkPrep prepare_radial_street_network(
     rcfg.starting_points = in.opportunities;
     rcfg.steps = 1;
 
-    auto core = prepare_radial_network(con, rcfg, /*load_geometry=*/false);
+    // Geometry needed: the sampler interpolates along each edge's polyline.
+    auto core = prepare_radial_network(con, rcfg, /*load_geometry=*/true);
 
     HeatmapNetworkPrep out;
     out.net = std::move(core.net);

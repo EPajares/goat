@@ -3,10 +3,11 @@
 import type { DragOverEvent, DragStartEvent } from "@dnd-kit/core";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { Box, Stack, debounce, useTheme } from "@mui/material";
+import { Box, GlobalStyles, Stack, debounce, useTheme } from "@mui/material";
+import dynamic from "next/dynamic";
 import { ThemeProvider } from "@mui/material/styles";
 import "maplibre-gl/dist/maplibre-gl.css";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, use } from "react";
 import { useTranslation } from "react-i18next";
 import type { MapRef, ViewStateChangeEvent } from "react-map-gl/maplibre";
 import { MapProvider } from "react-map-gl/maplibre";
@@ -35,12 +36,11 @@ import { widgetSchemaMap } from "@/lib/validations/widget";
 
 import { useAuthZ } from "@/hooks/auth/AuthZ";
 import { useBrandedTheme } from "@/hooks/dashboard/useBrandedTheme";
-import { useJobStatus } from "@/hooks/jobs/JobStatus";
+import { JobStatusWatcher } from "@/hooks/jobs/JobStatus";
 import { useFilteredProjectLayers } from "@/hooks/map/LayerPanelHooks";
 import { useBasemap } from "@/hooks/map/MapHooks";
 import { useAppDispatch, useAppSelector } from "@/hooks/store/ContextHooks";
 
-import BuilderConfigPanel from "@/components/builder/ConfigPanel";
 import { DraggableItem } from "@/components/builder/widgets/common/DraggableItem";
 import { LoadingPage } from "@/components/common/LoadingPage";
 import Header from "@/components/header/Header";
@@ -48,12 +48,22 @@ import MapViewer from "@/components/map/MapViewer";
 import DataProjectLayout from "@/components/map/layouts/desktop/DataProjectLayout";
 import PublicProjectLayout from "@/components/map/layouts/desktop/PublicProjectLayout";
 import DataPanel from "@/components/map/panels/DataPanel";
-import { ReportsLayout } from "@/components/reports";
-import WorkflowsLayout from "@/components/workflows/WorkflowsLayout";
+
+const BuilderConfigPanel = dynamic(() => import("@/components/builder/ConfigPanel"), { ssr: false });
+const ReportsLayout = dynamic(() => import("@/components/reports").then((m) => m.ReportsLayout), {
+  ssr: false,
+});
+const WorkflowsLayout = dynamic(() => import("@/components/workflows/WorkflowsLayout"), { ssr: false });
 
 const UPDATE_VIEW_STATE_DEBOUNCE_TIME = 200;
 
-export default function MapPage({ params: { projectId } }) {
+export default function MapPage(props: { params: Promise<{ projectId: string }> }) {
+  const params = use(props.params);
+
+  const {
+    projectId
+  } = params;
+
   const theme = useTheme();
   const { t, i18n } = useTranslation("common");
   const mapRef = useRef<MapRef | null>(null);
@@ -105,7 +115,9 @@ export default function MapPage({ params: { projectId } }) {
   const primaryColor = project?.builder_config?.settings?.primary_color;
   const iconColor = project?.builder_config?.settings?.icon_color;
   const fontColor = project?.builder_config?.settings?.font_color;
-  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor);
+  // "light" mirrors the published dashboard: the preview must show what
+  // visitors see, not the author's own editor light/dark preference.
+  const brandedTheme = useBrandedTheme(primaryColor, iconColor, fontColor, "light");
 
   // Order layers using tree-aware DFS traversal so the map rendering order
   // matches the visual tree order (layers inside a group inherit the group's position).
@@ -240,11 +252,11 @@ export default function MapPage({ params: { projectId } }) {
     debouncedHandleMapLoad();
   }, [activeBasemap, handleMapLoad, mapMode]);
 
-  useJobStatus(() => {
+  const handleJobSuccess = useCallback(() => {
     mutateProjectLayers();
     mutateProjectLayerGroups();
     mutateProject();
-  });
+  }, [mutateProjectLayers, mutateProjectLayerGroups, mutateProject]);
 
   // Widget Drag and Drop
   const [activeWidget, setActiveWidget] = useState<BuilderWidgetSchema | null>(null);
@@ -478,6 +490,7 @@ export default function MapPage({ params: { projectId } }) {
 
   return (
     <>
+      <JobStatusWatcher onSuccess={handleJobSuccess} />
       {isLoading && <LoadingPage />}
       {!isLoading && !hasError && project && (
         <MapProvider>
@@ -539,6 +552,7 @@ export default function MapPage({ params: { projectId } }) {
                           position: "relative",
                         }}>
                         <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+                          <ThemeProvider theme={mapMode === "builder" ? brandedTheme : theme}>
                           <MapViewer
                             containerSx={{ zIndex: 0 }}
                             layers={projectLayers}
@@ -560,6 +574,7 @@ export default function MapPage({ params: { projectId } }) {
                             onLoad={handleMapLoaded}
                             isEditor={isProjectEditor}
                           />
+                          </ThemeProvider>
                           <DataPanel projectLayers={allProjectLayersIncludingTables} isEditor={isProjectEditor} />
                         </Box>
                         {mapMode === "builder" && (
@@ -571,7 +586,19 @@ export default function MapPage({ params: { projectId } }) {
                               pointerEvents: "none",
                             }}>
                             <ThemeProvider theme={brandedTheme}>
-                              <Box sx={{ color: "text.primary", height: "100%", width: "100%" }}>
+                              <GlobalStyles
+                                styles={{
+                                  "html body .goat-dashboard-preview ::-webkit-scrollbar-thumb": {
+                                    backgroundColor: brandedTheme.palette.grey[400],
+                                  },
+                                  "html body .goat-dashboard-preview ::-webkit-scrollbar-track": {
+                                    background: "transparent",
+                                  },
+                                }}
+                              />
+                              <Box
+                                className="goat-dashboard-preview"
+                                sx={{ color: "text.primary", height: "100%", width: "100%" }}>
                                 <PublicProjectLayout
                                   projectLayers={widgetProjectLayers}
                                   projectLayerGroups={projectLayerGroups}

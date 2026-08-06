@@ -30,7 +30,7 @@ import { ICON_NAME, Icon } from "@p4b/ui/components/Icon";
 // Redux
 import { useUserProfile } from "@/lib/api/users";
 import { MAX_EDITABLE_LAYER_SIZE } from "@/lib/constants";
-import { startEditing } from "@/lib/store/featureEditor/slice";
+import useStartEditingGuard from "@/hooks/map/useStartEditingGuard";
 import { emitInteractionEvent } from "@/lib/store/interaction/slice";
 import { setSelectedLayers } from "@/lib/store/layer/slice";
 import { setActiveRightPanel, setDataPanelLayerId, setIsDataPanelOpen } from "@/lib/store/map/slice";
@@ -55,6 +55,7 @@ import MoreMenu from "@/components/common/PopperMenu";
 import type { PopperMenuItem } from "@/components/common/PopperMenu";
 // Modals
 import CatalogExplorerModal from "@/components/modals/CatalogExplorer";
+import ConfirmModal from "@/components/modals/Confirm";
 import ContentDialogWrapper from "@/components/modals/ContentDialogWrapper";
 import DatasetExplorerModal from "@/components/modals/DatasetExplorer";
 import DatasetExternalModal from "@/components/modals/DatasetExternal";
@@ -71,7 +72,7 @@ import { DraggableTreeView } from "./DraggableTreeView";
 import { LayerIcon } from "./legend/LayerIcon";
 import { MaskedImageIcon } from "@/components/map/panels/style/other/MaskedImageIcon";
 import { LayerLegendPanel } from "./legend/LayerLegend";
-import { getLegendColorMap, getLegendMarkerMap } from "@/lib/utils/map/legend";
+import { getLegendColorMap, getLegendMarkerMap, resolveFeatureMarker } from "@/lib/utils/map/legend";
 import PopupContentRenderer from "@/components/builder/widgets/common/PopupContentRenderer";
 
 // Extended tree item interface to include project layer data
@@ -369,6 +370,9 @@ interface ProjectLayerTreeProps {
   };
   /** Layer IDs that should show download action (view mode only) */
   downloadableLayers?: number[];
+  /** Layer IDs whose legend renders as a single row (base marker, else fill
+   * color) instead of the full attribute breakdown */
+  simpleLegendLayerIds?: number[];
   /** Hide attribute/field name headings in legend */
   hideLegendHeading?: boolean;
   /** Custom group icons keyed by group ID */
@@ -399,6 +403,7 @@ export const ProjectLayerTree = ({
   moreOptionsStyle = "compact",
   allowedActions,
   downloadableLayers,
+  simpleLegendLayerIds,
   hideLegendHeading,
   groupIcons,
   dimOutOfZoom = true,
@@ -414,6 +419,8 @@ export const ProjectLayerTree = ({
   const { userProfile } = useUserProfile();
   // Only subscribe to currentZoom when dimming is enabled and in view mode
   const currentZoom = useAppSelector((state) => (dimOutOfZoom && viewMode === "view" ? state.map.currentZoom : undefined));
+  const editingLayerId = useAppSelector((state) => state.featureEditor.activeLayerId);
+  const startEditingGuard = useStartEditingGuard();
 
   const [items, setItems] = useState<ProjectTreeItem[]>([]);
   const itemsRef = useRef<ProjectTreeItem[]>([]);
@@ -607,8 +614,11 @@ export const ProjectLayerTree = ({
 
     dispatch(setSelectedLayers(realIds));
 
-    // Always sync data panel layer — if the panel is closed, this is a no-op
-    if (realIds.length === 1) {
+    // Sync data panel layer — if the panel is closed, this is a no-op.
+    // While a feature-edit session is active the panel stays pinned to the
+    // editing layer: plain tree selection must not hijack (or end) the
+    // session — only explicitly opening another layer's table does.
+    if (realIds.length === 1 && !editingLayerId) {
       dispatch(setDataPanelLayerId(realIds[0]));
     }
 
@@ -858,10 +868,11 @@ export const ProjectLayerTree = ({
                   } else if (menuItem.id === MapLayerActions.DUPLICATE) {
                     handleDuplicate(target);
                   } else if (menuItem.id === MapLayerActions.EDIT_FEATURES) {
-                    dispatch(startEditing({
+                    startEditingGuard.requestStartEditing({
                       layerId: target.layer_id,
                       geometryType: target.feature_layer_geometry_type ?? null,
-                    }));
+                      projectLayerId: target.id,
+                    });
                   } else if (menuItem.id === ContentActions.TABLE) {
                     if (mapMode === "data") {
                       dispatch(setDataPanelLayerId(target.id));
@@ -1034,8 +1045,10 @@ export const ProjectLayerTree = ({
           legendNode = <LayerLegendPanel properties={props} geometryType="raster" hideHeading={hideLegendHeading} />;
         }
       }
-      // 4. Complex Legend - Only show legend if layer is visible
-      else if (hasComplexLegend) {
+      // 4. Complex Legend - Only show legend if layer is visible. Layers
+      // opted into the simple legend fall through to the geometry preview
+      // below (base marker, else fill color) with no attribute breakdown.
+      else if (hasComplexLegend && !simpleLegendLayerIds?.includes(node.id)) {
         // Check if legend panel will actually have content to show
         const colorMap = getLegendColorMap(props, "color");
         const strokeMap = getLegendColorMap(props, "stroke_color");
@@ -1097,7 +1110,8 @@ export const ProjectLayerTree = ({
           }
         }
       }
-      // 5. Simple Feature (Geometry Preview) - for layers without complex legends
+      // 5. Simple Feature (Geometry Preview) - for layers without complex
+      // legends and for simple-legend layers
       else {
         const baseColor = props.color
           ? Array.isArray(props.color) && props.color.length >= 3
@@ -1115,20 +1129,17 @@ export const ProjectLayerTree = ({
           : undefined;
         // When fill is disabled and custom marker is active, use black to match map behavior
         const iconColor = props.filled === false && props.custom_marker ? "#000000" : baseColor;
+        // Base marker with mapped-marker layers falling back to their base
+        // marker — the same precedence as the map's icon-image expression.
+        const simpleMarker = resolveFeatureMarker(props);
         iconNode = (
           <LayerIcon
             type={geomType} // Use geometry type for vector preview
             color={iconColor}
             strokeColor={props.stroked !== false ? strokeColor : undefined}
             filled={props.filled !== false}
-            iconUrl={
-              !props.marker_field && props.custom_marker && props.marker?.url ? props.marker.url : undefined
-            }
-            iconSource={
-              !props.marker_field && props.custom_marker && props.marker?.source
-                ? props.marker.source
-                : "library"
-            }
+            iconUrl={simpleMarker?.url}
+            iconSource={simpleMarker?.source ?? "library"}
           />
         );
       }
@@ -1145,7 +1156,7 @@ export const ProjectLayerTree = ({
         labelInfo: legendCaption,
       };
     });
-  }, [items, theme, currentZoom, viewMode, hideLegendHeading, groupIcons]);
+  }, [items, theme, currentZoom, viewMode, hideLegendHeading, groupIcons, simpleLegendLayerIds]);
 
   const renderPrefix = useCallback(togglePosition === "left" ? (item: ProjectTreeItem) => {
     const node = item.data as ProjectLayerTreeNode;
@@ -1320,6 +1331,15 @@ export const ProjectLayerTree = ({
           content={groupInfo[String(groupInfoDialog.id)]}
         />
       )}
+      <ConfirmModal
+        open={startEditingGuard.confirmOpen}
+        title={t("stop_editing")}
+        body={t("discard_edits_confirmation")}
+        closeText={t("cancel")}
+        confirmText={t("stop_editing")}
+        onClose={startEditingGuard.cancel}
+        onConfirm={startEditingGuard.confirm}
+      />
     </Box>
   );
 };

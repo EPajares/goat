@@ -1,6 +1,7 @@
 import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 import {
+  Box,
   Checkbox,
   FormControl,
   IconButton,
@@ -12,7 +13,6 @@ import {
   Stack,
   TextField,
   Typography,
-  styled,
   useTheme,
 } from "@mui/material";
 import { useMemo, useState } from "react";
@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 
 import type { LayerFieldType } from "@/lib/validations/layer";
 
+import FieldKindIcon, { fieldIndicatorKind } from "@/components/common/FieldKindIcon";
 import FormLabelHelper from "@/components/common/FormLabelHelper";
 
 export type SelectorProps<T extends boolean = false> = {
@@ -39,31 +40,10 @@ export type SelectorProps<T extends boolean = false> = {
 export const containsText = (text: string, searchText: string) =>
   text.toLowerCase().indexOf(searchText.toLowerCase()) > -1;
 
-export const FieldTypeColors = {
-  string: [140, 210, 205],
-  number: [248, 194, 28],
-  object: [255, 138, 101],
-};
-
-export const FieldTypeTag = styled("div")<{ fieldType: string }>(({ fieldType }) => ({
-  backgroundColor: `rgba(${FieldTypeColors[fieldType]}, 0.1)`,
-  borderRadius: 4,
-  border: `1px solid rgb(${FieldTypeColors[fieldType]})`,
-  color: `rgb(${FieldTypeColors[fieldType]})`,
-  display: "inline-block",
-  fontSize: 10,
-  fontWeight: "bold",
-  padding: "0 5px",
-  marginRight: "10px",
-  textAlign: "center",
-  width: "50px",
-  lineHeight: "20px",
-}));
-
 // Empty array constant to avoid creating new references
 const EMPTY_FIELDS: LayerFieldType[] = [];
 
-const LayerFieldSelector = (props: SelectorProps) => {
+const LayerFieldSelector = <T extends boolean = false>(props: SelectorProps<T>) => {
   const theme = useTheme();
   const [searchText, setSearchText] = useState("");
   const { selectedField, fields, setSelectedField } = props;
@@ -84,12 +64,18 @@ const LayerFieldSelector = (props: SelectorProps) => {
   const selectedValue = useMemo(() => {
     if (!props.multiple && !Array.isArray(selectedField)) {
       if (!selectedField) return "";
-      // Only set the value if the field exists in available options to avoid MUI out-of-range warnings
-      const fieldExists = safeFields.some((f) => f.name === selectedField.name);
-      return fieldExists ? JSON.stringify(selectedField) : "";
+      // Match by name and emit the stringified LIVE option: a saved field whose
+      // type/kind has since drifted (e.g. a column re-imported as number) would
+      // otherwise stringify differently from every option and trigger MUI's
+      // out-of-range warning.
+      const match = safeFields.find((f) => f.name === selectedField.name);
+      return match ? JSON.stringify(match) : "";
     } else {
       return selectedField && Array.isArray(selectedField) && selectedField.length > 0
-        ? selectedField.map((field) => JSON.stringify(field))
+        ? selectedField
+            .map((field) => safeFields.find((f) => f.name === field.name))
+            .filter((field): field is (typeof safeFields)[number] => !!field)
+            .map((field) => JSON.stringify(field))
         : EMPTY_FIELDS;
     }
   }, [props.multiple, selectedField, safeFields]);
@@ -122,7 +108,17 @@ const LayerFieldSelector = (props: SelectorProps) => {
         multiple={props.multiple ? true : false}
         disabled={props.disabled}
         IconComponent={() => null}
-        sx={{ pr: 1 }}
+        sx={{
+          pr: 1,
+          // Let the value area shrink and truncate instead of pushing the
+          // clear button out of the box when many fields are selected.
+          "& .MuiSelect-select": {
+            minWidth: "0 !important",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          },
+        }}
         displayEmpty
         value={selectedValue as unknown}
         defaultValue={props.multiple ? EMPTY_FIELDS : ""}
@@ -132,7 +128,8 @@ const LayerFieldSelector = (props: SelectorProps) => {
               const value = e.target.value as string;
               if (!value) return;
               const field = JSON.parse(value) as LayerFieldType;
-              setSelectedField(field as LayerFieldType);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              setSelectedField(field as any);
             } else if (props.multiple) {
               const fields = e.target.value as string[];
               const selectedFields = fields
@@ -161,13 +158,12 @@ const LayerFieldSelector = (props: SelectorProps) => {
         onBlur={() => setFocused(false)}
         startAdornment={
           <>
-            {/* Only show field type tag for single select mode */}
-            {!props.multiple &&
-              selectedField &&
-              !Array.isArray(selectedField) &&
-              FieldTypeColors[selectedField.type] && (
-                <FieldTypeTag fieldType={selectedField.type}>{selectedField.type}</FieldTypeTag>
-              )}
+            {/* Only show field type indicator for single select mode */}
+            {!props.multiple && selectedField && !Array.isArray(selectedField) && (
+              <Box component="span" sx={{ mr: 1.5, display: "inline-flex" }}>
+                <FieldKindIcon kind={fieldIndicatorKind(selectedField)} />
+              </Box>
+            )}
           </>
         }
         endAdornment={
@@ -196,17 +192,18 @@ const LayerFieldSelector = (props: SelectorProps) => {
             return <Typography variant="body2">{t("select_field")}</Typography>;
           if (props.multiple && Array.isArray(selectedField) && selectedField.length === 0)
             return <Typography variant="body2">{t("select_fields")}</Typography>;
-          return (
-            <>
-              {selectedField && (
-                <Typography variant="body2" fontWeight="bold">
-                  {props.multiple && Array.isArray(selectedField)
-                    ? selectedField.map((f) => f.name).join(", ")
-                    : selectedField.name}
-                </Typography>
-              )}
-            </>
-          );
+          let displayText: string | undefined;
+          if (props.multiple && Array.isArray(selectedField)) {
+            const [first, ...rest] = selectedField;
+            displayText = rest.length > 0 ? `${first.name}, ...` : first.name;
+          } else if (selectedField && !Array.isArray(selectedField)) {
+            displayText = selectedField.name;
+          }
+          return displayText ? (
+            <Typography variant="body2" fontWeight="bold" noWrap>
+              {displayText}
+            </Typography>
+          ) : null;
         }}>
         <ListSubheader sx={{ px: 2, pt: 1 }}>
           <TextField
@@ -287,7 +284,9 @@ const LayerFieldSelector = (props: SelectorProps) => {
               />
             )}
 
-            {FieldTypeColors[field.type] && <FieldTypeTag fieldType={field.type}>{field.type}</FieldTypeTag>}
+            <Box component="span" sx={{ mr: 1.5, display: "inline-flex" }}>
+              <FieldKindIcon kind={fieldIndicatorKind(field)} />
+            </Box>
             <Typography
               variant="body2"
               fontWeight="bold"

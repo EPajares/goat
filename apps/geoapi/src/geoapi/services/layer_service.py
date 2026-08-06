@@ -423,13 +423,15 @@ class LayerService:
                     col_name, col_type = row[0], row[1]
                     # Map DuckDB types to JSON schema types
                     json_type = self._duckdb_to_json_type(col_type)
-                    columns.append(
-                        {
-                            "name": col_name,
-                            "type": col_type,
-                            "json_type": json_type,
-                        }
-                    )
+                    col_meta: dict[str, Any] = {
+                        "name": col_name,
+                        "type": col_type,
+                        "json_type": json_type,
+                    }
+                    json_format = self._duckdb_to_json_format(col_type)
+                    if json_format:
+                        col_meta["format"] = json_format
+                    columns.append(col_meta)
         except Exception:
             # If DuckLake query fails, return empty columns
             pass
@@ -457,6 +459,19 @@ class LayerService:
             return "string"  # ISO format
         else:
             return "string"
+
+    @staticmethod
+    def _duckdb_to_json_format(duckdb_type: str) -> str | None:
+        """TIMESTAMP/TIMESTAMPTZ/DATE -> "date-time"; TIME and non-temporal -> None.
+
+        DATE deliberately collapses into the single datetime field kind.
+        """
+        type_lower = duckdb_type.lower()
+        if "timestamp" in type_lower:
+            return "date-time"
+        if "date" in type_lower:
+            return "date-time"
+        return None
 
     async def is_layer_in_public_project(self, layer_id: UUID) -> bool:
         """Check if a layer belongs to any published (public) project.

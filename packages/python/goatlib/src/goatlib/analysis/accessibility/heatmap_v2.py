@@ -35,6 +35,7 @@ from goatlib.analysis.schemas.heatmap_v2 import (
     HeatmapType,
     HeatmapV2Params,
     OpportunityV2,
+    TwoSFCAType,
 )
 from goatlib.config.settings import settings
 from goatlib.models.io import DatasetMetadata
@@ -63,23 +64,16 @@ DEFAULT_H3_RESOLUTION: dict[RoutingMode, int] = {
 _PT_ACCESSEGRESS_RES = 9
 _PT_ACCESSEGRESS_MAX_MIN = 20
 
-# PT connectivity rasterizes the reference area to H3 cells, and each cell is a
-# reverse-RAPTOR group — so the cell count (≈ AOI area / cell area) drives cost.
-# The resolution is therefore chosen *dynamically* from the AOI's area: the
-# finest resolution whose estimated cell count stays under the target. Small
-# AOIs land at res-9 (== the egress-lookup resolution, so no coarsening at all);
-# larger AOIs step coarser to keep the RAPTOR run count bounded. The same chosen
-# resolution is used both to rasterize (here) and to key the C++ output cells
-# (cfg.connectivity_output_resolution), so opportunity and output cells align.
-_PT_CONNECTIVITY_MIN_RES = 8   # coarsest (large AOI)
-_PT_CONNECTIVITY_MAX_RES = 9   # finest (== egress-lookup res; small AOI)
-_PT_CONNECTIVITY_TARGET_CELLS = 6000  # headroom under MAX_OPPORTUNITIES_PER_LAYER
-
-# Average H3 cell area (m²) by resolution — used to size the AOI raster.
-_H3_CELL_AREA_M2: dict[int, float] = {
-    8: 737_327.0,
-    9: 105_332.0,
-}
+# Connectivity rasterizes the reference area to H3 cells; each cell is a per-cell
+# routing origin. Rasterization uses the fixed per-mode DEFAULT_H3_RESOLUTION
+# (same as every other heatmap type), so the output resolution is deterministic
+# and comparable across reference areas — a requirement for an analysis tool.
+#
+# Hard cap on rasterised AOI cells for connectivity (all modes). Higher than the
+# generic opportunity cap because each cell is a per-cell routing origin
+# (reverse-RAPTOR for PT, Dijkstra for street) — CPU-bound, not the temp-disk-
+# bound sampled-opportunity workload the generic cap guards against.
+_CONNECTIVITY_MAX_CELLS = 50_000
 _PT_TABLE_MODE_NAME: dict[RoutingMode, str] = {
     RoutingMode.walking: "walk",
     RoutingMode.bicycle: "bicycle",
@@ -93,12 +87,12 @@ _PT_TABLE_MODE_NAME: dict[RoutingMode, str] = {
     RoutingMode.car: "car",
 }
 
-# Hard cap on opportunity points per layer (and on AOI cells synthesised
-# for connectivity). Until streaming aggregation lands, DuckDB temp-disk
-# usage scales roughly with N_opps × samples_per_opp and the worker VM
-# typically OOMs above ~10k for non-walking modes. Capping uniformly here
-# gives a predictable upper bound across all modes + heatmap formulas.
-MAX_OPPORTUNITIES_PER_LAYER = 10_000
+# Hard cap on total opportunity SEED points across all layers (gravity /
+# closest_average / two_sfca). Seeds are the routing sources — a polygon
+# opportunity rasterizes to many seeds — so DuckDB temp-disk usage scales with
+# the combined seed count, which is what this bounds. Connectivity has its own
+# AOI-cell cap.
+MAX_SEED_POINTS_TOTAL = 50_000
 
 # Mode default speeds (km/h) used when the user doesn't supply one. The
 # UI's "speed" field lives under show_advanced=True so most form
@@ -148,9 +142,12 @@ class HeatmapV2Tool(HeatmapToolBase):
         return sanitize_sql_name(raw, fallback_idx=idx)
 
     def _load_opportunity_points(
-        self: Self, opp: OpportunityV2, idx: int
-    ) -> list[tuple[float, float, float]]:
-        """Materialize (x_3857, y_3857, weight) tuples from one layer."""
+        self: Self, opp: OpportunityV2, idx: int, res: int
+    ) -> list[tuple[list[tuple[float, float]], float, float, float]]:
+        """One opportunity per feature: (seeds_xy_3857, weight, rep_x, rep_y).
+        Points → each point a seed; polygons → covered H3 cell centroids as
+        seeds; one full weight per feature. Input parquet is pre-filtered.
+        """
         meta, opp_table = self.import_input(
             opp.input_path, table_name=f"opp_input_{idx}"
         )
@@ -160,49 +157,83 @@ class HeatmapV2Tool(HeatmapToolBase):
         if crs is None:
             raise ValueError(f"Opportunity layer {opp.input_path} has no CRS")
         source_crs = crs.to_string()
-        # Project to a point in EPSG:3857; centroid for polygons, raw point
-        # for points. Web-mercator coordinates are what compute_heatmap
-        # accepts directly.
-        if "point" in geom_type:
-            point_expr = (
-                f"ST_Transform(ST_Force2D({geom_col}), "
-                f"'{source_crs}', 'EPSG:3857', always_xy:=true)"
-            )
-        else:
-            point_expr = (
-                f"ST_Transform(ST_Centroid(ST_Force2D({geom_col})), "
-                f"'{source_crs}', 'EPSG:3857', always_xy:=true)"
-            )
-
         weight_expr = self._weight_expression(opp, geom_col, source_crs, geom_type)
 
-        # NB: the opportunity layer's CRS is whatever the layer was saved
-        # in; we transform per row. Geometry-derived weights (area,
-        # perimeter) are computed against a metric projection so they're
-        # in m² / m.
-        #
-        # `opp.input_layer_filter` (CQL2) is already applied by
-        # HeatmapV2ToolRunner.resolve_layer_paths() during the
-        # export_layer_to_parquet step, so the parquet at opp.input_path
-        # is pre-filtered.
-        filter_clause = ""
+        def _to_3857(g: str) -> str:
+            return (
+                f"ST_Transform(ST_Force2D({g}), "
+                f"'{source_crs}', 'EPSG:3857', always_xy:=true)"
+            )
 
-        rows = self.con.execute(
-            f"""
-            SELECT
-                ST_X(({point_expr})) AS x_3857,
-                ST_Y(({point_expr})) AS y_3857,
-                ({weight_expr})::DOUBLE AS weight
-            FROM {opp_table}
-            WHERE {geom_col} IS NOT NULL
-              {filter_clause}
-            """
-        ).fetchall()
+        if "polygon" in geom_type:
+            # Rasterize to H3 cells; project cell centroids to EPSG:3857.
+            centroid_3857 = _to_3857(f"ST_Centroid({geom_col})")
+            geom_4326 = (
+                f"ST_Transform(ST_Force2D({geom_col}), "
+                f"'{source_crs}', 'EPSG:4326', always_xy:=true)"
+            )
+            rows = self.con.execute(f"""
+                WITH feats AS (
+                    SELECT ROW_NUMBER() OVER () AS fid,
+                           ({weight_expr})::DOUBLE AS weight,
+                           ST_X({centroid_3857}) AS rx,
+                           ST_Y({centroid_3857}) AS ry,
+                           {geom_4326} AS geom4326
+                    FROM {opp_table} WHERE {geom_col} IS NOT NULL
+                ),
+                parts AS (
+                    SELECT fid, weight, rx, ry,
+                           (UNNEST(ST_Dump(geom4326))).geom AS g FROM feats
+                ),
+                cells AS (
+                    SELECT fid, weight, rx, ry,
+                           UNNEST(h3_polygon_wkt_to_cells_experimental(
+                             ST_AsText(g), {res}, 'CONTAINMENT_OVERLAPPING')) AS cell
+                    FROM parts
+                ),
+                uniq AS (SELECT DISTINCT fid, weight, rx, ry, cell FROM cells),
+                cell_pts AS (
+                    SELECT fid, weight, rx, ry, h3_cell_to_latlng(cell) AS ll
+                    FROM uniq
+                )
+                SELECT ANY_VALUE(weight) AS weight,
+                       ANY_VALUE(rx) AS rx, ANY_VALUE(ry) AS ry,
+                       list(ll[2] * 20037508.342789244 / 180.0) AS sx,
+                       list(LN(TAN((90.0 + ll[1]) * PI() / 360.0))
+                            * 20037508.342789244 / PI()) AS sy
+                FROM cell_pts GROUP BY fid
+            """).fetchall()
+        else:
+            rows = self.con.execute(f"""
+                WITH feats AS (
+                    SELECT ROW_NUMBER() OVER () AS fid,
+                           ({weight_expr})::DOUBLE AS weight,
+                           {_to_3857(geom_col)} AS geom3857
+                    FROM {opp_table} WHERE {geom_col} IS NOT NULL
+                ),
+                pts AS (
+                    SELECT fid, weight, (UNNEST(ST_Dump(geom3857))).geom AS p
+                    FROM feats
+                )
+                SELECT ANY_VALUE(weight) AS weight,
+                       AVG(ST_X(p)) AS rx, AVG(ST_Y(p)) AS ry,
+                       list(ST_X(p)) AS sx, list(ST_Y(p)) AS sy
+                FROM pts GROUP BY fid
+            """).fetchall()
+
+        groups: list[tuple[list[tuple[float, float]], float, float, float]] = []
+        for weight, rx, ry, sx, sy in rows:
+            seeds = [(float(x), float(y)) for x, y in zip(sx, sy)]
+            if not seeds:
+                continue
+            groups.append((seeds, float(weight), float(rx), float(ry)))
+
         logger.info(
-            "Loaded %d opportunity points from %s (weight: %s)",
-            len(rows), opp.input_path, opp.potential_type.value,
+            "Loaded %d opportunities (%d seeds) from %s (weight: %s)",
+            len(groups), sum(len(g[0]) for g in groups), opp.input_path,
+            opp.potential_type.value,
         )
-        return [(float(r[0]), float(r[1]), float(r[2])) for r in rows]
+        return groups
 
     @staticmethod
     def _weight_expression(
@@ -239,11 +270,12 @@ class HeatmapV2Tool(HeatmapToolBase):
     def _build_heatmap_cfg(
         self: Self,
         params: HeatmapV2Params,
-        opp_points: list[tuple[float, float, float]],
+        opp_groups: list[tuple[list[tuple[float, float]], float, float, float]],
         sensitivity: float,
         output_path: str,
         max_cost: float | None = None,
         closest_k: int = 1,
+        demand_path: str | None = None,
     ) -> Any:
         """Build a routing.HeatmapConfig for one opportunity layer.
 
@@ -264,6 +296,7 @@ class HeatmapV2Tool(HeatmapToolBase):
             HeatmapType.gravity: routing.HeatmapType.Gravity,
             HeatmapType.closest_average: routing.HeatmapType.ClosestAverage,
             HeatmapType.connectivity: routing.HeatmapType.Connectivity,
+            HeatmapType.two_sfca: routing.HeatmapType.TwoSFCA,
         }
         decay_map = {
             GravityDecay.gaussian: routing.GravityDecay.Gaussian,
@@ -290,8 +323,12 @@ class HeatmapV2Tool(HeatmapToolBase):
         cfg.edge_dir = self._edge_dir
         cfg.node_dir = self._node_dir
         cfg.opportunities = [
-            routing.Opportunity(routing.Point3857(x, y), w)
-            for (x, y, w) in opp_points
+            routing.Opportunity(
+                [routing.Point3857(sx, sy) for (sx, sy) in seeds],
+                w,
+                routing.Point3857(rx, ry),
+            )
+            for (seeds, w, rx, ry) in opp_groups
         ]
         cfg.heatmap_type = htype_map[params.heatmap_type]
         cfg.decay = decay_map[params.decay]
@@ -299,6 +336,15 @@ class HeatmapV2Tool(HeatmapToolBase):
         cfg.max_sensitivity = params.max_sensitivity
         cfg.closest_k = closest_k
         cfg.output_path = output_path
+
+        if params.heatmap_type == HeatmapType.two_sfca:
+            cfg.two_sfca_type = {
+                TwoSFCAType.twosfca: routing.TwoSFCAType.Standard,
+                TwoSFCAType.e2sfca: routing.TwoSFCAType.E2SFCA,
+                TwoSFCAType.m2sfca: routing.TwoSFCAType.M2SFCA,
+            }[params.two_sfca_type]
+            if demand_path is not None:
+                cfg.demand_path = demand_path
 
         # PT: arrive-by reverse RAPTOR + precomputed access/egress lookup
         # tables. max_cost here is the total journey budget (minutes). The
@@ -321,69 +367,27 @@ class HeatmapV2Tool(HeatmapToolBase):
             cfg.egress_table_path = self._accessegress_table_path(
                 params.egress_mode
             )
-            # Connectivity keys its output at the same resolution the AOI was
-            # rasterized to (chosen dynamically in _resolve_opportunity_layers),
-            # so the C++ output cells align with the opportunity cells.
-            cfg.connectivity_output_resolution = getattr(
-                self, "_pt_connectivity_res", _PT_CONNECTIVITY_MAX_RES
-            )
+            # Connectivity keys its output at the fixed per-mode resolution the
+            # AOI is rasterized to, so C++ output cells align with the AOI cells.
+            cfg.connectivity_output_resolution = DEFAULT_H3_RESOLUTION[
+                params.routing_mode
+            ]
 
         return cfg
 
     # ----------------------- connectivity helpers ----------------------------
 
-    def _pick_pt_connectivity_resolution(
-        self: Self,
-        aoi_table: str,
-        aoi_meta: object,
-    ) -> int:
-        """Choose the finest H3 resolution whose estimated AOI cell count stays
-        under the target, so PT connectivity's per-cell reverse-RAPTOR run count
-        is bounded and scales with the reference area.
-
-        Probes at the coarsest resolution (cheap even for huge AOIs) and
-        extrapolates the finer-resolution counts by H3 cell area.
-        """
-        probe = self._process_table_to_h3(
-            aoi_table, aoi_meta, _PT_CONNECTIVITY_MIN_RES,
-            "aoi_probe", h3_column="probe_cell",
-        )
-        n_probe = self.con.execute(f"SELECT COUNT(*) FROM {probe}").fetchone()[0]
-        if not n_probe:
-            return _PT_CONNECTIVITY_MAX_RES
-        area_m2 = n_probe * _H3_CELL_AREA_M2[_PT_CONNECTIVITY_MIN_RES]
-        chosen = _PT_CONNECTIVITY_MIN_RES
-        for res in range(_PT_CONNECTIVITY_MIN_RES + 1, _PT_CONNECTIVITY_MAX_RES + 1):
-            if area_m2 / _H3_CELL_AREA_M2[res] <= _PT_CONNECTIVITY_TARGET_CELLS:
-                chosen = res
-            else:
-                break
-        logger.info(
-            "[Heatmap] PT connectivity: AOI ~%.0f km² → res-%d "
-            "(~%d cells; probe %d cells @res-%d)",
-            area_m2 / 1e6, chosen,
-            round(area_m2 / _H3_CELL_AREA_M2[chosen]), n_probe,
-            _PT_CONNECTIVITY_MIN_RES,
-        )
-        return chosen
-
     def _rasterize_aoi_to_opportunities(
         self: Self,
         reference_area_path: str,
-        h3_resolution: int | None,
+        h3_resolution: int,
     ) -> tuple[list[tuple[float, float, float]], int]:
-        """Rasterize reference AOI polygon to H3 cells.
+        """Rasterize reference AOI polygon to H3 cells at a fixed resolution.
 
         Returns (centroid points in EPSG:3857 with weight=1.0, resolution used).
-        When ``h3_resolution`` is None the resolution is chosen dynamically from
-        the AOI area (PT connectivity); otherwise the given fixed resolution is
-        used (street connectivity).
         """
         # Register the AOI
         aoi_meta, aoi_table = self.import_input(reference_area_path, table_name="aoi_input")
-
-        if h3_resolution is None:
-            h3_resolution = self._pick_pt_connectivity_resolution(aoi_table, aoi_meta)
 
         # Convert to H3 cells (parent helper)
         aoi_cells_table = self._process_table_to_h3(
@@ -415,42 +419,44 @@ class HeatmapV2Tool(HeatmapToolBase):
     def _resolve_opportunity_layers(
         self: Self,
         params: HeatmapV2Params,
-    ) -> list[tuple[str, list[tuple[float, float, float]], float, float, int]]:
-        """Return per-layer (column_name, points, sensitivity, max_cost, n_destinations).
+    ) -> list[
+        tuple[
+            str,
+            list[tuple[list[tuple[float, float]], float, float, float]],
+            float,
+            float,
+            int,
+        ]
+    ]:
+        """Return per-layer (column_name, opp_groups, sensitivity, max_cost, n_destinations).
 
         Per-layer max_cost (minutes or meters) and n_destinations both drive
         that layer's compute_heatmap call.
         """
         if params.heatmap_type == HeatmapType.connectivity:
-            # PT connectivity picks its rasterization resolution dynamically from
-            # the AOI area (h3_resolution=None) so the per-cell reverse-RAPTOR run
-            # count stays bounded; street uses the fixed per-mode default. The
-            # chosen PT resolution is stashed for _build_heatmap_cfg so the C++
-            # output cells key at the same resolution.
-            fixed_res = (
-                None
-                if params.routing_mode == RoutingMode.pt
-                else DEFAULT_H3_RESOLUTION[params.routing_mode]
+            # Fixed per-mode rasterization resolution (same as every other
+            # heatmap type), so the output resolution is deterministic across
+            # reference areas.
+            opp_points, _ = self._rasterize_aoi_to_opportunities(
+                params.reference_area_path,
+                DEFAULT_H3_RESOLUTION[params.routing_mode],
             )
-            opp_points, used_res = self._rasterize_aoi_to_opportunities(
-                params.reference_area_path, fixed_res
-            )
-            if params.routing_mode == RoutingMode.pt:
-                self._pt_connectivity_res = used_res
             if not opp_points:
                 raise ValueError(
                     "The reference area is empty or invalid. "
                     "Check that the layer contains valid polygons."
                 )
-            if len(opp_points) > MAX_OPPORTUNITIES_PER_LAYER:
+            if len(opp_points) > _CONNECTIVITY_MAX_CELLS:
                 raise ValueError(
                     f"The reference area is too large to analyse: it covers "
                     f"{len(opp_points):,} grid cells, but the maximum is "
-                    f"{MAX_OPPORTUNITIES_PER_LAYER:,}. "
+                    f"{_CONNECTIVITY_MAX_CELLS:,}. "
                     "Please choose a smaller reference area."
                 )
-            # Connectivity: single synthesized layer; closest_k is unused.
-            return [("connectivity", opp_points, 0.0, float(params.max_cost), 1)]
+            # Connectivity: each AOI cell is a 1-seed opportunity (weight 1,
+            # rep == the cell centroid). closest_k is unused.
+            conn_groups = [([(x, y)], w, x, y) for (x, y, w) in opp_points]
+            return [("connectivity", conn_groups, 0.0, float(params.max_cost), 1)]
 
         if not params.opportunities:
             raise ValueError(
@@ -458,32 +464,98 @@ class HeatmapV2Tool(HeatmapToolBase):
                 "opportunity layer."
             )
         layers: list[
-            tuple[str, list[tuple[float, float, float]], float, float, int]
+            tuple[
+                str,
+                list[tuple[list[tuple[float, float]], float, float, float]],
+                float,
+                float,
+                int,
+            ]
         ] = []
+        res = DEFAULT_H3_RESOLUTION[params.routing_mode]
         for idx, opp in enumerate(params.opportunities):
-            opp_points = self._load_opportunity_points(opp, idx)
-            if not opp_points:
+            opp_groups = self._load_opportunity_points(opp, idx, res)
+            if not opp_groups:
                 logger.warning(
-                    "Opportunity layer %s yielded 0 points; skipping",
+                    "Opportunity layer %s yielded 0 opportunities; skipping",
                     opp.input_path,
                 )
                 continue
-            if len(opp_points) > MAX_OPPORTUNITIES_PER_LAYER:
-                label = self._opportunity_label(opp, idx)
-                raise ValueError(
-                    f"Opportunity layer '{label}' has too many points: "
-                    f"{len(opp_points):,} features, but the maximum is "
-                    f"{MAX_OPPORTUNITIES_PER_LAYER:,}. "
-                    "Filter the layer or pick a smaller dataset."
-                )
             label = self._opportunity_label(opp, idx)
             # OpportunityV2 declares both fields with validated defaults, so
             # read them directly (no fallback needed).
             sensitivity = opp.sensitivity
             layer_max_cost = float(opp.max_cost)
             n_destinations = opp.n_destinations
-            layers.append((label, opp_points, sensitivity, layer_max_cost, n_destinations))
+            layers.append((label, opp_groups, sensitivity, layer_max_cost, n_destinations))
+
+        total_seeds = sum(
+            sum(len(g[0]) for g in groups) for _, groups, _, _, _ in layers
+        )
+        if total_seeds > MAX_SEED_POINTS_TOTAL:
+            raise ValueError(
+                f"Too many opportunity seed points across all layers: "
+                f"{total_seeds:,}, but the maximum is "
+                f"{MAX_SEED_POINTS_TOTAL:,}. "
+                "Filter the layers or pick smaller datasets."
+            )
         return layers
+
+    # ----------------------------------------------------------- demand (2SFCA)
+
+    def _prepare_demand(
+        self: Self,
+        demand_path: str,
+        demand_field: str,
+        h3_resolution: int,
+        scratch_dir: Path | None = None,
+    ) -> str:
+        """Rasterize demand to a (cell, demand) parquet. Value is conserved
+        across a feature's parts: polygons spread value/num_cells over covered
+        cells; points divide by the feature's point count."""
+        meta, table = self.import_input(demand_path, table_name="demand_input")
+        geom_col = meta.geometry_column or "geometry"
+        geom_type = (meta.geometry_type or "").lower()
+        out_dir = scratch_dir if scratch_dir is not None else Path(tempfile.mkdtemp())
+        out_path = str(out_dir / "demand_cells.parquet")
+        if "polygon" in geom_type:
+            sql = f"""
+              COPY (
+                WITH feats AS (
+                  SELECT ROW_NUMBER() OVER () AS rid,
+                         "{demand_field}"::DOUBLE AS v,
+                         (UNNEST(ST_Dump(ST_Force2D({geom_col})))).geom AS g
+                  FROM {table} WHERE {geom_col} IS NOT NULL
+                ),
+                cells AS (
+                  SELECT rid, v,
+                    UNNEST(h3_polygon_wkt_to_cells_experimental(
+                      ST_AsText(g), {h3_resolution}, 'CONTAINMENT_OVERLAPPING')) AS cell
+                  FROM feats
+                ),
+                uniq AS (SELECT DISTINCT rid, v, cell FROM cells),
+                cnt AS (SELECT rid, COUNT(*) AS n FROM uniq GROUP BY rid)
+                SELECT u.cell::BIGINT AS cell, SUM(u.v / c.n) AS demand
+                FROM uniq u JOIN cnt c USING (rid)
+                GROUP BY u.cell
+              ) TO '{out_path}' (FORMAT PARQUET)
+            """
+        else:
+            sql = f"""
+              COPY (
+                SELECT h3_latlng_to_cell(ST_Y(g), ST_X(g), {h3_resolution})::BIGINT AS cell,
+                       SUM(v / np) AS demand
+                FROM (
+                  SELECT "{demand_field}"::DOUBLE AS v,
+                         ST_NumGeometries({geom_col}) AS np,
+                         (UNNEST(ST_Dump({geom_col}))).geom AS g
+                  FROM {table} WHERE {geom_col} IS NOT NULL
+                )
+                GROUP BY cell
+              ) TO '{out_path}' (FORMAT PARQUET)
+            """
+        self.con.execute(sql)
+        return out_path
 
     # ----------------------------------------------------------- per-layer compute
 
@@ -492,23 +564,25 @@ class HeatmapV2Tool(HeatmapToolBase):
         idx: int,
         total: int,
         col: str,
-        opp_points: list[tuple[float, float, float]],
+        opp_groups: list[tuple[list[tuple[float, float]], float, float, float]],
         sensitivity: float,
         layer_max_cost: float,
         n_destinations: int,
         params: HeatmapV2Params,
         scratch_dir: Path,
+        demand_path: str | None = None,
     ) -> str:
         """Run compute_heatmap for one opportunity layer; load + round the
         result into a DuckDB temp table; return its name."""
         routing = self._get_routing_module()
         score_path = scratch_dir / f"score_{idx}.parquet"
         cfg = self._build_heatmap_cfg(
-            params, opp_points,
+            params, opp_groups,
             sensitivity=sensitivity,
             output_path=str(score_path),
             max_cost=layer_max_cost,
             closest_k=n_destinations,
+            demand_path=demand_path,
         )
 
         t0 = time.perf_counter()
@@ -516,19 +590,23 @@ class HeatmapV2Tool(HeatmapToolBase):
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
         logger.info(
             "[Heatmap] Layer %d/%d '%s' compute_heatmap "
-            "(%d opps, max_cost=%.1f, sensitivity=%.0f): %.0f ms",
-            idx + 1, total, col, len(opp_points),
+            "(%d opps, %d seeds, max_cost=%.1f, sensitivity=%.0f): %.0f ms",
+            idx + 1, total, col, len(opp_groups),
+            sum(len(g[0]) for g in opp_groups),
             layer_max_cost, sensitivity, elapsed_ms,
         )
 
         score_table = f"score_{idx}"
-        # Round per-layer scores to 2 decimal places — visual rendering
-        # quantile-bins into 5-7 colors; sub-0.01 precision is decorative.
+        # Round per-layer scores for rendering. 2 decimals suit gravity /
+        # closest-average / connectivity, but 2SFCA scores are per-capita
+        # supply-to-demand ratios that are routinely < 0.01 — rounding those to
+        # 2 dp collapses them to zero, so 2SFCA keeps more precision.
+        decimals = 6 if params.heatmap_type == HeatmapType.two_sfca else 2
         self.con.execute(
             f"""
             CREATE OR REPLACE TEMP TABLE {score_table} AS
             SELECT h3_index::UBIGINT AS h3_index,
-                   ROUND(score, 2) AS {col}_accessibility
+                   ROUND(score, {decimals}) AS {col}_accessibility
             FROM read_parquet('{score_path}')
             """
         )
@@ -578,17 +656,20 @@ class HeatmapV2Tool(HeatmapToolBase):
             f"s{idx}.{col}_accessibility"
             for idx, (col, _) in enumerate(score_tables)
         )
+        # 2SFCA totals are tiny per-capita ratios; keep more precision so they
+        # don't round to zero (2 dp is fine for the other formulas).
+        decimals = 6 if heatmap_type == HeatmapType.two_sfca else 2
         if heatmap_type == HeatmapType.closest_average:
             cnt_expr = " + ".join(
                 f"(s{idx}.{col}_accessibility IS NOT NULL)::INT"
                 for idx, (col, _) in enumerate(score_tables)
             )
             total_select = (
-                f"ROUND(({sum_expr}) / NULLIF({cnt_expr}, 0), 2) AS total_accessibility"
+                f"ROUND(({sum_expr}) / NULLIF({cnt_expr}, 0), {decimals}) AS total_accessibility"
             )
             drop_null_total = False
         else:
-            total_select = f"ROUND({sum_expr}, 2) AS total_accessibility"
+            total_select = f"ROUND({sum_expr}, {decimals}) AS total_accessibility"
             drop_null_total = True
 
         from_clause = f"{score_tables[0][1]} s0"
@@ -657,20 +738,31 @@ class HeatmapV2Tool(HeatmapToolBase):
         layer_specs = self._resolve_opportunity_layers(params)
         if not layer_specs:
             raise ValueError("No opportunity layers produced any points.")
-        total_opp_points = sum(len(opps) for _, opps, _, _, _ in layer_specs)
+        total_opps = sum(len(opps) for _, opps, _, _, _ in layer_specs)
+        total_seeds = sum(
+            sum(len(g[0]) for g in opps) for _, opps, _, _, _ in layer_specs
+        )
         logger.info(
-            "[Heatmap] Load %d opportunity layer(s) (%d points total): %.0f ms",
-            len(layer_specs), total_opp_points, lap(),
+            "[Heatmap] Load %d opportunity layer(s) (%d opportunities, "
+            "%d seeds total): %.0f ms",
+            len(layer_specs), total_opps, total_seeds, lap(),
         )
 
         with tempfile.TemporaryDirectory() as td_str:
             scratch_dir = Path(td_str)
+            demand_path: str | None = None
+            if params.heatmap_type == HeatmapType.two_sfca:
+                demand_path = self._prepare_demand(
+                    params.demand_path, params.demand_field,
+                    DEFAULT_H3_RESOLUTION[params.routing_mode], scratch_dir,
+                )
+                logger.info("[Heatmap] 2SFCA demand rasterized: %.0f ms", lap())
             score_tables: list[tuple[str, str]] = []
             for idx, (col, opp_pts, sens, max_cost, n_dest) in enumerate(layer_specs):
                 table = self._compute_layer_scores(
                     idx, len(layer_specs),
                     col, opp_pts, sens, max_cost, n_dest,
-                    params, scratch_dir,
+                    params, scratch_dir, demand_path,
                 )
                 score_tables.append((col, table))
             last_t = time.perf_counter()  # per-layer prints already accounted for time

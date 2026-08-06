@@ -14,6 +14,7 @@
         "8000"
       ],
       "consoleName": "Core Debug Console",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "cwd": "${workspaceFolder}/apps/core",
       "justMyCode": false,
       "jinja": true,
@@ -38,6 +39,7 @@
         "8100"
       ],
       "consoleName": "GeoAPI Debug Console",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "cwd": "${workspaceFolder}/apps/geoapi",
       "justMyCode": false,
       "jinja": true,
@@ -62,6 +64,7 @@
         "8300"
       ],
       "consoleName": "Processes Debug Console",
+      "python": "${workspaceFolder}/.venv/bin/python",
       "cwd": "${workspaceFolder}/apps/processes",
       "justMyCode": false,
       "jinja": true,

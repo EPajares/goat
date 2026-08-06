@@ -23,3 +23,8 @@ vi.mock("next/navigation", () => ({
 
 // Mock environment variables
 process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+// lib/api/* build their base URLs at import time, so anything importing them
+// needs these present before the module graph is evaluated.
+process.env.NEXT_PUBLIC_API_URL = "http://localhost:8000";
+process.env.NEXT_PUBLIC_GEOAPI_URL = "http://localhost:8100";
+process.env.NEXT_PUBLIC_PROCESSES_URL = "http://localhost:8300";

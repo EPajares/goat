@@ -35,6 +35,22 @@ describe("findPopupLayer", () => {
     expect(findPopupLayer(undefined, [projectLayer()])).toBeUndefined();
     expect(findPopupLayer("dataset-abc", undefined)).toBeUndefined();
   });
+
+  it("prefers the projectLayerId match when the same dataset backs multiple project layers", () => {
+    // Same dataset added to a project twice (e.g. a "(Status)" variant and a
+    // configured one). Matching by dataset id alone would return whichever
+    // twin comes first in the array — the clicked layer's own id must win.
+    const statusTwin = projectLayer({ id: 9 });
+    const configuredTwin = projectLayer({ id: 23 });
+    const layers = [statusTwin, configuredTwin];
+    expect(findPopupLayer("dataset-abc", layers, "23")).toBe(configuredTwin);
+    expect(findPopupLayer("dataset-abc", layers, "9")).toBe(statusTwin);
+  });
+
+  it("falls back to the dataset-id match when projectLayerId finds nothing", () => {
+    const layers = [projectLayer()];
+    expect(findPopupLayer("dataset-abc", layers, "999")).toBe(layers[0]);
+  });
 });
 
 describe("shouldClosePopupForHiddenLayer", () => {
@@ -62,6 +78,16 @@ describe("shouldClosePopupForHiddenLayer", () => {
 
   it("does not act when there is no owning layerId", () => {
     expect(shouldClosePopupForHiddenLayer(undefined, [projectLayer()])).toBe(false);
+  });
+
+  it("tracks the clicked twin's visibility when the dataset backs multiple project layers", () => {
+    const hiddenTwin = projectLayer({ id: 9, properties: { visibility: false } });
+    const visibleTwin = projectLayer({ id: 23 });
+    const layers = [hiddenTwin, visibleTwin];
+    // Popup opened on the visible twin: the hidden sibling must not close it.
+    expect(shouldClosePopupForHiddenLayer("dataset-abc", layers, "23")).toBe(false);
+    // Popup opened on the hidden twin: close even though a visible sibling exists.
+    expect(shouldClosePopupForHiddenLayer("dataset-abc", layers, "9")).toBe(true);
   });
 });
 

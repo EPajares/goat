@@ -69,7 +69,7 @@ const MapControlsLayout = ({ controlPositions, onChange }: MapControlsLayoutProp
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const controlLabels: Record<ControlKey, string> = {
-    location: t("location_search"),
+    location: t("search"),
     measure: t("measure"),
     zoom_controls: t("zoom_controls"),
     basemap: t("basemap"),

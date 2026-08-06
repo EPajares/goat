@@ -6,9 +6,9 @@ RUN apk update
 
 # Set working directory
 WORKDIR /app
-RUN npm install -g turbo@1.13.3
+RUN npm install -g turbo@2.10.7
 COPY . .
-RUN turbo prune --scope=@p4b/web --docker
+RUN turbo prune @p4b/web --docker
 
 
 # Add lockfile and package.json's of isolated subworkspace
@@ -28,7 +28,7 @@ RUN pnpm install --frozen-lockfile
 COPY --from=builder /app/out/full/ .
 
 ARG NEXT_PUBLIC_APP_URL=APP_NEXT_PUBLIC_APP_URL
-ARG NEXT_PUBLIC_MAP_TOKEN=APP_NEXT_PUBLIC_MAP_TOKEN
+ARG NEXT_PUBLIC_MAPBOX_TOKEN=APP_NEXT_PUBLIC_MAPBOX_TOKEN
 ARG NEXT_PUBLIC_GEOAPI_URL=APP_NEXT_PUBLIC_GEOAPI_URL
 ARG NEXT_PUBLIC_PROCESSES_URL=APP_NEXT_PUBLIC_PROCESSES_URL
 ARG NEXT_PUBLIC_API_URL=APP_NEXT_PUBLIC_API_URL
@@ -37,7 +37,7 @@ ARG NEXT_PUBLIC_KEYCLOAK_ISSUER=APP_NEXT_PUBLIC_KEYCLOAK_ISSUER
 ARG NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=APP_NEXT_PUBLIC_KEYCLOAK_CLIENT_ID
 ARG NEXT_PUBLIC_AUTH=APP_NEXT_PUBLIC_AUTH
 
-RUN pnpm dlx turbo run build --filter=web
+RUN pnpm exec turbo run build --filter=@p4b/web
 
 
 FROM base AS runner
@@ -63,4 +63,3 @@ ENV HOSTNAME=0.0.0.0
 COPY ./apps/web/entrypoint.sh /app/apps/web/entrypoint.sh
 ENTRYPOINT ["/app/apps/web/entrypoint.sh"]
 CMD ["node", "apps/web/server.js"]
-

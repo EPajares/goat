@@ -14,7 +14,7 @@ interface PseudoField {
 
 const useLayerFields = (
   dataset_id: string,
-  filterType?: "string" | "number" | undefined,
+  filterType?: "string" | "number" | "date" | undefined,
   hiddenFields: string[] = ["layer_id", "id", "h3_3", "h3_6", "geom", "geometry"],
   includePseudoFields: boolean = false
 ) => {
@@ -25,33 +25,47 @@ const useLayerFields = (
 
     // Get fields from queryables
     // API returns "integer" for int columns, normalize to "number" for frontend
-    const normalizeType = (type: string) => (type === "integer" ? "number" : type);
+    const normalizeType = (prop: { type: string; kind?: string; format?: string }) => {
+      if (prop.kind === "datetime" || prop.format === "date-time") return "date";
+      return prop.type === "integer" ? "number" : prop.type;
+    };
 
     const queryableFields = Object.entries(queryables.properties)
       .filter(([key, value]) => {
         if (hiddenFields.includes(key)) {
           return false;
         }
-        const normalizedType = normalizeType(value.type);
+        const normalizedType = normalizeType(value);
         if (filterType) {
           return normalizedType === filterType;
         } else {
-          return normalizedType === "string" || normalizedType === "number" || normalizedType === "object";
+          return (
+            normalizedType === "string" ||
+            normalizedType === "number" ||
+            normalizedType === "object" ||
+            normalizedType === "date" ||
+            normalizedType === "boolean"
+          );
         }
       })
       .map(([key, value]) => {
         const v = value as {
           type: string;
           kind?: string;
+          format?: string;
           is_computed?: boolean;
           display_config?: Record<string, unknown>;
+          formula?: string;
+          output_kind?: string;
         };
         return {
           name: key,
-          type: normalizeType(v.type),
+          type: normalizeType(v),
           kind: v.kind,
           is_computed: v.is_computed ?? false,
           display_config: v.display_config ?? {},
+          formula: v.formula,
+          output_kind: v.output_kind,
         };
       });
 

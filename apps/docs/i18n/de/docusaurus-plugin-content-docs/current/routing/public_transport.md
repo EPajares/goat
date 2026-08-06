@@ -28,6 +28,12 @@ Integriert straßenbezogene Informationen aus **[OpenStreetMap](https://wiki.ope
 
 ## 3. Technische Einzelheiten
 
+Eine ÖPNV-Fahrt besteht aus drei Abschnitten: dem **Zugangsweg** vom Startpunkt zur Haltestelle, dem **Fahrt-Abschnitt** durch das ÖV-Netz und dem **Abgangsweg** von der Haltestelle zum Ziel. Zugangs- und Abgangsart können unabhängig voneinander konfiguriert werden.
+
+<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '1.5rem' }}>
+  <img src={require('/img/routing/pt_trip_structure_de.png').default} alt="Struktur und Beispielkombinationen einer ÖPNV-Fahrt" style={{ maxWidth: "100%", objectFit: "contain"}}/>
+</div>
+
 Das Routing für den öffentlichen Verkehr wird mit der **[R5 Routing Engine](https://github.com/conveyal/r5)** (_Rapid Realistic Routing on Real-world and Reimagined networks_) durchgeführt. R5 ist die Routing-Engine von **[Conveyal](https://conveyal.com/)**, einer webbasierten Plattform, die es den Nutzern ermöglicht, Planungsszenarien zu erstellen und verschiedene Erreichbarkeitsindikatoren zu berechnen.
 
 

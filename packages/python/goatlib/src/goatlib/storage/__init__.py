@@ -15,6 +15,7 @@ from goatlib.storage.ducklake import (
     POSTGRES_KEEPALIVE_PARAMS,
     BaseDuckLakeManager,
     DuckLakePool,
+    configure_baked_extensions,
     execute_query_with_retry,
     execute_with_retry,
     is_connection_error,
@@ -37,6 +38,7 @@ __all__ = [
     "CONNECTION_ERROR_PATTERNS",
     "POSTGRES_KEEPALIVE_PARAMS",
     "is_connection_error",
+    "configure_baked_extensions",
     "execute_with_retry",
     "execute_query_with_retry",
     # CQL Evaluator

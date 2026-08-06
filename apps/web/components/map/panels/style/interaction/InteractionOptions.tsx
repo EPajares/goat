@@ -51,7 +51,7 @@ import { useInteractionOptions } from "@/hooks/map/LayerDesignHooks";
 
 import { NumberFormatSelector } from "@/components/builder/widgets/common/WidgetCommonConfigs";
 import { OverflowTypograpy } from "@/components/common/OverflowTypography";
-import { FieldTypeTag } from "@/components/map/common/LayerFieldSelector";
+import FieldKindIcon, { fieldIndicatorKind } from "@/components/common/FieldKindIcon";
 import SectionHeader from "@/components/map/panels/common/SectionHeader";
 import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import Selector from "@/components/map/panels/common/Selector";
@@ -168,7 +168,7 @@ const InteractionFieldListOptions: React.FC<{
                 <Stack spacing={0.5} sx={{ py: 0.5 }}>
                   {/* Row 1: Type tag + field name + actions */}
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <FieldTypeTag fieldType={field.type}>{field.type}</FieldTypeTag>
+                    <FieldKindIcon kind={fieldIndicatorKind(field)} />
                     <OverflowTypograpy variant="body2" fontWeight="bold" sx={{ flex: 1 }}>
                       {field.name}
                     </OverflowTypograpy>
@@ -346,8 +346,10 @@ const InteractionFieldListOptions: React.FC<{
                     onClick={() => {
                       addField(field);
                     }}>
-                    <FieldTypeTag fieldType={field.type}>{field.type}</FieldTypeTag>
-                    <Typography variant="body2">{field.name}</Typography>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <FieldKindIcon kind={fieldIndicatorKind(field)} />
+                      <Typography variant="body2">{field.name}</Typography>
+                    </Stack>
                   </MenuItem>
                 ))}
               </MenuList>

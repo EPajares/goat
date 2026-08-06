@@ -520,6 +520,25 @@ class FeatureWriteService:
                 backfill = f'UPDATE {table} SET "{name}" = {compute_sql}'
                 con.execute(backfill)
 
+    def backfill_column(
+        self,
+        layer_info: LayerInfo,
+        name: str,
+        compute_sql: str,
+    ) -> None:
+        """Recompute every row of an existing column from a SQL expression.
+
+        Used when a formula column's expression changes without changing its
+        result type. `compute_sql` must already be validated and
+        parenthesized by the caller.
+        """
+        table = layer_info.full_table_name
+        existing_columns = self.get_column_names(layer_info)
+        _validate_column_name(name, existing_columns)
+
+        with ducklake_write_manager.connection() as con:
+            con.execute(f'UPDATE {table} SET "{name}" = {compute_sql}')
+
     def rename_column(
         self,
         layer_info: LayerInfo,

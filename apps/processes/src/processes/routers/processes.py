@@ -23,6 +23,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from processes.config import settings
 from processes.deps.auth import (
@@ -33,6 +34,7 @@ from processes.deps.auth import (
     oauth2_scheme,
 )
 from processes.models.processes import (
+    OGC_EXCEPTION_INVALID_PARAMETER,
     OGC_EXCEPTION_NO_SUCH_JOB,
     OGC_EXCEPTION_NO_SUCH_PROCESS,
     OGC_EXCEPTION_RESULT_NOT_READY,
@@ -47,7 +49,10 @@ from processes.models.processes import (
     StatusCode,
     StatusInfo,
 )
-from processes.services.analytics_registry import analytics_registry
+from processes.services.analytics_registry import (
+    LayerSearchProcessInput,
+    analytics_registry,
+)
 from processes.services.analytics_service import AnalyticsService
 from processes.services.beta_access import get_beta_email_domains, is_beta_user_email
 from processes.services.tool_registry import tool_registry
@@ -78,6 +83,19 @@ windmill_client = WindmillClient()
 # This prevents long-running queries from blocking the async event loop
 _analytics_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="analytics")
 
+# Dedicated pool for layer-search: kept separate from _analytics_executor so
+# unauthenticated search fan-outs can never starve authenticated analytics.
+_search_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="layer-search")
+
+# Non-standard exception type URIs (same namespace convention as the OGC-defined
+# ones) for guard responses that OGC API - Processes doesn't itself define.
+OGC_EXCEPTION_NOT_AUTHORIZED = (
+    "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/not-authorized"
+)
+OGC_EXCEPTION_TOO_MANY_REQUESTS = (
+    "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/too-many-requests"
+)
+
 # Processes that can be executed without authentication (read-only analytics)
 # These are sync processes that only query data and don't modify anything
 PUBLIC_ALLOWED_PROCESSES = frozenset(
@@ -91,8 +109,14 @@ PUBLIC_ALLOWED_PROCESSES = frozenset(
         "histogram",
         "validate-sql",
         "preview-sql",
+        "layer-search",
     }
 )
+
+# Cheap overload guard for layer-search fan-outs: reject instead of queueing
+# unboundedly when the analytics pool is saturated.
+_LAYER_SEARCH_MAX_INFLIGHT = 8
+_layer_search_inflight = 0
 
 
 def is_public_allowed_process(process_id: str) -> bool:
@@ -192,21 +216,47 @@ def _execute_analytics_sync(process_id: str, inputs: dict[str, Any]) -> dict[str
                 offset=inputs.get("offset", 0),
                 filter_expr=inputs.get("filter_expr"),
             )
+        elif process_id == "layer-search":
+            return analytics_service.layer_search(
+                query=inputs.get("query", ""),
+                map_center=inputs.get("map_center"),
+                project_id=inputs.get("project_id"),
+                layers=inputs.get("layers"),
+            )
         else:
             raise HTTPException(
                 status_code=404, detail=f"Unknown analytics process: {process_id}"
             )
     except HTTPException:
         raise
+    except ValueError as e:
+        logger.warning(f"Invalid parameter for {process_id}: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "type": "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/invalid-parameter",
+                "title": "Invalid parameter",
+                "status": 400,
+                "detail": str(e),
+            },
+        )
     except Exception as e:
         logger.error(f"Analytics execution failed for {process_id}: {e}")
+        # layer-search is unauthenticated: never echo the raw exception message
+        # back to the caller (defense in depth — the service layer already
+        # sanitizes its own known failure modes, e.g. DB connection errors that
+        # can carry credentials). Other analytics processes are authenticated
+        # or long-established, so their str(e) behavior is left unchanged.
+        detail_message = (
+            "search temporarily unavailable" if process_id == "layer-search" else str(e)
+        )
         raise HTTPException(
             status_code=500,
             detail={
                 "type": "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/job-execution-failed",
                 "title": "Execution failed",
                 "status": 500,
-                "detail": str(e),
+                "detail": detail_message,
             },
         )
 
@@ -443,37 +493,100 @@ async def execute_process(
     """
     base_url = get_base_url(request)
 
-    # Check if this is a public-allowed analytics process (sync execution)
-    if is_public_allowed_process(process_id):
-        # Analytics processes are read-only and don't need authentication
-        # Run in thread pool to avoid blocking the async event loop
-        # Apply timeout to prevent runaway queries
-        loop = asyncio.get_event_loop()
+    if process_id == "layer-search":
         try:
-            result = await asyncio.wait_for(
-                loop.run_in_executor(
-                    _analytics_executor,
-                    _execute_analytics_sync,
-                    process_id,
-                    execute_request.inputs,
-                ),
-                timeout=settings.ANALYTICS_QUERY_TIMEOUT,
+            search_input = LayerSearchProcessInput.model_validate(
+                execute_request.inputs
             )
-        except asyncio.TimeoutError:
-            logger.warning(
-                f"Analytics query {process_id} timed out after "
-                f"{settings.ANALYTICS_QUERY_TIMEOUT}s"
-            )
+        except ValidationError as e:
             raise HTTPException(
-                status_code=504,
+                status_code=422,
                 detail={
-                    "type": "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/job-execution-failed",
-                    "title": "Query timeout",
-                    "status": 504,
-                    "detail": f"Query exceeded timeout of {settings.ANALYTICS_QUERY_TIMEOUT} seconds",
+                    "type": OGC_EXCEPTION_INVALID_PARAMETER,
+                    "title": "Invalid parameter",
+                    "status": 422,
+                    "detail": str(e),
                 },
             )
-        return JSONResponse(status_code=200, content=result)
+        if search_input.layers is not None and user_id is None:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "type": OGC_EXCEPTION_NOT_AUTHORIZED,
+                    "title": "Authentication required",
+                    "status": 401,
+                    "detail": "Authentication required for explicit layer lists",
+                },
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if search_input.layers is None and not search_input.project_id:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "type": OGC_EXCEPTION_INVALID_PARAMETER,
+                    "title": "Invalid parameter",
+                    "status": 422,
+                    "detail": "Either project_id (public) or layers (authenticated) "
+                    "is required",
+                },
+            )
+        # Downstream dispatch consumes validated/coerced values (e.g. project_id
+        # as a canonical UUID string, query stripped) instead of the raw body.
+        execute_request.inputs = search_input.model_dump(mode="json")
+
+    # Check if this is a public-allowed analytics process (sync execution)
+    if is_public_allowed_process(process_id):
+        global _layer_search_inflight
+        is_search = process_id == "layer-search"
+        if is_search and _layer_search_inflight >= _LAYER_SEARCH_MAX_INFLIGHT:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "type": OGC_EXCEPTION_TOO_MANY_REQUESTS,
+                    "title": "Search is busy",
+                    "status": 429,
+                    "detail": "Search is busy, try again",
+                },
+                headers={"Retry-After": "1"},
+            )
+        if is_search:
+            _layer_search_inflight += 1
+        try:
+            # Analytics processes are read-only and don't need authentication
+            # Run in thread pool to avoid blocking the async event loop
+            # Apply timeout to prevent runaway queries
+            # layer-search runs on its own pool so it can't starve authenticated
+            # analytics (see _search_executor).
+            executor = _search_executor if is_search else _analytics_executor
+            loop = asyncio.get_event_loop()
+            try:
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(
+                        executor,
+                        _execute_analytics_sync,
+                        process_id,
+                        execute_request.inputs,
+                    ),
+                    timeout=settings.ANALYTICS_QUERY_TIMEOUT,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    f"Analytics query {process_id} timed out after "
+                    f"{settings.ANALYTICS_QUERY_TIMEOUT}s"
+                )
+                raise HTTPException(
+                    status_code=504,
+                    detail={
+                        "type": "http://www.opengis.net/def/exceptions/ogcapi-processes-1/1.0/job-execution-failed",
+                        "title": "Query timeout",
+                        "status": 504,
+                        "detail": f"Query exceeded timeout of {settings.ANALYTICS_QUERY_TIMEOUT} seconds",
+                    },
+                )
+            return JSONResponse(status_code=200, content=result)
+        finally:
+            if is_search:
+                _layer_search_inflight -= 1
 
     # For all other processes, authentication is required
     if not user_id:

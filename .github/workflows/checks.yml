@@ -60,7 +60,7 @@ jobs:
         uses: plan4better/.github/.github/actions/pr-git-checkout@main
 
       - name: 🕵️ Detect changes
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |

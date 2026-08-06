@@ -82,8 +82,7 @@ std::vector<int32_t> compute_node_components(ReachabilityField const &field,
     return components;
 }
 
-// Derive the ordered list of step cost thresholds from the request config —
-// mirrors the polygon_steps appender logic so C++ and SQL stay in sync.
+// Derive the ordered list of step cost thresholds from the request config.
 std::vector<double> make_step_costs(RequestConfig const &cfg)
 {
     // Explicit cutoffs take priority over the steps/max_traveltime derivation.
@@ -158,33 +157,12 @@ int64_t materialize_polygon_features_table(
         throw std::runtime_error("Failed to create node_step_components: " +
                                  create_comp->GetError());
 
-    // polygon_steps: still needed for the prev-step subquery in difference mode.
-    auto drop_steps = con.Query("DROP TABLE IF EXISTS polygon_steps");
-    if (drop_steps->HasError())
-        throw std::runtime_error("Failed to drop polygon_steps: " +
-                                 drop_steps->GetError());
-    auto create_steps = con.Query(
-        "CREATE TEMP TABLE polygon_steps (step_cost DOUBLE)");
-    if (create_steps->HasError())
-        throw std::runtime_error("Failed to create polygon_steps: " +
-                                 create_steps->GetError());
-
     // Downsample interior nodes for concave hull performance.
     // Only applied for large networks; small catchments keep all nodes.
     // Boundary nodes (cost near a step threshold) are always kept.
     static constexpr int32_t kDownsampleThreshold = 50000;
     static constexpr int32_t kDownsampleFactor = 10;
     auto const step_costs = make_step_costs(cfg);
-
-    {
-        duckdb::Appender steps_appender(con, "polygon_steps");
-        for (double const step : step_costs)
-        {
-            steps_appender.BeginRow();
-            steps_appender.Append(step);
-            steps_appender.EndRow();
-        }
-    }
 
     int64_t total_reached_across_fields = 0;
     int64_t reached_node_total = 0;
@@ -279,16 +257,25 @@ int64_t materialize_polygon_features_table(
                  : (total_reached_across_fields < 50000) ? 0.3
                  : kConcaveHullRatio;
     std::string const hull_ratio = std::to_string(ratio);
-    std::string const hulls_per_component_cte =
-        "hulls_per_component AS ("
-        "  SELECT c.origin_idx, c.step_cost, c.component_id,"
-        "         ST_ConcaveHull(ST_Union_Agg(ST_Point(n.x, n.y)), " + hull_ratio + ", false) AS geom"
-        "  FROM node_step_components c"
-        "  JOIN reached_nodes n"
-        "    ON n.origin_idx = c.origin_idx AND n.node_id = c.node_id"
-        "  GROUP BY c.origin_idx, c.step_cost, c.component_id"
-        "  HAVING count(*) >= 3"
-        "), ";
+
+    // Materialize the per-component concave hulls once. Left as a CTE it is
+    // referenced twice (total_hulls + bands_per_component), which re-runs the
+    // (expensive) ST_ConcaveHull for every component.
+    con.Query("DROP TABLE IF EXISTS _poly_hulls_pc");
+    {
+        auto r = con.Query(
+            "CREATE TEMP TABLE _poly_hulls_pc AS "
+            "SELECT c.origin_idx, c.step_cost, c.component_id, "
+            "       ST_ConcaveHull(ST_Union_Agg(ST_Point(n.x, n.y)), " + hull_ratio + ", false) AS geom "
+            "FROM node_step_components c "
+            "JOIN reached_nodes n "
+            "  ON n.origin_idx = c.origin_idx AND n.node_id = c.node_id "
+            "GROUP BY c.origin_idx, c.step_cost, c.component_id "
+            "HAVING count(*) >= 3");
+        if (r->HasError())
+            throw std::runtime_error("Polygon hulls materialization failed: " +
+                                     r->GetError());
+    }
 
     std::string create_sql;
     if (cfg.polygon_difference)
@@ -298,24 +285,24 @@ int64_t materialize_polygon_features_table(
         // separate at step k-1 and merged at step k are still handled correctly.
         create_sql =
             std::string("CREATE TEMP TABLE ") + kPolygonFeaturesTempTable + " AS "
-            "WITH " + hulls_per_component_cte +
-            "total_hulls AS ("
+            "WITH total_hulls AS ("
             "  SELECT origin_idx, step_cost, ST_MakeValid(ST_Union_Agg(geom)) AS geom"
-            "  FROM hulls_per_component"
+            "  FROM _poly_hulls_pc"
             "  WHERE geom IS NOT NULL"
             "  GROUP BY origin_idx, step_cost"
+            "), total_hulls_prev AS ("
+            "  SELECT origin_idx, step_cost, geom,"
+            "         LAG(geom) OVER (PARTITION BY origin_idx ORDER BY step_cost) AS prev_geom"
+            "  FROM total_hulls"
             "), bands_per_component AS ("
             "  SELECT c.origin_idx, c.step_cost, c.component_id,"
             "         ST_MakeValid("
-            "           CASE WHEN p.geom IS NULL THEN c.geom"
-            "                ELSE ST_Difference(c.geom, p.geom) END"
+            "           CASE WHEN t.prev_geom IS NULL THEN c.geom"
+            "                ELSE ST_Difference(c.geom, t.prev_geom) END"
             "         ) AS geom"
-            "  FROM hulls_per_component c"
-            "  LEFT JOIN total_hulls p"
-            "    ON p.origin_idx = c.origin_idx"
-            "   AND p.step_cost = ("
-            "     SELECT max(x.step_cost) FROM polygon_steps x WHERE x.step_cost < c.step_cost"
-            "   )"
+            "  FROM _poly_hulls_pc c"
+            "  JOIN total_hulls_prev t"
+            "    ON t.origin_idx = c.origin_idx AND t.step_cost = c.step_cost"
             "), hulls AS ("
             "  SELECT origin_idx, step_cost, ST_MakeValid(ST_Union_Agg(geom)) AS geom"
             "  FROM bands_per_component"
@@ -341,10 +328,9 @@ int64_t materialize_polygon_features_table(
     {
         create_sql =
             std::string("CREATE TEMP TABLE ") + kPolygonFeaturesTempTable + " AS "
-            "WITH " + hulls_per_component_cte +
-            "hulls AS ("
+            "WITH hulls AS ("
             "  SELECT origin_idx, step_cost, ST_MakeValid(ST_Union_Agg(geom)) AS geom"
-            "  FROM hulls_per_component"
+            "  FROM _poly_hulls_pc"
             "  WHERE geom IS NOT NULL"
             "  GROUP BY origin_idx, step_cost"
             "), normalized AS ("

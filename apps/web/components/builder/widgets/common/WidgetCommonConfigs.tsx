@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Autocomplete, Box, Button, Checkbox, Chip, Divider, FormControlLabel, Paper, Stack, TextField, Typography, useTheme } from "@mui/material";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,7 +43,7 @@ import SectionHeader from "@/components/map/panels/common/SectionHeader";
 import SectionOptions from "@/components/map/panels/common/SectionOptions";
 import Selector from "@/components/map/panels/common/Selector";
 import TextFieldInput from "@/components/map/panels/common/TextFieldInput";
-import FormulaBuilder from "@/components/modals/FormulaBuilder";
+const FormulaBuilder = dynamic(() => import("@/components/modals/FormulaBuilder"), { ssr: false });
 import type { FormulaField, SqlTable } from "@/components/modals/FormulaBuilder";
 import ColorPalette from "@/components/map/panels/style/color/ColorPalette";
 import ColorRangeSelector from "@/components/map/panels/style/color/ColorRangeSelector";
@@ -952,6 +953,40 @@ export const WidgetLayout = ({ config, onChange }: WidgetConfigProps) => {
                   />
                 }
                 label={<Typography variant="body2">{t("show_totals", { defaultValue: "Show totals" })}</Typography>}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    color="primary"
+                    checked={((config as any)?.options?.show_sort_action ?? true) === true}
+                    onChange={(e) => {
+                      handleOptionChange("show_sort_action", e.target.checked);
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t("allow_sorting", { defaultValue: "Allow sorting" })}
+                  </Typography>
+                }
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    size="small"
+                    color="primary"
+                    checked={((config as any)?.options?.show_filter_action ?? true) === true}
+                    onChange={(e) => {
+                      handleOptionChange("show_filter_action", e.target.checked);
+                    }}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t("allow_filtering", { defaultValue: "Allow filtering" })}
+                  </Typography>
+                }
               />
             </Stack>
             {showCollapsibleOptions && (

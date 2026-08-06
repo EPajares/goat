@@ -36,6 +36,10 @@ class ComputedColumnSpec:
         self.compute_sql = compute_sql
 
 
+# Sentinel dependency meaning "recompute on any change to the row".
+DEPENDS_ON_ANY = "*"
+
+
 def parse_computed_columns(
     field_config: dict[str, Any] | None,
     geom_column: str = "geometry",
@@ -46,6 +50,22 @@ def parse_computed_columns(
         if not entry.get("is_computed"):
             continue
         kind_name = entry.get("kind")
+        if kind_name == "formula":
+            # Formula columns carry their own expression. The expression was
+            # validated (function whitelist, column existence, no subqueries)
+            # when it was stored; parenthesize so it splices safely into a
+            # SET clause.
+            formula_sql = entry.get("formula")
+            if not formula_sql:
+                continue
+            specs.append(
+                ComputedColumnSpec(
+                    name=name,
+                    depends_on=tuple(entry.get("depends_on") or (DEPENDS_ON_ANY,)),
+                    compute_sql=f"({formula_sql})",
+                )
+            )
+            continue
         kind = COMPUTED_KIND_REGISTRY.get(kind_name) if kind_name else None
         if kind is None:
             # Unknown kind (e.g. JSONB written by a newer release).
@@ -66,7 +86,14 @@ def select_recompute_specs(
     changed_source_cols: set[str],
 ) -> list[ComputedColumnSpec]:
     """Return the subset whose dependencies overlap the changed cols."""
-    return [s for s in specs if changed_source_cols.intersection(s.depends_on)]
+    if not changed_source_cols:
+        return []
+    return [
+        s
+        for s in specs
+        if DEPENDS_ON_ANY in s.depends_on
+        or changed_source_cols.intersection(s.depends_on)
+    ]
 
 
 async def fetch_field_config(

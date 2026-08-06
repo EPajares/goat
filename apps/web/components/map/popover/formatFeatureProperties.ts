@@ -11,6 +11,8 @@ export interface LayerField {
   name: string;
   type: string;
   kind?: FieldKind;
+  /** Formula fields only — the result kind that drives formatting */
+  output_kind?: string;
   display_config?: Record<string, unknown>;
 }
 
@@ -74,8 +76,9 @@ export function formatFeatureProperties(
       byColumn[k] = out;
       continue;
     }
+    const rawKind = f.kind === "formula" ? (f.output_kind ?? "string") : f.kind;
     const kind: FieldKind =
-      (f.kind as FieldKind) ?? (f.type === "number" ? "number" : "string");
+      (rawKind as FieldKind) ?? (f.type === "number" ? "number" : "string");
     // Coerce numeric strings back to a number so kind-aware formatting applies.
     const numericValue =
       f.type === "number" && !isNaN(Number(v)) ? Number(v) : v;
